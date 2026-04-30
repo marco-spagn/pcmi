@@ -1,0 +1,5 @@
+[project]
+name = "pcmi"
+version = "1.0.0"
+description = "PCMI Python SDK"
+dependencies = ["httpx", "pydantic"]

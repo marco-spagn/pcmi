@@ -1,0 +1,23 @@
+version: '3.9'
+services:
+  postgres:
+    image: ankane/pgvector:16
+    environment:
+      POSTGRES_DB: pcmi
+      POSTGRES_USER: pcmi
+      POSTGRES_PASSWORD: pcmi
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+    ports: ["5432:5432"]
+
+  api:
+    build: .
+    depends_on: [postgres]
+    ports: ["8000:8000"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      API_KEY: ${API_KEY}
+
+volumes:
+  postgres_data:

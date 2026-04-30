@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: pcmi-postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  template:
+    spec:
+      containers:
+      - name: postgres
+        image: ankane/pgvector:16
+        env:
+        - name: POSTGRES_DB
+          value: pcmi
+        - name: POSTGRES_USER
+          value: pcmi
+        - name: POSTGRES_PASSWORD
+          value: pcmi

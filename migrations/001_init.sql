@@ -21,7 +21,7 @@ CREATE TABLE agents (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 3. Memory Entries (append-only, temporal, hierarchical)
+-- 3. Memory Entries (embedding nullable)
 CREATE TABLE memory_entries (
     id BIGSERIAL PRIMARY KEY,
     tenant_id UUID NOT NULL REFERENCES tenants(id),
@@ -34,7 +34,7 @@ CREATE TABLE memory_entries (
     version INTEGER NOT NULL DEFAULT 1,
     valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     valid_to TIMESTAMPTZ,
-    source_agent_id UUID REFERENCES agents(id),
+    source_agent_id UUID,
     source_event_id UUID,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -62,7 +62,7 @@ CREATE TABLE events (
     agent_id UUID REFERENCES agents(id)
 );
 
--- 6. Roles (RBAC)
+-- 6. Roles
 CREATE TABLE roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID,
@@ -70,7 +70,7 @@ CREATE TABLE roles (
     permissions JSONB
 );
 
--- Indexes (performance critical)
+-- Indexes
 CREATE INDEX idx_memories_tenant_path ON memory_entries (tenant_id, path);
 CREATE INDEX idx_memories_path_gist ON memory_entries USING GIST (path);
 CREATE INDEX idx_memories_embedding_hnsw ON memory_entries USING hnsw (embedding vector_cosine_ops);
@@ -78,6 +78,10 @@ CREATE INDEX idx_memories_valid_time ON memory_entries (valid_from, valid_to);
 CREATE INDEX idx_events_type_time ON events (event_type, timestamp);
 CREATE INDEX idx_distilled_path ON distilled_knowledge USING GIST (path);
 
--- Current view
 CREATE VIEW current_memories AS
 SELECT * FROM memory_entries WHERE valid_to IS NULL;
+
+-- ==================== DEFAULT TENANT (FIX FK) ====================
+INSERT INTO tenants (id, slug, name)
+VALUES ('00000000-0000-0000-0000-000000000000', 'default', 'Default Tenant')
+ON CONFLICT (id) DO NOTHING;

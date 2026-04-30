@@ -1,7 +1,7 @@
-version: '3.9'
 services:
   postgres:
-    image: ankane/pgvector:16
+    image: pgvector/pgvector:pg16          # ← IMMAGINE UFFICIALE CORRETTA
+    container_name: pcmi-postgres
     environment:
       POSTGRES_DB: pcmi
       POSTGRES_USER: pcmi
@@ -9,15 +9,26 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
-    ports: ["5432:5432"]
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcmi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build: .
-    depends_on: [postgres]
-    ports: ["8000:8000"]
+    container_name: pcmi-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      API_KEY: ${API_KEY}
+      DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
+      API_PORT: 8000
+    restart: unless-stopped
 
 volumes:
   postgres_data:

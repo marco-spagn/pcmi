@@ -6,45 +6,41 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/pgvector/pgvector-go"
-	// TODO: sostituire con adapter reale (OpenAI, Voyage, Ollama, ecc.)
 )
 
 type EmbeddingWorker struct {
-	db *pgxpool.Pool
+	db       *pgxpool.Pool
+	provider embedding.Provider
 }
 
-func NewEmbeddingWorker(db *pgxpool.Pool) *EmbeddingWorker {
-	return &EmbeddingWorker{db: db}
+func NewEmbeddingWorker(db *pgxpool.Pool, provider embedding.Provider) *EmbeddingWorker {
+	return &EmbeddingWorker{db: db, provider: provider}
 }
 
 func (w *EmbeddingWorker) Start(ctx context.Context) {
-	log.Println("🚀 Embedding Background Worker started")
+	log.Println("🚀 Real Embedding Background Worker started")
 
-	ticker := time.NewTicker(30 * time.Second) // ogni 30 secondi
+	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Embedding worker stopped")
 			return
 		case <-ticker.C:
-			w.processPendingEmbeddings()
+			w.processPending()
 		}
 	}
 }
 
-func (w *EmbeddingWorker) processPendingEmbeddings() {
-	query := `
-		SELECT id, content 
-		FROM memory_entries 
-		WHERE embedding IS NULL 
-		LIMIT 10`
+func (w *EmbeddingWorker) processPending() {
+	query := `SELECT id, content FROM memory_entries WHERE embedding IS NULL LIMIT 5`
 
 	rows, err := w.db.Query(context.Background(), query)
 	if err != nil {
-		log.Printf("embedding worker error: %v", err)
+		log.Printf("embedding query error: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -56,18 +52,17 @@ func (w *EmbeddingWorker) processPendingEmbeddings() {
 			continue
 		}
 
-		// TODO: chiamare modello embedding reale
-		// Per ora simuliamo un vettore (da sostituire)
-		fakeEmbedding := make([]float32, 1536)
-		for i := range fakeEmbedding {
-			fakeEmbedding[i] = 0.1 // placeholder
+		emb, err := w.provider.Generate(context.Background(), content)
+		if err != nil {
+			log.Printf("failed to generate embedding for id %d: %v", id, err)
+			continue
 		}
 
-		update := `UPDATE memory_entries SET embedding = $1 WHERE id = $2`
-		_, err := w.db.Exec(context.Background(), update, pgvector.NewVector(fakeEmbedding), id)
-		if err != nil {
-			log.Printf("failed to update embedding for id %d: %v", id, err)
-		} else {
+		_, err = w.db.Exec(context.Background(),
+			`UPDATE memory_entries SET embedding = $1 WHERE id = $2`,
+			pgvector.NewVector(emb), id)
+
+		if err == nil {
 			log.Printf("✅ Embedding generato per memory id %d", id)
 		}
 	}

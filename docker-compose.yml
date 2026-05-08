@@ -29,6 +29,16 @@ services:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       API_PORT: 8000
     restart: unless-stopped
+  worker:
+    build: .
+    container_name: pcmi-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
+    command: ["./pcmi-worker"]
+    restart: unless-stopped
 
 volumes:
   postgres_data:

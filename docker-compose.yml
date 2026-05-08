@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16          # ← IMMAGINE UFFICIALE CORRETTA
+    image: pgvector/pgvector:pg16         
     container_name: pcmi-postgres
     environment:
       POSTGRES_DB: pcmi

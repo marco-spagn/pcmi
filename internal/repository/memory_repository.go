@@ -53,7 +53,8 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		limit = 10
 	}
 
-	// Hybrid query: ltree + semantic (quando embedding presente)
+	// Hybrid Retrieval (ltree + temporal)
+	// TODO v1.2: aggiungere cosine similarity quando embedding è presente
 	query := `
 		SELECT id, tenant_id, path, content, metadata, tags, embedding,
 		       embedding_model, version, valid_from, valid_to, source_agent_id, created_at
@@ -61,24 +62,13 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		WHERE tenant_id = $1
 		  AND path <@ $2::ltree
 		  AND (valid_to IS NULL OR valid_to > $3)
-		ORDER BY 
-			CASE 
-				WHEN embedding IS NOT NULL AND $4 IS NOT NULL 
-				THEN embedding <=> $4 
-				ELSE NULL 
-			END,
-			created_at DESC
-		LIMIT $5`
-
-	// Per ora passiamo un vettore vuoto (placeholder).
-	// Nella prossima iterazione passeremo l'embedding della query
-	var queryEmbedding pgvector.Vector
+		ORDER BY created_at DESC
+		LIMIT $4`
 
 	rows, err := r.db.Query(ctx, query,
 		req.TenantID,
 		req.PathPrefix,
 		req.AsOf,
-		queryEmbedding,
 		limit,
 	)
 	if err != nil {

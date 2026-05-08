@@ -20,7 +20,7 @@ func NewEmbeddingWorker(db *pgxpool.Pool, provider embedding.Provider) *Embeddin
 }
 
 func (w *EmbeddingWorker) Start(ctx context.Context) {
-	log.Println("🚀 Real Embedding Background Worker started")
+	log.Println("🚀 Real OpenAI Embedding Background Worker started")
 
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
@@ -28,19 +28,20 @@ func (w *EmbeddingWorker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Println("🛑 Embedding worker stopped")
 			return
 		case <-ticker.C:
-			w.processPending()
+			w.processPendingEmbeddings()
 		}
 	}
 }
 
-func (w *EmbeddingWorker) processPending() {
+func (w *EmbeddingWorker) processPendingEmbeddings() {
 	query := `SELECT id, content FROM memory_entries WHERE embedding IS NULL LIMIT 5`
 
 	rows, err := w.db.Query(context.Background(), query)
 	if err != nil {
-		log.Printf("embedding query error: %v", err)
+		log.Printf("embedding worker query error: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -63,7 +64,9 @@ func (w *EmbeddingWorker) processPending() {
 			pgvector.NewVector(emb), id)
 
 		if err == nil {
-			log.Printf("✅ Embedding generato per memory id %d", id)
+			log.Printf("✅ Embedding generato e salvato per memory id %d", id)
+		} else {
+			log.Printf("failed to update embedding for id %d: %v", id, err)
 		}
 	}
 }

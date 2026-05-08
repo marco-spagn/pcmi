@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: pgvector/pgvector:pg16         
+    image: pgvector/pgvector:pg16
     container_name: pcmi-postgres
     environment:
       POSTGRES_DB: pcmi
@@ -25,16 +25,20 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
-      API_PORT: 8000
     restart: unless-stopped
+
   worker:
     build: .
     container_name: pcmi-worker
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
     command: ["./pcmi-worker"]

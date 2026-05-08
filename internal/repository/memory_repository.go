@@ -53,6 +53,7 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		limit = 10
 	}
 
+	// Hybrid query: ltree + semantic (quando embedding presente)
 	query := `
 		SELECT id, tenant_id, path, content, metadata, tags, embedding,
 		       embedding_model, version, valid_from, valid_to, source_agent_id, created_at
@@ -60,10 +61,26 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		WHERE tenant_id = $1
 		  AND path <@ $2::ltree
 		  AND (valid_to IS NULL OR valid_to > $3)
-		ORDER BY created_at DESC
-		LIMIT $4`
+		ORDER BY 
+			CASE 
+				WHEN embedding IS NOT NULL AND $4 IS NOT NULL 
+				THEN embedding <=> $4 
+				ELSE NULL 
+			END,
+			created_at DESC
+		LIMIT $5`
 
-	rows, err := r.db.Query(ctx, query, req.TenantID, req.PathPrefix, req.AsOf, limit)
+	// Per ora passiamo un vettore vuoto (placeholder).
+	// Nella prossima iterazione passeremo l'embedding della query
+	var queryEmbedding pgvector.Vector
+
+	rows, err := r.db.Query(ctx, query,
+		req.TenantID,
+		req.PathPrefix,
+		req.AsOf,
+		queryEmbedding,
+		limit,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}
@@ -72,12 +89,12 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	var entries []model.MemoryEntry
 	for rows.Next() {
 		var e model.MemoryEntry
-		var emb *pgvector.Vector // puntatore per NULL
+		var emb *pgvector.Vector
 
 		if err := rows.Scan(
 			&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
 			&emb, &e.EmbeddingModel, &e.Version, &e.ValidFrom, &e.ValidTo,
-			&e.SourceAgentID, &e.CreatedAt, // ← SourceAgentID è ora *string
+			&e.SourceAgentID, &e.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -85,7 +102,6 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		if emb != nil {
 			e.Embedding = emb.Slice()
 		}
-
 		entries = append(entries, e)
 	}
 	return entries, nil

@@ -1,0 +1,51 @@
+# ====================== ENVIRONMENT & SECRETS ======================
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# ====================== GO BUILD & RUNTIME ======================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace
+go.work
+go.work.sum
+
+# ====================== DOCKER & CONTAINERS ======================
+docker-compose.override.yml
+*.log
+**/.dockerignore
+
+# Volumes (non committare dati locali)
+postgres_data/
+pcmi_postgres_data/
+
+# ====================== IDE & EDITOR ======================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ====================== LOGS & TEMP ======================
+*.log
+logs/
+tmp/
+temp/
+
+# ====================== TEST & COVERAGE ======================
+coverage.out
+coverage.html
+
+# ====================== PCMI SPECIFIC ======================
+# (lascia vuoto per ora – possiamo aggiungere regole specifiche in futuro)

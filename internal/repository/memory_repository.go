@@ -53,12 +53,13 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		limit = 10
 	}
 
+	// Versione stabile con cast a text (funziona con tutti i path)
 	query := `
 		SELECT id, tenant_id, path, content, metadata, tags, embedding,
 		       embedding_model, version, valid_from, valid_to, source_agent_id, created_at
 		FROM memory_entries
 		WHERE tenant_id = $1
-		  AND path <@ $2::ltree
+		  AND path::text LIKE $2 || '%'
 		  AND (valid_to IS NULL OR valid_to > $3)
 		ORDER BY created_at DESC
 		LIMIT $4`

@@ -17,15 +17,11 @@ func main() {
 	cfg := config.Load()
 	db := database.New(cfg.DatabaseURL)
 
-	// Provider OpenAI reale
 	openAIKey := os.Getenv("OPENAI_API_KEY")
-	if openAIKey == "" {
-		log.Fatal("OPENAI_API_KEY non trovata nell'ambiente")
-	}
-
 	provider := embedding.NewOpenAIProvider(openAIKey, "text-embedding-3-large")
 
 	embeddingWorker := worker.NewEmbeddingWorker(db, provider)
+	distillationWorker := worker.NewDistillationWorker(db)
 
 	log.Println("🚀 PCMI Worker started (Embedding + Distillation)")
 
@@ -33,6 +29,7 @@ func main() {
 	defer cancel()
 
 	go embeddingWorker.Start(ctx)
+	go distillationWorker.Start(ctx)
 
 	<-ctx.Done()
 	log.Println("🛑 PCMI Worker shutting down")

@@ -39,18 +39,6 @@ CREATE TABLE memory_entries (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. Distilled Knowledge
-CREATE TABLE distilled_knowledge (
-    id BIGSERIAL PRIMARY KEY,
-    tenant_id UUID NOT NULL REFERENCES tenants(id),
-    path LTREE NOT NULL,
-    summary TEXT NOT NULL,
-    insights JSONB NOT NULL,
-    confidence_score FLOAT,
-    distilled_at TIMESTAMPTZ DEFAULT NOW(),
-    source_entry_ids BIGINT[] NOT NULL,
-    distillation_job_id UUID
-);
 
 -- 5. Events
 CREATE TABLE events (
@@ -76,7 +64,7 @@ CREATE INDEX idx_memories_path_gist ON memory_entries USING GIST (path);
 CREATE INDEX idx_memories_embedding_hnsw ON memory_entries USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX idx_memories_valid_time ON memory_entries (valid_from, valid_to);
 CREATE INDEX idx_events_type_time ON events (event_type, timestamp);
-CREATE INDEX idx_distilled_path ON distilled_knowledge USING GIST (path);
+
 
 CREATE VIEW current_memories AS
 SELECT * FROM memory_entries WHERE valid_to IS NULL;
@@ -85,3 +73,18 @@ SELECT * FROM memory_entries WHERE valid_to IS NULL;
 INSERT INTO tenants (id, slug, name)
 VALUES ('00000000-0000-0000-0000-000000000000', 'default', 'Default Tenant')
 ON CONFLICT (id) DO NOTHING;
+
+-- Distilled Knowledge (conoscenza di ordine superiore)
+CREATE TABLE IF NOT EXISTS distilled_knowledge (
+    id BIGSERIAL PRIMARY KEY,
+    tenant_id UUID NOT NULL REFERENCES tenants(id),
+    path LTREE NOT NULL,
+    summary TEXT NOT NULL,
+    insights JSONB NOT NULL DEFAULT '[]',
+    confidence_score FLOAT,
+    distilled_at TIMESTAMPTZ DEFAULT NOW(),
+    source_entry_ids BIGINT[] NOT NULL,
+    distillation_job_id UUID
+);
+
+CREATE INDEX IF NOT EXISTS idx_distilled_path ON distilled_knowledge USING GIST (path);

@@ -19,7 +19,7 @@ func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 func (w *DistillationWorker) Start(ctx context.Context) {
 	log.Println("🚀 Distillation Engine started – raffinamento automatico conoscenza")
 
-	ticker := time.NewTicker(60 * time.Second) // ogni 60 secondi
+	ticker := time.NewTicker(45 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -36,24 +36,23 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 func (w *DistillationWorker) runDistillationJob() {
 	log.Println("🔄 Avvio job di distillation su subtree root.test...")
 
-	// TODO v1.2: qui chiameremo un LLM per generare summary + insights
-	// Per ora logghiamo solo i record da distillare
-	query := `
-		SELECT COUNT(*) as total 
-		FROM memory_entries 
-		WHERE path::text LIKE 'root.test%' AND valid_to IS NULL`
-
+	// Conta i ricordi grezzi da distillare
 	var total int
-	err := w.db.QueryRow(context.Background(), query).Scan(&total)
+	err := w.db.QueryRow(context.Background(), `
+		SELECT COUNT(*) 
+		FROM memory_entries 
+		WHERE path::text LIKE 'root.test%' 
+		  AND valid_to IS NULL`).Scan(&total)
 	if err != nil {
 		log.Printf("distillation error: %v", err)
 		return
 	}
 
-	log.Printf("📊 Trovati %d ricordi grezzi da distillare sotto root.test", total)
+	log.Printf("📊 Trovati %d ricordi grezzi da distillare", total)
 
-	// In futuro qui salveremo nella tabella distilled_knowledge
-	if total > 5 {
-		log.Println("✅ Distillation simulata completata – conoscenza di ordine superiore generata")
+	if total >= 2 {
+		log.Println("🧠 Distillazione simulata completata – conoscenza di ordine superiore generata")
+		// TODO v1.2: qui verrà chiamata un LLM per generare summary + insights reali
+		// e salvare nella tabella distilled_knowledge
 	}
 }

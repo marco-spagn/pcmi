@@ -1,0 +1,50 @@
+name: PCMI v1.1 CI - Full Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .env.ci from secrets
+        run: |
+          cat > .env.ci << EOT
+          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
+          API_PORT=8000
+          EOT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and start services
+        run: docker compose --env-file .env.ci up -d --build
+
+      - name: Wait for services to be healthy
+        run: |
+          sleep 20
+          curl -f http://localhost:8000/v1/health || (echo "API not healthy" && exit 1)
+
+      - name: Run PCMI v1.1 Final Test
+        run: |
+          chmod +x test_finale_v1.1.sh
+          ./test_finale_v1.1.sh
+
+      - name: Show worker logs on failure
+        if: failure()
+        run: docker compose logs -f worker --tail=100
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans

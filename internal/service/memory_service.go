@@ -1,54 +1,47 @@
 package service
 
 import (
-	"log"
+	"context"
+	"fmt"
 
-	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
 type MemoryService struct {
-	repo *repository.MemoryRepository
+	repo repository.MemoryRepository
 }
 
-func NewMemoryService(db *pgxpool.Pool) *MemoryService {
-	return &MemoryService{repo: repository.NewMemoryRepository(db)}
+func NewMemoryService(repo repository.MemoryRepository) *MemoryService {
+	return &MemoryService{repo: repo}
 }
 
-func (s *MemoryService) Store(c *fiber.Ctx) error {
-	var req model.StoreRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	id, err := s.repo.Store(c.Context(), req)
+// Store salva un ricordo e pubblica l'evento memory.stored (v1.2 Event-Driven)
+func (s *MemoryService) Store(ctx context.Context, m *model.Memory) (*model.Memory, error) {
+	memory, err := s.repo.Store(ctx, m)
 	if err != nil {
-		log.Printf("Store error: %v", err)
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "failed to store memory",
-			"details": err.Error(),
-		})
+		return nil, fmt.Errorf("store failed: %w", err)
 	}
 
-	return c.JSON(fiber.Map{"status": "stored", "id": id})
-}
-
-func (s *MemoryService) Retrieve(c *fiber.Ctx) error {
-	var req model.RetrieveRequest
-	if err := c.BodyParser(&req); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	entries, err := s.repo.Retrieve(c.Context(), req)
-	if err != nil {
-		log.Printf("Retrieve error: %v", err)
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-	}
-
-	return c.JSON(model.RetrieveResponse{
-		Entries: entries,
-		Total:   len(entries),
+	// === v1.2 EVENT-DRIVEN: pubblica evento memory.stored ===
+	event.GlobalBus.Publish(event.Event{
+		Type: "memory.stored",
+		Payload: map[string]any{
+			"id":        memory.ID,
+			"tenant_id": memory.TenantID,
+			"path":      memory.Path,
+		},
 	})
+
+	return memory, nil
+}
+
+// Retrieve delega al repository
+func (s *MemoryService) Retrieve(ctx context.Context, query *model.RetrieveQuery) (*model.RetrieveResult, error) {
+	result, err := s.repo.Retrieve(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("retrieve failed: %w", err)
+	}
+	return result, nil
 }

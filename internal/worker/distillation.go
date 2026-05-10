@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -15,24 +16,26 @@ type DistillationWorker struct {
 	db        *pgxpool.Pool
 	openai    *openai.Client
 	modelName string
+	eventCh   <-chan event.Event
 }
 
 func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		log.Println("⚠️  OPENAI_API_KEY non trovata – distillation userà modalità simulata")
+		log.Println("⚠️  OPENAI_API_KEY non trovata – distillation in modalità simulata")
 	}
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
 		modelName: "gpt-4o-mini",
+		eventCh:   event.GlobalBus.Subscribe("memory.stored"),
 	}
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Println("🚀 Distillation Engine started – raffinamento automatico conoscenza")
+	log.Println("🚀 Distillation Engine v1.2 started – EVENT-DRIVEN + fallback timer")
 
-	ticker := time.NewTicker(45 * time.Second)
+	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
 	for {
@@ -40,7 +43,17 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 		case <-ctx.Done():
 			log.Println("🛑 Distillation worker stopped")
 			return
+
+		// EVENT-DRIVEN: reazione immediata a ogni memory.stored
+		case evt := <-w.eventCh:
+			if evt.Type == "memory.stored" {
+				log.Printf("📨 Evento ricevuto: memory.stored (id=%v) – avvio distillazione immediata", evt.Payload["id"])
+				w.runDistillationJob()
+			}
+
+		// FALLBACK TIMER (backup)
 		case <-ticker.C:
+			log.Println("⏰ Fallback timer: avvio distillazione periodica")
 			w.runDistillationJob()
 		}
 	}
@@ -49,7 +62,7 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 func (w *DistillationWorker) runDistillationJob() {
 	log.Println("🔄 Avvio job di distillation su subtree root.test...")
 
-	// Recupera ricordi grezzi
+	// Recupera gli ultimi ricordi grezzi
 	rows, err := w.db.Query(context.Background(), `
 		SELECT id, content, metadata 
 		FROM memory_entries 
@@ -57,7 +70,7 @@ func (w *DistillationWorker) runDistillationJob() {
 		  AND valid_to IS NULL 
 		ORDER BY created_at DESC LIMIT 10`)
 	if err != nil {
-		log.Printf("distillation query error: %v", err)
+		log.Printf("❌ distillation query error: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -97,7 +110,7 @@ func (w *DistillationWorker) runDistillationJob() {
 Genera:
 1. Un summary conciso (max 2 righe)
 2. Una lista di insights chiave come array JSON
-Formato risposta JSON:
+Rispondi SOLO con JSON valido:
 {"summary": "...", "insights": ["insight1", "insight2"]}`
 
 	var messages []openai.ChatCompletionMessage
@@ -117,7 +130,7 @@ Formato risposta JSON:
 		Messages: messages,
 	})
 	if err != nil {
-		log.Printf("LLM distillation error: %v", err)
+		log.Printf("❌ LLM distillation error: %v", err)
 		return
 	}
 
@@ -126,7 +139,7 @@ Formato risposta JSON:
 		Insights []string `json:"insights"`
 	}
 	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &result); err != nil {
-		log.Printf("JSON parse error: %v", err)
+		log.Printf("❌ JSON parse error: %v", err)
 		return
 	}
 
@@ -148,7 +161,7 @@ Formato risposta JSON:
 		sourceIDs,
 	)
 	if err != nil {
-		log.Printf("insert distilled error: %v", err)
+		log.Printf("❌ insert distilled error: %v", err)
 		return
 	}
 

@@ -17,29 +17,36 @@ func NewMemoryService(repo repository.MemoryRepository) *MemoryService {
 	return &MemoryService{repo: repo}
 }
 
-// Store salva un ricordo e pubblica l'evento memory.stored (v1.2 Event-Driven)
-func (s *MemoryService) Store(ctx context.Context, m *model.Memory) (*model.Memory, error) {
-	memory, err := s.repo.Store(ctx, m)
+// Store usa StoreRequest e pubblica l'evento (v1.2)
+func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*model.MemoryEntry, error) {
+	id, err := s.repo.Store(ctx, *req)
 	if err != nil {
 		return nil, fmt.Errorf("store failed: %w", err)
 	}
 
-	// === v1.2 EVENT-DRIVEN: pubblica evento memory.stored ===
+	// Creiamo l'entry da restituire
+	entry := &model.MemoryEntry{
+		ID:       id,
+		TenantID: req.TenantID,
+		Path:     req.Path,
+	}
+
+	// === v1.2 EVENT-DRIVEN ===
 	event.GlobalBus.Publish(event.Event{
 		Type: "memory.stored",
 		Payload: map[string]any{
-			"id":        memory.ID,
-			"tenant_id": memory.TenantID,
-			"path":      memory.Path,
+			"id":        entry.ID,
+			"tenant_id": entry.TenantID,
+			"path":      entry.Path,
 		},
 	})
 
-	return memory, nil
+	return entry, nil
 }
 
-// Retrieve delega al repository
-func (s *MemoryService) Retrieve(ctx context.Context, query *model.RetrieveQuery) (*model.RetrieveResult, error) {
-	result, err := s.repo.Retrieve(ctx, query)
+// Retrieve usa RetrieveRequest
+func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest) ([]model.MemoryEntry, error) {
+	result, err := s.repo.Retrieve(ctx, *req)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -17,7 +18,7 @@ func NewMemoryService(repo repository.MemoryRepository) *MemoryService {
 	return &MemoryService{repo: repo}
 }
 
-// Store usa StoreRequest e pubblica l'evento (v1.2)
+// Store (v1.2 Event-Driven)
 func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*model.MemoryEntry, error) {
 	id, err := s.repo.Store(ctx, *req)
 	if err != nil {
@@ -26,9 +27,16 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 
 	// Creiamo l'entry da restituire
 	entry := &model.MemoryEntry{
-		ID:       id,
-		TenantID: req.TenantID,
-		Path:     req.Path,
+		ID:             id,
+		TenantID:       req.TenantID,
+		Path:           req.Path,
+		Content:        req.Content,
+		Metadata:       req.Metadata,
+		Tags:           req.Tags,
+		EmbeddingModel: req.EmbeddingModel,
+		Version:        1,
+		ValidFrom:      time.Now(),
+		CreatedAt:      time.Now(),
 	}
 
 	// === v1.2 EVENT-DRIVEN ===
@@ -44,11 +52,15 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 	return entry, nil
 }
 
-// Retrieve usa RetrieveRequest
-func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest) ([]model.MemoryEntry, error) {
-	result, err := s.repo.Retrieve(ctx, *req)
+// Retrieve
+func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest) (*model.RetrieveResponse, error) {
+	entries, err := s.repo.Retrieve(ctx, *req)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}
-	return result, nil
+
+	return &model.RetrieveResponse{
+		Entries: entries,
+		Total:   len(entries),
+	}, nil
 }

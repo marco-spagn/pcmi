@@ -44,14 +44,14 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 			log.Println("🛑 Distillation worker stopped")
 			return
 
-		// EVENT-DRIVEN: reazione immediata a ogni memory.stored
+		// EVENT-DRIVEN: reazione immediata
 		case evt := <-w.eventCh:
 			if evt.Type == "memory.stored" {
-				log.Printf("📨 Evento ricevuto: memory.stored (id=%v) – avvio distillazione immediata", evt.Payload["id"])
+				log.Printf("📨 Evento ricevuto: memory.stored (id=%v) – avvio distillazione IMMEDIATA", evt.Payload["id"])
 				w.runDistillationJob()
 			}
 
-		// FALLBACK TIMER (backup)
+		// FALLBACK TIMER
 		case <-ticker.C:
 			log.Println("⏰ Fallback timer: avvio distillazione periodica")
 			w.runDistillationJob()
@@ -62,7 +62,6 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 func (w *DistillationWorker) runDistillationJob() {
 	log.Println("🔄 Avvio job di distillation su subtree root.test...")
 
-	// Recupera gli ultimi ricordi grezzi
 	rows, err := w.db.Query(context.Background(), `
 		SELECT id, content, metadata 
 		FROM memory_entries 
@@ -98,14 +97,15 @@ func (w *DistillationWorker) runDistillationJob() {
 		}{e.ID, e.Content, meta})
 	}
 
-	if len(entries) < 2 {
+	// MODIFICA PER TEST: bastano 1 ricordo (prima erano 2)
+	if len(entries) < 1 {
 		log.Printf("📊 Trovati solo %d ricordi – distillazione saltata", len(entries))
 		return
 	}
 
 	log.Printf("🧠 Distillando %d ricordi grezzi...", len(entries))
 
-	// Prompt per LLM
+	// Prompt LLM
 	prompt := `Riassumi questi ricordi in un unico insight di ordine superiore.
 Genera:
 1. Un summary conciso (max 2 righe)
@@ -143,7 +143,7 @@ Rispondi SOLO con JSON valido:
 		return
 	}
 
-	// Salva nella tabella distilled_knowledge
+	// Salva
 	sourceIDs := make([]int64, len(entries))
 	for i, e := range entries {
 		sourceIDs[i] = e.ID

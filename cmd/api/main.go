@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.5 starting...")
+	log.Println("🚀 PCMI API v1.6 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -27,11 +27,12 @@ func main() {
 	event.InitRedis("redis:6379")
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.5",
+		AppName: "PCMI API v1.6",
 	})
 
-	// API Key Authentication (obbligatoria)
+	// Middlewares
 	app.Use(middleware.APIKeyMiddleware(db))
+	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
 	// Routes
 	handler.SetupMemoryRoutes(app, db)
@@ -41,6 +42,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.5 started on port %s (API Key + RBAC enabled)", port)
+	log.Printf("✅ PCMI API v1.6 started on port %s (Audit Log + RBAC enabled)", port)
 	log.Fatal(app.Listen(":" + port))
 }

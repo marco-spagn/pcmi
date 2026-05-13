@@ -1,4 +1,4 @@
-# pcmi
+# PCMI – Persistent Cognitive Memory Infrastructure
 # Persistent Cognitive Memory Infrastructure (PCMI) – Go Edition  Memory lives outside agents. Agents are stateless
 
 PCMI is a persistent, runtime-agnostic cognitive layer for distributed AI agents.

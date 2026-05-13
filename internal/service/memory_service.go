@@ -19,14 +19,16 @@ func NewMemoryService(repo repository.MemoryRepository) *MemoryService {
 	return &MemoryService{repo: repo}
 }
 
-// Store (v1.2 Event-Driven)
 func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*model.MemoryEntry, error) {
+	log.Printf("📥 [SERVICE] Store chiamato - path: %s", req.Path)
+
 	id, err := s.repo.Store(ctx, *req)
 	if err != nil {
+		log.Printf("❌ [SERVICE] repo.Store fallito: %v", err)
 		return nil, fmt.Errorf("store failed: %w", err)
 	}
+	log.Printf("✅ [SERVICE] repo.Store OK - id: %d", id)
 
-	// Creiamo l'entry da restituire
 	entry := &model.MemoryEntry{
 		ID:             id,
 		TenantID:       req.TenantID,
@@ -41,19 +43,21 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 	}
 
 	// === v1.3 REDIS EVENT ===
+	log.Printf("📣 [REDIS] Tentativo pubblicazione per id=%d", id)
 	err = event.PublishEvent("memory.stored", map[string]any{
 		"id":        entry.ID,
 		"tenant_id": entry.TenantID,
 		"path":      entry.Path,
 	})
 	if err != nil {
-		log.Printf("⚠️ Failed to publish event to Redis: %v", err)
+		log.Printf("❌ [REDIS] ERRORE: %v", err)
+	} else {
+		log.Printf("✅ [REDIS] Pubblicato con successo")
 	}
 
 	return entry, nil
 }
 
-// Retrieve
 func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest) (*model.RetrieveResponse, error) {
 	entries, err := s.repo.Retrieve(ctx, *req)
 	if err != nil {

@@ -41,6 +41,7 @@ func main() {
 
 	// Initialize Redis
 	event.InitRedis("redis:6379")
+	log.Println("✅ Redis connesso, in attesa di eventi sul canale 'memory_events'...")
 
 	// Start distillation worker
 	distWorker := worker.NewDistillationWorker(db)
@@ -54,7 +55,7 @@ func main() {
 	go func() {
 		for evt := range redisEvents {
 			if evt.Type == "memory.stored" {
-				log.Printf("📨 [REDIS] Event received: %s (id=%v) → triggering distillation", evt.Type, evt.Payload["id"])
+				log.Printf("📨 [REDIS] Event received: id=%v → triggering distillation", evt.Payload["id"])
 				distWorker.TriggerImmediateDistillation()
 			}
 		}

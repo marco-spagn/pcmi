@@ -5,8 +5,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const TenantContextKey = "tenant_id"
-
 func TenantMiddleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		tenantIDStr := c.Get("X-Tenant-ID")

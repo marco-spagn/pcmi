@@ -15,7 +15,9 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	svc := service.NewMemoryService(*repo)
 
 	api := app.Group("/v1")
-	api.Use(middleware.TenantMiddleware())
+
+	// Solo API Key middleware (tenant viene caricato automaticamente dalla chiave)
+	api.Use(middleware.APIKeyMiddleware(db))
 
 	// Store
 	api.Post("/memories", func(c *fiber.Ctx) error {
@@ -31,10 +33,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		return c.JSON(fiber.Map{
-			"id":     result.ID,
-			"status": "stored",
-		})
+		return c.JSON(fiber.Map{"id": result.ID, "status": "stored"})
 	})
 
 	// Retrieve
@@ -54,8 +53,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(result)
 	})
 
-	// Health
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.4"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.5"})
 	})
 }

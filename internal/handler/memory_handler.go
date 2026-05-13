@@ -15,8 +15,6 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	svc := service.NewMemoryService(*repo)
 
 	api := app.Group("/v1")
-
-	// Solo API Key middleware (tenant viene caricato automaticamente dalla chiave)
 	api.Use(middleware.APIKeyMiddleware(db))
 
 	// Store
@@ -53,6 +51,25 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(result)
 	})
 
+	// Distilled Knowledge
+	api.Get("/distilled", func(c *fiber.Ctx) error {
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		pathPrefix := c.Query("path_prefix")
+
+		if pathPrefix == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "path_prefix is required"})
+		}
+
+		// TODO: Implement full distilled service in v1.6
+		// For now return basic structure
+		return c.JSON(fiber.Map{
+			"entries": []interface{}{},
+			"total":   0,
+			"tenant":  tenantID,
+		})
+	})
+
+	// Health
 	api.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "version": "v1.5"})
 	})

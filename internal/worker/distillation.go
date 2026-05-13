@@ -35,7 +35,7 @@ func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 func (w *DistillationWorker) Start(ctx context.Context) {
 	log.Println("🚀 Distillation Engine v1.2 started – EVENT-DRIVEN + fallback timer")
 
-	ticker := time.NewTicker(60 * time.Second)
+	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
 
 	for {

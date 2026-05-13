@@ -32,17 +32,18 @@ services:
     restart: unless-stopped
 
   worker:
-    build: .
-    container_name: pcmi-worker
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
-    command: ["./pcmi-worker"]
-    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    command: ["./pcmi-worker"]   
 
 volumes:
   postgres_data:

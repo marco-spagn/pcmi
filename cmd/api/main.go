@@ -9,12 +9,12 @@ import (
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/handler"
+	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
 func main() {
-	log.Println("🚀 PCMI API starting...")
+	log.Println("🚀 PCMI API v1.4 starting...")
 
-	// Database
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		dbURL = "postgres://pcmi:pcmi@postgres:5432/pcmi?sslmode=disable"
@@ -26,19 +26,21 @@ func main() {
 	// Initialize Redis
 	event.InitRedis("redis:6379")
 
-	// Setup routes
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.3",
+		AppName: "PCMI API v1.4",
 	})
 
+	// Global middleware
+	app.Use(middleware.TenantMiddleware())
+
+	// Routes
 	handler.SetupMemoryRoutes(app, db)
 
-	// Start server
 	port := os.Getenv("API_PORT")
 	if port == "" {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API started on port %s", port)
+	log.Printf("✅ PCMI API started on port %s with Multi-Tenant enabled", port)
 	log.Fatal(app.Listen(":" + port))
 }

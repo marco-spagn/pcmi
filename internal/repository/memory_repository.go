@@ -6,7 +6,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/model"
-	"github.com/pgvector/pgvector-go"
 )
 
 type MemoryRepository struct {
@@ -17,59 +16,29 @@ func NewMemoryRepository(db *pgxpool.Pool) *MemoryRepository {
 	return &MemoryRepository{db: db}
 }
 
-func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest) (int64, error) {
+func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, tenantID string) (int64, error) {
 	query := `
-		INSERT INTO memory_entries (
-			tenant_id, path, content, metadata, tags, embedding, embedding_model,
-			version, valid_from, source_agent_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, 1, NOW(), $8)
+		INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, version, valid_from, created_at)
+		VALUES ($1, $2::ltree, $3, $4, $5, $6, 1, NOW(), NOW())
 		RETURNING id`
 
-	var embedding any = nil
-	if len(req.Embedding) > 0 {
-		embedding = pgvector.NewVector(req.Embedding)
-	}
-
-	var sourceAgent any = nil
-	if req.SourceAgentID != "" {
-		sourceAgent = req.SourceAgentID
-	}
-
 	var id int64
-	err := r.db.QueryRow(ctx, query,
-		req.TenantID, req.Path, req.Content, req.Metadata, req.Tags,
-		embedding, req.EmbeddingModel, sourceAgent,
-	).Scan(&id)
-
+	err := r.db.QueryRow(ctx, query, tenantID, req.Path, req.Content, req.Metadata, req.Tags, req.EmbeddingModel).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("store failed: %w", err)
 	}
 	return id, nil
 }
 
-func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveRequest) ([]model.MemoryEntry, error) {
-	limit := req.Limit
-	if limit == 0 {
-		limit = 10
-	}
-
-	// Versione stabile con cast a text (funziona con tutti i path)
+func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveRequest, tenantID string) ([]model.MemoryEntry, error) {
 	query := `
-		SELECT id, tenant_id, path, content, metadata, tags, embedding,
-		       embedding_model, version, valid_from, valid_to, source_agent_id, created_at
+		SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
+		       version, valid_from, valid_to, source_agent_id, source_event_id, created_at
 		FROM memory_entries
-		WHERE tenant_id = $1
-		  AND path::text LIKE $2 || '%'
-		  AND (valid_to IS NULL OR valid_to > $3)
-		ORDER BY created_at DESC
-		LIMIT $4`
+		WHERE tenant_id = $1 AND path <@ $2::ltree
+		ORDER BY created_at DESC LIMIT $3`
 
-	rows, err := r.db.Query(ctx, query,
-		req.TenantID,
-		req.PathPrefix,
-		req.AsOf,
-		limit,
-	)
+	rows, err := r.db.Query(ctx, query, tenantID, req.PathPrefix, req.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}
@@ -78,20 +47,11 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	var entries []model.MemoryEntry
 	for rows.Next() {
 		var e model.MemoryEntry
-		var emb *pgvector.Vector
-
-		if err := rows.Scan(
-			&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
-			&emb, &e.EmbeddingModel, &e.Version, &e.ValidFrom, &e.ValidTo,
-			&e.SourceAgentID, &e.CreatedAt,
-		); err != nil {
-			return nil, err
+		if err := rows.Scan(&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
+			&e.Embedding, &e.EmbeddingModel, &e.Version, &e.ValidFrom, &e.ValidTo,
+			&e.SourceAgentID, &e.SourceEventID, &e.CreatedAt); err == nil {
+			entries = append(entries, e)
 		}
-
-		if emb != nil {
-			e.Embedding = emb.Slice()
-		}
-		entries = append(entries, e)
 	}
 	return entries, nil
 }

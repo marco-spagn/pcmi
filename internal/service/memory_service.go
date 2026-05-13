@@ -19,19 +19,17 @@ func NewMemoryService(repo repository.MemoryRepository) *MemoryService {
 	return &MemoryService{repo: repo}
 }
 
-func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*model.MemoryEntry, error) {
-	log.Printf("📥 [SERVICE] Store chiamato - path: %s", req.Path)
+func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tenantID string) (*model.MemoryEntry, error) {
+	log.Printf("📥 [SERVICE] Store chiamato - tenant=%s, path=%s", tenantID, req.Path)
 
-	id, err := s.repo.Store(ctx, *req)
+	id, err := s.repo.Store(ctx, *req, tenantID)
 	if err != nil {
-		log.Printf("❌ [SERVICE] repo.Store fallito: %v", err)
 		return nil, fmt.Errorf("store failed: %w", err)
 	}
-	log.Printf("✅ [SERVICE] repo.Store OK - id: %d", id)
 
 	entry := &model.MemoryEntry{
 		ID:             id,
-		TenantID:       req.TenantID,
+		TenantID:       tenantID,
 		Path:           req.Path,
 		Content:        req.Content,
 		Metadata:       req.Metadata,
@@ -42,15 +40,15 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 		CreatedAt:      time.Now(),
 	}
 
-	// === v1.3 REDIS EVENT ===
-	log.Printf("📣 [REDIS] Tentativo pubblicazione per id=%d", id)
+	// v1.3 Redis Event
+	log.Printf("📣 [REDIS] Pubblicazione evento memory.stored per id=%d", id)
 	err = event.PublishEvent("memory.stored", map[string]any{
 		"id":        entry.ID,
 		"tenant_id": entry.TenantID,
 		"path":      entry.Path,
 	})
 	if err != nil {
-		log.Printf("❌ [REDIS] ERRORE: %v", err)
+		log.Printf("❌ [REDIS] ERRORE pubblicazione: %v", err)
 	} else {
 		log.Printf("✅ [REDIS] Pubblicato con successo")
 	}
@@ -58,8 +56,8 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 	return entry, nil
 }
 
-func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest) (*model.RetrieveResponse, error) {
-	entries, err := s.repo.Retrieve(ctx, *req)
+func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest, tenantID string) (*model.RetrieveResponse, error) {
+	entries, err := s.repo.Retrieve(ctx, *req, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}

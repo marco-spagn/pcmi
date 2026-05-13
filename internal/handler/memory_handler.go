@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
@@ -14,6 +15,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	svc := service.NewMemoryService(*repo)
 
 	api := app.Group("/v1")
+	api.Use(middleware.TenantMiddleware())
 
 	// Store
 	api.Post("/memories", func(c *fiber.Ctx) error {
@@ -22,7 +24,9 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		result, err := svc.Store(c.Context(), &req)
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+
+		result, err := svc.Store(c.Context(), &req, tenantID)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -40,7 +44,9 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		result, err := svc.Retrieve(c.Context(), &req)
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+
+		result, err := svc.Retrieve(c.Context(), &req, tenantID)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
@@ -50,6 +56,6 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	// Health
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.2"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.4"})
 	})
 }

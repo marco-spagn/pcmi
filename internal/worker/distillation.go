@@ -31,6 +31,10 @@ func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 		eventCh:   event.GlobalBus.Subscribe("memory.stored"),
 	}
 }
+func (w *DistillationWorker) TriggerImmediateDistillation() {
+	log.Println("⚡ Trigger immediato di distillazione richiesto")
+	w.runDistillationJob()
+}
 
 func (w *DistillationWorker) Start(ctx context.Context) {
 	log.Println("🚀 Distillation Engine v1.2 started – EVENT-DRIVEN + fallback timer")

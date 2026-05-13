@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -39,15 +40,15 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest) (*mo
 		CreatedAt:      time.Now(),
 	}
 
-	// === v1.2 EVENT-DRIVEN ===
-	event.GlobalBus.Publish(event.Event{
-		Type: "memory.stored",
-		Payload: map[string]any{
-			"id":        entry.ID,
-			"tenant_id": entry.TenantID,
-			"path":      entry.Path,
-		},
+	// === v1.3 REDIS EVENT ===
+	err = event.PublishEvent("memory.stored", map[string]any{
+		"id":        entry.ID,
+		"tenant_id": entry.TenantID,
+		"path":      entry.Path,
 	})
+	if err != nil {
+		log.Printf("⚠️ Failed to publish event to Redis: %v", err)
+	}
 
 	return entry, nil
 }

@@ -8,9 +8,9 @@ name: CI
 
 on:
   push:
-    branches: [main, pr/v1.7.0]
+    branches: [main, pr/v1.7.0, pr/v1.8.0]
   pull_request:
-    branches: [main, pr/v1.7.0]
+    branches: [main, pr/v1.7.0, pr/v1.8.0]
 
 permissions:
   contents: read
@@ -204,11 +204,16 @@ jobs:
           DISTILLATION_MODEL=gpt-4o-mini
           EOF
 
-      - name: Start stack and run smoke script
+      - name: Install test tooling
+        if: steps.openai.outputs.enabled == 'true'
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh
+          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh
           ./test_pcmi.sh
+          ./scripts/ci_e2e_sse_dedup.sh
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

@@ -464,7 +464,11 @@ jobs:
       - name: v1.14 prometheus metrics smoke
         run: |
           set -euo pipefail
-          curl -sf http://localhost:8000/metrics | grep -q pcmi_http_requests_total
+          curl -sf http://localhost:8000/health >/dev/null
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d '{"path":"root.ci.metrics","content":"m","metadata":{}}' >/dev/null
+          curl -sf http://localhost:8000/metrics | grep -qE '# HELP pcmi_(http_requests_total|memory_stores_total)'
 
       - name: v1.14 admin tenants smoke
         run: |

@@ -10,9 +10,7 @@ import (
 
 func TestRateLimitMiddlewareBlocksBurst(t *testing.T) {
 	t.Setenv("RATE_LIMIT_DISABLED", "")
-	t.Setenv("RATE_LIMIT_RPM", "60")
-	t.Setenv("RATE_LIMIT_BURST", "2")
-	rateLimitRPM = 0 // reset init
+	t.Setenv("RATE_LIMIT_RPM", "2")
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
@@ -50,7 +48,6 @@ func TestRateLimitMiddlewareBlocksBurst(t *testing.T) {
 
 func TestRateLimitDisabled(t *testing.T) {
 	t.Setenv("RATE_LIMIT_DISABLED", "true")
-	rateLimitRPM = 0
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {

@@ -24,7 +24,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	api := app.Group("/v1")
 
-	api.Post("/memories", func(c *fiber.Ctx) error {
+	api.Post("/memories", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
 		var req model.StoreRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
@@ -37,7 +37,15 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
 
-		return c.JSON(fiber.Map{"id": result.ID, "status": "stored"})
+		resp := fiber.Map{
+			"id":      result.Entry.ID,
+			"status":  "stored",
+			"version": result.Version,
+		}
+		if result.SupersededID != nil {
+			resp["superseded_id"] = *result.SupersededID
+		}
+		return c.JSON(resp)
 	})
 
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
@@ -63,6 +71,6 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	api.Get("/events", eh.Stream)
 
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.7.1"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.9.0"})
 	})
 }

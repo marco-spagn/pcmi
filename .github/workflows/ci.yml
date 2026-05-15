@@ -17,6 +17,7 @@ on:
       - pr/v1.8.0
       - pr/v1.9.0
       - pr/v1.10.0
+      - pr/v1.11.0
   pull_request:
     branches:
       - main
@@ -26,6 +27,7 @@ on:
       - pr/v1.8.0
       - pr/v1.9.0
       - pr/v1.10.0
+      - pr/v1.11.0
 
 permissions:
   contents: read
@@ -126,6 +128,8 @@ jobs:
           REDIS_ADDR: localhost:6379
           API_PORT: "8000"
           RATE_LIMIT_DISABLED: "true"
+          PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
+          PRUNE_INTERVAL_SECS: "3600"
         run: |
           go build -o bin/pcmi-api ./cmd/api
           go build -o bin/pcmi-worker ./cmd/worker
@@ -272,6 +276,110 @@ jobs:
           curl -sf "http://localhost:8000/v1/memories/history?path=${PATH_V}" \
             -H "X-API-Key: testkey123" \
             | jq -e '(.entries | length) == 2 and .entries[0].version == 2'
+
+      - name: v1.12 encrypted content smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.encrypt.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"top-secret-${SUFFIX}\",\"metadata\":{\"sensitive\":true},\"embedding_model\":\"unspecified\"}" \
+            | jq -e '.id'
+          CONTENT=$(curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_V}\",\"limit\":5}" \
+            | jq -r '.entries[0].content')
+          test "$CONTENT" = "top-secret-${SUFFIX}"
+          STORED=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
+            "SELECT content FROM memory_entries WHERE path='${PATH_V}'::ltree AND valid_to IS NULL LIMIT 1")
+          echo "$STORED" | grep -q '^enc:v1:' || { echo "expected encrypted at rest"; exit 1; }
+
+      - name: v1.12 webhook delivery smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          python3 - <<'PY' &
+          import json, threading, time
+          from http.server import BaseHTTPRequestHandler, HTTPServer
+          hits = []
+          class H(BaseHTTPRequestHandler):
+            def do_POST(self):
+              n = int(self.headers.get("Content-Length", 0))
+              hits.append(self.rfile.read(n))
+              with open("/tmp/webhook_hits.json", "w", encoding="utf-8") as f:
+                f.write(json.dumps([h.decode() for h in hits]))
+              self.send_response(200); self.end_headers()
+            def log_message(self, *a): pass
+          srv = HTTPServer(("127.0.0.1", 9876), H)
+          threading.Thread(target=srv.serve_forever, daemon=True).start()
+          while True:
+            time.sleep(1)
+          PY
+          WH_PID=$!
+          sleep 1
+          curl -sf -X POST http://localhost:8000/v1/webhooks \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d '{"url":"http://127.0.0.1:9876/hook","event_types":["memory.stored"],"secret":"ci-secret"}' \
+            | jq -e '.status == "registered"'
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"root.ci.webhook.${SUFFIX}\",\"content\":\"wh\",\"metadata\":{}}" \
+            | jq -e '.id'
+          sleep 3
+          kill "$WH_PID" 2>/dev/null || true
+          test -f /tmp/webhook_hits.json
+          python3 -c "import json; hits=json.load(open('/tmp/webhook_hits.json')); assert hits, 'no webhook delivery'; assert 'memory.stored' in hits[0]"
+
+      - name: v1.12 embedding migration smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_P="root.ci.migrate.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_P}\",\"content\":\"migrate-me\",\"metadata\":{},\"embedding_model\":\"text-embedding-3-small\"}" \
+            | jq -e '.id'
+          curl -sf -X POST http://localhost:8000/v1/embeddings/migrate \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_P}\",\"target_model\":\"text-embedding-3-large\"}" \
+            | jq -e '.marked_count >= 1'
+          PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
+            "SELECT embedding IS NULL AND embedding_model='text-embedding-3-large' FROM memory_entries WHERE path='${PATH_P}'::ltree AND valid_to IS NULL" \
+            | grep -q '^t'
+
+      - name: v1.12 distilled versioning smoke
+        run: |
+          set -euo pipefail
+          PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
+          VALUES ('00000000-0000-0000-0000-000000000000', 'root.ci.distilled.version', 'v1 summary', '[]', 0.9, ARRAY[1]::bigint[], 1);
+          INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
+          VALUES ('00000000-0000-0000-0000-000000000000', 'root.ci.distilled.version', 'v2 summary', '[]', 0.9, ARRAY[2]::bigint[], 2);
+          SQL
+          MAX_VER=$(curl -sf "http://localhost:8000/v1/distilled?path_prefix=root.ci.distilled&limit=10" \
+            -H "X-API-Key: testkey123" | jq '[.entries[].version] | max')
+          test "$MAX_VER" -ge 2
+
+      - name: v1.12 pruning function smoke
+        run: |
+          set -euo pipefail
+          PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO memory_entries (tenant_id, path, content, metadata, embedding_model, version, valid_from, valid_to)
+          VALUES ('00000000-0000-0000-0000-000000000000', 'root.ci.prune.old', 'stale', '{}', 'unspecified', 1,
+                  NOW() - interval '60 days', NOW() - interval '45 days');
+          SQL
+          PRUNED=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT prune_superseded_memories(30)")
+          test "$PRUNED" -ge 1
+          COUNT=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
+            "SELECT COUNT(*) FROM memory_entries WHERE path='root.ci.prune.old'::ltree")
+          test "$COUNT" -eq 0
 
       - name: Cross-agent scope and embedding space smoke
         run: |

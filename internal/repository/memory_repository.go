@@ -156,14 +156,8 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	hasText := qText != ""
 	hasVec := len(queryEmbedding) > 0
 
-	var agentFilter *string
-	if a := strings.TrimSpace(req.SourceAgentID); a != "" {
-		agentFilter = &a
-	}
-	var spaceFilter *string
-	if s := strings.TrimSpace(req.EmbeddingSpace); s != "" {
-		spaceFilter = &s
-	}
+	agentFilter := strings.TrimSpace(req.SourceAgentID)
+	spaceFilter := strings.TrimSpace(req.EmbeddingSpace)
 
 	selectCols := `id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at`

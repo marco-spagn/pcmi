@@ -12,7 +12,8 @@ func temporalClause(asOfParam string) string {
 }
 
 // scopeFilters adds optional cross-agent and embedding-space predicates.
+// Empty string parameters mean "no filter" (avoids untyped NULL uuid bind issues).
 func scopeFilters(agentParam, spaceParam string) string {
-	return `($` + agentParam + `::uuid IS NULL OR source_agent_id = $` + agentParam + `::uuid)
-		  AND ($` + spaceParam + ` IS NULL OR embedding_space = $` + spaceParam + `)`
+	return `($` + agentParam + ` = '' OR source_agent_id = $` + agentParam + `::uuid)
+		  AND ($` + spaceParam + ` = '' OR embedding_space = $` + spaceParam + `)`
 }

@@ -17,6 +17,9 @@ type OpenAIProvider struct {
 }
 
 func NewOpenAIProvider(apiKey, model string) Provider {
+	if model == "" {
+		model = string(openai.SmallEmbedding3)
+	}
 	return &OpenAIProvider{
 		client: openai.NewClient(apiKey),
 		model:  model,

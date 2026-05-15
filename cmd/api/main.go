@@ -5,7 +5,8 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/expfmt"
 
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
@@ -17,7 +18,6 @@ import (
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/webhook"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -56,7 +56,17 @@ func main() {
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
 	app.Get("/metrics", func(c *fiber.Ctx) error {
-		fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())(c.Context())
+		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
+		mfs, err := prometheus.DefaultGatherer.Gather()
+		if err != nil {
+			return c.Status(500).SendString(err.Error())
+		}
+		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
+		for _, mf := range mfs {
+			if err := enc.Encode(mf); err != nil {
+				return c.Status(500).SendString(err.Error())
+			}
+		}
 		return nil
 	})
 

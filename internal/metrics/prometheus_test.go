@@ -7,14 +7,24 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/valyala/fasthttp/fasthttpadaptor"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/expfmt"
 )
 
 func TestMetricsEndpointExportsPCMI(t *testing.T) {
 	app := fiber.New()
 	app.Get("/metrics", func(c *fiber.Ctx) error {
-		fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())(c.Context())
+		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
+		mfs, err := prometheus.DefaultGatherer.Gather()
+		if err != nil {
+			return err
+		}
+		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
+		for _, mf := range mfs {
+			if err := enc.Encode(mf); err != nil {
+				return err
+			}
+		}
 		return nil
 	})
 

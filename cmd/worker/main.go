@@ -65,6 +65,9 @@ func main() {
 	distWorker := worker.NewDistillationWorker(db)
 	go distWorker.Start(ctx)
 
+	pruneWorker := worker.NewPruningWorker(db)
+	go pruneWorker.Start(ctx)
+
 	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {

@@ -40,12 +40,22 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Memory links** — graph edges between paths (`POST/GET /v1/memories/links`)  
 - **Tenant stats** — `GET /v1/stats` (counts, expiring-soon)  
 - **Tag filters** on retrieve (`tags`, `tags_match`: `any` | `all`)  
-- **TTL expiry** — `expires_at` on store; background expiry worker soft-closes rows  , `docs/architecture.md`  
-- **Refine API** (`POST /v1/memories/refine`) — queue distillation for a path prefix (SDK `refine()`)  
-- **Memory links** — `POST/GET /v1/memories/links` between paths  
-- **Tenant stats** — `GET /v1/stats` (counts, expiring soon)  
-- **Tag filters** on retrieve (`tags`, `tags_match=all|any`)  
-- **Memory TTL** — optional `expires_at` on store; expiry worker soft-closes expired rows  
+- **TTL / expiry** — optional `expires_at` on store; expiry worker soft-closes expired rows append-only  
+
+## Documentazione
+
+| Documento | Contenuto |
+|-----------|-----------|
+| [docs/architecture.md](docs/architecture.md) | Principi, componenti, flussi dati |
+| [docs/CODEBASE.md](docs/CODEBASE.md) | Mappa pacchetti `internal/*`, convenzioni, ordine route e middleware |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md) | Ordine e significato delle migration SQL |
+| [docs/openapi.yaml](docs/openapi.yaml) | Contratto HTTP completo |
+| [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) | Hybrid retrieval |
+| [docs/failure-modes.md](docs/failure-modes.md), [docs/scalability.md](docs/scalability.md) | Operatività |
+| [docs/roadmap.md](docs/roadmap.md) | Evoluzione prevista |
+| [sdk/README.md](sdk/README.md) | Uso client Python/TypeScript |
+
+Godoc: ogni package in `internal/*/doc.go` espone un riassunto in `go doc ./internal/...`.
 
 ## Quick start
 
@@ -82,10 +92,12 @@ OpenAPI: `docs/openapi.yaml`
 
 ## Layout
 
-- `cmd/api` — Fiber HTTP API  
-- `cmd/worker` — embeddings + distillation + Redis subscriber  
-- `migrations` — Postgres schema (run via Docker init or your migrator)  
-- `sdk/python`, `sdk/typescript` — thin clients  
+- `cmd/api` — Fiber HTTP API, gRPC, `/metrics`  
+- `cmd/worker` — embedding, distillation, pruning, consolidation, expiry, Redis consumer  
+- `internal/` — handler, service, repository, worker, middleware, event, metrics (vedi [docs/CODEBASE.md](docs/CODEBASE.md))  
+- `migrations` — schema Postgres (ordine in [docs/MIGRATIONS.md](docs/MIGRATIONS.md))  
+- `sdk/python`, `sdk/typescript` — client (vedi [sdk/README.md](sdk/README.md))  
+- `scripts/` — test smoke/E2E per CI  
 
 ## License
 

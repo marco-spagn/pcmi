@@ -54,4 +54,4 @@ Agent → POST /v1/memories → API → Postgres (append version)
 - Kubernetes samples under `deploy/k8s/` (API, worker, config, secrets).
 - CI: `golangci-lint`, unit tests, integration-smoke (Postgres + Redis), optional OpenAI E2E.
 
-See also: `docs/failure-modes.md`, `docs/scalability.md`, `docs/openapi.yaml`.
+See also: `docs/failure-modes.md`, `docs/scalability.md`, `docs/openapi.yaml`, **`docs/CODEBASE.md`** (mappa del codice), **`docs/MIGRATIONS.md`** (SQL).

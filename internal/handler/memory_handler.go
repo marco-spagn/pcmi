@@ -175,7 +175,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		stats := db.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.15.0",
+			"version": "v1.16.0",
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

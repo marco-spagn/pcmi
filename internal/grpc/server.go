@@ -100,7 +100,7 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 }
 
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
-	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.15.0"}, nil
+	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.16.0"}, nil
 }
 
 // Start launches the gRPC server on GRPC_PORT (default 50051).

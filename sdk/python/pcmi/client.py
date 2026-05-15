@@ -177,8 +177,53 @@ class PCMIClient:
         return resp.json()
 
     async def refine(self, path_prefix: str) -> dict:
-        """Subtree distillation is asynchronous (worker); this only peeks at existing distilled rows."""
-        return await self.list_distilled(path_prefix=path_prefix, limit=1)
+        """Queue asynchronous distillation for a path prefix (worker consumes Redis event)."""
+        resp = await self.client.post(
+            "/v1/memories/refine",
+            json={"path_prefix": path_prefix},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def memory_lineage(self, path: str):
+        resp = await self.client.get("/v1/memories/lineage", params={"path": path})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def distilled_lineage(self, distilled_id: int):
+        resp = await self.client.get(f"/v1/distilled/{distilled_id}/lineage")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def create_link(
+        self,
+        from_path: str,
+        to_path: str,
+        *,
+        link_type: str = "related",
+        metadata: dict | None = None,
+    ):
+        resp = await self.client.post(
+            "/v1/memories/links",
+            json={
+                "from_path": from_path,
+                "to_path": to_path,
+                "link_type": link_type,
+                "metadata": metadata or {},
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_links(self, **params):
+        resp = await self.client.get("/v1/memories/links", params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def tenant_stats(self):
+        resp = await self.client.get("/v1/stats")
+        resp.raise_for_status()
+        return resp.json()
 
     async def subscribe(
         self,

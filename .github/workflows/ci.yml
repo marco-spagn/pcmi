@@ -131,6 +131,7 @@ jobs:
           RATE_LIMIT_DISABLED: "true"
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
           PRUNE_INTERVAL_SECS: "3600"
+          EXPIRY_INTERVAL_SECS: "2"
           WEBHOOK_MAX_ATTEMPTS: "2"
         run: |
           go build -o bin/pcmi-api ./cmd/api
@@ -418,7 +419,7 @@ jobs:
       - name: v1.13 API pool metrics smoke
         run: |
           set -euo pipefail
-          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.14.0"'
+          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.15.0"'
 
       - name: v1.14 get memory by path smoke
         run: |
@@ -481,6 +482,82 @@ jobs:
           set -euo pipefail
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true
           go run ./scripts/grpc_health_smoke.go
+
+      - name: v1.15 stats smoke
+        run: |
+          set -euo pipefail
+          curl -sf http://localhost:8000/v1/stats -H "X-API-Key: testkey123" \
+            | jq -e '.active_memories >= 1'
+
+      - name: v1.15 tag filter smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_T="root.ci.tags.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_T}\",\"content\":\"tagged\",\"metadata\":{},\"tags\":[\"soc\",\"alert\"]}"
+          curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"root.ci.tags\",\"tags\":[\"soc\"],\"tags_match\":\"any\",\"limit\":20}" \
+            | jq -e '[.entries[].path] | index("'"${PATH_T}"'") != null'
+
+      - name: v1.15 memory links smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          FROM="root.ci.link.${SUFFIX}.a"
+          TO="root.ci.link.${SUFFIX}.b"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${FROM}\",\"content\":\"a\",\"metadata\":{}}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${TO}\",\"content\":\"b\",\"metadata\":{}}"
+          curl -sf -X POST http://localhost:8000/v1/memories/links \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"from_path\":\"${FROM}\",\"to_path\":\"${TO}\",\"link_type\":\"related\"}" \
+            | jq -e '.id'
+
+      - name: v1.15 refine queue smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PREFIX="root.ci.refine.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories/refine \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PREFIX}\"}" \
+            | jq -e '.status == "queued"'
+
+      - name: v1.15 lineage smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_L="root.ci.lineage.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_L}\",\"content\":\"one\",\"metadata\":{}}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_L}\",\"content\":\"two\",\"metadata\":{}}"
+          curl -sf "http://localhost:8000/v1/memories/lineage?path=${PATH_L}" \
+            -H "X-API-Key: testkey123" \
+            | jq -e '(.versions | length) == 2'
+
+      - name: v1.15 TTL expiry smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_TTL="root.ci.ttl.${SUFFIX}"
+          EXPIRES=$(date -u -d '+3 seconds' '+%Y-%m-%dT%H:%M:%SZ')
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_TTL}\",\"content\":\"ttl\",\"metadata\":{},\"expires_at\":\"${EXPIRES}\"}"
+          sleep 4
+          PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT expire_memory_entries()" >/dev/null
+          PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
+            "SELECT COUNT(*) FROM memory_entries WHERE path='${PATH_TTL}'::ltree AND valid_to IS NULL" \
+            | grep -q '^0$'
 
       - name: v1.14 consolidation smoke
         run: |
@@ -600,12 +677,13 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_embedding.sh scripts/ci_e2e_finale.sh scripts/ci_e2e_v1_14.sh
+          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_embedding.sh scripts/ci_e2e_finale.sh scripts/ci_e2e_v1_14.sh scripts/ci_e2e_v1_15.sh
           ./test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_embedding.sh
           ./scripts/ci_e2e_finale.sh
           API_URL=http://localhost:8000 PCMI_API_KEY=testkey123 ./scripts/ci_e2e_v1_14.sh
+          API_URL=http://localhost:8000 PCMI_API_KEY=testkey123 ./scripts/ci_e2e_v1_15.sh
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

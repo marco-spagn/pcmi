@@ -214,9 +214,41 @@ export class PCMIClient {
     return res.json();
   }
 
-  /** @deprecated alias — distillation runs asynchronously in the worker */
+  /** Queue asynchronous distillation for a path prefix (worker via Redis). */
   async refine(pathPrefix: string) {
-    return this.listDistilled(pathPrefix, 1);
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/refine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({ path_prefix: pathPrefix }),
+    });
+    if (!res.ok) throw new Error(`refine failed: ${res.status}`);
+    return res.json();
+  }
+
+  async getStats() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/stats`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`getStats failed: ${res.status}`);
+    return res.json();
+  }
+
+  async createLink(fromPath: string, toPath: string, linkType = "related") {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({ from_path: fromPath, to_path: toPath, link_type: linkType }),
+    });
+    if (!res.ok) throw new Error(`createLink failed: ${res.status}`);
+    return res.json();
+  }
+
+  async memoryLineage(path: string) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/lineage`);
+    u.searchParams.set("path", path);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`memoryLineage failed: ${res.status}`);
+    return res.json();
   }
 
   /**

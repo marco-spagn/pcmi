@@ -95,8 +95,21 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	registerBatchRoutes(api, svc)
 
+	lh := NewLineageHandler(db)
+	api.Get("/memories/lineage", lh.MemoryLineage)
+
+	rfh := NewRefineHandler()
+	api.Post("/memories/refine", middleware.RequireWriteRole, rfh.Post)
+
+	lnh := NewLinksHandler(db)
+	api.Post("/memories/links", middleware.RequireWriteRole, lnh.Post)
+	api.Get("/memories/links", lnh.List)
+
+	RegisterStatsRoute(api, db)
+
 	dh := NewDistilledHandler(db)
 	api.Get("/distilled", dh.Get)
+	api.Get("/distilled/:id/lineage", lh.DistilledLineage)
 
 	eh := NewEventsHandler(db)
 	api.Get("/events/schemas", eh.ListSchemas)
@@ -161,7 +174,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		stats := db.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.14.0",
+			"version": "v1.15.0",
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

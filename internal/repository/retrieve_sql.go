@@ -17,3 +17,15 @@ func scopeFilters(agentParam, spaceParam string) string {
 	return `($` + agentParam + ` = '' OR source_agent_id = $` + agentParam + `::uuid)
 		  AND ($` + spaceParam + ` = '' OR embedding_space = $` + spaceParam + `)`
 }
+
+// tagFilters restricts rows by tag overlap (any) or containment (all).
+// tagsParam is a text[] placeholder; matchParam is '' | 'any' | 'all'.
+func tagFilters(tagsParam, matchParam string) string {
+	return `(
+		cardinality($` + tagsParam + `::text[]) = 0
+		OR (
+			($` + matchParam + ` IN ('', 'any') AND tags && $` + tagsParam + `::text[])
+			OR ($` + matchParam + ` = 'all' AND tags @> $` + tagsParam + `::text[])
+		)
+	)`
+}

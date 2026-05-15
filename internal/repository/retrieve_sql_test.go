@@ -24,3 +24,13 @@ func TestScopeFiltersOptional(t *testing.T) {
 		t.Fatal("expected embedding space filter")
 	}
 }
+
+func TestTagFiltersAnyAndAll(t *testing.T) {
+	f := tagFilters("3", "4")
+	if !strings.Contains(f, "tags &&") {
+		t.Fatal("expected overlap (any) filter")
+	}
+	if !strings.Contains(f, "tags @>") {
+		t.Fatal("expected containment (all) filter")
+	}
+}

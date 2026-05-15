@@ -35,6 +35,18 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Export/import** — tenant-scoped JSON migration (`POST /v1/memories/export`, `/import`)  
 - **Prometheus** — `GET /metrics` (no auth)  
 - Ops docs: `docs/failure-modes.md`, `docs/scalability.md`  
+- **Refine API** — `POST /v1/memories/refine` queues distillation for a path prefix (SDK `refine()`)  
+- **Memory lineage** — `GET /v1/memories/lineage`, `GET /v1/distilled/{id}/lineage`  
+- **Memory links** — graph edges between paths (`POST/GET /v1/memories/links`)  
+- **Tenant stats** — `GET /v1/stats` (counts, expiring-soon)  
+- **Tag filters** on retrieve (`tags`, `tags_match`: `any` | `all`)  
+- **TTL expiry** — `expires_at` on store; background expiry worker soft-closes rows  , `docs/architecture.md`  
+- **Refine API** (`POST /v1/memories/refine`) — queue distillation for a path prefix (SDK `refine()`)  
+- **Lineage** — `GET /v1/memories/lineage?path=...`, `GET /v1/distilled/{id}/lineage`  
+- **Memory links** — `POST/GET /v1/memories/links` between paths  
+- **Tenant stats** — `GET /v1/stats` (counts, expiring soon)  
+- **Tag filters** on retrieve (`tags`, `tags_match=all|any`)  
+- **Memory TTL** — optional `expires_at` on store; expiry worker soft-closes expired rows  
 
 ## Quick start
 

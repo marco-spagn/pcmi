@@ -41,6 +41,27 @@ func (w *DistillationWorker) TriggerForMemory(tenantID, path string) {
 	go w.runDistillationJob(tenantID, path)
 }
 
+// TriggerForPrefix runs distillation using path_prefix exactly (refine API).
+func (w *DistillationWorker) TriggerForPrefix(tenantID, pathPrefix string) {
+	go w.runDistillationJobExact(tenantID, pathPrefix)
+}
+
+func (w *DistillationWorker) runDistillationJobExact(tenantID, pathPrefix string) {
+	if tenantID == "" {
+		tenantID = "00000000-0000-0000-0000-000000000000"
+	}
+	pathPrefix = strings.TrimSpace(pathPrefix)
+	if pathPrefix == "" {
+		pathPrefix = "root"
+	}
+	w.runDistillationJobWithPrefix(tenantID, pathPrefix)
+}
+
+func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
+	pathPrefix := DistillPathPrefix(memoryPath)
+	w.runDistillationJobWithPrefix(tenantID, pathPrefix)
+}
+
 func (w *DistillationWorker) Start(ctx context.Context) {
 	log.Println("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer")
 
@@ -61,11 +82,10 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 	}
 }
 
-func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
+func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix string) {
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
-	pathPrefix := DistillPathPrefix(memoryPath)
 	distilledPath := pathPrefix + ".distilled"
 
 	ctx := context.Background()

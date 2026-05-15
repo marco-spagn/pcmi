@@ -1,12 +1,13 @@
 module github.com/marco-spagn/pcmi
 
-go 1.24
+go 1.25.0
 
 require (
 	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/pgvector/pgvector-go v0.3.0
 	github.com/redis/go-redis/v9 v9.19.0
+	golang.org/x/time v0.15.0
 )
 
 require (

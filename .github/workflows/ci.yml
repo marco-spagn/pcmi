@@ -1,47 +1,195 @@
-name: PCMI v1.1 CI - Full Test
+# PCMI CI: Go build/vet + integration smoke (no secrets) + optional OpenAI E2E.
+#
+# Optional repository secret (Settings → Secrets → Actions):
+#   OPENAI_API_KEY — enables the integration-e2e job (docker compose + embedding tests).
+# Without it, go + integration-smoke still run on every push/PR.
+
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main, pr/v1.7.0]
   pull_request:
-    branches: [ main ]
+    branches: [main, pr/v1.7.0]
+
+permissions:
+  contents: read
 
 jobs:
-  test:
+  go:
+    name: Go build, vet & test
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build all packages
+        run: go build ./...
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+  integration-smoke:
+    name: Integration smoke (Postgres + Redis)
+    runs-on: ubuntu-latest
+    needs: go
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: pcmi
+          POSTGRES_USER: pcmi
+          POSTGRES_PASSWORD: pcmi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pcmi -d pcmi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Create .env from GitHub Secrets
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client jq curl
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: pcmi
         run: |
-          cat > .env << EOT
-          OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
-          API_PORT=8000
-          EOT
+          for i in $(seq 1 30); do
+            psql -h localhost -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          for f in migrations/*.sql; do
+            echo "Applying $f"
+            psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Build and start API + worker
+        env:
+          DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
+          REDIS_ADDR: localhost:6379
+          API_PORT: "8000"
+        run: |
+          go build -o bin/pcmi-api ./cmd/api
+          go build -o bin/pcmi-worker ./cmd/worker
+          ./bin/pcmi-api > api.log 2>&1 &
+          echo $! > api.pid
+          ./bin/pcmi-worker > worker.log 2>&1 &
+          echo $! > worker.pid
+
+      - name: Wait for API health
+        run: |
+          for i in $(seq 1 45); do
+            if curl -sf http://localhost:8000/v1/health >/dev/null; then
+              echo "API healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy"
+          cat api.log || true
+          cat worker.log || true
+          exit 1
+
+      - name: Store and retrieve memory (no OpenAI)
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"root.ci.${SUFFIX}\",\"content\":\"CI smoke test\",\"embedding_model\":\"text-embedding-3-small\",\"tags\":[\"ci\"]}" \
+            | jq -e '.id'
+
+          curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d '{"path_prefix":"root.ci","limit":10}' \
+            | jq -e '.entries | length >= 1'
+
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          cat api.log 2>/dev/null || true
+          cat worker.log 2>/dev/null || true
+
+      - name: Stop processes
+        if: always()
+        run: |
+          for f in api.pid worker.pid; do
+            [ -f "$f" ] && kill "$(cat "$f")" 2>/dev/null || true
+          done
+
+  integration-e2e:
+    name: Integration E2E (docker compose + OpenAI)
+    runs-on: ubuntu-latest
+    needs: go
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: openai
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::OPENAI_API_KEY secret not set — skipping embedding E2E"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up Docker Buildx
+        if: steps.openai.outputs.enabled == 'true'
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and start services
-        run: docker compose up -d --build
-
-      - name: Wait for services healthy
+      - name: Create .env for compose
+        if: steps.openai.outputs.enabled == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          sleep 25
-          curl -f http://localhost:8000/v1/health || (echo "❌ API not healthy" && exit 1)
+          cat > .env <<EOF
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
+          REDIS_ADDR=redis:6379
+          API_PORT=8000
+          EMBEDDING_MODEL=text-embedding-3-small
+          DISTILLATION_MODEL=gpt-4o-mini
+          EOF
 
-      - name: Run PCMI v1.1 Final Test
+      - name: Start stack and run smoke script
+        if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_finale_v1.1.sh
-          ./test_finale_v1.1.sh
+          chmod +x test_pcmi.sh
+          ./test_pcmi.sh
 
-      - name: Show worker logs on failure
-        if: failure()
+      - name: Show compose logs on failure
+        if: failure() && steps.openai.outputs.enabled == 'true'
         run: docker compose logs --tail=100
 
-      - name: Cleanup
-        if: always()
+      - name: Cleanup compose
+        if: always() && steps.openai.outputs.enabled == 'true'
         run: docker compose down -v --remove-orphans

@@ -37,7 +37,7 @@ func (r *MemoryRepository) ExportMemories(ctx context.Context, tenantID, pathPre
 		ORDER BY path, version DESC
 		LIMIT $3`, embCol)
 
-	rows, err := r.db.Query(ctx, q, tenantID, path, limit)
+	rows, err := r.r.Query(ctx, q, tenantID, path, limit)
 	if err != nil {
 		return nil, fmt.Errorf("export memories: %w", err)
 	}

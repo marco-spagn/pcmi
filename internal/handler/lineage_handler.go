@@ -14,8 +14,8 @@ type LineageHandler struct {
 	repo *repository.LineageRepository
 }
 
-func NewLineageHandler(db *pgxpool.Pool) *LineageHandler {
-	return &LineageHandler{repo: repository.NewLineageRepository(db)}
+func NewLineageHandler(dbWrite, readReplica *pgxpool.Pool) *LineageHandler {
+	return &LineageHandler{repo: repository.NewLineageRepository(dbWrite, readReplica)}
 }
 
 func (h *LineageHandler) MemoryLineage(c *fiber.Ctx) error {
@@ -40,7 +40,7 @@ func (h *LineageHandler) DistilledLineage(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "id is required"})
 	}
 	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil || id <= 0 {
+	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "invalid id"})
 	}
 	tenantID := c.Locals(middleware.TenantContextKey).(string)

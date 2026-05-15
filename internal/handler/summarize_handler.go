@@ -13,9 +13,9 @@ type SummarizeHandler struct {
 	svc *service.SummarizeService
 }
 
-func NewSummarizeHandler(db *pgxpool.Pool) *SummarizeHandler {
+func NewSummarizeHandler(dbWrite, readReplica *pgxpool.Pool) *SummarizeHandler {
 	return &SummarizeHandler{
-		svc: service.NewSummarizeService(repository.NewMemoryRepository(db)),
+		svc: service.NewSummarizeService(repository.NewMemoryRepository(dbWrite, readReplica)),
 	}
 }
 

@@ -36,7 +36,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.17.0"
+		expected = "v1.18.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)

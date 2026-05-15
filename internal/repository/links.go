@@ -11,11 +11,15 @@ import (
 )
 
 type LinksRepository struct {
-	db *pgxpool.Pool
+	w *pgxpool.Pool
+	r *pgxpool.Pool
 }
 
-func NewLinksRepository(db *pgxpool.Pool) *LinksRepository {
-	return &LinksRepository{db: db}
+func NewLinksRepository(writePool, readPool *pgxpool.Pool) *LinksRepository {
+	if readPool == nil {
+		readPool = writePool
+	}
+	return &LinksRepository{w: writePool, r: readPool}
 }
 
 func (r *LinksRepository) Create(ctx context.Context, tenantID string, req model.CreateLinkRequest) (*model.MemoryLink, error) {
@@ -38,7 +42,7 @@ func (r *LinksRepository) Create(ctx context.Context, tenantID string, req model
 	}
 
 	var link model.MemoryLink
-	err = r.db.QueryRow(ctx, `
+	err = r.w.QueryRow(ctx, `
 		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
 		VALUES ($1::uuid, $2::ltree, $3::ltree, $4, $5)
 		ON CONFLICT (tenant_id, from_path, to_path, link_type)
@@ -85,7 +89,7 @@ func (r *LinksRepository) List(ctx context.Context, tenantID, fromPath, toPath, 
 	q += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d", n)
 	args = append(args, limit)
 
-	rows, err := r.db.Query(ctx, q, args...)
+	rows, err := r.r.Query(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,6 +108,6 @@ func (r *LinksRepository) List(ctx context.Context, tenantID, fromPath, toPath, 
 
 func (r *LinksRepository) Count(ctx context.Context, tenantID string) (int, error) {
 	var n int
-	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM memory_links WHERE tenant_id = $1::uuid`, tenantID).Scan(&n)
+	err := r.r.QueryRow(ctx, `SELECT COUNT(*) FROM memory_links WHERE tenant_id = $1::uuid`, tenantID).Scan(&n)
 	return n, err
 }

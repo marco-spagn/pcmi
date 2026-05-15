@@ -14,8 +14,8 @@ type LinksHandler struct {
 	repo *repository.LinksRepository
 }
 
-func NewLinksHandler(db *pgxpool.Pool) *LinksHandler {
-	return &LinksHandler{repo: repository.NewLinksRepository(db)}
+func NewLinksHandler(dbWrite, readReplica *pgxpool.Pool) *LinksHandler {
+	return &LinksHandler{repo: repository.NewLinksRepository(dbWrite, readReplica)}
 }
 
 func (h *LinksHandler) Post(c *fiber.Ctx) error {

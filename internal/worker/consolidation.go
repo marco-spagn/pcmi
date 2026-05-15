@@ -24,7 +24,7 @@ type ConsolidationWorker struct {
 }
 
 func NewConsolidationWorker(db *pgxpool.Pool) *ConsolidationWorker {
-	return &ConsolidationWorker{db: db, repo: repository.NewMemoryRepository(db)}
+	return &ConsolidationWorker{db: db, repo: repository.NewMemoryRepository(db, nil)}
 }
 
 func (w *ConsolidationWorker) Start(ctx context.Context) {

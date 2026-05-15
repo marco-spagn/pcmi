@@ -1,2 +1,2 @@
-// Package database incapsula la creazione del pool PostgreSQL (pgx) usato da API e worker.
+// Package database incapsula i pool PostgreSQL (primario e, opzionalmente, replica di lettura) via pgx.
 package database

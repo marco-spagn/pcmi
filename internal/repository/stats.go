@@ -8,16 +8,19 @@ import (
 )
 
 type StatsRepository struct {
-	db *pgxpool.Pool
+	r *pgxpool.Pool
 }
 
-func NewStatsRepository(db *pgxpool.Pool) *StatsRepository {
-	return &StatsRepository{db: db}
+func NewStatsRepository(writePool, readPool *pgxpool.Pool) *StatsRepository {
+	if readPool == nil {
+		readPool = writePool
+	}
+	return &StatsRepository{r: readPool}
 }
 
 func (r *StatsRepository) TenantStats(ctx context.Context, tenantID string) (*model.StatsResponse, error) {
 	var s model.StatsResponse
-	err := r.db.QueryRow(ctx, `
+	err := r.r.QueryRow(ctx, `
 		SELECT
 		  (SELECT COUNT(*) FROM memory_entries WHERE tenant_id = $1::uuid AND valid_to IS NULL),
 		  (SELECT COUNT(*) FROM memory_entries WHERE tenant_id = $1::uuid AND valid_to IS NOT NULL),

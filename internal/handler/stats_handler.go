@@ -7,8 +7,8 @@ import (
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
-func RegisterStatsRoute(api fiber.Router, db *pgxpool.Pool) {
-	repo := repository.NewStatsRepository(db)
+func RegisterStatsRoute(api fiber.Router, dbWrite, readReplica *pgxpool.Pool) {
+	repo := repository.NewStatsRepository(dbWrite, readReplica)
 	api.Get("/stats", func(c *fiber.Ctx) error {
 		tenantID := c.Locals(middleware.TenantContextKey).(string)
 		stats, err := repo.TenantStats(c.Context(), tenantID)

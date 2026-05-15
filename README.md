@@ -26,6 +26,8 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Webhook retry + dead-letter** queue (`GET /v1/webhooks/dead-letter`) with exponential backoff  
 - **Memory summarization** (`POST /v1/memories/summarize`) — extractive by default, LLM when `OPENAI_API_KEY` is set  
 - API/worker **connection pool metrics** on health endpoints  
+- **Read replica (federazione read-scale)** — optional `DATABASE_READ_URL` per SELECT multi-tenant su Postgres replica; vedi `docs/federation-read-replicas.md`  
+- **Celery / Temporal samples** — `examples/celery`, `examples/temporal` (HTTP verso PCMI)  
 - **Readiness** — `GET /ready`, `GET /v1/ready`, gRPC `MemoryService/Ready` (PostgreSQL + Redis ping; use for Kubernetes readiness)  
 - **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, Health, Ready alongside REST (shared service layer)  
 - **Consolidation worker** — merges ≥3 related memories under a path prefix into `{prefix}.consolidated`  
@@ -53,7 +55,8 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 | [docs/openapi.yaml](docs/openapi.yaml) | Contratto HTTP completo |
 | [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) | Hybrid retrieval |
 | [docs/failure-modes.md](docs/failure-modes.md), [docs/scalability.md](docs/scalability.md) | Operatività |
-| [docs/roadmap.md](docs/roadmap.md) | Evoluzione prevista |
+| [docs/federation-read-replicas.md](docs/federation-read-replicas.md) | Replica PG opzionale (`DATABASE_READ_URL`) per carico di lettura multi-tenant |
+| [examples/README.md](examples/README.md) | Celery e Temporal che chiamano PCMI via HTTP |
 | [sdk/README.md](sdk/README.md) | Uso client Python/TypeScript |
 
 Godoc: ogni package in `internal/*/doc.go` espone un riassunto in `go doc ./internal/...`.

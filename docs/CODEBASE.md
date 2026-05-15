@@ -6,7 +6,7 @@ Documento di orientamento per chi legge o modifica il repository: cosa fa ogni a
 
 | Percorso | Ruolo |
 |----------|--------|
-| `cmd/api/main.go` | Avvio HTTP Fiber, middleware globali, `/metrics`, `handler.RegisterReadyRoutes`, gRPC, `handler.SetupMemoryRoutes` / `SetupAdminRoutes`. |
+| `cmd/api/main.go` | Pool `database.NewPools(DATABASE_URL, DATABASE_READ_URL)`, readiness sul primario, middleware su primario, `handler.SetupMemoryRoutes(app, primary, readReplica)`; gRPC e admin sul primario. |
 | `cmd/worker/main.go` | Worker: embedding (se c’è `OPENAI_API_KEY`), distillation, pruning, consolidation, expiry, subscribe Redis. |
 
 **Ordine middleware API** (dal basso verso l’alto nel codice: prima registrato = ultimo eseguito… no, Fiber: `app.Use` order is first registered = outer): `metrics` → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
@@ -37,9 +37,9 @@ Non importare framework UI qui: solo modelli, repository, embedding.
 
 ## `internal/repository`
 
-Accesso dati PostgreSQL (`pgxpool`). Pattern: impostare tenant via `set_tenant_context` dal middleware prima delle query RLS.
+Accesso dati PostgreSQL (`pgxpool`). Pattern: impostare tenant via `set_tenant_context` dal middleware prima delle query RLS. `NewMemoryRepository(writePool, readPool)` instrada le SELECT su `readPool` quando `DATABASE_READ_URL` è impostato (replica); transazioni e `GetHistoricalVersion` usano il primario.
 
-- `memory_repository.go` — store append-only, retrieve con filtri temporali, agent, embedding space, **tag** (`tagFilters` in `retrieve_sql.go`).
+- `memory_repository.go` — store append-only, retrieve con filtri temporali, agent, embedding space, **tag** (`tagFilters` in `retrieve_sql.go`); write vs read pool come sopra.
 - `retrieve_sql.go` — clausole SQL condivise (`temporalClause`, `scopeFilters`, `tagFilters`).
 - `history.go`, `rollback.go`, `get_by_path.go` — versioni, rollback, get singolo path.
 - `export_import.go` — export/import tenant-scoped.
@@ -104,7 +104,7 @@ Struct JSON per API e persistenza; nessuna logica.
 
 ## `internal/database`
 
-Connessione pool `pgxpool`.
+- `db.go` / `pools.go` — `New(url)` per un singolo pool; `NewPools(primaryURL, readReplicaURL)` per primario + replica di lettura opzionale (`ReadOrPrimary`, `Close`).
 
 ## `migrations`
 
@@ -117,6 +117,10 @@ Client HTTP thin; vedere `sdk/README.md`.
 ## `scripts/`
 
 Smoke/E2E per CI (`ci_e2e_*.sh`, `test_pcmi.sh`, `grpc_health_smoke.go`).
+
+## `examples/`
+
+Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 
 ## Test
 

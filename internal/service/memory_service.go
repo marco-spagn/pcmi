@@ -14,7 +14,7 @@ import (
 )
 
 type MemoryService struct {
-	repo     repository.MemoryRepository
+	repo     repository.MemoryRepo
 	embedder embedding.Provider
 }
 
@@ -24,7 +24,7 @@ type StoreResult struct {
 	SupersededID *int64
 }
 
-func NewMemoryService(repo repository.MemoryRepository, embedder embedding.Provider) *MemoryService {
+func NewMemoryService(repo repository.MemoryRepo, embedder embedding.Provider) *MemoryService {
 	return &MemoryService{repo: repo, embedder: embedder}
 }
 
@@ -100,5 +100,47 @@ func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest
 	return &model.RetrieveResponse{
 		Entries: entries,
 		Total:   len(entries),
+	}, nil
+}
+
+func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest, tenantID string) (*model.RollbackResponse, error) {
+	path := strings.TrimSpace(req.Path)
+	if path == "" {
+		return nil, fmt.Errorf("path is required")
+	}
+
+	historical, err := s.repo.GetHistoricalVersion(ctx, tenantID, path, req.Version, req.AsOf)
+	if err != nil {
+		return nil, err
+	}
+
+	meta, _ := historical.Metadata.(map[string]interface{})
+	if meta == nil {
+		meta = map[string]interface{}{}
+	}
+
+	storeReq := model.StoreRequest{
+		Path:           path,
+		Content:        historical.Content,
+		Metadata:       meta,
+		Tags:           historical.Tags,
+		EmbeddingModel: historical.EmbeddingModel,
+		Embedding:      historical.Embedding,
+	}
+	if historical.SourceAgentID != nil {
+		storeReq.SourceAgentID = *historical.SourceAgentID
+	}
+
+	result, err := s.Store(ctx, &storeReq, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.RollbackResponse{
+		ID:                  result.Entry.ID,
+		Status:              "rolled_back",
+		Version:             result.Version,
+		RestoredFromVersion: historical.Version,
+		SupersededID:        result.SupersededID,
 	}, nil
 }

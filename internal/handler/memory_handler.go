@@ -2,6 +2,7 @@ package handler
 
 import (
 	"os"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +21,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
 		embed = embedding.NewOpenAIProvider(k, os.Getenv("EMBEDDING_MODEL"))
 	}
-	svc := service.NewMemoryService(*repo, embed)
+	svc := service.NewMemoryService(repo, embed)
 
 	api := app.Group("/v1")
 
@@ -48,6 +49,29 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(resp)
 	})
 
+	api.Post("/memories/rollback", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
+		var req model.RollbackRequest
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if req.Version == nil && req.AsOf == nil {
+			return c.Status(400).JSON(fiber.Map{"error": "version or as_of is required"})
+		}
+		if req.Version != nil && req.AsOf != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "provide only one of version or as_of"})
+		}
+
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		result, err := svc.Rollback(c.Context(), &req, tenantID)
+		if err != nil {
+			if strings.Contains(err.Error(), "no historical version") {
+				return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+			}
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(result)
+	})
+
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -70,7 +94,10 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	eh := NewEventsHandler()
 	api.Get("/events", eh.Stream)
 
+	ah := NewAuditHandler(db)
+	api.Get("/audit", ah.List)
+
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.9.0"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.10.0"})
 	})
 }

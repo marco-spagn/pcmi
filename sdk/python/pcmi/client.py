@@ -1,11 +1,18 @@
+import json
+from collections.abc import AsyncIterator
+from typing import Any
+
 import httpx
+
 from .models import MemoryStore, MemoryRetrieve
 
 
 class PCMIClient:
     def __init__(self, base_url: str, api_key: str):
+        self.base_url = base_url.rstrip("/")
+        self.api_key = api_key
         self.client = httpx.AsyncClient(
-            base_url=base_url.rstrip("/"),
+            base_url=self.base_url,
             headers={"X-API-Key": api_key, "Content-Type": "application/json"},
         )
 
@@ -51,6 +58,31 @@ class PCMIClient:
         """Subtree distillation is asynchronous (worker); this only peeks at existing distilled rows."""
         return await self.list_distilled(path_prefix=path_prefix, limit=1)
 
-    async def subscribe(self, _handler):
-        """Reserved for a future /v1/events stream."""
-        raise NotImplementedError("PCMI subscribe() is not implemented yet")
+    async def subscribe(
+        self,
+        *,
+        types: list[str] | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Stream events from GET /v1/events (SSE). Yields `{type, payload}` objects."""
+        params: dict[str, str] = {}
+        if types:
+            params["types"] = ",".join(types)
+        async with httpx.AsyncClient(
+            base_url=self.base_url,
+            headers={"X-API-Key": self.api_key, "Accept": "text/event-stream"},
+            timeout=None,
+        ) as stream_client:
+            async with stream_client.stream("GET", "/v1/events", params=params) as resp:
+                resp.raise_for_status()
+                buffer = ""
+                async for chunk in resp.aiter_text():
+                    buffer += chunk
+                    while "\n\n" in buffer:
+                        block, buffer = buffer.split("\n\n", 1)
+                        data = ""
+                        for line in block.split("\n"):
+                            if line.startswith("data:"):
+                                data += line[5:].lstrip()
+                        if not data:
+                            continue
+                        yield json.loads(data)

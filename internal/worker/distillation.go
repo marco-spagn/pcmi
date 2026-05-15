@@ -3,12 +3,15 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -58,26 +61,11 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 	}
 }
 
-func distillPathPrefix(path string) string {
-	path = strings.TrimSpace(path)
-	if path == "" {
-		return "root.test"
-	}
-	if strings.HasPrefix(path, "root.test") {
-		return "root.test"
-	}
-	parts := strings.Split(path, ".")
-	if len(parts) >= 2 {
-		return parts[0] + "." + parts[1]
-	}
-	return path
-}
-
 func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
-	pathPrefix := distillPathPrefix(memoryPath)
+	pathPrefix := DistillPathPrefix(memoryPath)
 	distilledPath := pathPrefix + ".distilled"
 
 	ctx := context.Background()
@@ -180,6 +168,17 @@ Return ONLY valid JSON:
 	for i, e := range entries {
 		sourceIDs[i] = e.ID
 	}
+	sourceIDs = normalizeSourceIDs(sourceIDs)
+
+	dup, err := w.hasDuplicateDistillation(ctx, tenantID, distilledPath, sourceIDs)
+	if err != nil {
+		log.Printf("❌ distillation dedup check: %v", err)
+		return
+	}
+	if dup {
+		log.Printf("⏭️  Distillation skipped (duplicate sources) path=%s tenant=%s", distilledPath, tenantID)
+		return
+	}
 
 	insightsJSON, err := json.Marshal(result.Insights)
 	if err != nil {
@@ -187,21 +186,49 @@ Return ONLY valid JSON:
 		return
 	}
 
-	_, err = w.db.Exec(ctx, `
+	var distilledID int64
+	err = w.db.QueryRow(ctx, `
 		INSERT INTO distilled_knowledge (
 			tenant_id, path, summary, insights, confidence_score, source_entry_ids
-		) VALUES ($1::uuid, $2::ltree, $3, $4::jsonb, $5, $6)`,
+		) VALUES ($1::uuid, $2::ltree, $3, $4::jsonb, $5, $6)
+		RETURNING id`,
 		tenantID,
 		distilledPath,
 		result.Summary,
 		insightsJSON,
 		0.85,
 		sourceIDs,
-	)
+	).Scan(&distilledID)
 	if err != nil {
 		log.Printf("❌ insert distilled error: %v", err)
 		return
 	}
 
-	log.Printf("✅ Distillation saved at %s (tenant=%s, sources=%d)", distilledPath, tenantID, len(sourceIDs))
+	if err := event.PublishEvent(event.EventKnowledgeDistilled, map[string]any{
+		"id":        distilledID,
+		"tenant_id": tenantID,
+		"path":      distilledPath,
+		"sources":   len(sourceIDs),
+	}); err != nil {
+		log.Printf("⚠️  distilled event publish: %v", err)
+	}
+
+	log.Printf("✅ Distillation saved id=%d at %s (tenant=%s, sources=%d)", distilledID, distilledPath, tenantID, len(sourceIDs))
+}
+
+func (w *DistillationWorker) hasDuplicateDistillation(ctx context.Context, tenantID, distilledPath string, sourceIDs []int64) (bool, error) {
+	var existingID int64
+	err := w.db.QueryRow(ctx, `
+		SELECT id FROM distilled_knowledge
+		WHERE tenant_id = $1::uuid
+		  AND path = $2::ltree
+		  AND source_entry_ids = $3::bigint[]
+		LIMIT 1`, tenantID, distilledPath, sourceIDs).Scan(&existingID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }

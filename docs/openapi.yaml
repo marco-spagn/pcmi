@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.7.0
+  version: 1.7.1
 servers:
   - url: http://localhost:8000
     description: Local
@@ -66,6 +66,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RetrieveResponse"
+  /v1/events:
+    get:
+      summary: Stream PCMI events (Server-Sent Events)
+      parameters:
+        - name: types
+          in: query
+          required: false
+          schema:
+            type: string
+            example: memory.stored,knowledge.distilled
+          description: Comma-separated event types; omit for all types visible to the tenant
+      responses:
+        "200":
+          description: text/event-stream of JSON events `{ "type": "...", "payload": { ... } }`
+          content:
+            text/event-stream:
+              schema:
+                type: string
   /v1/distilled:
     get:
       summary: List distilled knowledge under an ltree prefix

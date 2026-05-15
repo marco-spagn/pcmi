@@ -50,20 +50,38 @@ func PublishEvent(eventType string, payload map[string]any) error {
 	return nil
 }
 
-// SubscribeEvents subscribes to Redis channel
+// SubscribeEvents subscribes to Redis channel until the pubsub channel closes.
 func SubscribeEvents() <-chan Event {
-	pubsub := RedisClient.Subscribe(ctx, "memory_events")
-	ch := make(chan Event)
+	return SubscribeEventsContext(ctx)
+}
+
+// SubscribeEventsContext subscribes to Redis and stops when ctx is cancelled.
+func SubscribeEventsContext(parent context.Context) <-chan Event {
+	pubsub := RedisClient.Subscribe(parent, "memory_events")
+	ch := make(chan Event, 16)
 
 	go func() {
+		defer close(ch)
 		defer pubsub.Close()
-		for msg := range pubsub.Channel() {
-			var event Event
-			if err := json.Unmarshal([]byte(msg.Payload), &event); err != nil {
-				log.Printf("❌ Failed to unmarshal event: %v", err)
-				continue
+		for {
+			select {
+			case <-parent.Done():
+				return
+			case msg, ok := <-pubsub.Channel():
+				if !ok {
+					return
+				}
+				var evt Event
+				if err := json.Unmarshal([]byte(msg.Payload), &evt); err != nil {
+					log.Printf("❌ Failed to unmarshal event: %v", err)
+					continue
+				}
+				select {
+				case ch <- evt:
+				case <-parent.Done():
+					return
+				}
 			}
-			ch <- event
 		}
 	}()
 

@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
@@ -55,7 +55,10 @@ func main() {
 	app.Use(middleware.RateLimitMiddleware())
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		fasthttpadaptor.NewFastHTTPHandler(promhttp.Handler())(c.Context())
+		return nil
+	})
 
 	handler.SetupMemoryRoutes(app, db)
 	handler.SetupAdminRoutes(app, db)

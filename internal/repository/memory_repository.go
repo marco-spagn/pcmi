@@ -166,7 +166,6 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			  AND path <@ $2::ltree
 			  AND ` + temporal + `
 			  AND embedding IS NOT NULL
-			  AND content_tsv @@ plainto_tsquery('english', $5)
 			ORDER BY relevance_score DESC
 			LIMIT $6`
 		args = []any{tenantID, path, vec, req.AsOf, qText, limit}

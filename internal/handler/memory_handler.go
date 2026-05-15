@@ -95,6 +95,32 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	registerBatchRoutes(api, svc)
 
+	dh := NewDistilledHandler(db)
+	api.Get("/distilled", dh.Get)
+
+	eh := NewEventsHandler(db)
+	api.Get("/events/schemas", eh.ListSchemas)
+	api.Get("/events", eh.Stream)
+	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
+
+	sh := NewSummarizeHandler(db)
+	api.Post("/memories/summarize", sh.Post)
+
+	hh := NewHistoryHandler(db)
+	api.Get("/memories/history", hh.Get)
+
+	ah := NewAuditHandler(db)
+	api.Get("/audit", ah.List)
+
+	wh := NewWebhookHandler(db)
+	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)
+	api.Get("/webhooks", wh.List)
+	api.Get("/webhooks/dead-letter", wh.DeadLetter)
+
+	emh := NewEmbeddingMigrateHandler(db)
+	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
+
+	// Wildcard GET must be registered after all specific /memories/* routes (history, batch, etc.)
 	api.Get("/memories/*", func(c *fiber.Ctx) error {
 		raw := strings.TrimPrefix(c.Params("*"), "/")
 		path := strings.TrimSpace(raw)
@@ -130,31 +156,6 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		}
 		return c.JSON(entry)
 	})
-
-	dh := NewDistilledHandler(db)
-	api.Get("/distilled", dh.Get)
-
-	eh := NewEventsHandler(db)
-	api.Get("/events/schemas", eh.ListSchemas)
-	api.Get("/events", eh.Stream)
-	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
-
-	sh := NewSummarizeHandler(db)
-	api.Post("/memories/summarize", sh.Post)
-
-	hh := NewHistoryHandler(db)
-	api.Get("/memories/history", hh.Get)
-
-	ah := NewAuditHandler(db)
-	api.Get("/audit", ah.List)
-
-	wh := NewWebhookHandler(db)
-	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)
-	api.Get("/webhooks", wh.List)
-	api.Get("/webhooks/dead-letter", wh.DeadLetter)
-
-	emh := NewEmbeddingMigrateHandler(db)
-	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
 
 	api.Get("/health", func(c *fiber.Ctx) error {
 		stats := db.Stat()

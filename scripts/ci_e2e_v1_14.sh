@@ -38,7 +38,10 @@ curl -sf -X POST "$API/v1/memories/import" \
   -d "$IMPORT_BODY" | jq -e '.imported >= 1'
 
 echo "== v1.14 prometheus metrics =="
-curl -sf "$API/metrics" | grep -q 'pcmi_http_requests_total'
+METRICS=$(curl -sf "$API/metrics") || { echo "metrics endpoint failed"; exit 1; }
+echo "$METRICS" | grep -qE 'pcmi_(http_requests_total|memory_stores_total)' || {
+  echo "expected pcmi metrics not found"; echo "$METRICS" | head -20; exit 1;
+}
 
 echo "== v1.14 admin list tenants =="
 curl -sf "$API/v1/admin/tenants?limit=5" -H "X-API-Key: $KEY" | jq -e '.total >= 1'

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -33,12 +34,15 @@ func main() {
 	}
 	event.InitRedis(redisAddr)
 
-	// Health check server (port 8081)
+	// Health check server (port 8081) with DB pool metrics
 	go func() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			stats := db.Stat()
+			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"status":"healthy","service":"worker"}`))
+			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.13.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
 		log.Println("💓 Worker health endpoint started on :8081")
 		if err := http.ListenAndServe(":8081", mux); err != nil {

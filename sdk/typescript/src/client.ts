@@ -118,6 +118,36 @@ export class PCMIClient {
     return res.json();
   }
 
+  async listEventSchemas() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/events/schemas`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`listEventSchemas failed: ${res.status}`);
+    return res.json();
+  }
+
+  async summarize(pathPrefix: string, opts?: { limit?: number; style?: "brief" | "detailed" }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/summarize`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        path_prefix: pathPrefix,
+        limit: opts?.limit ?? 20,
+        style: opts?.style ?? "brief",
+      }),
+    });
+    if (!res.ok) throw new Error(`summarize failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listWebhookDeadLetter(limit = 50) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/webhooks/dead-letter`);
+    u.searchParams.set("limit", String(limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listWebhookDeadLetter failed: ${res.status}`);
+    return res.json();
+  }
+
   async listDistilled(pathPrefix: string, limit = 50) {
     const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/distilled`);
     u.searchParams.set("path_prefix", pathPrefix);

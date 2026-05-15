@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/eventschema"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
@@ -38,12 +39,21 @@ func (h *EventsHandler) Ingest(c *fiber.Ctx) error {
 	tenantID := c.Locals(middleware.TenantContextKey).(string)
 	result, err := h.ingest.Ingest(c.Context(), &req, tenantID)
 	if err != nil {
-		if strings.Contains(err.Error(), "required") {
+		if strings.Contains(err.Error(), "required") || strings.Contains(err.Error(), "missing") {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 	return c.JSON(result)
+}
+
+// ListSchemas returns the event schema registry (GET /v1/events/schemas).
+func (h *EventsHandler) ListSchemas(c *fiber.Ctx) error {
+	schemas := eventschema.List()
+	return c.JSON(fiber.Map{
+		"schemas": schemas,
+		"total":   len(schemas),
+	})
 }
 
 func parseEventTypes(raw string) map[string]struct{} {

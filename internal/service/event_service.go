@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/eventschema"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
@@ -26,6 +27,9 @@ func (s *EventService) Ingest(ctx context.Context, req *model.IngestEventRequest
 	}
 
 	payload := req.Payload
+	if err := eventschema.Validate(eventType, payload); err != nil {
+		return nil, err
+	}
 	if payload == nil {
 		payload = map[string]interface{}{}
 	}

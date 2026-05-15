@@ -22,6 +22,10 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - Embedding **migration** API (`POST /v1/embeddings/migrate`) queues re-embedding by path prefix  
 - Background **pruning** of superseded rows (`PRUNE_RETENTION_DAYS`)  
 - Kubernetes samples under `deploy/k8s/`  
+- **Event schema registry** (`GET /v1/events/schemas`) with strict payload validation on ingest  
+- **Webhook retry + dead-letter** queue (`GET /v1/webhooks/dead-letter`) with exponential backoff  
+- **Memory summarization** (`POST /v1/memories/summarize`) — extractive by default, LLM when `OPENAI_API_KEY` is set  
+- API/worker **connection pool metrics** on health endpoints  
 
 ## Quick start
 

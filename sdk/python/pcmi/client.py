@@ -112,6 +112,24 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def list_event_schemas(self):
+        resp = await self.client.get("/v1/events/schemas")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def summarize(self, path_prefix: str, limit: int = 20, style: str = "brief"):
+        resp = await self.client.post(
+            "/v1/memories/summarize",
+            json={"path_prefix": path_prefix, "limit": limit, "style": style},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_webhook_dead_letter(self, limit: int = 50):
+        resp = await self.client.get("/v1/webhooks/dead-letter", params={"limit": limit})
+        resp.raise_for_status()
+        return resp.json()
+
     async def list_distilled(self, path_prefix: str, limit: int = 50):
         resp = await self.client.get(
             "/v1/distilled",

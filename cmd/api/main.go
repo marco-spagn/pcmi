@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.12 starting...")
+	log.Println("🚀 PCMI API v1.13 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -33,7 +33,7 @@ func main() {
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.12",
+		AppName: "PCMI API v1.13",
 	})
 
 	// Middlewares
@@ -44,7 +44,7 @@ func main() {
 	// Routes
 	handler.SetupMemoryRoutes(app, db)
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.12.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.13.0"})
 	})
 
 	port := os.Getenv("API_PORT")
@@ -52,6 +52,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.12 started on port %s (webhooks, encryption, embedding migration, distilled versioning)", port)
+	log.Printf("✅ PCMI API v1.13 started on port %s (event schemas, webhook DLQ, summarize, pool metrics)", port)
 	log.Fatal(app.Listen(":" + port))
 }

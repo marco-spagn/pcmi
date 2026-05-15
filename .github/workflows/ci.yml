@@ -130,6 +130,7 @@ jobs:
           RATE_LIMIT_DISABLED: "true"
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
           PRUNE_INTERVAL_SECS: "3600"
+          WEBHOOK_MAX_ATTEMPTS: "2"
         run: |
           go build -o bin/pcmi-api ./cmd/api
           go build -o bin/pcmi-worker ./cmd/worker
@@ -330,7 +331,7 @@ jobs:
             -H "X-API-Key: testkey123" \
             -d "{\"path\":\"root.ci.webhook.${SUFFIX}\",\"content\":\"wh\",\"metadata\":{}}" \
             | jq -e '.id'
-          sleep 3
+          sleep 8
           kill "$WH_PID" 2>/dev/null || true
           test -f /tmp/webhook_hits.json
           python3 -c "import json; hits=json.load(open('/tmp/webhook_hits.json')); assert hits, 'no webhook delivery'; assert 'memory.stored' in hits[0]"
@@ -380,6 +381,69 @@ jobs:
           COUNT=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
             "SELECT COUNT(*) FROM memory_entries WHERE path='root.ci.prune.old'::ltree")
           test "$COUNT" -eq 0
+
+      - name: v1.13 event schema registry smoke
+        run: |
+          set -euo pipefail
+          curl -sf http://localhost:8000/v1/events/schemas \
+            -H "X-API-Key: testkey123" \
+            | jq -e '(.schemas | length) >= 5 and (.total >= 5)'
+
+      - name: v1.13 event schema validation smoke
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST http://localhost:8000/v1/events \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d '{"event_type":"agent.step.failed","payload":{}}')
+          test "$code" = "400"
+
+      - name: v1.13 memory summarize smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.summarize.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"Summarize me: alpha beta gamma\",\"metadata\":{}}" \
+            | jq -e '.id'
+          curl -sf -X POST http://localhost:8000/v1/memories/summarize \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_V}\",\"limit\":5,\"style\":\"brief\"}" \
+            | jq -e '.method == "extractive" and (.summary | length) > 0 and (.total >= 1)'
+
+      - name: v1.13 API pool metrics smoke
+        run: |
+          set -euo pipefail
+          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.13.0"'
+
+      - name: v1.13 webhook dead-letter smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          curl -sf -X POST http://localhost:8000/v1/webhooks \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d '{"url":"http://127.0.0.1:9/dead","event_types":["memory.stored"],"secret":""}' \
+            | jq -e '.status == "registered"'
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"root.ci.dlq.${SUFFIX}\",\"content\":\"dlq\",\"metadata\":{}}" \
+            | jq -e '.id'
+          for i in $(seq 1 30); do
+            n=$(curl -sf "http://localhost:8000/v1/webhooks/dead-letter?limit=10" \
+              -H "X-API-Key: testkey123" | jq '.total')
+            if [ "${n:-0}" -ge 1 ]; then
+              echo "dead-letter count=${n}"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "no dead-letter deliveries"
+          exit 1
 
       - name: Cross-agent scope and embedding space smoke
         run: |
@@ -458,9 +522,11 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh
+          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_embedding.sh scripts/ci_e2e_finale.sh
           ./test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
+          ./scripts/ci_e2e_embedding.sh
+          ./scripts/ci_e2e_finale.sh
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

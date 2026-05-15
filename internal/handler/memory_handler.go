@@ -92,8 +92,12 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	api.Get("/distilled", dh.Get)
 
 	eh := NewEventsHandler(db)
+	api.Get("/events/schemas", eh.ListSchemas)
 	api.Get("/events", eh.Stream)
 	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
+
+	sh := NewSummarizeHandler(db)
+	api.Post("/memories/summarize", sh.Post)
 
 	hh := NewHistoryHandler(db)
 	api.Get("/memories/history", hh.Get)
@@ -104,11 +108,21 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	wh := NewWebhookHandler(db)
 	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)
 	api.Get("/webhooks", wh.List)
+	api.Get("/webhooks/dead-letter", wh.DeadLetter)
 
 	emh := NewEmbeddingMigrateHandler(db)
 	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
 
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.12.0"})
+		stats := db.Stat()
+		return c.JSON(fiber.Map{
+			"status":  "ok",
+			"version": "v1.13.0",
+			"pool": fiber.Map{
+				"total_conns":    stats.TotalConns(),
+				"idle_conns":     stats.IdleConns(),
+				"acquired_conns": stats.AcquiredConns(),
+			},
+		})
 	})
 }

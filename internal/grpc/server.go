@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
+	"github.com/marco-spagn/pcmi/internal/event"
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/service"
@@ -100,7 +101,22 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 }
 
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
-	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.16.0"}, nil
+	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.17.0"}, nil
+}
+
+func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmiv1.ReadyResponse, error) {
+	dbOK := s.db.Ping(ctx) == nil
+	redisOK := event.RedisClient != nil && event.RedisClient.Ping(ctx).Err() == nil
+	st := "not_ready"
+	if dbOK && redisOK {
+		st = "ready"
+	}
+	return &pcmiv1.ReadyResponse{
+		Status:      st,
+		DatabaseOk:  dbOK,
+		RedisOk:     redisOK,
+		Version:     "v1.17.0",
+	}, nil
 }
 
 // Start launches the gRPC server on GRPC_PORT (default 50051).
@@ -117,7 +133,7 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 	srv := grpc.NewServer()
 	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{svc: memSvc, db: db})
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (Store/Retrieve/Health)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (Store/Retrieve/Health/Ready)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

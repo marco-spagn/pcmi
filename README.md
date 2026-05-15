@@ -26,7 +26,8 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Webhook retry + dead-letter** queue (`GET /v1/webhooks/dead-letter`) with exponential backoff  
 - **Memory summarization** (`POST /v1/memories/summarize`) — extractive by default, LLM when `OPENAI_API_KEY` is set  
 - API/worker **connection pool metrics** on health endpoints  
-- **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, Health alongside REST (shared service layer)  
+- **Readiness** — `GET /ready`, `GET /v1/ready`, gRPC `MemoryService/Ready` (PostgreSQL + Redis ping; use for Kubernetes readiness)  
+- **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, Health, Ready alongside REST (shared service layer)  
 - **Consolidation worker** — merges ≥3 related memories under a path prefix into `{prefix}.consolidated`  
 - **BM25-tuned hybrid** — `pcmi_bm25_rank` + `websearch_to_tsquery` for improved keyword leg  
 - **Multi-tenant admin API** — `GET/POST /v1/admin/tenants`, API key create/rotate (`admin` role)  

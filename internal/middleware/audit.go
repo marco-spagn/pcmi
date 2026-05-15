@@ -21,8 +21,7 @@ func (m *AuditMiddleware) Middleware() fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		start := time.Now()
 
-		p := c.Path()
-		if c.Method() == fiber.MethodGet && (p == "/health" || p == "/v1/health" || p == "/metrics") {
+		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
 			return c.Next()
 		}
 

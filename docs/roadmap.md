@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.16.0 (current)
+## v1.17.0 (current)
+
+- **Readiness**: `GET /ready`, `GET /v1/ready` (HTTP) e RPC `pcmi.v1.MemoryService/Ready` — ping PostgreSQL + Redis; 503 / `not_ready` se una dipendenza non risponde. Kubernetes sample usa `/v1/ready` per `readinessProbe`.
+- Versione API `v1.17.0` allineata su health REST/gRPC, worker e CI.
+
+## v1.16.0
 
 - Documentazione centralizzata: `docs/CODEBASE.md`, `docs/MIGRATIONS.md`, Godoc (`internal/*/doc.go`), `sdk/README.md`
 - Indice documentazione in README e allineamento versione API `v1.16.0`

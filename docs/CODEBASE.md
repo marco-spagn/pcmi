@@ -6,10 +6,10 @@ Documento di orientamento per chi legge o modifica il repository: cosa fa ogni a
 
 | Percorso | Ruolo |
 |----------|--------|
-| `cmd/api/main.go` | Avvio HTTP Fiber, middleware globali, `/metrics`, gRPC, `handler.SetupMemoryRoutes` / `SetupAdminRoutes`. |
+| `cmd/api/main.go` | Avvio HTTP Fiber, middleware globali, `/metrics`, `handler.RegisterReadyRoutes`, gRPC, `handler.SetupMemoryRoutes` / `SetupAdminRoutes`. |
 | `cmd/worker/main.go` | Worker: embedding (se c’è `OPENAI_API_KEY`), distillation, pruning, consolidation, expiry, subscribe Redis. |
 
-**Ordine middleware API** (dal basso verso l’alto nel codice: prima registrato = ultimo eseguito… no, Fiber: `app.Use` order is first registered = outer): `metrics` → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le route `/health`, `/v1/health`, `/metrics` bypassano chiave nei middleware che lo prevedono.
+**Ordine middleware API** (dal basso verso l’alto nel codice: prima registrato = ultimo eseguito… no, Fiber: `app.Use` order is first registered = outer): `metrics` → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 
 **Registrazione route**: in `memory_handler.go` le route specifiche (`/memories/history`, batch, lineage sotto `/lineage/*`) vanno **prima** del wildcard `GET /memories/*` per evitare che Fiber catturi segmenti come nomi di path.
 
@@ -24,6 +24,7 @@ HTTP handlers Fiber; leggono tenant da `middleware.TenantContextKey`, chiamano r
 - `refine_handler.go` — `POST /v1/memories/refine` pubblica su Redis per il worker.
 - `links_handler.go`, `stats_handler.go` — grafo link e statistiche tenant.
 - `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `audit_handler.go`, `history_handler.go` — come da nome.
+- `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis per readiness (503 se una dipendenza è giù).
 
 ## `internal/service`
 
@@ -68,7 +69,8 @@ Processi asincroni; condividono DB e Redis con l’API.
 ## `internal/middleware`
 
 - `apikey.go` — risolve chiave → tenant, ruolo; `set_tenant_context`.
-- `ratelimit.go` — limiter per API key; `/metrics` e `/health` esenti dal limit; `Next` per non limitare GET su metrics/health.
+- `public.go` — `IsUnauthenticatedProbe`: elenco unico path GET esenti da chiave, rate limit e audit.
+- `ratelimit.go` — limiter per API key; probe in `IsUnauthenticatedProbe` esenti dal limit.
 - `audit.go` — scrittura `audit_log`.
 - `admin.go`, `rbac.go`, `tenant.go` — ruoli admin e vincoli scrittura.
 
@@ -78,7 +80,7 @@ Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. `Health` (liveness) e `Ready` (PostgreSQL + Redis) non richiedono API key.
 
 ## `internal/webhook`
 

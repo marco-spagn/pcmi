@@ -22,6 +22,7 @@ const (
 	MemoryService_Store_FullMethodName    = "/pcmi.v1.MemoryService/Store"
 	MemoryService_Retrieve_FullMethodName = "/pcmi.v1.MemoryService/Retrieve"
 	MemoryService_Health_FullMethodName   = "/pcmi.v1.MemoryService/Health"
+	MemoryService_Ready_FullMethodName    = "/pcmi.v1.MemoryService/Ready"
 )
 
 // MemoryServiceClient is the client API for MemoryService service.
@@ -31,6 +32,8 @@ type MemoryServiceClient interface {
 	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
 	Retrieve(ctx context.Context, in *RetrieveRequest, opts ...grpc.CallOption) (*RetrieveResponse, error)
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
+	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
+	Ready(ctx context.Context, in *ReadyRequest, opts ...grpc.CallOption) (*ReadyResponse, error)
 }
 
 type memoryServiceClient struct {
@@ -71,6 +74,16 @@ func (c *memoryServiceClient) Health(ctx context.Context, in *HealthRequest, opt
 	return out, nil
 }
 
+func (c *memoryServiceClient) Ready(ctx context.Context, in *ReadyRequest, opts ...grpc.CallOption) (*ReadyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReadyResponse)
+	err := c.cc.Invoke(ctx, MemoryService_Ready_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemoryServiceServer is the server API for MemoryService service.
 // All implementations must embed UnimplementedMemoryServiceServer
 // for forward compatibility.
@@ -78,6 +91,8 @@ type MemoryServiceServer interface {
 	Store(context.Context, *StoreRequest) (*StoreResponse, error)
 	Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error)
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
+	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
+	Ready(context.Context, *ReadyRequest) (*ReadyResponse, error)
 	mustEmbedUnimplementedMemoryServiceServer()
 }
 
@@ -96,6 +111,9 @@ func (UnimplementedMemoryServiceServer) Retrieve(context.Context, *RetrieveReque
 }
 func (UnimplementedMemoryServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
+}
+func (UnimplementedMemoryServiceServer) Ready(context.Context, *ReadyRequest) (*ReadyResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Ready not implemented")
 }
 func (UnimplementedMemoryServiceServer) mustEmbedUnimplementedMemoryServiceServer() {}
 func (UnimplementedMemoryServiceServer) testEmbeddedByValue()                       {}
@@ -172,6 +190,24 @@ func _MemoryService_Health_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoryService_Ready_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReadyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).Ready(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_Ready_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).Ready(ctx, req.(*ReadyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemoryService_ServiceDesc is the grpc.ServiceDesc for MemoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +226,10 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Health",
 			Handler:    _MemoryService_Health_Handler,
+		},
+		{
+			MethodName: "Ready",
+			Handler:    _MemoryService_Ready_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

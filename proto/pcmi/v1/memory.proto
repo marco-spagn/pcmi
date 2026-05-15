@@ -8,6 +8,17 @@ service MemoryService {
   rpc Store(StoreRequest) returns (StoreResponse);
   rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
   rpc Health(HealthRequest) returns (HealthResponse);
+  // Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
+  rpc Ready(ReadyRequest) returns (ReadyResponse);
+}
+
+message ReadyRequest {}
+
+message ReadyResponse {
+  string status = 1; // "ready" or "not_ready"
+  bool database_ok = 2;
+  bool redis_ok = 3;
+  string version = 4;
 }
 
 message StoreRequest {

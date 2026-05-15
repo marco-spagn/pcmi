@@ -8,9 +8,9 @@ name: CI
 
 on:
   push:
-    branches: [main, pr/v1.7.0]
+    branches: [main, pr/v1.7.0, pr/v1.8.0]
   pull_request:
-    branches: [main, pr/v1.7.0]
+    branches: [main, pr/v1.7.0, pr/v1.8.0]
 
 permissions:
   contents: read
@@ -131,6 +131,30 @@ jobs:
             -d '{"path_prefix":"root.ci","limit":10}' \
             | jq -e '.entries | length >= 1'
 
+          curl -sf "http://localhost:8000/v1/distilled?path_prefix=root.ci&limit=5" \
+            -H "X-API-Key: testkey123" \
+            | jq -e '(.entries | type) == "array"'
+
+      - name: SSE events stream smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          EVENT_LOG=$(mktemp)
+          curl -sN --max-time 12 "http://localhost:8000/v1/events?types=memory.stored" \
+            -H "X-API-Key: testkey123" \
+            -H "Accept: text/event-stream" > "$EVENT_LOG" &
+          STREAM_PID=$!
+          sleep 2
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"root.ci.events.${SUFFIX}\",\"content\":\"event smoke\",\"metadata\":{}}" \
+            | jq -e '.id'
+          sleep 4
+          kill "$STREAM_PID" 2>/dev/null || true
+          wait "$STREAM_PID" 2>/dev/null || true
+          grep -q 'memory.stored' "$EVENT_LOG"
+
       - name: Show logs on failure
         if: failure()
         run: |
@@ -180,11 +204,16 @@ jobs:
           DISTILLATION_MODEL=gpt-4o-mini
           EOF
 
-      - name: Start stack and run smoke script
+      - name: Install test tooling
+        if: steps.openai.outputs.enabled == 'true'
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh
+          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh
           ./test_pcmi.sh
+          ./scripts/ci_e2e_sse_dedup.sh
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

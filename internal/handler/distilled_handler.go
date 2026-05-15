@@ -55,7 +55,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	}
 	defer rows.Close()
 
-	var results []map[string]any
+	results := make([]map[string]any, 0)
 	for rows.Next() {
 		var (
 			id           int64

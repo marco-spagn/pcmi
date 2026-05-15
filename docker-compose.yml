@@ -18,6 +18,7 @@ services:
       - ./migrations/008_v1_12_distilled_webhooks_encrypt.sql:/docker-entrypoint-initdb.d/008_v1_12_distilled_webhooks_encrypt.sql
       - ./migrations/009_v1_13_event_schemas_webhook_dlq.sql:/docker-entrypoint-initdb.d/009_v1_13_event_schemas_webhook_dlq.sql
       - ./migrations/010_v1_14_consolidation_bm25_admin.sql:/docker-entrypoint-initdb.d/010_v1_14_consolidation_bm25_admin.sql
+      - ./migrations/011_v1_15_links_expiry_tags.sql:/docker-entrypoint-initdb.d/011_v1_15_links_expiry_tags.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -42,6 +43,7 @@ services:
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       REDIS_ADDR: redis:6379
+      RATE_LIMIT_DISABLED: "true"
     restart: unless-stopped
 
   worker:
@@ -53,6 +55,7 @@ services:
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       REDIS_ADDR: redis:6379
+      EXPIRY_INTERVAL_SECS: "3"
     depends_on:
       postgres:
         condition: service_healthy

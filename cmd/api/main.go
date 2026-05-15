@@ -5,15 +5,15 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/expfmt"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/handler"
-	"github.com/marco-spagn/pcmi/internal/metrics"
+	metrics "github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.14 starting...")
+	log.Println("🚀 PCMI API v1.15 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -47,7 +47,7 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.14",
+		AppName: "PCMI API v1.15",
 	})
 
 	app.Use(metrics.Middleware())
@@ -55,26 +55,16 @@ func main() {
 	app.Use(middleware.RateLimitMiddleware())
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	app.Get("/metrics", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
-		mfs, err := prometheus.DefaultGatherer.Gather()
-		if err != nil {
-			return c.Status(500).SendString(err.Error())
-		}
-		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
-		for _, mf := range mfs {
-			if err := enc.Encode(mf); err != nil {
-				return c.Status(500).SendString(err.Error())
-			}
-		}
-		return nil
-	})
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.HandlerFor(
+		metrics.Registry,
+		promhttp.HandlerOpts{EnableOpenMetrics: false},
+	)))
 
 	handler.SetupMemoryRoutes(app, db)
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.14.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.15.0"})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -84,6 +74,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.14 started on port %s (gRPC, batch, admin, metrics, consolidation)", port)
+	log.Printf("✅ PCMI API v1.15 started on port %s (refine, lineage, links, stats, TTL)", port)
 	log.Fatal(app.Listen(":" + port))
 }

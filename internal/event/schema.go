@@ -8,6 +8,7 @@ const (
 	EventMemoryStored       = "memory.stored"
 	EventMemoryUpdated      = "memory.updated"
 	EventKnowledgeDistilled = "knowledge.distilled"
+	EventMemoryRefineRequested = "memory.refine.requested"
 )
 
 type UniversalEvent struct {

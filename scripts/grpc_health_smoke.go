@@ -34,8 +34,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "health: %v\n", err)
 		os.Exit(1)
 	}
-	if resp.GetStatus() != "ok" || resp.GetVersion() != "v1.14.0" {
-		fmt.Fprintf(os.Stderr, "unexpected health: %+v\n", resp)
+	expected := os.Getenv("PCMI_EXPECT_VERSION")
+	if expected == "" {
+		expected = "v1.15.0"
+	}
+	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
+		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
 		os.Exit(1)
 	}
 	fmt.Println("gRPC health ok", resp.GetVersion())

@@ -7,26 +7,14 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/expfmt"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func TestMetricsEndpointExportsPCMI(t *testing.T) {
+	IncStore()
 	app := fiber.New()
-	app.Get("/metrics", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
-		mfs, err := prometheus.DefaultGatherer.Gather()
-		if err != nil {
-			return err
-		}
-		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
-		for _, mf := range mfs {
-			if err := enc.Encode(mf); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.HandlerFor(Registry, promhttp.HandlerOpts{EnableOpenMetrics: false})))
 
 	req := httptest.NewRequest("GET", "/metrics", nil)
 	resp, err := app.Test(req)

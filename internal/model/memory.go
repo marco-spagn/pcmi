@@ -33,6 +33,7 @@ type StoreRequest struct {
 	EmbeddingSpace string                 `json:"embedding_space"`
 	SourceAgentID  string                 `json:"source_agent_id"`
 	EncryptContent bool                   `json:"encrypt_content"`
+	ExpiresAt      *time.Time             `json:"expires_at,omitempty"`
 }
 
 type RetrieveRequest struct {
@@ -43,6 +44,8 @@ type RetrieveRequest struct {
 	AsOf            *time.Time `json:"as_of"`
 	SourceAgentID   string     `json:"source_agent_id"`
 	EmbeddingSpace  string     `json:"embedding_space"`
+	Tags            []string   `json:"tags,omitempty"`
+	TagsMatch       string     `json:"tags_match"` // "any" (default) or "all"
 }
 
 type RetrieveResponse struct {

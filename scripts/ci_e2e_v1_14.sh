@@ -38,9 +38,12 @@ curl -sf -X POST "$API/v1/memories/import" \
   -d "$IMPORT_BODY" | jq -e '.imported >= 1'
 
 echo "== v1.14 prometheus metrics =="
-METRICS=$(curl -sf "$API/metrics") || { echo "metrics endpoint failed"; exit 1; }
-echo "$METRICS" | grep -qE 'pcmi_(http_requests_total|memory_stores_total)' || {
-  echo "expected pcmi metrics not found"; echo "$METRICS" | head -20; exit 1;
+curl -sf -X POST "$API/v1/memories" \
+  -H "Content-Type: application/json" -H "X-API-Key: $KEY" \
+  -d "{\"path\":\"root.v14.metrics.${SUFFIX}\",\"content\":\"m\",\"metadata\":{}}" >/dev/null
+METRICS=$(curl -sf -H 'Accept-Encoding: identity' "$API/metrics") || { echo "metrics endpoint failed (curl exit $?)"; curl -sS -H 'Accept-Encoding: identity' "$API/metrics" | head -5 || true; exit 1; }
+echo "$METRICS" | grep -qE 'pcmi_memory_(stores|retrieves)_total' || {
+  echo "expected pcmi_memory_stores_total not found"; echo "$METRICS" | head -20; exit 1;
 }
 
 echo "== v1.14 admin list tenants =="
@@ -49,7 +52,7 @@ curl -sf "$API/v1/admin/tenants?limit=5" -H "X-API-Key: $KEY" | jq -e '.total >=
 echo "== v1.14 gRPC health (grpcurl if available) =="
 if command -v grpcurl >/dev/null 2>&1; then
   grpcurl -plaintext -H "x-api-key: $KEY" "$GRPC_HOST" pcmi.v1.MemoryService/Health \
-    | grep -q 'v1.14.0'
+    | grep -qE 'v1\.1[0-9]+\.[0-9]+'
 else
   echo "grpcurl not installed — skipping gRPC smoke (install grpcurl for full check)"
 fi

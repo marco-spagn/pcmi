@@ -41,7 +41,7 @@ func main() {
 			stats := db.Stat()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.14.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.15.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
 				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
 		log.Println("💓 Worker health endpoint started on :8081")
@@ -75,18 +75,25 @@ func main() {
 	consolidationWorker := worker.NewConsolidationWorker(db)
 	go consolidationWorker.Start(ctx)
 
+	expiryWorker := worker.NewExpiryWorker(db)
+	go expiryWorker.Start(ctx)
+
 	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
-			if evt.Type != event.EventMemoryStored && evt.Type != event.EventMemoryUpdated {
-				continue
-			}
 			tenantID, _ := evt.Payload["tenant_id"].(string)
-			path, _ := evt.Payload["path"].(string)
-			log.Printf("📨 [REDIS] memory.stored id=%v tenant=%s path=%s → distillation", evt.Payload["id"], tenantID, path)
-			distWorker.TriggerForMemory(tenantID, path)
-			consolidationWorker.TriggerForMemory(tenantID, path)
+			switch evt.Type {
+			case event.EventMemoryStored, event.EventMemoryUpdated:
+				path, _ := evt.Payload["path"].(string)
+				log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation", evt.Type, evt.Payload["id"], tenantID, path)
+				distWorker.TriggerForMemory(tenantID, path)
+				consolidationWorker.TriggerForMemory(tenantID, path)
+			case event.EventMemoryRefineRequested:
+				prefix, _ := evt.Payload["path_prefix"].(string)
+				log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
+				distWorker.TriggerForPrefix(tenantID, prefix)
+			}
 		}
 	}()
 

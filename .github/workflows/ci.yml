@@ -127,6 +127,7 @@ jobs:
           DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
           REDIS_ADDR: localhost:6379
           API_PORT: "8000"
+          GRPC_PORT: "50051"
           RATE_LIMIT_DISABLED: "true"
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
           PRUNE_INTERVAL_SECS: "3600"
@@ -417,7 +418,84 @@ jobs:
       - name: v1.13 API pool metrics smoke
         run: |
           set -euo pipefail
-          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.13.0"'
+          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.14.0"'
+
+      - name: v1.14 get memory by path smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.get.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"single\",\"metadata\":{}}"
+          curl -sf "http://localhost:8000/v1/memories/${PATH_V}" -H "X-API-Key: testkey123" \
+            | jq -e '.content == "single"'
+
+      - name: v1.14 batch store and retrieve smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          curl -sf -X POST http://localhost:8000/v1/memories/batch \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"items\":[{\"path\":\"root.ci.batch.${SUFFIX}.x\",\"content\":\"bx\"}]}" \
+            | jq -e '.results[0].status == "stored"'
+          curl -sf -X POST http://localhost:8000/v1/retrieve/batch \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"queries\":[{\"path_prefix\":\"root.ci.batch.${SUFFIX}\",\"limit\":5}]}" \
+            | jq -e '.results[0].total >= 1'
+
+      - name: v1.14 export import smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_P="root.ci.export.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_P}\",\"content\":\"migrate\",\"metadata\":{}}"
+          curl -sf -X POST http://localhost:8000/v1/memories/export \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_P}\",\"limit\":10}" \
+            | jq -e '.exported >= 1'
+          curl -sf -X POST http://localhost:8000/v1/memories/import \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d "{\"mode\":\"skip\",\"entries\":[{\"path\":\"${PATH_P}\",\"content\":\"dup\",\"metadata\":{}}]}" \
+            | jq -e '.skipped >= 1'
+
+      - name: v1.14 prometheus metrics smoke
+        run: |
+          set -euo pipefail
+          curl -sf http://localhost:8000/health >/dev/null
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+            -d '{"path":"root.ci.metrics","content":"m","metadata":{}}' >/dev/null
+          curl -sf http://localhost:8000/metrics | grep -qE '# HELP pcmi_(http_requests_total|memory_stores_total)'
+
+      - name: v1.14 admin tenants smoke
+        run: |
+          set -euo pipefail
+          curl -sf "http://localhost:8000/v1/admin/tenants?limit=5" \
+            -H "X-API-Key: testkey123" | jq -e '.total >= 1'
+
+      - name: v1.14 gRPC health smoke
+        run: |
+          set -euo pipefail
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true
+          go run ./scripts/grpc_health_smoke.go
+
+      - name: v1.14 consolidation smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PREFIX="root.ci.consolidate.${SUFFIX}"
+          for i in 1 2 3; do
+            curl -sf -X POST http://localhost:8000/v1/memories \
+              -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
+              -d "{\"path\":\"${PREFIX}.n${i}\",\"content\":\"part ${i}\",\"metadata\":{}}" >/dev/null
+          done
+          sleep 10
+          RUNS=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c \
+            "SELECT COUNT(*) FROM consolidation_runs WHERE path_prefix='${PREFIX}'")
+          test "${RUNS:-0}" -ge 1
 
       - name: v1.13 webhook dead-letter smoke
         run: |
@@ -522,11 +600,12 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_embedding.sh scripts/ci_e2e_finale.sh
+          chmod +x test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_embedding.sh scripts/ci_e2e_finale.sh scripts/ci_e2e_v1_14.sh
           ./test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_embedding.sh
           ./scripts/ci_e2e_finale.sh
+          API_URL=http://localhost:8000 PCMI_API_KEY=testkey123 ./scripts/ci_e2e_v1_14.sh
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

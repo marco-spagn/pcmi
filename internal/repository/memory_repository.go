@@ -190,8 +190,8 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		q = `
 			SELECT ` + selectCols + `,
 			       (
-			         0.65 * (1 - (embedding <=> $3::vector))
-			         + 0.35 * COALESCE(ts_rank_cd(content_tsv, plainto_tsquery('english', $5)), 0)
+			         0.55 * (1 - (embedding <=> $3::vector))
+			         + 0.45 * pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $5))
 			       )::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
@@ -219,13 +219,13 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	case hasText:
 		q = `
 			SELECT ` + selectCols + `,
-			       ts_rank_cd(content_tsv, plainto_tsquery('english', $3))::float8 AS relevance_score
+			       pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $3))::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
 			  AND ` + temporalClause("$4") + `
 			  AND ` + scopeFilters("5", "6") + `
-			  AND content_tsv @@ plainto_tsquery('english', $3)
+			  AND content_tsv @@ websearch_to_tsquery('english', $3)
 			ORDER BY relevance_score DESC NULLS LAST, created_at DESC
 			LIMIT $7`
 		args = []any{tenantID, path, qText, req.AsOf, agentFilter, spaceFilter, limit}

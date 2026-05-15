@@ -2,12 +2,15 @@ package handler
 
 import (
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/embedding"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
@@ -37,6 +40,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
+		metrics.IncStore()
 
 		resp := fiber.Map{
 			"id":      result.Entry.ID,
@@ -84,9 +88,12 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
+		metrics.IncRetrieve()
 
 		return c.JSON(result)
 	})
+
+	registerBatchRoutes(api, svc)
 
 	dh := NewDistilledHandler(db)
 	api.Get("/distilled", dh.Get)
@@ -113,11 +120,48 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	emh := NewEmbeddingMigrateHandler(db)
 	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
 
+	// Wildcard GET must be registered after all specific /memories/* routes (history, batch, etc.)
+	api.Get("/memories/*", func(c *fiber.Ctx) error {
+		raw := strings.TrimPrefix(c.Params("*"), "/")
+		path := strings.TrimSpace(raw)
+		if path == "" {
+			path = c.Query("path")
+		}
+		if path == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "path is required"})
+		}
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		var version *int
+		if v := c.Query("version"); v != "" {
+			n, err := strconv.Atoi(v)
+			if err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid version"})
+			}
+			version = &n
+		}
+		var asOf *time.Time
+		if a := c.Query("as_of"); a != "" {
+			t, err := time.Parse(time.RFC3339, a)
+			if err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid as_of (RFC3339)"})
+			}
+			asOf = &t
+		}
+		entry, err := svc.GetByPath(c.Context(), tenantID, path, version, asOf)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+			}
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(entry)
+	})
+
 	api.Get("/health", func(c *fiber.Ctx) error {
 		stats := db.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.13.0",
+			"version": "v1.14.0",
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

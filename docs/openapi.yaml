@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.13.0
+  version: 1.14.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -51,6 +51,128 @@ paths:
                 $ref: "#/components/schemas/HistoryResponse"
         "400":
           description: Missing path
+  /metrics:
+    get:
+      summary: Prometheus metrics (no auth)
+      security: []
+      responses:
+        "200":
+          description: Prometheus text exposition format
+          content:
+            text/plain:
+              schema:
+                type: string
+  /v1/memories/batch:
+    post:
+      summary: Batch store up to 50 memories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              properties:
+                items:
+                  type: array
+                  maxItems: 50
+                  items:
+                    $ref: "#/components/schemas/StoreMemoryRequest"
+      responses:
+        "200":
+          description: Per-item results
+  /v1/retrieve/batch:
+    post:
+      summary: Batch retrieve up to 20 queries
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [queries]
+              properties:
+                queries:
+                  type: array
+                  maxItems: 20
+                  items:
+                    $ref: "#/components/schemas/RetrieveRequest"
+      responses:
+        "200":
+          description: Parallel retrieve results
+  /v1/memories/export:
+    post:
+      summary: Export current memories under path_prefix as JSON
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                path_prefix: { type: string }
+                limit: { type: integer, default: 500 }
+                include_embeddings: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Export bundle
+  /v1/memories/import:
+    post:
+      summary: Import memories (skip or overwrite existing paths)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode: { type: string, enum: [skip, overwrite], default: skip }
+                entries:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/StoreMemoryRequest"
+      responses:
+        "200":
+          description: Import results
+  /v1/memories/{path}:
+    get:
+      summary: Get a single memory by path (optional version or as_of)
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema: { type: string }
+        - name: version
+          in: query
+          schema: { type: integer }
+        - name: as_of
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryEntry"
+        "404":
+          description: Not found
+  /v1/admin/tenants:
+    get:
+      summary: List tenants (admin role)
+      responses:
+        "200":
+          description: Tenant list
+    post:
+      summary: Create tenant (admin role)
+      responses:
+        "201":
+          description: Created
+  /v1/admin/api-keys:
+    get:
+      summary: List API keys for tenant
+    post:
+      summary: Create API key (returns plaintext key once)
+  /v1/admin/api-keys/{id}/rotate:
+    post:
+      summary: Rotate API key hash (returns new plaintext key once)
   /v1/memories:
     post:
       summary: Store a memory entry (append-only; supersedes same path)

@@ -96,6 +96,44 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def get_memory(self, path: str, *, version: int | None = None, as_of: str | None = None):
+        params: dict[str, str | int] = {}
+        if version is not None:
+            params["version"] = version
+        if as_of:
+            params["as_of"] = as_of
+        resp = await self.client.get(f"/v1/memories/{path}", params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def batch_store(self, items: list[dict]):
+        resp = await self.client.post("/v1/memories/batch", json={"items": items})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def batch_retrieve(self, queries: list[dict]):
+        resp = await self.client.post("/v1/retrieve/batch", json={"queries": queries})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def export_memories(self, path_prefix: str, limit: int = 500, include_embeddings: bool = False):
+        resp = await self.client.post(
+            "/v1/memories/export",
+            json={"path_prefix": path_prefix, "limit": limit, "include_embeddings": include_embeddings},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def import_memories(self, entries: list[dict], mode: str = "skip"):
+        resp = await self.client.post("/v1/memories/import", json={"entries": entries, "mode": mode})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_tenants(self, limit: int = 100):
+        resp = await self.client.get("/v1/admin/tenants", params={"limit": limit})
+        resp.raise_for_status()
+        return resp.json()
+
     async def get_history(self, path: str, limit: int = 50):
         resp = await self.client.get(
             "/v1/memories/history",

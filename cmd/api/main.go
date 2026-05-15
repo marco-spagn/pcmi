@@ -5,16 +5,23 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/expfmt"
 
 	"github.com/marco-spagn/pcmi/internal/database"
+	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/handler"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.13 starting...")
+	log.Println("🚀 PCMI API v1.14 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -32,26 +39,51 @@ func main() {
 	webhookDispatch := webhook.NewDispatcher(db)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
+	repo := repository.NewMemoryRepository(db)
+	var embed embedding.Provider
+	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
+		embed = embedding.NewOpenAIProvider(k, os.Getenv("EMBEDDING_MODEL"))
+	}
+	memSvc := service.NewMemoryService(repo, embed)
+
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.13",
+		AppName: "PCMI API v1.14",
 	})
 
-	// Middlewares
+	app.Use(metrics.Middleware())
 	app.Use(middleware.APIKeyMiddleware(db))
 	app.Use(middleware.RateLimitMiddleware())
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	// Routes
-	handler.SetupMemoryRoutes(app, db)
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.13.0"})
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
+		mfs, err := prometheus.DefaultGatherer.Gather()
+		if err != nil {
+			return c.Status(500).SendString(err.Error())
+		}
+		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
+		for _, mf := range mfs {
+			if err := enc.Encode(mf); err != nil {
+				return c.Status(500).SendString(err.Error())
+			}
+		}
+		return nil
 	})
+
+	handler.SetupMemoryRoutes(app, db)
+	handler.SetupAdminRoutes(app, db)
+
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.14.0"})
+	})
+
+	grpcserver.Start(db, memSvc)
 
 	port := os.Getenv("API_PORT")
 	if port == "" {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.13 started on port %s (event schemas, webhook DLQ, summarize, pool metrics)", port)
+	log.Printf("✅ PCMI API v1.14 started on port %s (gRPC, batch, admin, metrics, consolidation)", port)
 	log.Fatal(app.Listen(":" + port))
 }

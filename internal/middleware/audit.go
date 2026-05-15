@@ -22,7 +22,7 @@ func (m *AuditMiddleware) Middleware() fiber.Handler {
 		start := time.Now()
 
 		p := c.Path()
-		if c.Method() == fiber.MethodGet && (p == "/health" || p == "/v1/health") {
+		if c.Method() == fiber.MethodGet && (p == "/health" || p == "/v1/health" || p == "/metrics") {
 			return c.Next()
 		}
 

@@ -109,6 +109,63 @@ export class PCMIClient {
     return res.json();
   }
 
+  async getMemory(path: string, opts?: { version?: number; asOf?: string }) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/${path}`);
+    if (opts?.version != null) u.searchParams.set("version", String(opts.version));
+    if (opts?.asOf) u.searchParams.set("as_of", opts.asOf);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`getMemory failed: ${res.status}`);
+    return res.json();
+  }
+
+  async batchStore(items: Record<string, unknown>[]) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/batch`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) throw new Error(`batchStore failed: ${res.status}`);
+    return res.json();
+  }
+
+  async batchRetrieve(queries: Record<string, unknown>[]) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve/batch`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ queries }),
+    });
+    if (!res.ok) throw new Error(`batchRetrieve failed: ${res.status}`);
+    return res.json();
+  }
+
+  async exportMemories(pathPrefix: string, limit = 500) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/export`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ path_prefix: pathPrefix, limit }),
+    });
+    if (!res.ok) throw new Error(`exportMemories failed: ${res.status}`);
+    return res.json();
+  }
+
+  async importMemories(entries: Record<string, unknown>[], mode = "skip") {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/import`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ entries, mode }),
+    });
+    if (!res.ok) throw new Error(`importMemories failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listTenants(limit = 100) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/admin/tenants`);
+    u.searchParams.set("limit", String(limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listTenants failed: ${res.status}`);
+    return res.json();
+  }
+
   async getHistory(path: string, limit = 50) {
     const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/history`);
     u.searchParams.set("path", path);

@@ -41,7 +41,7 @@ func main() {
 			stats := db.Stat()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.13.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.14.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
 				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
 		log.Println("💓 Worker health endpoint started on :8081")
@@ -72,6 +72,9 @@ func main() {
 	pruneWorker := worker.NewPruningWorker(db)
 	go pruneWorker.Start(ctx)
 
+	consolidationWorker := worker.NewConsolidationWorker(db)
+	go consolidationWorker.Start(ctx)
+
 	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {
@@ -83,6 +86,7 @@ func main() {
 			path, _ := evt.Payload["path"].(string)
 			log.Printf("📨 [REDIS] memory.stored id=%v tenant=%s path=%s → distillation", evt.Payload["id"], tenantID, path)
 			distWorker.TriggerForMemory(tenantID, path)
+			consolidationWorker.TriggerForMemory(tenantID, path)
 		}
 	}()
 

@@ -145,3 +145,52 @@ func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest
 		SupersededID:        result.SupersededID,
 	}, nil
 }
+
+func (s *MemoryService) GetByPath(ctx context.Context, tenantID, path string, version *int, asOf *time.Time) (*model.MemoryEntry, error) {
+	return s.repo.GetByPath(ctx, tenantID, path, version, asOf)
+}
+
+func (s *MemoryService) Export(ctx context.Context, tenantID string, req *model.MemoryExportRequest) (*model.MemoryExportResponse, error) {
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 500
+	}
+	entries, err := s.repo.ExportMemories(ctx, tenantID, req.PathPrefix, limit, req.IncludeEmb)
+	if err != nil {
+		return nil, err
+	}
+	return &model.MemoryExportResponse{
+		TenantID:   tenantID,
+		Exported:   len(entries),
+		Entries:    entries,
+		ExportedAt: time.Now(),
+	}, nil
+}
+
+func (s *MemoryService) Import(ctx context.Context, tenantID string, req *model.MemoryImportRequest) (*model.MemoryImportResponse, error) {
+	mode := strings.TrimSpace(req.Mode)
+	if mode == "" {
+		mode = "skip"
+	}
+	out := &model.MemoryImportResponse{}
+	for i, item := range req.Entries {
+		if mode == "skip" {
+			existing, err := s.repo.GetByPath(ctx, tenantID, item.Path, nil, nil)
+			if err == nil && existing != nil {
+				out.Skipped++
+				out.Results = append(out.Results, model.BatchStoreItemResult{Index: i, Status: "skipped"})
+				continue
+			}
+		}
+		res, err := s.Store(ctx, &item, tenantID)
+		if err != nil {
+			out.Results = append(out.Results, model.BatchStoreItemResult{Index: i, Status: "error", Error: err.Error()})
+			continue
+		}
+		out.Imported++
+		out.Results = append(out.Results, model.BatchStoreItemResult{
+			Index: i, ID: res.Entry.ID, Status: "stored", Version: res.Version,
+		})
+	}
+	return out, nil
+}

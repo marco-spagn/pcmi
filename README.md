@@ -26,6 +26,15 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Webhook retry + dead-letter** queue (`GET /v1/webhooks/dead-letter`) with exponential backoff  
 - **Memory summarization** (`POST /v1/memories/summarize`) — extractive by default, LLM when `OPENAI_API_KEY` is set  
 - API/worker **connection pool metrics** on health endpoints  
+- **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, Health alongside REST (shared service layer)  
+- **Consolidation worker** — merges ≥3 related memories under a path prefix into `{prefix}.consolidated`  
+- **BM25-tuned hybrid** — `pcmi_bm25_rank` + `websearch_to_tsquery` for improved keyword leg  
+- **Multi-tenant admin API** — `GET/POST /v1/admin/tenants`, API key create/rotate (`admin` role)  
+- **GET /v1/memories/{path}** — single memory with optional `version` / `as_of`  
+- **Batch** — `POST /v1/memories/batch`, `POST /v1/retrieve/batch`  
+- **Export/import** — tenant-scoped JSON migration (`POST /v1/memories/export`, `/import`)  
+- **Prometheus** — `GET /metrics` (no auth)  
+- Ops docs: `docs/failure-modes.md`, `docs/scalability.md`  
 
 ## Quick start
 

@@ -63,7 +63,7 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	Scan(dest ...any) error
 }, includeScore bool) (model.MemoryEntry, error) {
 	var e model.MemoryEntry
-	var emb pgvector.Vector
+	var emb *pgvector.Vector
 	var validTo sql.NullTime
 	var agentID sql.NullString
 	var eventID sql.NullString
@@ -81,7 +81,9 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	if err := rows.Scan(dest...); err != nil {
 		return e, err
 	}
-	e.Embedding = emb.Slice()
+	if emb != nil {
+		e.Embedding = emb.Slice()
+	}
 	if validTo.Valid {
 		t := validTo.Time
 		e.ValidTo = &t

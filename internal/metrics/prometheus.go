@@ -6,18 +6,29 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
+// Registry is the dedicated Prometheus registry for PCMI (avoids DefaultRegisterer collisions).
+var Registry = prometheus.NewRegistry()
+
+func init() {
+	Registry.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+}
+
 var (
-	httpRequestsTotal = promauto.NewCounterVec(
+	httpRequestsTotal = promauto.With(Registry).NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "pcmi_http_requests_total",
 			Help: "Total HTTP requests by method, path pattern, and status",
 		},
 		[]string{"method", "path", "status"},
 	)
-	httpRequestDuration = promauto.NewHistogramVec(
+	httpRequestDuration = promauto.With(Registry).NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "pcmi_http_request_duration_seconds",
 			Help:    "HTTP request latency in seconds",
@@ -25,13 +36,13 @@ var (
 		},
 		[]string{"method", "path"},
 	)
-	memoryStoresTotal = promauto.NewCounter(
+	memoryStoresTotal = promauto.With(Registry).NewCounter(
 		prometheus.CounterOpts{
 			Name: "pcmi_memory_stores_total",
 			Help: "Total memory store operations",
 		},
 	)
-	memoryRetrievesTotal = promauto.NewCounter(
+	memoryRetrievesTotal = promauto.With(Registry).NewCounter(
 		prometheus.CounterOpts{
 			Name: "pcmi_memory_retrieves_total",
 			Help: "Total memory retrieve operations",
@@ -55,5 +66,5 @@ func Middleware() fiber.Handler {
 	}
 }
 
-func IncStore()     { memoryStoresTotal.Inc() }
-func IncRetrieve()  { memoryRetrievesTotal.Inc() }
+func IncStore()    { memoryStoresTotal.Inc() }
+func IncRetrieve() { memoryRetrievesTotal.Inc() }

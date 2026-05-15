@@ -13,7 +13,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/handler"
-	"github.com/marco-spagn/pcmi/internal/metrics"
+	metrics "github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
@@ -55,7 +55,10 @@ func main() {
 	app.Use(middleware.RateLimitMiddleware())
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.HandlerFor(
+		metrics.Registry,
+		promhttp.HandlerOpts{EnableOpenMetrics: false},
+	)))
 
 	handler.SetupMemoryRoutes(app, db)
 	handler.SetupAdminRoutes(app, db)

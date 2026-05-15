@@ -25,6 +25,10 @@ func RateLimitMiddleware() fiber.Handler {
 	return limiter.New(limiter.Config{
 		Max:        rpm,
 		Expiration: time.Minute,
+		Next: func(c *fiber.Ctx) bool {
+			p := c.Path()
+			return c.Method() == fiber.MethodGet && (p == "/health" || p == "/v1/health" || p == "/metrics")
+		},
 		KeyGenerator: func(c *fiber.Ctx) string {
 			if keyID, ok := c.Locals(APIKeyIDContextKey).(string); ok && keyID != "" {
 				return keyID

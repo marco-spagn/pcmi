@@ -478,6 +478,8 @@ jobs:
             -H "X-API-Key: testkey123" | jq -e '.total >= 1'
 
       - name: v1.14 gRPC health smoke
+        env:
+          PCMI_EXPECT_VERSION: v1.15.0
         run: |
           set -euo pipefail
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true
@@ -666,6 +668,7 @@ jobs:
           DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
           REDIS_ADDR=redis:6379
           API_PORT=8000
+          RATE_LIMIT_DISABLED=true
           EMBEDDING_MODEL=text-embedding-3-small
           DISTILLATION_MODEL=gpt-4o-mini
           EOF

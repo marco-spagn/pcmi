@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.14.0
+  version: 1.17.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -31,6 +31,40 @@ paths:
       responses:
         "200":
           description: OK
+  /ready:
+    get:
+      summary: Readiness (PostgreSQL + Redis; no auth)
+      security: []
+      responses:
+        "200":
+          description: Dependencies reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+        "503":
+          description: Database or Redis not reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+  /v1/ready:
+    get:
+      summary: Readiness alias (same as /ready)
+      security: []
+      responses:
+        "200":
+          description: Dependencies reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+        "503":
+          description: Database or Redis not reachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
   /v1/memories/history:
     get:
       summary: Historical reconstruction — all versions for a path
@@ -364,6 +398,14 @@ components:
       in: header
       name: X-API-Key
   schemas:
+    ReadyResponse:
+      type: object
+      properties:
+        status: { type: string, description: ready or not_ready }
+        database_ok: { type: boolean }
+        redis_ok: { type: boolean }
+        service: { type: string }
+        version: { type: string }
     StoreMemoryRequest:
       type: object
       required: [path, content]

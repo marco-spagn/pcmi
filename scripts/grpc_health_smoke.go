@@ -36,11 +36,20 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.16.0"
+		expected = "v1.17.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
 		os.Exit(1)
 	}
-	fmt.Println("gRPC health ok", resp.GetVersion())
+	ready, err := client.Ready(ctx, &pcmiv1.ReadyRequest{})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ready: %v\n", err)
+		os.Exit(1)
+	}
+	if ready.GetStatus() != "ready" || !ready.GetDatabaseOk() || !ready.GetRedisOk() || ready.GetVersion() != expected {
+		fmt.Fprintf(os.Stderr, "unexpected ready: %+v (want status ready, deps ok, version %s)\n", ready, expected)
+		os.Exit(1)
+	}
+	fmt.Println("gRPC health ok", resp.GetVersion(), "ready ok")
 }

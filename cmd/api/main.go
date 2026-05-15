@@ -1,5 +1,6 @@
 // Programma pcmi-api: server HTTP (Fiber), stream SSE, eventuale gRPC MemoryService e endpoint
 // Prometheus. Avvio da cmd/api; configurazione via variabili d’ambiente (vedi .env.example e docs/CODEBASE.md).
+// Readiness: GET /ready e GET /v1/ready (ping Postgres + Redis, senza API key).
 package main
 
 import (
@@ -23,7 +24,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.16 starting...")
+	log.Println("🚀 PCMI API v1.17 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -49,7 +50,7 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.16",
+		AppName: "PCMI API v1.17",
 	})
 
 	app.Use(metrics.Middleware())
@@ -62,11 +63,12 @@ func main() {
 		promhttp.HandlerOpts{EnableOpenMetrics: false},
 	)))
 
+	handler.RegisterReadyRoutes(app, db)
 	handler.SetupMemoryRoutes(app, db)
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.16.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.17.0"})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -76,6 +78,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.16 started on port %s (see docs/CODEBASE.md)", port)
+	log.Printf("✅ PCMI API v1.17 started on port %s (/v1/ready per readiness)", port)
 	log.Fatal(app.Listen(":" + port))
 }

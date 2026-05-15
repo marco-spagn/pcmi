@@ -18,8 +18,7 @@ const (
 
 func APIKeyMiddleware(db *pgxpool.Pool) fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		p := c.Path()
-		if c.Method() == fiber.MethodGet && (p == "/health" || p == "/v1/health" || p == "/metrics") {
+		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
 			return c.Next()
 		}
 

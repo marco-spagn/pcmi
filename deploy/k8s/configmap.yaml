@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pcmi-config
+  namespace: pcmi
+data:
+  API_PORT: "8000"
+  REDIS_ADDR: "redis:6379"
+  EMBEDDING_MODEL: "text-embedding-3-small"
+  DISTILLATION_MODEL: "gpt-4o-mini"
+  PRUNE_RETENTION_DAYS: "30"
+  RATE_LIMIT_DISABLED: "false"

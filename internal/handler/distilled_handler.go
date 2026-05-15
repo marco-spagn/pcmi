@@ -43,7 +43,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	log.Printf("📡 [DISTILLED] tenant=%s path_prefix=%s", tenantID, pathPrefix)
 
 	rows, err := h.db.Query(context.Background(), `
-		SELECT id, path::text, summary, insights, confidence_score, distilled_at, source_entry_ids
+		SELECT id, path::text, summary, insights, confidence_score, distilled_at, source_entry_ids, version
 		FROM distilled_knowledge
 		WHERE tenant_id = $1::uuid
 		  AND path <@ $2::ltree
@@ -65,8 +65,9 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 			confidence   sql.NullFloat64
 			distilledAt  time.Time
 			sourceIDs    []int64
+			version      int
 		)
-		if err := rows.Scan(&id, &path, &summary, &insightsRaw, &confidence, &distilledAt, &sourceIDs); err != nil {
+		if err := rows.Scan(&id, &path, &summary, &insightsRaw, &confidence, &distilledAt, &sourceIDs, &version); err != nil {
 			log.Printf("❌ [DISTILLED] scan: %v", err)
 			continue
 		}
@@ -86,6 +87,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 			"insights":         insights,
 			"distilled_at":     distilledAt.Format(time.RFC3339),
 			"source_entry_ids": sourceIDs,
+			"version":          version,
 		}
 		if confidence.Valid {
 			row["confidence_score"] = confidence.Float64

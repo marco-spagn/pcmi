@@ -16,6 +16,12 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - Per-API-key rate limiting (configurable via `RATE_LIMIT_RPM`; disable with `RATE_LIMIT_DISABLED`)  
 - Redis event fan-out (`memory.stored`, `memory.updated`, `knowledge.distilled`) and worker-driven embedding + distillation  
 - SSE event stream at `GET /v1/events` (SDK `subscribe()`)  
+- Distilled knowledge **versioning** (`version` on `GET /v1/distilled`; new distillations bump version per path)  
+- **Webhook** delivery on Redis events (`POST/GET /v1/webhooks`)  
+- **Encrypted** memory content (`encrypt_content` or `metadata.sensitive`) with `PCMI_ENCRYPTION_KEY`  
+- Embedding **migration** API (`POST /v1/embeddings/migrate`) queues re-embedding by path prefix  
+- Background **pruning** of superseded rows (`PRUNE_RETENTION_DAYS`)  
+- Kubernetes samples under `deploy/k8s/`  
 
 ## Quick start
 

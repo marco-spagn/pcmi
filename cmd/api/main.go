@@ -10,10 +10,11 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/handler"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.11 starting...")
+	log.Println("🚀 PCMI API v1.12 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -28,9 +29,11 @@ func main() {
 		redisAddr = "localhost:6379"
 	}
 	event.InitRedis(redisAddr)
+	webhookDispatch := webhook.NewDispatcher(db)
+	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.11",
+		AppName: "PCMI API v1.12",
 	})
 
 	// Middlewares
@@ -41,7 +44,7 @@ func main() {
 	// Routes
 	handler.SetupMemoryRoutes(app, db)
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.11.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.12.0"})
 	})
 
 	port := os.Getenv("API_PORT")
@@ -49,6 +52,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.11 started on port %s (event ingest + history + agent scopes + embedding spaces)", port)
+	log.Printf("✅ PCMI API v1.12 started on port %s (webhooks, encryption, embedding migration, distilled versioning)", port)
 	log.Fatal(app.Listen(":" + port))
 }

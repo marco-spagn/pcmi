@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/pgvector/pgvector-go"
 )
@@ -43,6 +44,17 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		tags = []string{}
 	}
 
+	content := req.Content
+	contentEncrypted := false
+	if pcmicrypto.ShouldEncrypt(req.EncryptContent, metadata) {
+		enc, encErr := pcmicrypto.EncryptContent(content)
+		if encErr != nil {
+			return 0, 0, nil, fmt.Errorf("encrypt content: %w", encErr)
+		}
+		content = enc
+		contentEncrypted = true
+	}
+
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store begin tx: %w", err)
@@ -73,17 +85,17 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 
 	if len(req.Embedding) > 0 {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW())
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11)
 			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags,
+			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted).Scan(&id)
 	} else {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW())
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10)
 			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel, embSpace, version, agentID).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted).Scan(&id)
 	}
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
@@ -108,7 +120,7 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	dest := []any{
 		&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
 		&emb, &e.EmbeddingModel, &e.EmbeddingSpace, &e.Version, &e.ValidFrom, &validTo,
-		&agentID, &eventID, &e.CreatedAt,
+		&agentID, &eventID, &e.CreatedAt, &e.ContentEncrypted,
 	}
 	if includeScore {
 		dest = append(dest, &score)
@@ -135,6 +147,13 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	if includeScore && score.Valid {
 		e.RelevanceScore = score.Float64
 	}
+	if e.ContentEncrypted {
+		plain, decErr := pcmicrypto.DecryptContent(e.Content)
+		if decErr != nil {
+			return e, fmt.Errorf("decrypt content id=%d: %w", e.ID, decErr)
+		}
+		e.Content = plain
+	}
 	return e, nil
 }
 
@@ -160,7 +179,7 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	spaceFilter := strings.TrimSpace(req.EmbeddingSpace)
 
 	selectCols := `id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at`
+			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at, content_encrypted`
 
 	var q string
 	var args []any

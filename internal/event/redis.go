@@ -11,7 +11,14 @@ import (
 var (
 	RedisClient *redis.Client
 	ctx         = context.Background()
+
+	webhookNotify func(tenantID, eventType string, payload map[string]any)
 )
+
+// SetWebhookNotifier registers a callback for outbound webhook delivery (best-effort).
+func SetWebhookNotifier(fn func(tenantID, eventType string, payload map[string]any)) {
+	webhookNotify = fn
+}
 
 // InitRedis initializes Redis connection
 func InitRedis(addr string) {
@@ -47,6 +54,11 @@ func PublishEvent(eventType string, payload map[string]any) error {
 	}
 
 	log.Printf("📣 [REDIS] Published event: %s", eventType)
+	if webhookNotify != nil {
+		if tenantID, ok := payload["tenant_id"].(string); ok && tenantID != "" {
+			webhookNotify(tenantID, eventType, payload)
+		}
+	}
 	return nil
 }
 

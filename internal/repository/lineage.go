@@ -37,7 +37,7 @@ func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path st
 		SELECT id, path::text, summary, version, source_entry_ids, confidence_score
 		FROM distilled_knowledge
 		WHERE tenant_id = $1::uuid AND path <@ $2::ltree
-		ORDER BY version DESC, created_at DESC
+		ORDER BY version DESC, distilled_at DESC
 		LIMIT 20`, tenantID, path)
 	if err != nil {
 		return nil, err

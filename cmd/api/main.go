@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/expfmt"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
@@ -55,20 +55,7 @@ func main() {
 	app.Use(middleware.RateLimitMiddleware())
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	app.Get("/metrics", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", `text/plain; version=0.0.4; charset=utf-8`)
-		mfs, err := prometheus.DefaultGatherer.Gather()
-		if err != nil {
-			return c.Status(500).SendString(err.Error())
-		}
-		enc := expfmt.NewEncoder(c, expfmt.NewFormat(expfmt.TypeTextPlain))
-		for _, mf := range mfs {
-			if err := enc.Encode(mf); err != nil {
-				return c.Status(500).SendString(err.Error())
-			}
-		}
-		return nil
-	})
+	app.Get("/metrics", adaptor.HTTPHandler(promhttp.Handler()))
 
 	handler.SetupMemoryRoutes(app, db)
 	handler.SetupAdminRoutes(app, db)

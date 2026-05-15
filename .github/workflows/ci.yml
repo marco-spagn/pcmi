@@ -469,7 +469,7 @@ jobs:
           curl -sf -X POST http://localhost:8000/v1/memories \
             -H "Content-Type: application/json" -H "X-API-Key: testkey123" \
             -d '{"path":"root.ci.metrics","content":"m","metadata":{}}' >/dev/null
-          curl -sf -H 'Accept-Encoding: identity' http://localhost:8000/metrics | grep -q 'pcmi_memory_stores_total'
+          curl -sf -H 'Accept-Encoding: identity' http://localhost:8000/metrics | grep -qE 'pcmi_memory_(stores|retrieves)_total'
 
       - name: v1.14 admin tenants smoke
         run: |

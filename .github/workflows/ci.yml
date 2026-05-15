@@ -133,7 +133,7 @@ jobs:
 
           curl -sf "http://localhost:8000/v1/distilled?path_prefix=root.ci&limit=5" \
             -H "X-API-Key: testkey123" \
-            | jq -e '.entries != null'
+            | jq -e '(.entries | type) == "array"'
 
       - name: SSE events stream smoke
         run: |

@@ -33,7 +33,7 @@ func (r *MemoryRepository) GetHistoricalVersion(
 
 	if version != nil {
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
+			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid AND path = $2::ltree AND version = $3
@@ -42,7 +42,7 @@ func (r *MemoryRepository) GetHistoricalVersion(
 	} else {
 		temporal := temporalClause("$3")
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
+			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid AND path = $2::ltree AND ` + temporal + `

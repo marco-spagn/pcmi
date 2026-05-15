@@ -9,15 +9,41 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
+	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/service"
 )
 
-type EventsHandler struct{}
+type EventsHandler struct {
+	ingest *service.EventService
+}
 
-func NewEventsHandler() *EventsHandler {
-	return &EventsHandler{}
+func NewEventsHandler(db *pgxpool.Pool) *EventsHandler {
+	return &EventsHandler{
+		ingest: service.NewEventService(repository.NewEventRepository(db)),
+	}
+}
+
+// Ingest accepts universal agent/runtime events (POST /v1/events).
+func (h *EventsHandler) Ingest(c *fiber.Ctx) error {
+	var req model.IngestEventRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	tenantID := c.Locals(middleware.TenantContextKey).(string)
+	result, err := h.ingest.Ingest(c.Context(), &req, tenantID)
+	if err != nil {
+		if strings.Contains(err.Error(), "required") {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(result)
 }
 
 func parseEventTypes(raw string) map[string]struct{} {

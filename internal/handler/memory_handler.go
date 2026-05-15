@@ -91,13 +91,17 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	dh := NewDistilledHandler(db)
 	api.Get("/distilled", dh.Get)
 
-	eh := NewEventsHandler()
+	eh := NewEventsHandler(db)
 	api.Get("/events", eh.Stream)
+	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
+
+	hh := NewHistoryHandler(db)
+	api.Get("/memories/history", hh.Get)
 
 	ah := NewAuditHandler(db)
 	api.Get("/audit", ah.List)
 
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.10.0"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.11.0"})
 	})
 }

@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.10 starting...")
+	log.Println("🚀 PCMI API v1.11 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -30,7 +30,7 @@ func main() {
 	event.InitRedis(redisAddr)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.10",
+		AppName: "PCMI API v1.11",
 	})
 
 	// Middlewares
@@ -41,7 +41,7 @@ func main() {
 	// Routes
 	handler.SetupMemoryRoutes(app, db)
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.10.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.11.0"})
 	})
 
 	port := os.Getenv("API_PORT")
@@ -49,6 +49,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.10 started on port %s (rollback + audit API + rate limiting)", port)
+	log.Printf("✅ PCMI API v1.11 started on port %s (event ingest + history + agent scopes + embedding spaces)", port)
 	log.Fatal(app.Listen(":" + port))
 }

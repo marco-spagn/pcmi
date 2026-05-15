@@ -10,3 +10,10 @@ func temporalClause(asOfParam string) string {
 		(` + asOf + ` IS NOT NULL AND valid_from <= ` + asOf + ` AND (valid_to IS NULL OR valid_to > ` + asOf + `))
 	)`
 }
+
+// scopeFilters adds optional cross-agent and embedding-space predicates.
+// Empty string parameters mean "no filter" (avoids untyped NULL uuid bind issues).
+func scopeFilters(agentParam, spaceParam string) string {
+	return `($` + agentParam + ` = '' OR source_agent_id = $` + agentParam + `::uuid)
+		  AND ($` + spaceParam + ` = '' OR embedding_space = $` + spaceParam + `)`
+}

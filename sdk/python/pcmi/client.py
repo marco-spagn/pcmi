@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from .models import MemoryStore, MemoryRetrieve, MemoryRollback
+from .models import MemoryStore, MemoryRetrieve, MemoryRollback, IngestEvent
 
 
 class PCMIClient:
@@ -24,6 +24,7 @@ class PCMIClient:
         *,
         tags: list[str] | None = None,
         embedding_model: str | None = None,
+        embedding_space: str | None = None,
         embedding: list[float] | None = None,
         source_agent_id: str | None = None,
     ):
@@ -33,6 +34,7 @@ class PCMIClient:
             metadata=metadata or {},
             tags=tags,
             embedding_model=embedding_model,
+            embedding_space=embedding_space,
             embedding=embedding,
             source_agent_id=source_agent_id,
         )
@@ -47,8 +49,17 @@ class PCMIClient:
         limit: int = 10,
         *,
         as_of: str | None = None,
+        source_agent_id: str | None = None,
+        embedding_space: str | None = None,
     ):
-        payload = MemoryRetrieve(path_prefix=path_prefix, query=query, limit=limit, as_of=as_of)
+        payload = MemoryRetrieve(
+            path_prefix=path_prefix,
+            query=query,
+            limit=limit,
+            as_of=as_of,
+            source_agent_id=source_agent_id,
+            embedding_space=embedding_space,
+        )
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()
         return resp.json()
@@ -63,6 +74,32 @@ class PCMIClient:
         payload = MemoryRollback(path=path, version=version, as_of=as_of)
         resp = await self.client.post(
             "/v1/memories/rollback", json=payload.model_dump(exclude_none=True)
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def ingest_event(
+        self,
+        event_type: str,
+        payload: dict | None = None,
+        *,
+        agent_id: str | None = None,
+        correlation_id: str | None = None,
+    ):
+        body = IngestEvent(
+            event_type=event_type,
+            agent_id=agent_id,
+            correlation_id=correlation_id,
+            payload=payload or {},
+        )
+        resp = await self.client.post("/v1/events", json=body.model_dump(exclude_none=True))
+        resp.raise_for_status()
+        return resp.json()
+
+    async def get_history(self, path: str, limit: int = 50):
+        resp = await self.client.get(
+            "/v1/memories/history",
+            params={"path": path, "limit": limit},
         )
         resp.raise_for_status()
         return resp.json()

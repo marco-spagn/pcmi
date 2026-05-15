@@ -125,6 +125,7 @@ func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest
 		Metadata:       meta,
 		Tags:           historical.Tags,
 		EmbeddingModel: historical.EmbeddingModel,
+		EmbeddingSpace: historical.EmbeddingSpace,
 		Embedding:      historical.Embedding,
 	}
 	if historical.SourceAgentID != nil {

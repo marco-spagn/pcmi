@@ -8,9 +8,24 @@ name: CI
 
 on:
   push:
-    branches: [main, pr/v1.8.0, pr/v1.9.0, pr/v1.10.0]
+    branches:
+      - main
+      - release/*
+      - feature/*
+      - develop/*
+      # legacy: open PRs still on pr/* until merged
+      - pr/v1.8.0
+      - pr/v1.9.0
+      - pr/v1.10.0
   pull_request:
-    branches: [main, pr/v1.8.0, pr/v1.9.0, pr/v1.10.0]
+    branches:
+      - main
+      - release/*
+      - feature/*
+      - develop/*
+      - pr/v1.8.0
+      - pr/v1.9.0
+      - pr/v1.10.0
 
 permissions:
   contents: read
@@ -228,6 +243,56 @@ jobs:
           curl -sf "http://localhost:8000/v1/audit?limit=10" \
             -H "X-API-Key: testkey123" \
             | jq -e '(.entries | type) == "array" and (.total | type) == "number" and (.total >= 1)'
+
+      - name: Universal event ingestion smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          curl -sf -X POST http://localhost:8000/v1/events \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"event_type\":\"agent.step.completed\",\"payload\":{\"step\":\"ci.${SUFFIX}\"}}" \
+            | jq -e '.status == "ingested" and (.id | type) == "string"'
+
+      - name: Memory history reconstruction smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.history.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"v1\",\"metadata\":{}}" \
+            | jq -e '.version == 1'
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"v2\",\"metadata\":{}}" \
+            | jq -e '.version == 2'
+          curl -sf "http://localhost:8000/v1/memories/history?path=${PATH_V}" \
+            -H "X-API-Key: testkey123" \
+            | jq -e '(.entries | length) == 2 and .entries[0].version == 2'
+
+      - name: Cross-agent scope and embedding space smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          AGENT="00000000-0000-0000-0000-000000000001"
+          PATH_A="root.ci.scope.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_A}\",\"content\":\"agent-one\",\"metadata\":{},\"source_agent_id\":\"${AGENT}\",\"embedding_space\":\"experimental\"}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"root.ci.scope.other.${SUFFIX}\",\"content\":\"agent-two\",\"metadata\":{}}"
+          COUNT=$(curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"root.ci.scope\",\"source_agent_id\":\"${AGENT}\",\"embedding_space\":\"experimental\",\"limit\":20}" \
+            | jq '.entries | length')
+          test "$COUNT" -ge 1
 
       - name: Show logs on failure
         if: failure()

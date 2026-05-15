@@ -6,6 +6,7 @@ const (
 	EventWorkflowFinished   = "workflow.finished"
 	EventReasoningGenerated = "reasoning.generated"
 	EventMemoryStored       = "memory.stored"
+	EventMemoryUpdated      = "memory.updated"
 	EventKnowledgeDistilled = "knowledge.distilled"
 )
 

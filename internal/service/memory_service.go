@@ -18,14 +18,20 @@ type MemoryService struct {
 	embedder embedding.Provider
 }
 
+type StoreResult struct {
+	Entry        *model.MemoryEntry
+	Version      int
+	SupersededID *int64
+}
+
 func NewMemoryService(repo repository.MemoryRepository, embedder embedding.Provider) *MemoryService {
 	return &MemoryService{repo: repo, embedder: embedder}
 }
 
-func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tenantID string) (*model.MemoryEntry, error) {
+func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tenantID string) (*StoreResult, error) {
 	log.Printf("📥 [SERVICE] Store — tenant=%s path=%s", tenantID, req.Path)
 
-	id, err := s.repo.Store(ctx, *req, tenantID)
+	id, version, supersededID, err := s.repo.Store(ctx, *req, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("store failed: %w", err)
 	}
@@ -38,21 +44,35 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tena
 		Metadata:       req.Metadata,
 		Tags:           req.Tags,
 		EmbeddingModel: req.EmbeddingModel,
-		Version:        1,
+		Version:        version,
 		ValidFrom:      time.Now(),
 		CreatedAt:      time.Now(),
 	}
 
-	log.Printf("📣 [REDIS] memory.stored id=%d", id)
-	if err := event.PublishEvent(event.EventMemoryStored, map[string]any{
+	payload := map[string]any{
 		"id":        entry.ID,
 		"tenant_id": entry.TenantID,
 		"path":      entry.Path,
-	}); err != nil {
+		"version":   version,
+	}
+	eventType := event.EventMemoryStored
+	if supersededID != nil {
+		eventType = event.EventMemoryUpdated
+		payload["superseded_id"] = *supersededID
+		log.Printf("📣 [REDIS] memory.updated id=%d version=%d superseded=%d", id, version, *supersededID)
+	} else {
+		log.Printf("📣 [REDIS] memory.stored id=%d version=%d", id, version)
+	}
+
+	if err := event.PublishEvent(eventType, payload); err != nil {
 		log.Printf("❌ [REDIS] publish: %v", err)
 	}
 
-	return entry, nil
+	return &StoreResult{
+		Entry:        entry,
+		Version:      version,
+		SupersededID: supersededID,
+	}, nil
 }
 
 func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest, tenantID string) (*model.RetrieveResponse, error) {

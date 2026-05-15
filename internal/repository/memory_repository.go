@@ -198,6 +198,7 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			LIMIT $5`
 		args = []any{tenantID, path, qText, req.AsOf, limit}
 	default:
+		temporal = temporalClause("$3")
 		q = `
 			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,

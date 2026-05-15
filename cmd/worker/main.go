@@ -38,7 +38,7 @@ func main() {
 		mux := http.NewServeMux()
 		mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"status":"healthy","service":"worker"}`))
+			_, _ = w.Write([]byte(`{"status":"healthy","service":"worker"}`))
 		})
 		log.Println("💓 Worker health endpoint started on :8081")
 		if err := http.ListenAndServe(":8081", mux); err != nil {

@@ -17,7 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_api_keys_expires_at ON api_keys(expires_at);
 
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS tenant_api_keys ON api_keys
+CREATE POLICY tenant_api_keys ON api_keys
     USING (tenant_id = current_setting('app.current_tenant')::uuid);
 
 -- Chiave di test (testkey123)

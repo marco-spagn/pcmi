@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -16,62 +16,86 @@ type DistillationWorker struct {
 	db        *pgxpool.Pool
 	openai    *openai.Client
 	modelName string
-	eventCh   <-chan event.Event
 }
 
 func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		log.Println("⚠️  OPENAI_API_KEY non trovata – distillation in modalità simulata")
+		log.Println("⚠️  OPENAI_API_KEY unset — distillation LLM calls will fail")
+	}
+	model := os.Getenv("DISTILLATION_MODEL")
+	if model == "" {
+		model = "gpt-4o-mini"
 	}
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
-		modelName: "gpt-4o-mini",
-		eventCh:   event.GlobalBus.Subscribe("memory.stored"),
+		modelName: model,
 	}
 }
-func (w *DistillationWorker) TriggerImmediateDistillation() {
-	log.Println("⚡ Trigger immediato di distillazione richiesto")
-	w.runDistillationJob()
+
+func (w *DistillationWorker) TriggerForMemory(tenantID, path string) {
+	go w.runDistillationJob(tenantID, path)
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Println("🚀 Distillation Engine v1.2 started – EVENT-DRIVEN + fallback timer")
+	log.Println("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer")
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
+
+	defaultTenant := "00000000-0000-0000-0000-000000000000"
 
 	for {
 		select {
 		case <-ctx.Done():
 			log.Println("🛑 Distillation worker stopped")
 			return
-
-		// EVENT-DRIVEN: reazione immediata
-		case evt := <-w.eventCh:
-			if evt.Type == "memory.stored" {
-				log.Printf("📨 Evento ricevuto: memory.stored (id=%v) – avvio distillazione IMMEDIATA", evt.Payload["id"])
-				w.runDistillationJob()
-			}
-
-		// FALLBACK TIMER
 		case <-ticker.C:
-			log.Println("⏰ Fallback timer: avvio distillazione periodica")
-			w.runDistillationJob()
+			log.Println("⏰ Fallback timer: periodic distillation for default tenant")
+			w.runDistillationJob(defaultTenant, "root.test")
 		}
 	}
 }
 
-func (w *DistillationWorker) runDistillationJob() {
-	log.Println("🔄 Avvio job di distillation su subtree root.test...")
+func distillPathPrefix(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return "root.test"
+	}
+	if strings.HasPrefix(path, "root.test") {
+		return "root.test"
+	}
+	parts := strings.Split(path, ".")
+	if len(parts) >= 2 {
+		return parts[0] + "." + parts[1]
+	}
+	return path
+}
 
-	rows, err := w.db.Query(context.Background(), `
-		SELECT id, content, metadata 
-		FROM memory_entries 
-		WHERE path::text LIKE 'root.test%' 
-		  AND valid_to IS NULL 
-		ORDER BY created_at DESC LIMIT 10`)
+func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
+	if tenantID == "" {
+		tenantID = "00000000-0000-0000-0000-000000000000"
+	}
+	pathPrefix := distillPathPrefix(memoryPath)
+	distilledPath := pathPrefix + ".distilled"
+
+	ctx := context.Background()
+	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+		log.Printf("❌ distillation set tenant: %v", err)
+		return
+	}
+
+	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s", tenantID, pathPrefix)
+
+	rows, err := w.db.Query(ctx, `
+		SELECT id, content, metadata
+		FROM memory_entries
+		WHERE tenant_id = $1::uuid
+		  AND path <@ $2::ltree
+		  AND valid_to IS NULL
+		ORDER BY created_at DESC
+		LIMIT 10`, tenantID, pathPrefix)
 	if err != nil {
 		log.Printf("❌ distillation query error: %v", err)
 		return
@@ -93,7 +117,7 @@ func (w *DistillationWorker) runDistillationJob() {
 			continue
 		}
 		var meta map[string]any
-		json.Unmarshal(e.Metadata, &meta)
+		_ = json.Unmarshal(e.Metadata, &meta)
 		entries = append(entries, struct {
 			ID       int64
 			Content  string
@@ -101,20 +125,20 @@ func (w *DistillationWorker) runDistillationJob() {
 		}{e.ID, e.Content, meta})
 	}
 
-	// MODIFICA PER TEST: bastano 1 ricordo (prima erano 2)
 	if len(entries) < 1 {
-		log.Printf("📊 Trovati solo %d ricordi – distillazione saltata", len(entries))
+		log.Printf("📊 No memories under %s — distillation skipped", pathPrefix)
 		return
 	}
 
-	log.Printf("🧠 Distillando %d ricordi grezzi...", len(entries))
+	if os.Getenv("OPENAI_API_KEY") == "" {
+		log.Println("⚠️  Skipping LLM distillation (no OPENAI_API_KEY)")
+		return
+	}
 
-	// Prompt LLM
-	prompt := `Riassumi questi ricordi in un unico insight di ordine superiore.
-Genera:
-1. Un summary conciso (max 2 righe)
-2. Una lista di insights chiave come array JSON
-Rispondi SOLO con JSON valido:
+	log.Printf("🧠 Distilling %d raw memories under %s...", len(entries), pathPrefix)
+
+	prompt := `Summarize these memories into higher-order knowledge.
+Return ONLY valid JSON:
 {"summary": "...", "insights": ["insight1", "insight2"]}`
 
 	var messages []openai.ChatCompletionMessage
@@ -129,7 +153,7 @@ Rispondi SOLO con JSON valido:
 		})
 	}
 
-	resp, err := w.openai.CreateChatCompletion(context.Background(), openai.ChatCompletionRequest{
+	resp, err := w.openai.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:    w.modelName,
 		Messages: messages,
 	})
@@ -142,25 +166,35 @@ Rispondi SOLO con JSON valido:
 		Summary  string   `json:"summary"`
 		Insights []string `json:"insights"`
 	}
-	if err := json.Unmarshal([]byte(resp.Choices[0].Message.Content), &result); err != nil {
-		log.Printf("❌ JSON parse error: %v", err)
+	content := strings.TrimSpace(resp.Choices[0].Message.Content)
+	content = strings.TrimPrefix(content, "```json")
+	content = strings.TrimPrefix(content, "```")
+	content = strings.TrimSuffix(content, "```")
+	content = strings.TrimSpace(content)
+	if err := json.Unmarshal([]byte(content), &result); err != nil {
+		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
 		return
 	}
 
-	// Salva
 	sourceIDs := make([]int64, len(entries))
 	for i, e := range entries {
 		sourceIDs[i] = e.ID
 	}
 
-	_, err = w.db.Exec(context.Background(), `
+	insightsJSON, err := json.Marshal(result.Insights)
+	if err != nil {
+		log.Printf("❌ insights marshal: %v", err)
+		return
+	}
+
+	_, err = w.db.Exec(ctx, `
 		INSERT INTO distilled_knowledge (
 			tenant_id, path, summary, insights, confidence_score, source_entry_ids
-		) VALUES ($1, $2, $3, $4, $5, $6)`,
-		"00000000-0000-0000-0000-000000000000",
-		"root.test.distilled",
+		) VALUES ($1::uuid, $2::ltree, $3, $4::jsonb, $5, $6)`,
+		tenantID,
+		distilledPath,
 		result.Summary,
-		result.Insights,
+		insightsJSON,
 		0.85,
 		sourceIDs,
 	)
@@ -169,5 +203,5 @@ Rispondi SOLO con JSON valido:
 		return
 	}
 
-	log.Println("✅ Distillazione completata – conoscenza di ordine superiore salvata in distilled_knowledge")
+	log.Printf("✅ Distillation saved at %s (tenant=%s, sources=%d)", distilledPath, tenantID, len(sourceIDs))
 }

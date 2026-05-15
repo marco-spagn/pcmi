@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
@@ -12,12 +15,15 @@ import (
 
 func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	repo := repository.NewMemoryRepository(db)
-	svc := service.NewMemoryService(*repo)
+
+	var embed embedding.Provider
+	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
+		embed = embedding.NewOpenAIProvider(k, os.Getenv("EMBEDDING_MODEL"))
+	}
+	svc := service.NewMemoryService(*repo, embed)
 
 	api := app.Group("/v1")
-	api.Use(middleware.APIKeyMiddleware(db))
 
-	// Store
 	api.Post("/memories", func(c *fiber.Ctx) error {
 		var req model.StoreRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -34,7 +40,6 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(fiber.Map{"id": result.ID, "status": "stored"})
 	})
 
-	// Retrieve
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -51,26 +56,10 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 		return c.JSON(result)
 	})
 
-	// Distilled Knowledge
-	api.Get("/distilled", func(c *fiber.Ctx) error {
-		tenantID := c.Locals(middleware.TenantContextKey).(string)
-		pathPrefix := c.Query("path_prefix")
+	dh := NewDistilledHandler(db)
+	api.Get("/distilled", dh.Get)
 
-		if pathPrefix == "" {
-			return c.Status(400).JSON(fiber.Map{"error": "path_prefix is required"})
-		}
-
-		// TODO: Implement full distilled service in v1.6
-		// For now return basic structure
-		return c.JSON(fiber.Map{
-			"entries": []interface{}{},
-			"total":   0,
-			"tenant":  tenantID,
-		})
-	})
-
-	// Health
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.5"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.7"})
 	})
 }

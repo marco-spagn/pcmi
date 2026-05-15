@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: PCMI API
+  description: Persistent Cognitive Memory Infrastructure — memory API (v1)
+  version: 1.7.0
+servers:
+  - url: http://localhost:8000
+    description: Local
+security:
+  - ApiKeyAuth: []
+paths:
+  /health:
+    get:
+      summary: Liveness (no auth)
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string }
+                  service: { type: string }
+                  version: { type: string }
+  /v1/health:
+    get:
+      summary: Version probe (no auth)
+      security: []
+      responses:
+        "200":
+          description: OK
+  /v1/memories:
+    post:
+      summary: Store a memory entry (append-only row)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoreMemoryRequest"
+      responses:
+        "200":
+          description: Stored
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer, format: int64 }
+                  status: { type: string }
+  /v1/retrieve:
+    post:
+      summary: Hybrid retrieve (structural + optional semantic + temporal filter)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetrieveRequest"
+      responses:
+        "200":
+          description: Result set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetrieveResponse"
+  /v1/distilled:
+    get:
+      summary: List distilled knowledge under an ltree prefix
+      parameters:
+        - name: path_prefix
+          in: query
+          required: true
+          schema: { type: string, example: root.test }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Distilled entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items: { type: object }
+                  total: { type: integer }
+                  tenant: { type: string, format: uuid }
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    StoreMemoryRequest:
+      type: object
+      required: [path, content]
+      properties:
+        path: { type: string, description: ltree path e.g. root.domain.topic }
+        content: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        tags:
+          type: array
+          items: { type: string }
+        embedding:
+          type: array
+          items: { type: number, format: float }
+        embedding_model: { type: string }
+        source_agent_id: { type: string, format: uuid }
+    RetrieveRequest:
+      type: object
+      properties:
+        path_prefix: { type: string }
+        query: { type: string, description: Text filter and/or semantic query when OPENAI_API_KEY is set on API }
+        limit: { type: integer, default: 10 }
+        as_of: { type: string, format: date-time, nullable: true }
+    MemoryEntry:
+      type: object
+      properties:
+        id: { type: integer }
+        tenant_id: { type: string, format: uuid }
+        path: { type: string }
+        content: { type: string }
+        metadata: { type: object }
+        tags:
+          type: array
+          items: { type: string }
+        embedding_model: { type: string }
+        version: { type: integer }
+        valid_from: { type: string, format: date-time }
+        valid_to: { type: string, format: date-time, nullable: true }
+        relevance_score: { type: number, description: Cosine-based score when semantic path used }
+        created_at: { type: string, format: date-time }
+    RetrieveResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+        total: { type: integer }

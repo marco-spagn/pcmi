@@ -9,6 +9,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./migrations/002_multi_tenant.sql:/docker-entrypoint-initdb.d/002_multi_tenant.sql
+      - ./migrations/003_rbac_api_keys.sql:/docker-entrypoint-initdb.d/003_rbac_api_keys.sql
+      - ./migrations/004_audit_encryption.sql:/docker-entrypoint-initdb.d/004_audit_encryption.sql
+      - ./migrations/005_worker_helpers.sql:/docker-entrypoint-initdb.d/005_worker_helpers.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -31,17 +35,22 @@ services:
       - .env
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
+      REDIS_ADDR: redis:6379
     restart: unless-stopped
 
   worker:
     build:
       context: .
       dockerfile: Dockerfile
+    env_file:
+      - .env
     environment:
-      - DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
+      REDIS_ADDR: redis:6379
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "8081:8081"

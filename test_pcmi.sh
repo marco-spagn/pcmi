@@ -20,7 +20,6 @@ curl -s -f http://localhost:8000/v1/health > /dev/null && echo "✅ API healthy"
 echo "📤 5. Store di un nuovo ricordo di test..."
 cat > /tmp/pcmi_test_payload.json << JSON
 {
-  "tenant_id": "00000000-0000-0000-0000-000000000000",
   "path": "root.test.autotest.$(date +%s)",
   "content": "Test automatico generato da script - verifica embedding + retrieve",
   "metadata": {"author": "marco", "test": "auto"},
@@ -31,6 +30,7 @@ JSON
 
 curl -s -X POST http://localhost:8000/v1/memories \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d @/tmp/pcmi_test_payload.json | jq -r '.'
 
 echo
@@ -41,8 +41,8 @@ sleep 30
 echo "📥 7. Retrieve con path_prefix root.test..."
 curl -s -X POST http://localhost:8000/v1/retrieve \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d '{
-    "tenant_id": "00000000-0000-0000-0000-000000000000",
     "path_prefix": "root.test",
     "limit": 10
   }' | jq '.'
@@ -50,7 +50,7 @@ curl -s -X POST http://localhost:8000/v1/retrieve \
 echo
 
 echo "📋 8. Ultimi log del Embedding Worker:"
-docker compose logs -f worker --tail=20
+docker compose logs worker --tail=20
 
 echo
 echo "✅ Test completati."

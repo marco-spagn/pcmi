@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/database"
+	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/worker"
 )
@@ -26,6 +27,12 @@ func main() {
 	db := database.New(dbURL)
 	defer db.Close()
 
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	event.InitRedis(redisAddr)
+
 	// Health check server (port 8081)
 	go func() {
 		mux := http.NewServeMux()
@@ -40,24 +47,35 @@ func main() {
 	}()
 
 	// Initialize Redis
-	event.InitRedis("redis:6379")
-	log.Println("✅ Redis connesso, in attesa di eventi sul canale 'memory_events'...")
+	log.Println("✅ Redis connected, subscribing to memory_events…")
 
-	// Start distillation worker
-	distWorker := worker.NewDistillationWorker(db)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
+		prov := embedding.NewOpenAIProvider(key, os.Getenv("EMBEDDING_MODEL"))
+		ew := worker.NewEmbeddingWorker(db, prov)
+		go ew.Start(ctx)
+		log.Println("✅ Embedding worker started")
+	} else {
+		log.Println("⚠️ OPENAI_API_KEY unset — embedding worker disabled")
+	}
+
+	// Start distillation worker
+	distWorker := worker.NewDistillationWorker(db)
 	go distWorker.Start(ctx)
 
-	// Subscribe to Redis events
+	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
-			if evt.Type == "memory.stored" {
-				log.Printf("📨 [REDIS] Event received: id=%v → triggering distillation", evt.Payload["id"])
-				distWorker.TriggerImmediateDistillation()
+			if evt.Type != event.EventMemoryStored {
+				continue
 			}
+			tenantID, _ := evt.Payload["tenant_id"].(string)
+			path, _ := evt.Payload["path"].(string)
+			log.Printf("📨 [REDIS] memory.stored id=%v tenant=%s path=%s → distillation", evt.Payload["id"], tenantID, path)
+			distWorker.TriggerForMemory(tenantID, path)
 		}
 	}()
 

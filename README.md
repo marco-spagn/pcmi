@@ -1,25 +1,50 @@
 # PCMI – Persistent Cognitive Memory Infrastructure
-# Persistent Cognitive Memory Infrastructure (PCMI) – Go Edition  Memory lives outside agents. Agents are stateless
 
-PCMI is a persistent, runtime-agnostic cognitive layer for distributed AI agents.
-## ✨ Features
+Memory lives **outside** agents. Agents are ephemeral; this layer is persistent, runtime-agnostic, and reachable over HTTP.
 
-- ✅ **Event-driven Distillation** – Each store triggers distillation (with fallback timer)
-- ✅ **Hierarchical Memory** – Organizing with ltree (root.trading.strategies.scalping)
-- ✅ **Temporal Versioning** – Append-only con valid_from/valid_to
-- ✅ **Hybrid Retrieval** – Structural + Semantic + Temporal
-- ✅ **Multi-tenant Ready** 
+## Features
 
-## 🚀 Quick Start
+- Hierarchical paths (`ltree`), JSONB metadata, pgvector embeddings  
+- Append-only rows with `valid_from` / `valid_to` (current slice uses `valid_to IS NULL`)  
+- Hybrid retrieval: structural `ltree` scope + optional semantic ranking when `OPENAI_API_KEY` is set on the API  
+- RBAC via `X-API-Key`, audit log, multi-tenant RLS (after migrations)  
+- Redis event fan-out (`memory.stored`) and worker-driven embedding + distillation  
+
+## Quick start
 
 ```bash
-git clone https://github.com/marco-spagn/pcmi.git
 cd pcmi
+cp .env.example .env
+# optional: set OPENAI_API_KEY for embeddings + semantic retrieve
 docker compose up -d --build
 
-# Test
-curl -X POST http://localhost:8000/v1/memories \
-  -H "Content-Type: application/json" \
-  -d '{"tenant_id":"00000000-0000-0000-0000-000000000000","path":"root.test","content":"Test memory","metadata":{"test":true},"embedding_model":"text-embedding-3-large"}'
+# Liveness (no API key)
+curl -s http://localhost:8000/health
 
-curl -X GET "http://localhost:8000/v1/distilled?path_prefix=root.test
+# Store (default dev key from migration 003)
+curl -s -X POST http://localhost:8000/v1/memories \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
+  -d '{"path":"root.test.demo","content":"Hello PCMI","metadata":{"source":"readme"},"embedding_model":"text-embedding-3-small"}'
+
+curl -s -X POST http://localhost:8000/v1/retrieve \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
+  -d '{"path_prefix":"root.test","query":"","limit":10}'
+
+curl -s "http://localhost:8000/v1/distilled?path_prefix=root.test" \
+  -H "X-API-Key: testkey123"
+```
+
+OpenAPI: `docs/openapi.yaml`
+
+## Layout
+
+- `cmd/api` — Fiber HTTP API  
+- `cmd/worker` — embeddings + distillation + Redis subscriber  
+- `migrations` — Postgres schema (run via Docker init or your migrator)  
+- `sdk/python`, `sdk/typescript` — thin clients  
+
+## License
+
+See `LICENSE`.

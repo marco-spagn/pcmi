@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.6 starting...")
+	log.Println("🚀 PCMI API v1.7 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -23,11 +23,14 @@ func main() {
 	db := database.New(dbURL)
 	defer db.Close()
 
-	// Initialize Redis
-	event.InitRedis("redis:6379")
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379"
+	}
+	event.InitRedis(redisAddr)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.6",
+		AppName: "PCMI API v1.7",
 	})
 
 	// Middlewares
@@ -36,12 +39,15 @@ func main() {
 
 	// Routes
 	handler.SetupMemoryRoutes(app, db)
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.7"})
+	})
 
 	port := os.Getenv("API_PORT")
 	if port == "" {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.6 started on port %s (Audit Log + RBAC enabled)", port)
+	log.Printf("✅ PCMI API v1.7 started on port %s (Audit + RBAC + hybrid retrieval)", port)
 	log.Fatal(app.Listen(":" + port))
 }

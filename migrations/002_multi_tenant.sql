@@ -22,6 +22,8 @@ CREATE POLICY tenant_isolation_memory ON memory_entries
 CREATE POLICY tenant_isolation_distilled ON distilled_knowledge
     USING (tenant_id = current_setting('app.current_tenant')::uuid);
 
+ALTER TABLE tenants ENABLE ROW LEVEL SECURITY;
+
 -- 4. Policy per tenants (solo admin può vedere tutti)
 CREATE POLICY tenant_self ON tenants
     USING (id = current_setting('app.current_tenant')::uuid);

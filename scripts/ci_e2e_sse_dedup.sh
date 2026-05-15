@@ -217,14 +217,21 @@ test_complex_integration() {
 
   wait_for_retrieve_nonempty "$prefix"
 
-  local sem_n
-  sem_n=$(curl -sf -X POST "${API_URL}/v1/retrieve" "${hdr[@]}" \
-    -d "{\"path_prefix\":\"${prefix}\",\"query\":\"volatility risk management\",\"limit\":5}" \
-    | jq '.entries | length')
+  local sem_n i=0
+  while [ "$i" -lt "$EMBED_WAIT_SECS" ]; do
+    sem_n=$(curl -sf -X POST "${API_URL}/v1/retrieve" "${hdr[@]}" \
+      -d "{\"path_prefix\":\"${prefix}\",\"query\":\"volatility risk management\",\"limit\":5}" \
+      | jq '.entries | length')
+    if [ "${sem_n:-0}" -ge 1 ]; then
+      log "semantic retrieve returned ${sem_n} entries after ${i}s"
+      break
+    fi
+    sleep 5
+    i=$((i + 5))
+  done
   if [ "${sem_n:-0}" -lt 1 ]; then
-    fail "semantic retrieve returned no entries (got ${sem_n})"
+    fail "semantic retrieve returned no entries after ${EMBED_WAIT_SECS}s (embeddings may be pending)"
   fi
-  log "semantic retrieve returned ${sem_n} entries"
 
   wait_for_distilled_at_least "$distill_prefix" 1
 

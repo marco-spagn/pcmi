@@ -101,7 +101,14 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	ah := NewAuditHandler(db)
 	api.Get("/audit", ah.List)
 
+	wh := NewWebhookHandler(db)
+	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)
+	api.Get("/webhooks", wh.List)
+
+	emh := NewEmbeddingMigrateHandler(db)
+	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
+
 	api.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "version": "v1.11.0"})
+		return c.JSON(fiber.Map{"status": "ok", "version": "v1.12.0"})
 	})
 }

@@ -180,6 +180,12 @@ Return ONLY valid JSON:
 		return
 	}
 
+	version, err := nextDistilledVersion(ctx, w.db, tenantID, distilledPath)
+	if err != nil {
+		log.Printf("❌ distillation version: %v", err)
+		return
+	}
+
 	insightsJSON, err := json.Marshal(result.Insights)
 	if err != nil {
 		log.Printf("❌ insights marshal: %v", err)
@@ -189,8 +195,8 @@ Return ONLY valid JSON:
 	var distilledID int64
 	err = w.db.QueryRow(ctx, `
 		INSERT INTO distilled_knowledge (
-			tenant_id, path, summary, insights, confidence_score, source_entry_ids
-		) VALUES ($1::uuid, $2::ltree, $3, $4::jsonb, $5, $6)
+			tenant_id, path, summary, insights, confidence_score, source_entry_ids, version
+		) VALUES ($1::uuid, $2::ltree, $3, $4::jsonb, $5, $6, $7)
 		RETURNING id`,
 		tenantID,
 		distilledPath,
@@ -198,6 +204,7 @@ Return ONLY valid JSON:
 		insightsJSON,
 		0.85,
 		sourceIDs,
+		version,
 	).Scan(&distilledID)
 	if err != nil {
 		log.Printf("❌ insert distilled error: %v", err)
@@ -208,12 +215,13 @@ Return ONLY valid JSON:
 		"id":        distilledID,
 		"tenant_id": tenantID,
 		"path":      distilledPath,
+		"version":   version,
 		"sources":   len(sourceIDs),
 	}); err != nil {
 		log.Printf("⚠️  distilled event publish: %v", err)
 	}
 
-	log.Printf("✅ Distillation saved id=%d at %s (tenant=%s, sources=%d)", distilledID, distilledPath, tenantID, len(sourceIDs))
+	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)", distilledID, distilledPath, version, tenantID, len(sourceIDs))
 }
 
 func (w *DistillationWorker) hasDuplicateDistillation(ctx context.Context, tenantID, distilledPath string, sourceIDs []int64) (bool, error) {

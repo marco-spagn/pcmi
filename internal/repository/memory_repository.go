@@ -28,6 +28,14 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 	if embModel == "" {
 		embModel = "unspecified"
 	}
+	metadata := req.Metadata
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+	tags := req.Tags
+	if tags == nil {
+		tags = []string{}
+	}
 
 	var id int64
 	var err error
@@ -36,14 +44,14 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, version, valid_from, created_at)
 			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, 1, NOW(), NOW())
 			RETURNING id`
-		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, req.Metadata, req.Tags,
+		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags,
 			pgvector.NewVector(req.Embedding), embModel).Scan(&id)
 	} else {
 		q := `
 			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, version, valid_from, created_at)
 			VALUES ($1, $2::ltree, $3, $4, $5, $6, 1, NOW(), NOW())
 			RETURNING id`
-		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, req.Metadata, req.Tags, embModel).Scan(&id)
+		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel).Scan(&id)
 	}
 	if err != nil {
 		return 0, fmt.Errorf("store failed: %w", err)

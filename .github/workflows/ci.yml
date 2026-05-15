@@ -122,7 +122,7 @@ jobs:
           curl -sf -X POST http://localhost:8000/v1/memories \
             -H "Content-Type: application/json" \
             -H "X-API-Key: testkey123" \
-            -d "{\"path\":\"root.ci.${SUFFIX}\",\"content\":\"CI smoke test\",\"embedding_model\":\"text-embedding-3-small\",\"tags\":[\"ci\"]}" \
+            -d "{\"path\":\"root.ci.${SUFFIX}\",\"content\":\"CI smoke test\",\"metadata\":{},\"embedding_model\":\"text-embedding-3-small\",\"tags\":[\"ci\"]}" \
             | jq -e '.id'
 
           curl -sf -X POST http://localhost:8000/v1/retrieve \

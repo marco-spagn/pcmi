@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.15.0 (current)
+## v1.16.0 (current)
+
+- Documentazione centralizzata: `docs/CODEBASE.md`, `docs/MIGRATIONS.md`, Godoc (`internal/*/doc.go`), `sdk/README.md`
+- Indice documentazione in README e allineamento versione API `v1.16.0`
+
+## v1.15.0
 
 - Explicit distillation trigger (`POST /v1/memories/refine`)
 - Memory lineage and distilled-to-source traceability

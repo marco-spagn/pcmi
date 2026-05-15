@@ -1,3 +1,5 @@
+// Programma pcmi-api: server HTTP (Fiber), stream SSE, eventuale gRPC MemoryService e endpoint
+// Prometheus. Avvio da cmd/api; configurazione via variabili d’ambiente (vedi .env.example e docs/CODEBASE.md).
 package main
 
 import (
@@ -21,7 +23,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.15 starting...")
+	log.Println("🚀 PCMI API v1.16 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -47,7 +49,7 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.15",
+		AppName: "PCMI API v1.16",
 	})
 
 	app.Use(metrics.Middleware())
@@ -64,7 +66,7 @@ func main() {
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.15.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.16.0"})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -74,6 +76,6 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.15 started on port %s (refine, lineage, links, stats, TTL)", port)
+	log.Printf("✅ PCMI API v1.16 started on port %s (see docs/CODEBASE.md)", port)
 	log.Fatal(app.Listen(":" + port))
 }

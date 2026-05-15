@@ -2,4 +2,5 @@
 name = "pcmi"
 version = "1.0.0"
 description = "PCMI Python SDK"
-dependencies = ["httpx", "pydantic"]
+requires-python = ">=3.10"
+dependencies = ["httpx", "pydantic>=2"]

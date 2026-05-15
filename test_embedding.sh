@@ -23,7 +23,6 @@ curl -s -f http://localhost:8000/v1/health > /dev/null && echo "✅ API healthy"
 echo "📤 5. Store di un ricordo di test..."
 cat > /tmp/payload.json << JSON
 {
-  "tenant_id": "00000000-0000-0000-0000-000000000000",
   "path": "root.test.embedding.deep.$(date +%s)",
   "content": "La strategia di scalping funziona meglio con alto volume e RSI sotto 30 nel timeframe di 5 minuti",
   "metadata": {"test": "embedding-deep", "author": "marco"},
@@ -34,6 +33,7 @@ JSON
 
 curl -s -X POST http://localhost:8000/v1/memories \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d @/tmp/payload.json | jq -r '.'
 
 echo
@@ -45,8 +45,8 @@ sleep 35
 echo "📥 7. Retrieve..."
 curl -s -X POST http://localhost:8000/v1/retrieve \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d '{
-    "tenant_id": "00000000-0000-0000-0000-000000000000",
     "path_prefix": "root.test",
     "limit": 8
   }' | jq '.'

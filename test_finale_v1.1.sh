@@ -24,8 +24,8 @@ echo "📤 5. Store di 3 ricordi correlati..."
 for i in {1..3}; do
   curl -s -X POST http://localhost:8000/v1/memories \
     -H "Content-Type: application/json" \
+    -H "X-API-Key: testkey123" \
     -d '{
-      "tenant_id": "00000000-0000-0000-0000-000000000000",
       "path": "root.test.distill.'$i'",
       "content": "La strategia di scalping funziona meglio con alto volume e RSI sotto 30 nel timeframe di 5 minuti",
       "metadata": {"test": "finale", "topic": "scalping"},
@@ -42,13 +42,15 @@ sleep 90
 echo "📥 7. Retrieve RAW memories..."
 curl -s -X POST http://localhost:8000/v1/retrieve \
   -H "Content-Type: application/json" \
-  -d '{"tenant_id":"00000000-0000-0000-0000-000000000000","path_prefix":"root.test","limit":10}' | jq '.'
+  -H "X-API-Key: testkey123" \
+  -d '{"path_prefix":"root.test","limit":10}' | jq '.'
 
 echo
 
 # 8. Retrieve distilled
 echo "🧠 8. Retrieve DISTILLED knowledge..."
-curl -s -X GET "http://localhost:8000/v1/distilled?path_prefix=root.test" | jq '.'
+curl -s -X GET "http://localhost:8000/v1/distilled?path_prefix=root.test" \
+  -H "X-API-Key: testkey123" | jq '.'
 
 echo
 

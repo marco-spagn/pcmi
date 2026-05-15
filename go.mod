@@ -11,6 +11,8 @@ require (
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/philhofer/fwd v1.1.2 // indirect
+	github.com/tinylib/msgp v1.1.8 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 )
 

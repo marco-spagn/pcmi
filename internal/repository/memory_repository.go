@@ -43,7 +43,7 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	version = 1
 	var closedID sql.NullInt64

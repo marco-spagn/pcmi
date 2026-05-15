@@ -8,7 +8,9 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - Append-only rows with `valid_from` / `valid_to`; re-store on the same path soft-closes the prior version and bumps `version`  
 - Hybrid retrieval: `ltree` scope + PostgreSQL FTS (`ts_rank_cd`) + optional semantic ranking when `OPENAI_API_KEY` is set  
 - Point-in-time retrieve via `as_of` (temporal slice, not only `valid_to IS NULL`)  
-- RBAC via `X-API-Key` (`readonly` cannot POST memories), audit log, multi-tenant RLS  
+- RBAC via `X-API-Key` (`readonly` cannot POST memories), audit log API (`GET /v1/audit`), multi-tenant RLS  
+- Temporal rollback (`POST /v1/memories/rollback`) restores a prior version as a new append-only row  
+- Per-API-key rate limiting (configurable via `RATE_LIMIT_RPM`; disable with `RATE_LIMIT_DISABLED`)  
 - Redis event fan-out (`memory.stored`, `memory.updated`, `knowledge.distilled`) and worker-driven embedding + distillation  
 - SSE event stream at `GET /v1/events` (SDK `subscribe()`)  
 

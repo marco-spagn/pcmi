@@ -60,6 +60,29 @@ export class PCMIClient {
     return res.json();
   }
 
+  async rollback(path: string, opts?: { version?: number; asOf?: string }) {
+    const body: Record<string, unknown> = { path };
+    if (opts?.version != null) body.version = opts.version;
+    if (opts?.asOf) body.as_of = opts.asOf;
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/rollback`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`rollback failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listAudit(limit = 50, offset = 0, since?: string) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/audit`);
+    u.searchParams.set("limit", String(limit));
+    u.searchParams.set("offset", String(offset));
+    if (since) u.searchParams.set("since", since);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listAudit failed: ${res.status}`);
+    return res.json();
+  }
+
   async listDistilled(pathPrefix: string, limit = 50) {
     const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/distilled`);
     u.searchParams.set("path_prefix", pathPrefix);

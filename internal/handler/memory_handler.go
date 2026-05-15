@@ -96,7 +96,8 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	registerBatchRoutes(api, svc)
 
 	lh := NewLineageHandler(db)
-	api.Get("/memories/lineage", lh.MemoryLineage)
+	// Use /lineage/* — /memories/lineage is captured by the /memories/* wildcard.
+	api.Get("/lineage/memory", lh.MemoryLineage)
 
 	rfh := NewRefineHandler()
 	api.Post("/memories/refine", middleware.RequireWriteRole, rfh.Post)
@@ -109,7 +110,7 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	dh := NewDistilledHandler(db)
 	api.Get("/distilled", dh.Get)
-	api.Get("/distilled/:id/lineage", lh.DistilledLineage)
+	api.Get("/lineage/distilled/:id", lh.DistilledLineage)
 
 	eh := NewEventsHandler(db)
 	api.Get("/events/schemas", eh.ListSchemas)

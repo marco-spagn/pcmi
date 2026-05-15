@@ -54,6 +54,7 @@ services:
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       REDIS_ADDR: redis:6379
+      EXPIRY_INTERVAL_SECS: "3"
     depends_on:
       postgres:
         condition: service_healthy

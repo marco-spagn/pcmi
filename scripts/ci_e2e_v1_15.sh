@@ -40,7 +40,7 @@ curl -sf -X POST "${API_URL}/v1/memories" "${hdr[@]}" \
   -d "{\"path\":\"${PREFIX}.lineage\",\"content\":\"v1\",\"metadata\":{}}" | jq -e '.version == 1'
 curl -sf -X POST "${API_URL}/v1/memories" "${hdr[@]}" \
   -d "{\"path\":\"${PREFIX}.lineage\",\"content\":\"v2\",\"metadata\":{}}" | jq -e '.version == 2'
-curl -sf "${API_URL}/v1/memories/lineage?path=${PREFIX}.lineage" -H "X-API-Key: ${API_KEY}" \
+curl -sf "${API_URL}/v1/lineage/memory?path=${PREFIX}.lineage" -H "X-API-Key: ${API_KEY}" \
   | jq -e '(.versions | length) == 2'
 
 echo "== v1.15 refine queue =="

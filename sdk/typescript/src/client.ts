@@ -244,7 +244,7 @@ export class PCMIClient {
   }
 
   async memoryLineage(path: string) {
-    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/lineage`);
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/lineage/memory`);
     u.searchParams.set("path", path);
     const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
     if (!res.ok) throw new Error(`memoryLineage failed: ${res.status}`);

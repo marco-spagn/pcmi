@@ -186,12 +186,12 @@ class PCMIClient:
         return resp.json()
 
     async def memory_lineage(self, path: str):
-        resp = await self.client.get("/v1/memories/lineage", params={"path": path})
+        resp = await self.client.get("/v1/lineage/memory", params={"path": path})
         resp.raise_for_status()
         return resp.json()
 
     async def distilled_lineage(self, distilled_id: int):
-        resp = await self.client.get(f"/v1/distilled/{distilled_id}/lineage")
+        resp = await self.client.get(f"/v1/lineage/distilled/{distilled_id}")
         resp.raise_for_status()
         return resp.json()
 

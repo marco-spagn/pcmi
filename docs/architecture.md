@@ -35,8 +35,8 @@ Agent → POST /v1/memories → API → Postgres (append version)
 ## v1.15 additions
 
 - **POST /v1/memories/refine** — queue distillation for a path prefix (`memory.refine.requested`).
-- **GET /v1/memories/lineage** — version history + derived distilled rows for a path.
-- **GET /v1/distilled/{id}/lineage** — trace distilled knowledge to source memories.
+- **GET /v1/lineage/memory** — version history + derived distilled rows for a path.
+- **GET /v1/lineage/distilled/{id}** — trace distilled knowledge to source memories.
 - **POST/GET /v1/memories/links** — graph edges between paths (`related`, custom types).
 - **GET /v1/stats** — tenant counters (active, superseded, distilled, links, expiring soon).
 - **Tag filters** on retrieve (`tags`, `tags_match=all|any`).

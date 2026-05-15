@@ -89,3 +89,44 @@ func (h *WebhookHandler) List(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"entries": entries, "total": len(entries)})
 }
+
+func (h *WebhookHandler) DeadLetter(c *fiber.Ctx) error {
+	tenantID, ok := c.Locals(middleware.TenantContextKey).(string)
+	if !ok || tenantID == "" {
+		return c.Status(401).JSON(fiber.Map{"error": "tenant context missing"})
+	}
+	limit := c.QueryInt("limit", 50)
+	if limit > 200 {
+		limit = 200
+	}
+	ctx := context.Background()
+	if _, err := h.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	rows, err := h.db.Query(ctx, `
+		SELECT wd.id::text, wd.endpoint_id::text, wd.event_type, wd.payload,
+		       wd.attempts, wd.last_error, wd.created_at
+		FROM webhook_deliveries wd
+		WHERE wd.tenant_id = $1::uuid AND wd.status = 'dead_letter'
+		ORDER BY wd.created_at DESC
+		LIMIT $2`, tenantID, limit)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	defer rows.Close()
+	entries := make([]fiber.Map, 0)
+	for rows.Next() {
+		var id, endpointID, eventType, lastError string
+		var payload any
+		var attempts int
+		var createdAt any
+		if err := rows.Scan(&id, &endpointID, &eventType, &payload, &attempts, &lastError, &createdAt); err != nil {
+			continue
+		}
+		entries = append(entries, fiber.Map{
+			"id": id, "endpoint_id": endpointID, "event_type": eventType,
+			"payload": payload, "attempts": attempts, "last_error": lastError, "created_at": createdAt,
+		})
+	}
+	return c.JSON(fiber.Map{"entries": entries, "total": len(entries)})
+}

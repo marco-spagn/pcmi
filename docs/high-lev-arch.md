@@ -152,6 +152,15 @@ La **distillation** è il cuore cognitivo di PCMI.
 
 ---
 
+### v1.13 — Event schemas, webhook reliability, summarization
+
+- **Event schema registry** (`GET /v1/events/schemas`): built-in strict schemas for core PCMI event types; `POST /v1/events` rejects payloads missing required fields.
+- **Webhook delivery queue**: deliveries are persisted in `webhook_deliveries` with exponential backoff; exhausted attempts move to **dead-letter** (`GET /v1/webhooks/dead-letter`).
+- **Memory summarization** (`POST /v1/memories/summarize`): extractive rollup by default; LLM summary when OpenAI is configured on the API.
+- **Observability**: API (`GET /v1/health`) and worker (`:8081/health`) expose pgx pool connection metrics.
+
+---
+
 **Conclusione del documento**
 
 PCMI è progettato come **substrato cognitivo persistente** per sistemi AI distribuiti del futuro.  

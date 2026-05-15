@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.12.0
+  version: 1.13.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -106,9 +106,58 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/RetrieveResponse"
+  /v1/events/schemas:
+    get:
+      summary: List registered event type schemas for payload validation
+      responses:
+        "200":
+          description: Schema registry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schemas:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EventSchema"
+                  total: { type: integer }
+  /v1/memories/summarize:
+    post:
+      summary: Summarize memories under a path prefix (extractive or LLM when OpenAI configured)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SummarizeRequest"
+      responses:
+        "200":
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummarizeResponse"
+  /v1/webhooks/dead-letter:
+    get:
+      summary: List webhook deliveries that exhausted retries
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Dead-letter queue entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries: { type: array, items: { type: object } }
+                  total: { type: integer }
   /v1/events:
     post:
-      summary: Ingest a universal runtime event
+      summary: Ingest a universal runtime event (validated against schema registry when strict)
       requestBody:
         required: true
         content:
@@ -302,4 +351,35 @@ components:
         entries:
           type: array
           items: { $ref: "#/components/schemas/MemoryEntry" }
+        total: { type: integer }
+    EventSchema:
+      type: object
+      properties:
+        event_type: { type: string }
+        description: { type: string }
+        strict: { type: boolean }
+        fields:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              type: { type: string }
+              required: { type: boolean }
+              description: { type: string }
+    SummarizeRequest:
+      type: object
+      properties:
+        path_prefix: { type: string, example: root.domain }
+        limit: { type: integer, default: 20, maximum: 100 }
+        style: { type: string, enum: [brief, detailed], default: brief }
+    SummarizeResponse:
+      type: object
+      properties:
+        path_prefix: { type: string }
+        summary: { type: string }
+        source_ids:
+          type: array
+          items: { type: integer, format: int64 }
+        method: { type: string, enum: [extractive, llm, none] }
         total: { type: integer }

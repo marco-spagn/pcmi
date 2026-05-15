@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.9.0
+  version: 1.10.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -52,6 +52,24 @@ paths:
                   status: { type: string }
                   version: { type: integer }
                   superseded_id: { type: integer, format: int64, description: Present when a prior version was closed }
+  /v1/memories/rollback:
+    post:
+      summary: Roll back a path to a prior version (append-only; creates new version)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RollbackRequest"
+      responses:
+        "200":
+          description: Rolled back
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RollbackResponse"
+        "404":
+          description: Historical version not found
   /v1/retrieve:
     post:
       summary: Hybrid retrieve (structural + optional semantic + temporal filter)
@@ -110,6 +128,27 @@ paths:
                     items: { type: object }
                   total: { type: integer }
                   tenant: { type: string, format: uuid }
+  /v1/audit:
+    get:
+      summary: List API audit log entries for the authenticated tenant
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: offset
+          in: query
+          schema: { type: integer, default: 0 }
+        - name: since
+          in: query
+          schema: { type: string, format: date-time }
+          description: RFC3339 lower bound on created_at
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditListResponse"
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -163,3 +202,40 @@ components:
           type: array
           items: { $ref: "#/components/schemas/MemoryEntry" }
         total: { type: integer }
+    RollbackRequest:
+      type: object
+      required: [path]
+      properties:
+        path: { type: string }
+        version: { type: integer, description: Exact version to restore (mutually exclusive with as_of) }
+        as_of: { type: string, format: date-time, description: Point-in-time slice (mutually exclusive with version) }
+    RollbackResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        status: { type: string }
+        version: { type: integer }
+        restored_from_version: { type: integer }
+        superseded_id: { type: integer, format: int64 }
+    AuditEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tenant_id: { type: string, format: uuid }
+        api_key_id: { type: string, format: uuid }
+        event_type: { type: string }
+        path: { type: string }
+        method: { type: string }
+        status_code: { type: integer }
+        ip_address: { type: string }
+        user_agent: { type: string }
+        created_at: { type: string, format: date-time }
+    AuditListResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/AuditEntry" }
+        total: { type: integer }
+        limit: { type: integer }
+        offset: { type: integer }

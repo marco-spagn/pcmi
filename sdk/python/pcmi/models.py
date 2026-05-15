@@ -17,3 +17,9 @@ class MemoryRetrieve(BaseModel):
     query: str = ""
     limit: int = 10
     as_of: str | None = None
+
+
+class MemoryRollback(BaseModel):
+    path: str
+    version: int | None = None
+    as_of: str | None = None

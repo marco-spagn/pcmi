@@ -8,16 +8,33 @@ name: CI
 
 on:
   push:
-    branches: [main, pr/v1.8.0, pr/v1.9.0]
+    branches: [main, pr/v1.8.0, pr/v1.9.0, pr/v1.10.0]
   pull_request:
-    branches: [main, pr/v1.8.0, pr/v1.9.0]
+    branches: [main, pr/v1.8.0, pr/v1.9.0, pr/v1.10.0]
 
 permissions:
   contents: read
 
 jobs:
+  golangci-lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62.2
+
   go:
     name: Go build, vet & test
+    needs: golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,6 +110,7 @@ jobs:
           DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
           REDIS_ADDR: localhost:6379
           API_PORT: "8000"
+          RATE_LIMIT_DISABLED: "true"
         run: |
           go build -o bin/pcmi-api ./cmd/api
           go build -o bin/pcmi-worker ./cmd/worker
@@ -176,6 +194,40 @@ jobs:
           kill "$STREAM_PID" 2>/dev/null || true
           wait "$STREAM_PID" 2>/dev/null || true
           grep -q 'memory.stored' "$EVENT_LOG"
+
+      - name: Temporal rollback smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.rollback.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"alpha\",\"metadata\":{}}" \
+            | jq -e '.version == 1'
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"beta\",\"metadata\":{}}" \
+            | jq -e '.version == 2'
+          curl -sf -X POST http://localhost:8000/v1/memories/rollback \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"version\":1}" \
+            | jq -e '.restored_from_version == 1 and .version == 3'
+          CONTENT=$(curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_V}\",\"limit\":5}" \
+            | jq -r '.entries[0].content')
+          test "$CONTENT" = "alpha"
+
+      - name: Audit log API smoke
+        run: |
+          set -euo pipefail
+          curl -sf "http://localhost:8000/v1/audit?limit=10" \
+            -H "X-API-Key: testkey123" \
+            | jq -e '(.entries | type) == "array" and (.total | type) == "number" and (.total >= 1)'
 
       - name: Show logs on failure
         if: failure()

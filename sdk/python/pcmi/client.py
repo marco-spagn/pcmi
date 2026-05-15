@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from .models import MemoryStore, MemoryRetrieve
+from .models import MemoryStore, MemoryRetrieve, MemoryRollback
 
 
 class PCMIClient:
@@ -50,6 +50,28 @@ class PCMIClient:
     ):
         payload = MemoryRetrieve(path_prefix=path_prefix, query=query, limit=limit, as_of=as_of)
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
+        resp.raise_for_status()
+        return resp.json()
+
+    async def rollback(
+        self,
+        path: str,
+        *,
+        version: int | None = None,
+        as_of: str | None = None,
+    ):
+        payload = MemoryRollback(path=path, version=version, as_of=as_of)
+        resp = await self.client.post(
+            "/v1/memories/rollback", json=payload.model_dump(exclude_none=True)
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_audit(self, limit: int = 50, offset: int = 0, since: str | None = None):
+        params: dict[str, str | int] = {"limit": limit, "offset": offset}
+        if since:
+            params["since"] = since
+        resp = await self.client.get("/v1/audit", params=params)
         resp.raise_for_status()
         return resp.json()
 

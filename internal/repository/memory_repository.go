@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/pgvector/pgvector-go"
@@ -19,10 +20,11 @@ func NewMemoryRepository(db *pgxpool.Pool) *MemoryRepository {
 	return &MemoryRepository{db: db}
 }
 
-func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, tenantID string) (int64, error) {
+// Store appends a new version for path, soft-closing the current row when one exists.
+func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, tenantID string) (id int64, version int, supersededID *int64, err error) {
 	path := strings.TrimSpace(req.Path)
 	if path == "" {
-		return 0, fmt.Errorf("path is required")
+		return 0, 0, nil, fmt.Errorf("path is required")
 	}
 	embModel := req.EmbeddingModel
 	if embModel == "" {
@@ -37,26 +39,51 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		tags = []string{}
 	}
 
-	var id int64
-	var err error
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return 0, 0, nil, fmt.Errorf("store begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	version = 1
+	var closedID sql.NullInt64
+	var closedVer sql.NullInt32
+	closeErr := tx.QueryRow(ctx, `
+		UPDATE memory_entries SET valid_to = NOW()
+		WHERE tenant_id = $1::uuid AND path = $2::ltree AND valid_to IS NULL
+		RETURNING id, version`,
+		tenantID, path,
+	).Scan(&closedID, &closedVer)
+	if closeErr == nil {
+		version = int(closedVer.Int32) + 1
+		v := closedID.Int64
+		supersededID = &v
+	} else if closeErr != pgx.ErrNoRows {
+		return 0, 0, nil, fmt.Errorf("store close current: %w", closeErr)
+	}
+
 	if len(req.Embedding) > 0 {
 		q := `
 			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, version, valid_from, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, 1, NOW(), NOW())
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), NOW())
 			RETURNING id`
-		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags,
+			pgvector.NewVector(req.Embedding), embModel, version).Scan(&id)
 	} else {
 		q := `
 			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, version, valid_from, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, 1, NOW(), NOW())
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, NOW(), NOW())
 			RETURNING id`
-		err = r.db.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel, version).Scan(&id)
 	}
 	if err != nil {
-		return 0, fmt.Errorf("store failed: %w", err)
+		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
 	}
-	return id, nil
+
+	if err := tx.Commit(ctx); err != nil {
+		return 0, 0, nil, fmt.Errorf("store commit: %w", err)
+	}
+	return id, version, supersededID, nil
 }
 
 func (r *MemoryRepository) scanMemoryEntry(rows interface {
@@ -102,7 +129,7 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	return e, nil
 }
 
-// Retrieve returns memories under path_prefix, optionally ranked by semantic similarity to queryEmbedding.
+// Retrieve returns memories under path_prefix with optional hybrid ranking.
 func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveRequest, tenantID string, queryEmbedding []float32) ([]model.MemoryEntry, error) {
 	path := strings.TrimSpace(req.PathPrefix)
 	if path == "" {
@@ -117,45 +144,74 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	}
 
 	qText := strings.TrimSpace(req.Query)
+	hasText := qText != ""
+	hasVec := len(queryEmbedding) > 0
+	temporal := temporalClause("$4")
 
-	var err error
-	var rows interface {
-		Next() bool
-		Scan(dest ...any) error
-		Err() error
-		Close()
-	}
+	var q string
+	var args []any
 
-	if len(queryEmbedding) > 0 {
+	switch {
+	case hasVec && hasText:
 		vec := pgvector.NewVector(queryEmbedding)
-		q := `
+		q = `
+			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
+			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			       (
+			         0.65 * (1 - (embedding <=> $3::vector))
+			         + 0.35 * COALESCE(ts_rank_cd(content_tsv, plainto_tsquery('english', $5)), 0)
+			       )::float8 AS relevance_score
+			FROM memory_entries
+			WHERE tenant_id = $1::uuid
+			  AND path <@ $2::ltree
+			  AND ` + temporal + `
+			  AND embedding IS NOT NULL
+			ORDER BY relevance_score DESC
+			LIMIT $6`
+		args = []any{tenantID, path, vec, req.AsOf, qText, limit}
+	case hasVec:
+		vec := pgvector.NewVector(queryEmbedding)
+		q = `
 			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
 			       (1 - (embedding <=> $3::vector))::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND valid_to IS NULL
+			  AND ` + temporal + `
 			  AND embedding IS NOT NULL
-			  AND ($4::timestamptz IS NULL OR (valid_from <= $4 AND (valid_to IS NULL OR valid_to > $4)))
 			ORDER BY embedding <=> $3::vector ASC
 			LIMIT $5`
-		rows, err = r.db.Query(ctx, q, tenantID, path, vec, req.AsOf, limit)
-	} else {
-		q := `
+		args = []any{tenantID, path, vec, req.AsOf, limit}
+	case hasText:
+		q = `
+			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
+			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			       ts_rank_cd(content_tsv, plainto_tsquery('english', $3))::float8 AS relevance_score
+			FROM memory_entries
+			WHERE tenant_id = $1::uuid
+			  AND path <@ $2::ltree
+			  AND ` + temporal + `
+			  AND content_tsv @@ plainto_tsquery('english', $3)
+			ORDER BY relevance_score DESC NULLS LAST, created_at DESC
+			LIMIT $5`
+		args = []any{tenantID, path, qText, req.AsOf, limit}
+	default:
+		temporal = temporalClause("$3")
+		q = `
 			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
 			       NULL::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND valid_to IS NULL
-			  AND ($3::text = '' OR position(lower($3) in lower(content)) > 0)
-			  AND ($4::timestamptz IS NULL OR (valid_from <= $4 AND (valid_to IS NULL OR valid_to > $4)))
+			  AND ` + temporal + `
 			ORDER BY created_at DESC
-			LIMIT $5`
-		rows, err = r.db.Query(ctx, q, tenantID, path, qText, req.AsOf, limit)
+			LIMIT $4`
+		args = []any{tenantID, path, req.AsOf, limit}
 	}
+
+	rows, err := r.db.Query(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}

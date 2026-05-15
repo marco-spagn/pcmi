@@ -40,8 +40,15 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
-    async def retrieve(self, path_prefix: str, query: str = "", limit: int = 10):
-        payload = MemoryRetrieve(path_prefix=path_prefix, query=query, limit=limit)
+    async def retrieve(
+        self,
+        path_prefix: str,
+        query: str = "",
+        limit: int = 10,
+        *,
+        as_of: str | None = None,
+    ):
+        payload = MemoryRetrieve(path_prefix=path_prefix, query=query, limit=limit, as_of=as_of)
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()
         return resp.json()

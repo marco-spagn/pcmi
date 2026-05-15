@@ -13,6 +13,7 @@ services:
       - ./migrations/003_rbac_api_keys.sql:/docker-entrypoint-initdb.d/003_rbac_api_keys.sql
       - ./migrations/004_audit_encryption.sql:/docker-entrypoint-initdb.d/004_audit_encryption.sql
       - ./migrations/005_worker_helpers.sql:/docker-entrypoint-initdb.d/005_worker_helpers.sql
+      - ./migrations/006_fts_hybrid.sql:/docker-entrypoint-initdb.d/006_fts_hybrid.sql
     ports:
       - "5432:5432"
     healthcheck:

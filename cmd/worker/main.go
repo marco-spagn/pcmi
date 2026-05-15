@@ -69,7 +69,7 @@ func main() {
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
-			if evt.Type != event.EventMemoryStored {
+			if evt.Type != event.EventMemoryStored && evt.Type != event.EventMemoryUpdated {
 				continue
 			}
 			tenantID, _ := evt.Payload["tenant_id"].(string)

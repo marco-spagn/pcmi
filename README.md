@@ -5,10 +5,11 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 ## Features
 
 - Hierarchical paths (`ltree`), JSONB metadata, pgvector embeddings  
-- Append-only rows with `valid_from` / `valid_to` (current slice uses `valid_to IS NULL`)  
-- Hybrid retrieval: structural `ltree` scope + optional semantic ranking when `OPENAI_API_KEY` is set on the API  
-- RBAC via `X-API-Key`, audit log, multi-tenant RLS (after migrations)  
-- Redis event fan-out (`memory.stored`, `knowledge.distilled`) and worker-driven embedding + distillation  
+- Append-only rows with `valid_from` / `valid_to`; re-store on the same path soft-closes the prior version and bumps `version`  
+- Hybrid retrieval: `ltree` scope + PostgreSQL FTS (`ts_rank_cd`) + optional semantic ranking when `OPENAI_API_KEY` is set  
+- Point-in-time retrieve via `as_of` (temporal slice, not only `valid_to IS NULL`)  
+- RBAC via `X-API-Key` (`readonly` cannot POST memories), audit log, multi-tenant RLS  
+- Redis event fan-out (`memory.stored`, `memory.updated`, `knowledge.distilled`) and worker-driven embedding + distillation  
 - SSE event stream at `GET /v1/events` (SDK `subscribe()`)  
 
 ## Quick start

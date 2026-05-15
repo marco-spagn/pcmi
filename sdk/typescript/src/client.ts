@@ -41,11 +41,20 @@ export class PCMIClient {
     return res.json();
   }
 
-  async retrieve(pathPrefix: string, query = "", limit = 10) {
+  async retrieve(
+    pathPrefix: string,
+    query = "",
+    limit = 10,
+    opts?: { asOf?: string },
+  ) {
+    const body: Record<string, unknown> = { path_prefix: pathPrefix, query, limit };
+    if (opts?.asOf) {
+      body.as_of = opts.asOf;
+    }
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ path_prefix: pathPrefix, query, limit }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`retrieve failed: ${res.status}`);
     return res.json();

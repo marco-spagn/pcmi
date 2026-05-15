@@ -8,9 +8,9 @@ name: CI
 
 on:
   push:
-    branches: [main, pr/v1.7.0, pr/v1.8.0]
+    branches: [main, pr/v1.8.0, pr/v1.9.0]
   pull_request:
-    branches: [main, pr/v1.7.0, pr/v1.8.0]
+    branches: [main, pr/v1.8.0, pr/v1.9.0]
 
 permissions:
   contents: read
@@ -134,6 +134,28 @@ jobs:
           curl -sf "http://localhost:8000/v1/distilled?path_prefix=root.ci&limit=5" \
             -H "X-API-Key: testkey123" \
             | jq -e '(.entries | type) == "array"'
+
+      - name: Temporal append-only store smoke
+        run: |
+          set -euo pipefail
+          SUFFIX=$(date +%s)
+          PATH_V="root.ci.temporal.${SUFFIX}"
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"version-one\",\"metadata\":{}}" \
+            | jq -e '.version == 1'
+          curl -sf -X POST http://localhost:8000/v1/memories \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path\":\"${PATH_V}\",\"content\":\"version-two\",\"metadata\":{}}" \
+            | jq -e '.version == 2 and (.superseded_id | type) == "number"'
+          CONTENT=$(curl -sf -X POST http://localhost:8000/v1/retrieve \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: testkey123" \
+            -d "{\"path_prefix\":\"${PATH_V}\",\"limit\":5}" \
+            | jq -r '.entries[0].content')
+          test "$CONTENT" = "version-two"
 
       - name: SSE events stream smoke
         run: |

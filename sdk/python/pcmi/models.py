@@ -16,3 +16,4 @@ class MemoryRetrieve(BaseModel):
     path_prefix: str = ""
     query: str = ""
     limit: int = 10
+    as_of: str | None = None

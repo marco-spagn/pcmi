@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.10.0
+  version: 1.11.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -31,6 +31,26 @@ paths:
       responses:
         "200":
           description: OK
+  /v1/memories/history:
+    get:
+      summary: Historical reconstruction — all versions for a path
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string, example: root.domain.topic }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Version history newest-first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryResponse"
+        "400":
+          description: Missing path
   /v1/memories:
     post:
       summary: Store a memory entry (append-only; supersedes same path)
@@ -87,6 +107,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/RetrieveResponse"
   /v1/events:
+    post:
+      summary: Ingest a universal runtime event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IngestEventRequest"
+      responses:
+        "200":
+          description: Event persisted and published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IngestEventResponse"
+        "400":
+          description: Invalid request
     get:
       summary: Stream PCMI events (Server-Sent Events)
       parameters:
@@ -170,6 +207,7 @@ components:
           type: array
           items: { type: number, format: float }
         embedding_model: { type: string }
+        embedding_space: { type: string, default: default, description: Logical embedding space for multi-model migrations }
         source_agent_id: { type: string, format: uuid }
     RetrieveRequest:
       type: object
@@ -178,6 +216,8 @@ components:
         query: { type: string, description: Text filter and/or semantic query when OPENAI_API_KEY is set on API }
         limit: { type: integer, default: 10 }
         as_of: { type: string, format: date-time, nullable: true }
+        source_agent_id: { type: string, format: uuid, description: Cross-agent scope filter }
+        embedding_space: { type: string, description: Filter by embedding space label }
     MemoryEntry:
       type: object
       properties:
@@ -190,6 +230,7 @@ components:
           type: array
           items: { type: string }
         embedding_model: { type: string }
+        embedding_space: { type: string }
         version: { type: integer }
         valid_from: { type: string, format: date-time }
         valid_to: { type: string, format: date-time, nullable: true }
@@ -239,3 +280,26 @@ components:
         total: { type: integer }
         limit: { type: integer }
         offset: { type: integer }
+    IngestEventRequest:
+      type: object
+      required: [event_type]
+      properties:
+        event_type: { type: string, example: agent.step.completed }
+        agent_id: { type: string, format: uuid }
+        correlation_id: { type: string }
+        payload: { type: object, additionalProperties: true }
+    IngestEventResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        event_type: { type: string }
+        timestamp: { type: string, format: date-time }
+        status: { type: string }
+    HistoryResponse:
+      type: object
+      properties:
+        path: { type: string }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+        total: { type: integer }

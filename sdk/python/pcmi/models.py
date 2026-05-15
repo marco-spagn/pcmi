@@ -8,6 +8,7 @@ class MemoryStore(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     tags: list[str] | None = None
     embedding_model: str | None = None
+    embedding_space: str | None = None
     embedding: list[float] | None = None
     source_agent_id: str | None = None
 
@@ -17,6 +18,15 @@ class MemoryRetrieve(BaseModel):
     query: str = ""
     limit: int = 10
     as_of: str | None = None
+    source_agent_id: str | None = None
+    embedding_space: str | None = None
+
+
+class IngestEvent(BaseModel):
+    event_type: str
+    agent_id: str | None = None
+    correlation_id: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
 
 
 class MemoryRollback(BaseModel):

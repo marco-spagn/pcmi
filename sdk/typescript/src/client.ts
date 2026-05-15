@@ -31,11 +31,20 @@ export class PCMIClient {
     return { "X-API-Key": this.apiKey, "Content-Type": "application/json" };
   }
 
-  async store(path: string, content: string, metadata: Record<string, unknown> = {}) {
+  async store(
+    path: string,
+    content: string,
+    metadata: Record<string, unknown> = {},
+    opts?: { sourceAgentId?: string; embeddingSpace?: string; embeddingModel?: string },
+  ) {
+    const body: Record<string, unknown> = { path, content, metadata };
+    if (opts?.sourceAgentId) body.source_agent_id = opts.sourceAgentId;
+    if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
+    if (opts?.embeddingModel) body.embedding_model = opts.embeddingModel;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ path, content, metadata }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`store failed: ${res.status}`);
     return res.json();
@@ -45,12 +54,12 @@ export class PCMIClient {
     pathPrefix: string,
     query = "",
     limit = 10,
-    opts?: { asOf?: string },
+    opts?: { asOf?: string; sourceAgentId?: string; embeddingSpace?: string },
   ) {
     const body: Record<string, unknown> = { path_prefix: pathPrefix, query, limit };
-    if (opts?.asOf) {
-      body.as_of = opts.asOf;
-    }
+    if (opts?.asOf) body.as_of = opts.asOf;
+    if (opts?.sourceAgentId) body.source_agent_id = opts.sourceAgentId;
+    if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve`, {
       method: "POST",
       headers: this.headers(),
@@ -80,6 +89,32 @@ export class PCMIClient {
     if (since) u.searchParams.set("since", since);
     const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
     if (!res.ok) throw new Error(`listAudit failed: ${res.status}`);
+    return res.json();
+  }
+
+  async ingestEvent(
+    eventType: string,
+    payload: Record<string, unknown> = {},
+    opts?: { agentId?: string; correlationId?: string },
+  ) {
+    const body: Record<string, unknown> = { event_type: eventType, payload };
+    if (opts?.agentId) body.agent_id = opts.agentId;
+    if (opts?.correlationId) body.correlation_id = opts.correlationId;
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/events`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`ingestEvent failed: ${res.status}`);
+    return res.json();
+  }
+
+  async getHistory(path: string, limit = 50) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/history`);
+    u.searchParams.set("path", path);
+    u.searchParams.set("limit", String(limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`getHistory failed: ${res.status}`);
     return res.json();
   }
 

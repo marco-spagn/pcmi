@@ -30,6 +30,10 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 	if embModel == "" {
 		embModel = "unspecified"
 	}
+	embSpace := strings.TrimSpace(req.EmbeddingSpace)
+	if embSpace == "" {
+		embSpace = "default"
+	}
 	metadata := req.Metadata
 	if metadata == nil {
 		metadata = map[string]interface{}{}
@@ -62,19 +66,24 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		return 0, 0, nil, fmt.Errorf("store close current: %w", closeErr)
 	}
 
+	var agentID *string
+	if a := strings.TrimSpace(req.SourceAgentID); a != "" {
+		agentID = &a
+	}
+
 	if len(req.Embedding) > 0 {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, version, valid_from, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW())
 			RETURNING id`
 		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel, version).Scan(&id)
+			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID).Scan(&id)
 	} else {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, version, valid_from, created_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, NOW(), NOW())
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW())
 			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel, version).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, req.Content, metadata, tags, embModel, embSpace, version, agentID).Scan(&id)
 	}
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
@@ -98,7 +107,7 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 
 	dest := []any{
 		&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
-		&emb, &e.EmbeddingModel, &e.Version, &e.ValidFrom, &validTo,
+		&emb, &e.EmbeddingModel, &e.EmbeddingSpace, &e.Version, &e.ValidFrom, &validTo,
 		&agentID, &eventID, &e.CreatedAt,
 	}
 	if includeScore {
@@ -146,7 +155,18 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	qText := strings.TrimSpace(req.Query)
 	hasText := qText != ""
 	hasVec := len(queryEmbedding) > 0
-	temporal := temporalClause("$4")
+
+	var agentFilter *string
+	if a := strings.TrimSpace(req.SourceAgentID); a != "" {
+		agentFilter = &a
+	}
+	var spaceFilter *string
+	if s := strings.TrimSpace(req.EmbeddingSpace); s != "" {
+		spaceFilter = &s
+	}
+
+	selectCols := `id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
+			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at`
 
 	var q string
 	var args []any
@@ -155,8 +175,7 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	case hasVec && hasText:
 		vec := pgvector.NewVector(queryEmbedding)
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			SELECT ` + selectCols + `,
 			       (
 			         0.65 * (1 - (embedding <=> $3::vector))
 			         + 0.35 * COALESCE(ts_rank_cd(content_tsv, plainto_tsquery('english', $5)), 0)
@@ -164,51 +183,51 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND ` + temporal + `
+			  AND ` + temporalClause("$4") + `
+			  AND ` + scopeFilters("6", "7") + `
 			  AND embedding IS NOT NULL
 			ORDER BY relevance_score DESC
-			LIMIT $6`
-		args = []any{tenantID, path, vec, req.AsOf, qText, limit}
+			LIMIT $8`
+		args = []any{tenantID, path, vec, req.AsOf, qText, agentFilter, spaceFilter, limit}
 	case hasVec:
 		vec := pgvector.NewVector(queryEmbedding)
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			SELECT ` + selectCols + `,
 			       (1 - (embedding <=> $3::vector))::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND ` + temporal + `
+			  AND ` + temporalClause("$4") + `
+			  AND ` + scopeFilters("6", "7") + `
 			  AND embedding IS NOT NULL
 			ORDER BY embedding <=> $3::vector ASC
-			LIMIT $5`
-		args = []any{tenantID, path, vec, req.AsOf, limit}
+			LIMIT $8`
+		args = []any{tenantID, path, vec, req.AsOf, agentFilter, spaceFilter, limit}
 	case hasText:
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			SELECT ` + selectCols + `,
 			       ts_rank_cd(content_tsv, plainto_tsquery('english', $3))::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND ` + temporal + `
+			  AND ` + temporalClause("$4") + `
+			  AND ` + scopeFilters("6", "7") + `
 			  AND content_tsv @@ plainto_tsquery('english', $3)
 			ORDER BY relevance_score DESC NULLS LAST, created_at DESC
-			LIMIT $5`
-		args = []any{tenantID, path, qText, req.AsOf, limit}
+			LIMIT $8`
+		args = []any{tenantID, path, qText, req.AsOf, agentFilter, spaceFilter, limit}
 	default:
-		temporal = temporalClause("$3")
 		q = `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at,
+			SELECT ` + selectCols + `,
 			       NULL::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND ` + temporal + `
+			  AND ` + temporalClause("$3") + `
+			  AND ` + scopeFilters("5", "6") + `
 			ORDER BY created_at DESC
-			LIMIT $4`
-		args = []any{tenantID, path, req.AsOf, limit}
+			LIMIT $7`
+		args = []any{tenantID, path, req.AsOf, agentFilter, spaceFilter, limit}
 	}
 
 	rows, err := r.db.Query(ctx, q, args...)

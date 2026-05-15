@@ -14,3 +14,13 @@ func TestTemporalClauseCurrentSlice(t *testing.T) {
 		t.Fatal("expected as_of branch")
 	}
 }
+
+func TestScopeFiltersOptional(t *testing.T) {
+	f := scopeFilters("5", "6")
+	if !strings.Contains(f, "source_agent_id") {
+		t.Fatal("expected agent filter")
+	}
+	if !strings.Contains(f, "embedding_space") {
+		t.Fatal("expected embedding space filter")
+	}
+}

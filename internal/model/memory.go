@@ -11,6 +11,7 @@ type MemoryEntry struct {
 	Tags             []string   `json:"tags"`
 	Embedding        []float32  `json:"embedding,omitempty"`
 	EmbeddingModel   string     `json:"embedding_model"`
+	EmbeddingSpace   string     `json:"embedding_space,omitempty"`
 	Version          int        `json:"version"`
 	ValidFrom        time.Time  `json:"valid_from"`
 	ValidTo          *time.Time `json:"valid_to"`
@@ -28,6 +29,7 @@ type StoreRequest struct {
 	Tags           []string               `json:"tags"`
 	Embedding      []float32              `json:"embedding"`
 	EmbeddingModel string                 `json:"embedding_model"`
+	EmbeddingSpace string                 `json:"embedding_space"`
 	SourceAgentID  string                 `json:"source_agent_id"`
 }
 
@@ -35,8 +37,10 @@ type RetrieveRequest struct {
 	TenantID   string     `json:"tenant_id,omitempty"`
 	PathPrefix string     `json:"path_prefix"`
 	Query      string     `json:"query"`
-	Limit      int        `json:"limit" default:"10"`
-	AsOf       *time.Time `json:"as_of"`
+	Limit           int        `json:"limit" default:"10"`
+	AsOf            *time.Time `json:"as_of"`
+	SourceAgentID   string     `json:"source_agent_id"`
+	EmbeddingSpace  string     `json:"embedding_space"`
 }
 
 type RetrieveResponse struct {

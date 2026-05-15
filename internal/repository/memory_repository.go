@@ -198,10 +198,10 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
 			  AND ` + temporalClause("$4") + `
-			  AND ` + scopeFilters("6", "7") + `
+			  AND ` + scopeFilters("5", "6") + `
 			  AND embedding IS NOT NULL
 			ORDER BY embedding <=> $3::vector ASC
-			LIMIT $8`
+			LIMIT $7`
 		args = []any{tenantID, path, vec, req.AsOf, agentFilter, spaceFilter, limit}
 	case hasText:
 		q = `
@@ -211,10 +211,10 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
 			  AND ` + temporalClause("$4") + `
-			  AND ` + scopeFilters("6", "7") + `
+			  AND ` + scopeFilters("5", "6") + `
 			  AND content_tsv @@ plainto_tsquery('english', $3)
 			ORDER BY relevance_score DESC NULLS LAST, created_at DESC
-			LIMIT $8`
+			LIMIT $7`
 		args = []any{tenantID, path, qText, req.AsOf, agentFilter, spaceFilter, limit}
 	default:
 		q = `
@@ -224,9 +224,9 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
 			  AND ` + temporalClause("$3") + `
-			  AND ` + scopeFilters("5", "6") + `
+			  AND ` + scopeFilters("4", "5") + `
 			ORDER BY created_at DESC
-			LIMIT $7`
+			LIMIT $6`
 		args = []any{tenantID, path, req.AsOf, agentFilter, spaceFilter, limit}
 	}
 

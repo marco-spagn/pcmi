@@ -14,6 +14,7 @@ services:
       - ./migrations/004_audit_encryption.sql:/docker-entrypoint-initdb.d/004_audit_encryption.sql
       - ./migrations/005_worker_helpers.sql:/docker-entrypoint-initdb.d/005_worker_helpers.sql
       - ./migrations/006_fts_hybrid.sql:/docker-entrypoint-initdb.d/006_fts_hybrid.sql
+      - ./migrations/007_v1_11_embedding_space.sql:/docker-entrypoint-initdb.d/007_v1_11_embedding_space.sql
     ports:
       - "5432:5432"
     healthcheck:

@@ -1,30 +1,60 @@
 # PCMI SDK
 
-Client HTTP minimi per interagire con l’API PCMI senza accoppiare agent o runtime al backend.
+Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput store/retrieve use gRPC (`proto/pcmi/v1/memory.proto`) or call REST directly.
 
 ## Layout
 
-- **`python/pcmi/`** — client `httpx` asincrono (`client.py`, `models.py`). Richiede `httpx`, Python 3.10+.
-- **`typescript/src/client.ts`** — client `fetch` per browser/Node. Pubblicare come pacchetto se necessario (`package.json` nel repo se presente).
+| Path | Runtime | Notes |
+|------|---------|--------|
+| `python/pcmi/` | Python 3.10+, `httpx` | Async `PCMIClient` |
+| `typescript/src/` | Node / browser `fetch` | `PCMIClient` class |
 
-## Autenticazione
+## Transports
 
-Impostare sempre l’header `X-API-Key` (token associato a tenant e ruolo). Le operazioni di scrittura richiedono ruolo `write` o `admin` (vedi migrazioni `api_keys`).
+| Capability | gRPC | HTTP SDK |
+|------------|------|----------|
+| Store / retrieve / batch | Yes | Yes |
+| Compact, refine, links, stats | No | Yes |
+| SSE events, webhooks, admin | No | Yes (admin CRUD: HTTP/OpenAPI only) |
 
-## Metodi principali
+Details: [`../docs/grpc-vs-http.md`](../docs/grpc-vs-http.md) and [`HTTP-API.md`](HTTP-API.md).
 
-| Area | Metodi tipici |
-|------|----------------|
-| Memoria | `store`, `retrieve`, eventuali batch/export nel client |
-| Eventi | `subscribe` (SSE) — stream testuali, parsing righe `event:` / `data:` |
-| Distillation | `refine(path_prefix)` — accoda job lato server (Redis + worker) |
-| Lineage | `memory_lineage`, `distilled_lineage` dove implementati |
-| Link / stats | `create_link`, `getStats` o equivalenti |
+## Authentication
+
+Set header `X-API-Key` on every request (tenant + role). Writes need `write` or `admin`.
+
+## Quick start
+
+### Python
+
+```bash
+pip install -e sdk/python
+```
+
+```python
+from pcmi import PCMIClient
+
+async def main():
+    async with PCMIClient("http://localhost:8000", "your-key") as client:
+        await client.store("root.demo", "hello", tags=["sdk"])
+        result = await client.retrieve("root.demo", limit=5)
+        print(result["total"])
+```
+
+### TypeScript
+
+```typescript
+import { PCMIClient } from "./src/client";
+
+const client = new PCMIClient("http://localhost:8000", "your-key");
+await client.store("root.demo", "hello", {}, { tags: ["sdk"] });
+const result = await client.retrieve("root.demo", "", 5);
+```
 
 ## OpenAPI
 
-Contratto completo e schema richieste/risposte: [`../docs/openapi.yaml`](../docs/openapi.yaml).
+Full schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 
 ## Versioning
 
-I client non fissano la versione server: in caso di breaking change, allineare i tipi ai campi documentati in OpenAPI.
+SDK package versions are independent of the server API tag (`v1.x.y` on `/v1/health`). Align request bodies with OpenAPI when upgrading servers.

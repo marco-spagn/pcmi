@@ -59,7 +59,9 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 | [docs/federation-read-replicas.md](docs/federation-read-replicas.md) | Replica PG opzionale (`DATABASE_READ_URL`) per carico di lettura multi-tenant |
 | [docs/memory-compaction.md](docs/memory-compaction.md) | Compaction per path vs pruning globale |
 | [examples/README.md](examples/README.md) | Celery e Temporal che chiamano PCMI via HTTP |
-| [sdk/README.md](sdk/README.md) | Uso client Python/TypeScript |
+| [sdk/README.md](sdk/README.md) | Client HTTP Python/TypeScript |
+| [sdk/HTTP-API.md](sdk/HTTP-API.md) | Mapping API solo-HTTP → metodi SDK |
+| [docs/grpc-vs-http.md](docs/grpc-vs-http.md) | gRPC vs HTTP (core memory su gRPC) |
 
 Godoc: ogni package in `internal/*/doc.go` espone un riassunto in `go doc ./internal/...`.
 

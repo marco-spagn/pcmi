@@ -3,6 +3,27 @@ export type PCMEvent = {
   payload: Record<string, unknown>;
 };
 
+/** Options for POST /v1/memories (HTTP-only transport; gRPC uses proto). */
+export type StoreOptions = {
+  tags?: string[];
+  embedding?: number[];
+  embeddingModel?: string;
+  embeddingSpace?: string;
+  sourceAgentId?: string;
+  encryptContent?: boolean;
+  /** RFC3339 / RFC3339Nano */
+  expiresAt?: string;
+};
+
+/** Options for POST /v1/retrieve */
+export type RetrieveOptions = {
+  asOf?: string;
+  sourceAgentId?: string;
+  embeddingSpace?: string;
+  tags?: string[];
+  tagsMatch?: "any" | "all";
+};
+
 function parseSSEChunk(buffer: string, onEvent: (ev: PCMEvent) => void): string {
   const parts = buffer.split("\n\n");
   const rest = parts.pop() ?? "";
@@ -35,12 +56,16 @@ export class PCMIClient {
     path: string,
     content: string,
     metadata: Record<string, unknown> = {},
-    opts?: { sourceAgentId?: string; embeddingSpace?: string; embeddingModel?: string },
+    opts?: StoreOptions,
   ) {
     const body: Record<string, unknown> = { path, content, metadata };
+    if (opts?.tags?.length) body.tags = opts.tags;
+    if (opts?.embedding?.length) body.embedding = opts.embedding;
     if (opts?.sourceAgentId) body.source_agent_id = opts.sourceAgentId;
     if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
     if (opts?.embeddingModel) body.embedding_model = opts.embeddingModel;
+    if (opts?.encryptContent) body.encrypt_content = true;
+    if (opts?.expiresAt) body.expires_at = opts.expiresAt;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories`, {
       method: "POST",
       headers: this.headers(),
@@ -54,12 +79,14 @@ export class PCMIClient {
     pathPrefix: string,
     query = "",
     limit = 10,
-    opts?: { asOf?: string; sourceAgentId?: string; embeddingSpace?: string },
+    opts?: RetrieveOptions,
   ) {
     const body: Record<string, unknown> = { path_prefix: pathPrefix, query, limit };
     if (opts?.asOf) body.as_of = opts.asOf;
     if (opts?.sourceAgentId) body.source_agent_id = opts.sourceAgentId;
     if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
+    if (opts?.tags?.length) body.tags = opts.tags;
+    if (opts?.tagsMatch) body.tags_match = opts.tagsMatch;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve`, {
       method: "POST",
       headers: this.headers(),
@@ -138,11 +165,15 @@ export class PCMIClient {
     return res.json();
   }
 
-  async exportMemories(pathPrefix: string, limit = 500) {
+  async exportMemories(pathPrefix: string, limit = 500, includeEmbeddings = false) {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/export`, {
       method: "POST",
       headers: this.headers(),
-      body: JSON.stringify({ path_prefix: pathPrefix, limit }),
+      body: JSON.stringify({
+        path_prefix: pathPrefix,
+        limit,
+        include_embeddings: includeEmbeddings,
+      }),
     });
     if (!res.ok) throw new Error(`exportMemories failed: ${res.status}`);
     return res.json();
@@ -211,6 +242,87 @@ export class PCMIClient {
     u.searchParams.set("limit", String(limit));
     const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
     if (!res.ok) throw new Error(`listDistilled failed: ${res.status}`);
+    return res.json();
+  }
+
+  async compact(path: string, opts?: { keepSuperseded?: number }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/compact`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        path,
+        keep_superseded: opts?.keepSuperseded ?? 20,
+      }),
+    });
+    if (!res.ok) throw new Error(`compact failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listLinks(opts?: {
+    fromPath?: string;
+    toPath?: string;
+    linkType?: string;
+    limit?: number;
+  }) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/links`);
+    if (opts?.fromPath) u.searchParams.set("from_path", opts.fromPath);
+    if (opts?.toPath) u.searchParams.set("to_path", opts.toPath);
+    if (opts?.linkType) u.searchParams.set("link_type", opts.linkType);
+    if (opts?.limit != null) u.searchParams.set("limit", String(opts.limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listLinks failed: ${res.status}`);
+    return res.json();
+  }
+
+  async registerWebhook(
+    url: string,
+    opts?: { eventTypes?: string[]; secret?: string },
+  ) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/webhooks`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        url,
+        event_types: opts?.eventTypes ?? [],
+        secret: opts?.secret ?? "",
+      }),
+    });
+    if (!res.ok) throw new Error(`registerWebhook failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listWebhooks(limit = 50) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/webhooks`);
+    u.searchParams.set("limit", String(limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listWebhooks failed: ${res.status}`);
+    return res.json();
+  }
+
+  async migrateEmbeddings(
+    pathPrefix: string,
+    opts?: { targetModel?: string; embeddingSpace?: string },
+  ) {
+    const body: Record<string, unknown> = {
+      path_prefix: pathPrefix,
+      target_model: opts?.targetModel ?? "",
+    };
+    if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/embeddings/migrate`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`migrateEmbeddings failed: ${res.status}`);
+    return res.json();
+  }
+
+  async distilledLineage(distilledId: number) {
+    const res = await fetch(
+      `${this.baseUrl.replace(/\/$/, "")}/v1/lineage/distilled/${distilledId}`,
+      { headers: { "X-API-Key": this.apiKey } },
+    );
+    if (!res.ok) throw new Error(`distilledLineage failed: ${res.status}`);
     return res.json();
   }
 

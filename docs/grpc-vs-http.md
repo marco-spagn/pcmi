@@ -32,6 +32,8 @@ Responses return `id`, `status`, `version`, optional `superseded_id` (embeddings
 
 These routes have **no gRPC RPC** today. Use HTTP (or extend proto in a future release if needed).
 
+**SDK coverage:** Python and TypeScript clients in `sdk/` wrap these routes — see [`sdk/HTTP-API.md`](../sdk/HTTP-API.md) for the method mapping table.
+
 | Method | Path | Purpose |
 |--------|------|---------|
 | POST | `/v1/memories/compact` | Trim superseded versions for one path |

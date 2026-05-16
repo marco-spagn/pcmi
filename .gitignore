@@ -51,3 +51,5 @@ coverage.html
 # Smoke script venv (local only)
 examples/temporal/.venv_smoke/
 examples/celery/.venv_smoke/
+__pycache__/
+*.py[cod]

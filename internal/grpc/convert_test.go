@@ -137,6 +137,35 @@ func TestStoreProtoToModel_invalidExpires(t *testing.T) {
 	}
 }
 
+func TestStoreProtoToModel_full(t *testing.T) {
+	m, err := storeProtoToModel(&pcmiv1.StoreRequest{
+		Path: "p", Content: "c", MetadataJson: `{"k":1}`,
+		Tags: []string{"a", "b"}, EmbeddingModel: "m1", EmbeddingSpace: "space1",
+		SourceAgentId: "agent", EncryptContent: true,
+		ExpiresAtRfc3339: "2030-06-01T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Path != "p" || len(m.Tags) != 2 || !m.EncryptContent || m.ExpiresAt == nil {
+		t.Fatalf("%#v", m)
+	}
+}
+
+func TestStoreItemProtoToModel_nil(t *testing.T) {
+	m, err := storeItemProtoToModel(nil)
+	if err != nil || m.Path != "" {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
+func TestParseRFC3339Time_empty(t *testing.T) {
+	tm, err := parseRFC3339Time("", "field")
+	if err != nil || tm != nil {
+		t.Fatalf("tm=%v err=%v", tm, err)
+	}
+}
+
 func TestBatchStoreProtoToModel_invalidExpires(t *testing.T) {
 	_, err := batchStoreProtoToModel([]*pcmiv1.BatchStoreItem{{ExpiresAtRfc3339: "bad"}})
 	if err == nil {

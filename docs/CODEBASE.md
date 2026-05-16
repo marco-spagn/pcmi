@@ -132,8 +132,10 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 
 ## Test
 
-- `go test ./...` — unit e test di pacchetto.
-- CI: `integration-smoke` (API+worker locali + Postgres/Redis servizi), `integration-e2e` (compose + OpenAI se secret).
+- `make test` — unit tests (`go test ./...`)
+- `make lint` — golangci-lint v2 (install with `make install-lint`; config requires `version: "2"` in `.golangci.yml`)
+- `make test-integration` — gRPC integration tests (`go test -tags=integration ./internal/grpc/...`; API+gRPC+Postgres running)
+- CI: `integration-smoke` (API+worker locali + Postgres/Redis servizi), `integration-e2e` (compose + OpenAI se secret)
 
 ## Convezioni utili in futuro
 

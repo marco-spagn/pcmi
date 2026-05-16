@@ -10,7 +10,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/metadata"
 
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
@@ -76,6 +78,73 @@ func TestGRPCStoreRetrieveTagsIntegration(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("path %q not in entries", path)
+	}
+}
+
+func TestGRPCBatchStoreIntegration(t *testing.T) {
+	host := os.Getenv("GRPC_HOST")
+	if host == "" {
+		host = "localhost:50051"
+	}
+	key := os.Getenv("GRPC_TEST_API_KEY")
+	if key == "" {
+		t.Skip("GRPC_TEST_API_KEY not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	client := pcmiv1.NewMemoryServiceClient(conn)
+	path := "root.ci.grpc.batch." + time.Now().Format("150405")
+	resp, err := client.BatchStore(ctx, &pcmiv1.BatchStoreRequest{
+		ApiKey: key,
+		Items: []*pcmiv1.BatchStoreItem{
+			{Path: path + ".a", Content: "one", Tags: []string{"batch-int"}, EmbeddingModel: "unspecified"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("batch store: %v", err)
+	}
+	if resp.GetTotal() != 1 || resp.GetResults()[0].GetStatus() != "stored" {
+		t.Fatalf("%+v", resp)
+	}
+}
+
+func TestGRPCStoreInvalidExpiresIntegration(t *testing.T) {
+	host := os.Getenv("GRPC_HOST")
+	if host == "" {
+		host = "localhost:50051"
+	}
+	key := os.Getenv("GRPC_TEST_API_KEY")
+	if key == "" {
+		t.Skip("GRPC_TEST_API_KEY not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	client := pcmiv1.NewMemoryServiceClient(conn)
+	_, err = client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: "root.ci.bad", Content: "x",
+		ExpiresAtRfc3339: "not-a-timestamp",
+	})
+	if err == nil {
+		t.Fatal("expected InvalidArgument")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+		t.Fatalf("got %v", err)
 	}
 }
 

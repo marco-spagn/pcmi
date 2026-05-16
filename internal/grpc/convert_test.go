@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"testing"
+	"time"
 
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -18,22 +19,54 @@ func TestDefaultRetrieveLimit(t *testing.T) {
 
 func TestBatchQueriesProtoToModel(t *testing.T) {
 	qs := []*pcmiv1.BatchRetrieveQuery{
-		{PathPrefix: "a", Query: "q1", Limit: 0},
+		{PathPrefix: "a", Query: "q1", Limit: 0, Tags: []string{"x"}, TagsMatch: "all"},
 		nil,
-		{PathPrefix: "b", Query: "", Limit: 3},
+		{PathPrefix: "b", Query: "", Limit: 3, SourceAgentId: "agent-1", EmbeddingSpace: "s1"},
 	}
-	got := batchQueriesProtoToModel(qs)
+	got, err := batchQueriesProtoToModel(qs)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(got) != 3 {
 		t.Fatalf("len %d", len(got))
 	}
 	if got[0].PathPrefix != "a" || got[0].Query != "q1" || got[0].Limit != 10 {
 		t.Fatalf("first: %#v", got[0])
 	}
+	if len(got[0].Tags) != 1 || got[0].Tags[0] != "x" || got[0].TagsMatch != "all" {
+		t.Fatalf("tags: %#v", got[0])
+	}
 	if got[1].Limit != 10 {
 		t.Fatalf("nil query default limit")
 	}
 	if got[2].PathPrefix != "b" || got[2].Limit != 3 {
 		t.Fatalf("third: %#v", got[2])
+	}
+	if got[2].SourceAgentID != "agent-1" || got[2].EmbeddingSpace != "s1" {
+		t.Fatalf("scope: %#v", got[2])
+	}
+}
+
+func TestBatchQueriesProtoToModel_invalidAsOf(t *testing.T) {
+	_, err := batchQueriesProtoToModel([]*pcmiv1.BatchRetrieveQuery{
+		{AsOfRfc3339: "not-a-date"},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestRetrieveProtoToModel_asOf(t *testing.T) {
+	req := &pcmiv1.RetrieveRequest{
+		PathPrefix: "p", Limit: 5,
+		AsOfRfc3339: "2020-01-02T15:04:05Z",
+	}
+	m, err := retrieveProtoToModel(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.AsOf == nil || m.AsOf.UTC().Format(time.RFC3339) != "2020-01-02T15:04:05Z" {
+		t.Fatalf("%v", m.AsOf)
 	}
 }
 

@@ -502,13 +502,21 @@ func (x *BatchStoreResponse) GetTotal() int32 {
 }
 
 type RetrieveRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PathPrefix    string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	ApiKey        string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PathPrefix string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Query      string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	Limit      int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	ApiKey     string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	// Same semantics as REST POST /v1/retrieve JSON body.
+	Tags []string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
+	// "any" (default when empty) or "all".
+	TagsMatch string `protobuf:"bytes,6,opt,name=tags_match,json=tagsMatch,proto3" json:"tags_match,omitempty"`
+	// Optional point-in-time filter, RFC3339 or RFC3339Nano (e.g. 2006-01-02T15:04:05Z07:00).
+	AsOfRfc3339    string `protobuf:"bytes,7,opt,name=as_of_rfc3339,json=asOfRfc3339,proto3" json:"as_of_rfc3339,omitempty"`
+	SourceAgentId  string `protobuf:"bytes,8,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
+	EmbeddingSpace string `protobuf:"bytes,9,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RetrieveRequest) Reset() {
@@ -565,6 +573,41 @@ func (x *RetrieveRequest) GetLimit() int32 {
 func (x *RetrieveRequest) GetApiKey() string {
 	if x != nil {
 		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *RetrieveRequest) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *RetrieveRequest) GetTagsMatch() string {
+	if x != nil {
+		return x.TagsMatch
+	}
+	return ""
+}
+
+func (x *RetrieveRequest) GetAsOfRfc3339() string {
+	if x != nil {
+		return x.AsOfRfc3339
+	}
+	return ""
+}
+
+func (x *RetrieveRequest) GetSourceAgentId() string {
+	if x != nil {
+		return x.SourceAgentId
+	}
+	return ""
+}
+
+func (x *RetrieveRequest) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
 	}
 	return ""
 }
@@ -698,12 +741,17 @@ func (x *RetrieveResponse) GetTotal() int32 {
 }
 
 type BatchRetrieveQuery struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PathPrefix    string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
-	Query         string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
-	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	PathPrefix     string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Query          string                 `protobuf:"bytes,2,opt,name=query,proto3" json:"query,omitempty"`
+	Limit          int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Tags           []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	TagsMatch      string                 `protobuf:"bytes,5,opt,name=tags_match,json=tagsMatch,proto3" json:"tags_match,omitempty"`
+	AsOfRfc3339    string                 `protobuf:"bytes,6,opt,name=as_of_rfc3339,json=asOfRfc3339,proto3" json:"as_of_rfc3339,omitempty"`
+	SourceAgentId  string                 `protobuf:"bytes,7,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
+	EmbeddingSpace string                 `protobuf:"bytes,8,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *BatchRetrieveQuery) Reset() {
@@ -755,6 +803,41 @@ func (x *BatchRetrieveQuery) GetLimit() int32 {
 		return x.Limit
 	}
 	return 0
+}
+
+func (x *BatchRetrieveQuery) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *BatchRetrieveQuery) GetTagsMatch() string {
+	if x != nil {
+		return x.TagsMatch
+	}
+	return ""
+}
+
+func (x *BatchRetrieveQuery) GetAsOfRfc3339() string {
+	if x != nil {
+		return x.AsOfRfc3339
+	}
+	return ""
+}
+
+func (x *BatchRetrieveQuery) GetSourceAgentId() string {
+	if x != nil {
+		return x.SourceAgentId
+	}
+	return ""
+}
+
+func (x *BatchRetrieveQuery) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
 }
 
 type BatchRetrieveRequest struct {
@@ -1165,13 +1248,19 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x0e_superseded_id\"c\n" +
 	"\x12BatchStoreResponse\x127\n" +
 	"\aresults\x18\x01 \x03(\v2\x1d.pcmi.v1.BatchStoreItemResultR\aresults\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"w\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x9f\x02\n" +
 	"\x0fRetrieveRequest\x12\x1f\n" +
 	"\vpath_prefix\x18\x01 \x01(\tR\n" +
 	"pathPrefix\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12\x14\n" +
 	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x17\n" +
-	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\"\x90\x01\n" +
+	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12\x12\n" +
+	"\x04tags\x18\x05 \x03(\tR\x04tags\x12\x1d\n" +
+	"\n" +
+	"tags_match\x18\x06 \x01(\tR\ttagsMatch\x12\"\n" +
+	"\ras_of_rfc3339\x18\a \x01(\tR\vasOfRfc3339\x12&\n" +
+	"\x0fsource_agent_id\x18\b \x01(\tR\rsourceAgentId\x12'\n" +
+	"\x0fembedding_space\x18\t \x01(\tR\x0eembeddingSpace\"\x90\x01\n" +
 	"\rRetrieveEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x18\n" +
@@ -1180,12 +1269,18 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x0frelevance_score\x18\x05 \x01(\x01R\x0erelevanceScore\"Z\n" +
 	"\x10RetrieveResponse\x120\n" +
 	"\aentries\x18\x01 \x03(\v2\x16.pcmi.v1.RetrieveEntryR\aentries\x12\x14\n" +
-	"\x05total\x18\x02 \x01(\x05R\x05total\"a\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"\x89\x02\n" +
 	"\x12BatchRetrieveQuery\x12\x1f\n" +
 	"\vpath_prefix\x18\x01 \x01(\tR\n" +
 	"pathPrefix\x12\x14\n" +
 	"\x05query\x18\x02 \x01(\tR\x05query\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\"f\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x12\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x1d\n" +
+	"\n" +
+	"tags_match\x18\x05 \x01(\tR\ttagsMatch\x12\"\n" +
+	"\ras_of_rfc3339\x18\x06 \x01(\tR\vasOfRfc3339\x12&\n" +
+	"\x0fsource_agent_id\x18\a \x01(\tR\rsourceAgentId\x12'\n" +
+	"\x0fembedding_space\x18\b \x01(\tR\x0eembeddingSpace\"f\n" +
 	"\x14BatchRetrieveRequest\x125\n" +
 	"\aqueries\x18\x01 \x03(\v2\x1b.pcmi.v1.BatchRetrieveQueryR\aqueries\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"]\n" +

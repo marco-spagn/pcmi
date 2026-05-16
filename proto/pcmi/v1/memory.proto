@@ -70,6 +70,14 @@ message RetrieveRequest {
   string query = 2;
   int32 limit = 3;
   string api_key = 4;
+  // Same semantics as REST POST /v1/retrieve JSON body.
+  repeated string tags = 5;
+  // "any" (default when empty) or "all".
+  string tags_match = 6;
+  // Optional point-in-time filter, RFC3339 or RFC3339Nano (e.g. 2006-01-02T15:04:05Z07:00).
+  string as_of_rfc3339 = 7;
+  string source_agent_id = 8;
+  string embedding_space = 9;
 }
 
 message RetrieveEntry {
@@ -89,6 +97,11 @@ message BatchRetrieveQuery {
   string path_prefix = 1;
   string query = 2;
   int32 limit = 3;
+  repeated string tags = 4;
+  string tags_match = 5;
+  string as_of_rfc3339 = 6;
+  string source_agent_id = 7;
+  string embedding_space = 8;
 }
 
 message BatchRetrieveRequest {

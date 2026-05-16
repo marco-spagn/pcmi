@@ -117,13 +117,11 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 	if err != nil {
 		return nil, err
 	}
-	limit := int(req.GetLimit())
-	if limit <= 0 {
-		limit = 10
+	mr, err := retrieveProtoToModel(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	result, err := s.svc.Retrieve(ctx, &model.RetrieveRequest{
-		PathPrefix: req.GetPathPrefix(), Query: req.GetQuery(), Limit: limit,
-	}, tenantID)
+	result, err := s.svc.Retrieve(ctx, &mr, tenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "retrieve: %v", err)
 	}
@@ -140,7 +138,11 @@ func (s *memoryServer) BatchRetrieve(ctx context.Context, req *pcmiv1.BatchRetri
 	if err != nil {
 		return nil, err
 	}
-	batch := &model.BatchRetrieveRequest{Queries: batchQueriesProtoToModel(req.GetQueries())}
+	queries, err := batchQueriesProtoToModel(req.GetQueries())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	batch := &model.BatchRetrieveRequest{Queries: queries}
 	result, err := s.svc.BatchRetrieve(ctx, batch, tenantID)
 	if err != nil {
 		return nil, mapSvcValidationErr("batch retrieve", err)
@@ -154,13 +156,11 @@ func (s *memoryServer) RetrieveStream(req *pcmiv1.RetrieveRequest, stream pcmiv1
 	if err != nil {
 		return err
 	}
-	limit := int(req.GetLimit())
-	if limit <= 0 {
-		limit = 10
+	mr, err := retrieveProtoToModel(req)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, err.Error())
 	}
-	result, err := s.svc.Retrieve(ctx, &model.RetrieveRequest{
-		PathPrefix: req.GetPathPrefix(), Query: req.GetQuery(), Limit: limit,
-	}, tenantID)
+	result, err := s.svc.Retrieve(ctx, &mr, tenantID)
 	if err != nil {
 		return status.Errorf(codes.Internal, "retrieve: %v", err)
 	}

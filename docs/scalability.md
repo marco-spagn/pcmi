@@ -14,7 +14,7 @@
 
 - **Hybrid (v1.14)**: Vector + `pcmi_bm25_rank` (normalized `ts_rank_cd`) with `websearch_to_tsquery` for keyword leg.
 - **Batch retrieve**: Up to **20** queries per request to amortize HTTP overhead.
-- **gRPC**: `BatchStore` matches REST batch limits (**50** items); `BatchRetrieve` matches **20** queries.
+- **gRPC**: `BatchStore` matches REST batch limits (**50** items); `BatchRetrieve` matches **20** queries; unary/stream retrieve accept the same filters as REST (tags, temporal `as_of`, agent, embedding space).
 - **Export**: Cap **5000** rows per export; use path prefixes to shard migrations.
 
 ## Connection pools

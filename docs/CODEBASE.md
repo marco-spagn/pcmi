@@ -147,6 +147,8 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 
 ## Riferimenti
 
+- Indice documentazione: `docs/INDEX.md`
+- Guida uso: `docs/USAGE.md`
 - API HTTP: `docs/openapi.yaml`
 - gRPC vs HTTP: `docs/grpc-vs-http.md`
 - Architettura: `docs/architecture.md`

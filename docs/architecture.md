@@ -2,56 +2,109 @@
 
 Persistent Cognitive Memory Infrastructure (PCMI) separates **ephemeral agents** from **durable memory**.
 
+> **Agents are ephemeral. Memory is persistent.**
+
+## System context
+
+```mermaid
+C4Context
+  title PCMI - System Context
+  Person(agent, "AI Agent", "Ephemeral runtime")
+  System(pcmi, "PCMI", "Memory API + workers")
+  System_Ext(openai, "OpenAI", "Optional embeddings")
+  Rel(agent, pcmi, "HTTP / gRPC")
+  Rel(pcmi, openai, "Embeddings", "optional")
+```
+
+## Container view
+
+```mermaid
+flowchart TB
+  subgraph clients [Clients]
+    SDK[Python / TS SDK]
+    ORCH[Celery / Temporal]
+    AG[Custom agents]
+  end
+  subgraph pcmi_stack [PCMI stack]
+    API[cmd/api :8000 / :50051]
+    WK[cmd/worker :8081 metrics]
+  end
+  subgraph data [Data]
+    PG[(PostgreSQL + ltree + pgvector)]
+    RD[(Redis)]
+  end
+  clients --> API
+  API --> PG
+  API --> RD
+  WK --> PG
+  WK --> RD
+```
+
 ## Principles
 
-- **Runtime agnostic**: HTTP/gRPC APIs only; no LangChain/LangGraph coupling in core.
-- **Append-only cognition**: memories version via `valid_from` / `valid_to`; rollback creates new rows.
-- **Hierarchical paths**: PostgreSQL `ltree` for scoped retrieval and domain isolation.
-- **Hybrid retrieval**: structural prefix + BM25 (`tsvector`) + optional pgvector semantic rank.
-- **Event-driven workers**: Redis pub/sub fans out store/update/refine events to embedding, distillation, consolidation, expiry, and webhooks.
+- **Runtime agnostic**: HTTP/gRPC; no framework lock-in in core.
+- **Append-only cognition**: `valid_from` / `valid_to`; rollback = new row.
+- **Hierarchical paths**: `ltree` scopes retrieval.
+- **Hybrid retrieval**: prefix + BM25 + optional semantic (pgvector).
+- **Event-driven workers**: Redis → embed, distill, prune, webhooks.
 
 ## Components
 
 | Component | Role |
 |-----------|------|
-| `cmd/api` | Fiber REST API, SSE `/v1/events`, Prometheus `/metrics`, optional gRPC, optional OpenTelemetry OTLP traces |
-| `cmd/worker` | Embeddings, distillation, pruning, consolidation, TTL; health + **Prometheus `/metrics`** on :8081 |
-| PostgreSQL | `memory_entries`, `distilled_knowledge`, `memory_links`, RLS per tenant |
-| Redis | `memory_events` channel for cross-process fan-out |
-| SDKs | Python / TypeScript thin clients (`store`, `retrieve`, `refine`, `subscribe`) |
+| `cmd/api` | Fiber REST, SSE, Prometheus `/metrics`, gRPC `MemoryService`, OTLP traces |
+| `cmd/worker` | Embeddings, distillation, pruning, consolidation, expiry; `:8081/metrics` |
+| PostgreSQL | Memories, distilled knowledge, links, audit, webhooks; RLS per tenant |
+| Redis | Channel `memory_events` |
+| SDKs | HTTP clients — see `sdk/` |
 
-## Data flow
+## Store flow
 
-```text
-Agent → POST /v1/memories → API → Postgres (append version)
-                              ↓
-                         Redis memory.stored
-                              ↓
-                    Worker: embed + distill + consolidate
-                              ↓
-                         Redis knowledge.distilled → SSE / webhooks
+```mermaid
+sequenceDiagram
+  participant A as Agent
+  participant API as pcmi-api
+  participant DB as PostgreSQL
+  participant R as Redis
+  participant W as worker
+  A->>API: Store(path, content)
+  API->>DB: append row, close prior version
+  API->>R: memory.stored / updated
+  API-->>A: id, version
+  R->>W: consume
+  W->>DB: embedding / distill
+  W->>R: knowledge.distilled
 ```
 
-## v1.15 additions
+## API surfaces
 
-- **POST /v1/memories/refine** — queue distillation for a path prefix (`memory.refine.requested`).
-- **GET /v1/lineage/memory** — version history + derived distilled rows for a path.
-- **GET /v1/lineage/distilled/{id}** — trace distilled knowledge to source memories.
-- **POST/GET /v1/memories/links** — graph edges between paths (`related`, custom types).
-- **GET /v1/stats** — tenant counters (active, superseded, distilled, links, expiring soon).
-- **Tag filters** on retrieve (`tags`, `tags_match=all|any`).
-- **TTL** `expires_at` on store + `expire_memory_entries()` worker.
+| Surface | Port | Auth | Note |
+|---------|------|------|------|
+| HTTP REST | 8000 | `X-API-Key` | OpenAPI `docs/openapi.yaml` |
+| gRPC | 50051 | `api_key` / metadata | `proto/pcmi/v1/memory.proto` |
+| SSE events | 8000 | API key | `GET /v1/events` |
+| Admin | 8000 | `admin` role | HTTP only |
+| Prometheus | 8000 / 8081 | none / internal | API + worker metrics |
+
+Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 
 ## Security
 
-- Multi-tenant RLS via `set_tenant_context(uuid)` per request.
-- API keys hashed (SHA-256); roles: `readonly`, `write`, `admin`.
-- Optional field encryption (`PCMI_ENCRYPTION_KEY`) for sensitive content.
+- RLS: `set_tenant_context(uuid)` per request.
+- API keys: SHA-256 hash; roles `readonly`, `write`, `admin`.
+- Optional encryption: `PCMI_ENCRYPTION_KEY`.
 
 ## Deployment
 
-- Docker Compose for local/full stack.
-- Kubernetes samples under `deploy/k8s/` (API, worker, config, secrets).
-- CI: `golangci-lint`, unit tests, integration-smoke (Postgres + Redis), optional OpenAI E2E.
+- **Local**: `docker compose up`
+- **K8s**: `deploy/k8s/` — readiness `GET /v1/ready`, gRPC `Ready`
+- **CI**: lint, unit, integration-smoke, SDK smoke, optional OpenAI E2E
 
-See also: `docs/failure-modes.md`, `docs/scalability.md`, `docs/openapi.yaml`, **`docs/CODEBASE.md`** (mappa del codice), **`docs/MIGRATIONS.md`** (SQL).
+## Related docs
+
+- [USAGE.md](USAGE.md) — how to use PCMI
+- [DATA-MODEL.md](DATA-MODEL.md) — schema and versioning
+- [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md) — background jobs
+- [failure-modes.md](failure-modes.md), [scalability.md](scalability.md)
+- [CODEBASE.md](CODEBASE.md), [MIGRATIONS.md](MIGRATIONS.md)
+- [INDEX.md](INDEX.md) — full doc index

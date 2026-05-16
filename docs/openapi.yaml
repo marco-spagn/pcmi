@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.18.0
+  version: 1.19.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -246,6 +246,22 @@ paths:
                 $ref: "#/components/schemas/RollbackResponse"
         "404":
           description: Historical version not found
+  /v1/memories/compact:
+    post:
+      summary: Compact superseded rows for one path (keep newest N closed versions; current row untouched)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompactMemoryRequest"
+      responses:
+        "200":
+          description: Compaction result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompactMemoryResponse"
   /v1/retrieve:
     post:
       summary: Hybrid retrieve (structural + optional semantic + temporal filter)
@@ -471,6 +487,23 @@ components:
         version: { type: integer }
         restored_from_version: { type: integer }
         superseded_id: { type: integer, format: int64 }
+    CompactMemoryRequest:
+      type: object
+      required: [path]
+      properties:
+        path: { type: string, description: ltree path }
+        keep_superseded:
+          type: integer
+          default: 20
+          minimum: 1
+          maximum: 500
+          description: Number of newest superseded (closed) versions to retain
+    CompactMemoryResponse:
+      type: object
+      properties:
+        path: { type: string }
+        deleted_count: { type: integer }
+        keep_superseded: { type: integer }
     AuditEntry:
       type: object
       properties:

@@ -44,6 +44,10 @@ func (m *mockMemoryRepo) ExportMemories(ctx context.Context, tenantID, pathPrefi
 	return []model.MemoryEntry{{ID: 1, Path: "root.a"}}, nil
 }
 
+func (m *mockMemoryRepo) CompactPathHistory(ctx context.Context, tenantID, path string, keepSuperseded int) (int, error) {
+	return 0, nil
+}
+
 func TestBatchStorePartialSuccess(t *testing.T) {
 	mr, err := miniredis.Run()
 	if err != nil {

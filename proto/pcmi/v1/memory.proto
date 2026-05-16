@@ -32,18 +32,33 @@ message StoreRequest {
   string content = 2;
   string metadata_json = 3;
   string api_key = 4;
+  // Same semantics as REST POST /v1/memories JSON body.
+  repeated string tags = 5;
+  string embedding_model = 6;
+  string embedding_space = 7;
+  string source_agent_id = 8;
+  bool encrypt_content = 9;
+  // Optional TTL, RFC3339 or RFC3339Nano.
+  string expires_at_rfc3339 = 10;
 }
 
 message StoreResponse {
   int64 id = 1;
   string status = 2;
   int32 version = 3;
+  optional int64 superseded_id = 4;
 }
 
 message BatchStoreItem {
   string path = 1;
   string content = 2;
   string metadata_json = 3;
+  repeated string tags = 4;
+  string embedding_model = 5;
+  string embedding_space = 6;
+  string source_agent_id = 7;
+  bool encrypt_content = 8;
+  string expires_at_rfc3339 = 9;
 }
 
 message BatchStoreRequest {

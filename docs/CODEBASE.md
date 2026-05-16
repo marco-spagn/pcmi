@@ -88,7 +88,7 @@ Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultService
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. **Retrieve** / **BatchRetrieve** / **RetrieveStream** accettano gli stessi filtri di retrieve REST (`tags`, `tags_match`, `as_of_rfc3339`, `source_agent_id`, `embedding_space`). `Health` (liveness) e `Ready` non richiedono API key. Scritture (`Store`, `BatchStore`) rifiutano ruolo `readonly` (`PermissionDenied`). Proto: `proto/pcmi/v1/memory.proto` (rigenerare con `protoc` come sotto). Strumentazione server: `grpc.StatsHandler(otelgrpc.NewServerHandler())`.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. **Store** / **BatchStore** e **Retrieve** accettano gli stessi campi/filtri delle rispettive API REST (tag, TTL `expires_at_rfc3339`, agent, embedding, encrypt). Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
 
 ## `internal/webhook`
 

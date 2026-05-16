@@ -116,7 +116,7 @@ Client HTTP thin; vedere `sdk/README.md`.
 
 ## `scripts/`
 
-Smoke/E2E per CI (`ci_e2e_*.sh`, `test_pcmi.sh`, `grpc_health_smoke.go`).
+Smoke/E2E per CI (`ci_e2e_*.sh`, `test_pcmi.sh`, `grpc_health_smoke.go`). Locale: `scripts/local_smoke_orchestration.sh` (store→GET / Temporal).
 
 ## `examples/`
 

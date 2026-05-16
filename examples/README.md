@@ -13,3 +13,5 @@ Shared environment (see each README):
 - `PCMI_API_KEY` — `X-API-Key` (required)
 
 Read scaling: optional `DATABASE_READ_URL` on the API server sends SELECT-heavy work to a PostgreSQL replica; see [docs/federation-read-replicas.md](../docs/federation-read-replicas.md).
+
+Local automation: [`scripts/local_smoke_orchestration.sh`](../scripts/local_smoke_orchestration.sh) — smoke store→GET (replica lag) e opzionale Temporal (`replica` | `temporal` | `all`).

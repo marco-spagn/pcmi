@@ -26,6 +26,8 @@ const (
 	MemoryService_RetrieveStream_FullMethodName = "/pcmi.v1.MemoryService/RetrieveStream"
 	MemoryService_Health_FullMethodName         = "/pcmi.v1.MemoryService/Health"
 	MemoryService_Ready_FullMethodName          = "/pcmi.v1.MemoryService/Ready"
+	MemoryService_GetMemory_FullMethodName      = "/pcmi.v1.MemoryService/GetMemory"
+	MemoryService_Compact_FullMethodName        = "/pcmi.v1.MemoryService/Compact"
 )
 
 // MemoryServiceClient is the client API for MemoryService service.
@@ -43,6 +45,10 @@ type MemoryServiceClient interface {
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
 	Ready(ctx context.Context, in *ReadyRequest, opts ...grpc.CallOption) (*ReadyResponse, error)
+	// GetMemory mirrors GET /v1/memories/{path} (optional version / as_of).
+	GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error)
+	// Compact mirrors POST /v1/memories/compact.
+	Compact(ctx context.Context, in *CompactRequest, opts ...grpc.CallOption) (*CompactResponse, error)
 }
 
 type memoryServiceClient struct {
@@ -132,6 +138,26 @@ func (c *memoryServiceClient) Ready(ctx context.Context, in *ReadyRequest, opts 
 	return out, nil
 }
 
+func (c *memoryServiceClient) GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMemoryResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) Compact(ctx context.Context, in *CompactRequest, opts ...grpc.CallOption) (*CompactResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompactResponse)
+	err := c.cc.Invoke(ctx, MemoryService_Compact_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemoryServiceServer is the server API for MemoryService service.
 // All implementations must embed UnimplementedMemoryServiceServer
 // for forward compatibility.
@@ -147,6 +173,10 @@ type MemoryServiceServer interface {
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
 	Ready(context.Context, *ReadyRequest) (*ReadyResponse, error)
+	// GetMemory mirrors GET /v1/memories/{path} (optional version / as_of).
+	GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error)
+	// Compact mirrors POST /v1/memories/compact.
+	Compact(context.Context, *CompactRequest) (*CompactResponse, error)
 	mustEmbedUnimplementedMemoryServiceServer()
 }
 
@@ -177,6 +207,12 @@ func (UnimplementedMemoryServiceServer) Health(context.Context, *HealthRequest) 
 }
 func (UnimplementedMemoryServiceServer) Ready(context.Context, *ReadyRequest) (*ReadyResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ready not implemented")
+}
+func (UnimplementedMemoryServiceServer) GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemory not implemented")
+}
+func (UnimplementedMemoryServiceServer) Compact(context.Context, *CompactRequest) (*CompactResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Compact not implemented")
 }
 func (UnimplementedMemoryServiceServer) mustEmbedUnimplementedMemoryServiceServer() {}
 func (UnimplementedMemoryServiceServer) testEmbeddedByValue()                       {}
@@ -318,6 +354,42 @@ func _MemoryService_Ready_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoryService_GetMemory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).GetMemory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_GetMemory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).GetMemory(ctx, req.(*GetMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_Compact_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompactRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).Compact(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_Compact_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).Compact(ctx, req.(*CompactRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemoryService_ServiceDesc is the grpc.ServiceDesc for MemoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -348,6 +420,14 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Ready",
 			Handler:    _MemoryService_Ready_Handler,
+		},
+		{
+			MethodName: "GetMemory",
+			Handler:    _MemoryService_GetMemory_Handler,
+		},
+		{
+			MethodName: "Compact",
+			Handler:    _MemoryService_Compact_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

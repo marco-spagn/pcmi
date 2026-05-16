@@ -35,8 +35,12 @@ Transport overview: [`../docs/grpc-vs-http.md`](../docs/grpc-vs-http.md).
 | `POST /v1/memories/export` | `export_memories` | `exportMemories` |
 | `POST /v1/memories/import` | `import_memories` | `importMemories` |
 | `GET /v1/admin/tenants` | `list_tenants` | `listTenants` |
+| `POST /v1/admin/tenants` | `create_tenant` | `createTenant` |
+| `GET /v1/admin/api-keys` | `list_api_keys` | `listApiKeys` |
+| `POST /v1/admin/api-keys` | `create_api_key` | `createApiKey` |
+| `POST /v1/admin/api-keys/:id/rotate` | `rotate_api_key` | `rotateApiKey` |
 
-Admin key creation (`POST /v1/admin/tenants`, API keys) requires **admin** role — call via HTTP/OpenAPI; not wrapped in thin SDKs yet.
+Admin methods require **admin** role (`testkey123` in default migrations). CI runs read-only `admin_smoke` / `admin-smoke.mts`.
 
 ## Store / retrieve options (HTTP)
 

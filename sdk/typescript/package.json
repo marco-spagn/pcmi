@@ -6,7 +6,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "smoke": "tsx smoke.mts"
+    "smoke": "tsx smoke.mts",
+    "admin-smoke": "tsx admin-smoke.mts"
   },
   "devDependencies": {
     "tsx": "^4.22.0",

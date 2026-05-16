@@ -218,6 +218,54 @@ func TestGRPCStoreClientEmbeddingIntegration(t *testing.T) {
 	}
 }
 
+func TestGRPCGetMemoryCompactIntegration(t *testing.T) {
+	host := os.Getenv("GRPC_HOST")
+	if host == "" {
+		host = "localhost:50051"
+	}
+	key := os.Getenv("GRPC_TEST_API_KEY")
+	if key == "" {
+		t.Skip("GRPC_TEST_API_KEY not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	client := pcmiv1.NewMemoryServiceClient(conn)
+	path := "root.ci.grpc.getcompact." + time.Now().Format("150405")
+	_, err = client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "get-compact-test",
+		Tags: []string{"grpc-get"}, EmbeddingModel: "unspecified",
+	})
+	if err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	got, err := client.GetMemory(ctx, &pcmiv1.GetMemoryRequest{ApiKey: key, Path: path})
+	if err != nil {
+		t.Fatalf("get memory: %v", err)
+	}
+	if got.GetEntry().GetPath() != path || got.GetEntry().GetContent() != "get-compact-test" {
+		t.Fatalf("entry: %+v", got.GetEntry())
+	}
+
+	comp, err := client.Compact(ctx, &pcmiv1.CompactRequest{
+		ApiKey: key, Path: path, KeepSuperseded: 20,
+	})
+	if err != nil {
+		t.Fatalf("compact: %v", err)
+	}
+	if comp.GetPath() != path {
+		t.Fatalf("compact: %+v", comp)
+	}
+}
+
 // TestResolveTenantIntegration requires DATABASE_URL and a valid test API key hash in DB.
 func TestResolveTenantIntegration(t *testing.T) {
 	dbURL := os.Getenv("DATABASE_URL")

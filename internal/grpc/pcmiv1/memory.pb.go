@@ -1430,6 +1430,239 @@ func (x *HealthResponse) GetVersion() string {
 	return ""
 }
 
+type GetMemoryRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Path   string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	ApiKey string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	// Optional exact version; 0 means latest/current.
+	Version       int32  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	AsOfRfc3339   string `protobuf:"bytes,4,opt,name=as_of_rfc3339,json=asOfRfc3339,proto3" json:"as_of_rfc3339,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemoryRequest) Reset() {
+	*x = GetMemoryRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemoryRequest) ProtoMessage() {}
+
+func (x *GetMemoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemoryRequest.ProtoReflect.Descriptor instead.
+func (*GetMemoryRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *GetMemoryRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetMemoryRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *GetMemoryRequest) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *GetMemoryRequest) GetAsOfRfc3339() string {
+	if x != nil {
+		return x.AsOfRfc3339
+	}
+	return ""
+}
+
+type GetMemoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entry         *RetrieveEntry         `protobuf:"bytes,1,opt,name=entry,proto3" json:"entry,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemoryResponse) Reset() {
+	*x = GetMemoryResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemoryResponse) ProtoMessage() {}
+
+func (x *GetMemoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemoryResponse.ProtoReflect.Descriptor instead.
+func (*GetMemoryResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetMemoryResponse) GetEntry() *RetrieveEntry {
+	if x != nil {
+		return x.Entry
+	}
+	return nil
+}
+
+type CompactRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Path           string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	ApiKey         string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	KeepSuperseded int32                  `protobuf:"varint,3,opt,name=keep_superseded,json=keepSuperseded,proto3" json:"keep_superseded,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CompactRequest) Reset() {
+	*x = CompactRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompactRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompactRequest) ProtoMessage() {}
+
+func (x *CompactRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompactRequest.ProtoReflect.Descriptor instead.
+func (*CompactRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CompactRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *CompactRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *CompactRequest) GetKeepSuperseded() int32 {
+	if x != nil {
+		return x.KeepSuperseded
+	}
+	return 0
+}
+
+type CompactResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Path           string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	DeletedCount   int32                  `protobuf:"varint,2,opt,name=deleted_count,json=deletedCount,proto3" json:"deleted_count,omitempty"`
+	KeepSuperseded int32                  `protobuf:"varint,3,opt,name=keep_superseded,json=keepSuperseded,proto3" json:"keep_superseded,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CompactResponse) Reset() {
+	*x = CompactResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompactResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompactResponse) ProtoMessage() {}
+
+func (x *CompactResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompactResponse.ProtoReflect.Descriptor instead.
+func (*CompactResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *CompactResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *CompactResponse) GetDeletedCount() int32 {
+	if x != nil {
+		return x.DeletedCount
+	}
+	return 0
+}
+
+func (x *CompactResponse) GetKeepSuperseded() int32 {
+	if x != nil {
+		return x.KeepSuperseded
+	}
+	return 0
+}
+
 var File_pcmi_v1_memory_proto protoreflect.FileDescriptor
 
 const file_pcmi_v1_memory_proto_rawDesc = "" +
@@ -1550,7 +1783,22 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\rHealthRequest\"B\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion2\xdc\x03\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion\"}\n" +
+	"\x10GetMemoryRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x12\"\n" +
+	"\ras_of_rfc3339\x18\x04 \x01(\tR\vasOfRfc3339\"A\n" +
+	"\x11GetMemoryResponse\x12,\n" +
+	"\x05entry\x18\x01 \x01(\v2\x16.pcmi.v1.RetrieveEntryR\x05entry\"f\n" +
+	"\x0eCompactRequest\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\x12'\n" +
+	"\x0fkeep_superseded\x18\x03 \x01(\x05R\x0ekeepSuperseded\"s\n" +
+	"\x0fCompactResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12#\n" +
+	"\rdeleted_count\x18\x02 \x01(\x05R\fdeletedCount\x12'\n" +
+	"\x0fkeep_superseded\x18\x03 \x01(\x05R\x0ekeepSuperseded2\xde\x04\n" +
 	"\rMemoryService\x126\n" +
 	"\x05Store\x12\x15.pcmi.v1.StoreRequest\x1a\x16.pcmi.v1.StoreResponse\x12E\n" +
 	"\n" +
@@ -1559,7 +1807,9 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\rBatchRetrieve\x12\x1d.pcmi.v1.BatchRetrieveRequest\x1a\x1e.pcmi.v1.BatchRetrieveResponse\x12H\n" +
 	"\x0eRetrieveStream\x12\x18.pcmi.v1.RetrieveRequest\x1a\x1a.pcmi.v1.RetrieveStreamMsg0\x01\x129\n" +
 	"\x06Health\x12\x16.pcmi.v1.HealthRequest\x1a\x17.pcmi.v1.HealthResponse\x126\n" +
-	"\x05Ready\x12\x15.pcmi.v1.ReadyRequest\x1a\x16.pcmi.v1.ReadyResponseB9Z7github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1b\x06proto3"
+	"\x05Ready\x12\x15.pcmi.v1.ReadyRequest\x1a\x16.pcmi.v1.ReadyResponse\x12B\n" +
+	"\tGetMemory\x12\x19.pcmi.v1.GetMemoryRequest\x1a\x1a.pcmi.v1.GetMemoryResponse\x12<\n" +
+	"\aCompact\x12\x17.pcmi.v1.CompactRequest\x1a\x18.pcmi.v1.CompactResponseB9Z7github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1b\x06proto3"
 
 var (
 	file_pcmi_v1_memory_proto_rawDescOnce sync.Once
@@ -1573,7 +1823,7 @@ func file_pcmi_v1_memory_proto_rawDescGZIP() []byte {
 	return file_pcmi_v1_memory_proto_rawDescData
 }
 
-var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_pcmi_v1_memory_proto_goTypes = []any{
 	(*ReadyRequest)(nil),          // 0: pcmi.v1.ReadyRequest
 	(*ReadyResponse)(nil),         // 1: pcmi.v1.ReadyResponse
@@ -1594,6 +1844,10 @@ var file_pcmi_v1_memory_proto_goTypes = []any{
 	(*RetrieveStreamMsg)(nil),     // 16: pcmi.v1.RetrieveStreamMsg
 	(*HealthRequest)(nil),         // 17: pcmi.v1.HealthRequest
 	(*HealthResponse)(nil),        // 18: pcmi.v1.HealthResponse
+	(*GetMemoryRequest)(nil),      // 19: pcmi.v1.GetMemoryRequest
+	(*GetMemoryResponse)(nil),     // 20: pcmi.v1.GetMemoryResponse
+	(*CompactRequest)(nil),        // 21: pcmi.v1.CompactRequest
+	(*CompactResponse)(nil),       // 22: pcmi.v1.CompactResponse
 }
 var file_pcmi_v1_memory_proto_depIdxs = []int32{
 	4,  // 0: pcmi.v1.BatchStoreRequest.items:type_name -> pcmi.v1.BatchStoreItem
@@ -1604,25 +1858,30 @@ var file_pcmi_v1_memory_proto_depIdxs = []int32{
 	13, // 5: pcmi.v1.BatchRetrieveResponse.results:type_name -> pcmi.v1.BatchRetrieveResult
 	15, // 6: pcmi.v1.RetrieveStreamMsg.header:type_name -> pcmi.v1.RetrieveStreamHeader
 	9,  // 7: pcmi.v1.RetrieveStreamMsg.entry:type_name -> pcmi.v1.RetrieveEntry
-	2,  // 8: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
-	5,  // 9: pcmi.v1.MemoryService.BatchStore:input_type -> pcmi.v1.BatchStoreRequest
-	8,  // 10: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
-	12, // 11: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
-	8,  // 12: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
-	17, // 13: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
-	0,  // 14: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
-	3,  // 15: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
-	7,  // 16: pcmi.v1.MemoryService.BatchStore:output_type -> pcmi.v1.BatchStoreResponse
-	10, // 17: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
-	14, // 18: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
-	16, // 19: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
-	18, // 20: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
-	1,  // 21: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
-	15, // [15:22] is the sub-list for method output_type
-	8,  // [8:15] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	9,  // 8: pcmi.v1.GetMemoryResponse.entry:type_name -> pcmi.v1.RetrieveEntry
+	2,  // 9: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
+	5,  // 10: pcmi.v1.MemoryService.BatchStore:input_type -> pcmi.v1.BatchStoreRequest
+	8,  // 11: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
+	12, // 12: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
+	8,  // 13: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
+	17, // 14: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
+	0,  // 15: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
+	19, // 16: pcmi.v1.MemoryService.GetMemory:input_type -> pcmi.v1.GetMemoryRequest
+	21, // 17: pcmi.v1.MemoryService.Compact:input_type -> pcmi.v1.CompactRequest
+	3,  // 18: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
+	7,  // 19: pcmi.v1.MemoryService.BatchStore:output_type -> pcmi.v1.BatchStoreResponse
+	10, // 20: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
+	14, // 21: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
+	16, // 22: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
+	18, // 23: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
+	1,  // 24: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
+	20, // 25: pcmi.v1.MemoryService.GetMemory:output_type -> pcmi.v1.GetMemoryResponse
+	22, // 26: pcmi.v1.MemoryService.Compact:output_type -> pcmi.v1.CompactResponse
+	18, // [18:27] is the sub-list for method output_type
+	9,  // [9:18] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_pcmi_v1_memory_proto_init() }
@@ -1642,7 +1901,7 @@ func file_pcmi_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pcmi_v1_memory_proto_rawDesc), len(file_pcmi_v1_memory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

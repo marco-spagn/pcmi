@@ -156,8 +156,8 @@ jobs:
 
       - name: Integration smoke suite (bash)
         env:
-          PCMI_EXPECT_VERSION: v1.27.0
-          EXPECT_API_VERSION: v1.27.0
+          PCMI_EXPECT_VERSION: v1.28.0
+          EXPECT_API_VERSION: v1.28.0
         run: |
           chmod +x scripts/ci_integration_smoke.sh
           ./scripts/ci_integration_smoke.sh
@@ -168,6 +168,14 @@ jobs:
           GRPC_TEST_API_KEY: testkey123
           DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
         run: go test -tags=integration -count=1 ./internal/grpc/...
+
+      - name: SDK smoke (Python + TypeScript)
+        env:
+          PCMI_BASE_URL: http://localhost:8000
+          PCMI_API_KEY: testkey123
+        run: |
+          chmod +x scripts/ci_sdk_smoke.sh
+          ./scripts/ci_sdk_smoke.sh
 
       - name: Show logs on failure
         if: failure()

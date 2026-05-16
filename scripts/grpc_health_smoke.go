@@ -40,7 +40,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.27.0"
+		expected = "v1.28.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
@@ -124,4 +124,16 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("gRPC Store+Retrieve tags parity smoke ok")
+
+	got, err := client.GetMemory(ctx, &pcmiv1.GetMemoryRequest{ApiKey: key, Path: path})
+	if err != nil || got.GetEntry().GetPath() != path {
+		fmt.Fprintf(os.Stderr, "GetMemory: err=%v entry=%+v\n", err, got)
+		os.Exit(1)
+	}
+	_, err = client.Compact(ctx, &pcmiv1.CompactRequest{ApiKey: key, Path: path, KeepSuperseded: 20})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Compact: %v\n", err)
+		os.Exit(1)
+	}
+	fmt.Println("gRPC GetMemory + Compact smoke ok")
 }

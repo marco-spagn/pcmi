@@ -19,10 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemoryService_Store_FullMethodName    = "/pcmi.v1.MemoryService/Store"
-	MemoryService_Retrieve_FullMethodName = "/pcmi.v1.MemoryService/Retrieve"
-	MemoryService_Health_FullMethodName   = "/pcmi.v1.MemoryService/Health"
-	MemoryService_Ready_FullMethodName    = "/pcmi.v1.MemoryService/Ready"
+	MemoryService_Store_FullMethodName          = "/pcmi.v1.MemoryService/Store"
+	MemoryService_Retrieve_FullMethodName       = "/pcmi.v1.MemoryService/Retrieve"
+	MemoryService_BatchRetrieve_FullMethodName  = "/pcmi.v1.MemoryService/BatchRetrieve"
+	MemoryService_RetrieveStream_FullMethodName = "/pcmi.v1.MemoryService/RetrieveStream"
+	MemoryService_Health_FullMethodName         = "/pcmi.v1.MemoryService/Health"
+	MemoryService_Ready_FullMethodName          = "/pcmi.v1.MemoryService/Ready"
 )
 
 // MemoryServiceClient is the client API for MemoryService service.
@@ -31,6 +33,10 @@ const (
 type MemoryServiceClient interface {
 	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
 	Retrieve(ctx context.Context, in *RetrieveRequest, opts ...grpc.CallOption) (*RetrieveResponse, error)
+	// BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
+	BatchRetrieve(ctx context.Context, in *BatchRetrieveRequest, opts ...grpc.CallOption) (*BatchRetrieveResponse, error)
+	// RetrieveStream returns the same data as Retrieve: first message carries total count, then one message per entry.
+	RetrieveStream(ctx context.Context, in *RetrieveRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RetrieveStreamMsg], error)
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
 	Ready(ctx context.Context, in *ReadyRequest, opts ...grpc.CallOption) (*ReadyResponse, error)
@@ -64,6 +70,35 @@ func (c *memoryServiceClient) Retrieve(ctx context.Context, in *RetrieveRequest,
 	return out, nil
 }
 
+func (c *memoryServiceClient) BatchRetrieve(ctx context.Context, in *BatchRetrieveRequest, opts ...grpc.CallOption) (*BatchRetrieveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchRetrieveResponse)
+	err := c.cc.Invoke(ctx, MemoryService_BatchRetrieve_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) RetrieveStream(ctx context.Context, in *RetrieveRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RetrieveStreamMsg], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MemoryService_ServiceDesc.Streams[0], MemoryService_RetrieveStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[RetrieveRequest, RetrieveStreamMsg]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MemoryService_RetrieveStreamClient = grpc.ServerStreamingClient[RetrieveStreamMsg]
+
 func (c *memoryServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(HealthResponse)
@@ -90,6 +125,10 @@ func (c *memoryServiceClient) Ready(ctx context.Context, in *ReadyRequest, opts 
 type MemoryServiceServer interface {
 	Store(context.Context, *StoreRequest) (*StoreResponse, error)
 	Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error)
+	// BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
+	BatchRetrieve(context.Context, *BatchRetrieveRequest) (*BatchRetrieveResponse, error)
+	// RetrieveStream returns the same data as Retrieve: first message carries total count, then one message per entry.
+	RetrieveStream(*RetrieveRequest, grpc.ServerStreamingServer[RetrieveStreamMsg]) error
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	// Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
 	Ready(context.Context, *ReadyRequest) (*ReadyResponse, error)
@@ -108,6 +147,12 @@ func (UnimplementedMemoryServiceServer) Store(context.Context, *StoreRequest) (*
 }
 func (UnimplementedMemoryServiceServer) Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Retrieve not implemented")
+}
+func (UnimplementedMemoryServiceServer) BatchRetrieve(context.Context, *BatchRetrieveRequest) (*BatchRetrieveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchRetrieve not implemented")
+}
+func (UnimplementedMemoryServiceServer) RetrieveStream(*RetrieveRequest, grpc.ServerStreamingServer[RetrieveStreamMsg]) error {
+	return status.Errorf(codes.Unimplemented, "method RetrieveStream not implemented")
 }
 func (UnimplementedMemoryServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Health not implemented")
@@ -172,6 +217,35 @@ func _MemoryService_Retrieve_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoryService_BatchRetrieve_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchRetrieveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).BatchRetrieve(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_BatchRetrieve_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).BatchRetrieve(ctx, req.(*BatchRetrieveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_RetrieveStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RetrieveRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MemoryServiceServer).RetrieveStream(m, &grpc.GenericServerStream[RetrieveRequest, RetrieveStreamMsg]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MemoryService_RetrieveStreamServer = grpc.ServerStreamingServer[RetrieveStreamMsg]
+
 func _MemoryService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HealthRequest)
 	if err := dec(in); err != nil {
@@ -224,6 +298,10 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemoryService_Retrieve_Handler,
 		},
 		{
+			MethodName: "BatchRetrieve",
+			Handler:    _MemoryService_BatchRetrieve_Handler,
+		},
+		{
 			MethodName: "Health",
 			Handler:    _MemoryService_Health_Handler,
 		},
@@ -232,6 +310,12 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MemoryService_Ready_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "RetrieveStream",
+			Handler:       _MemoryService_RetrieveStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "pcmi/v1/memory.proto",
 }

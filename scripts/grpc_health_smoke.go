@@ -5,12 +5,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -36,7 +40,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.19.0"
+		expected = "v1.20.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
@@ -52,4 +56,45 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("gRPC health ok", resp.GetVersion(), "ready ok")
+
+	key := strings.TrimSpace(os.Getenv("GRPC_TEST_API_KEY"))
+	if key == "" {
+		return
+	}
+	_, err = client.BatchRetrieve(ctx, &pcmiv1.BatchRetrieveRequest{ApiKey: key})
+	if err == nil {
+		fmt.Fprintln(os.Stderr, "BatchRetrieve with no queries: expected error")
+		os.Exit(1)
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+		fmt.Fprintf(os.Stderr, "BatchRetrieve empty: want InvalidArgument, got %v\n", err)
+		os.Exit(1)
+	}
+	rstream, err := client.RetrieveStream(ctx, &pcmiv1.RetrieveRequest{
+		ApiKey: key, PathPrefix: "__grpc_smoke_no_matches__", Limit: 3,
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "RetrieveStream: %v\n", err)
+		os.Exit(1)
+	}
+	first, err := rstream.Recv()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "RetrieveStream first frame: %v\n", err)
+		os.Exit(1)
+	}
+	if first.GetHeader() == nil {
+		fmt.Fprintf(os.Stderr, "RetrieveStream: expected header first, got %+v\n", first)
+		os.Exit(1)
+	}
+	for {
+		_, err := rstream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "RetrieveStream recv: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	fmt.Println("gRPC BatchRetrieve + RetrieveStream smoke ok")
 }

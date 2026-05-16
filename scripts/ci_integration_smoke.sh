@@ -7,8 +7,8 @@ cd "$ROOT"
 
 API="${API:-http://localhost:8000}"
 KEY="${PCMI_API_KEY:-testkey123}"
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.19.0}"
-VER="${EXPECT_API_VERSION:-v1.19.0}"
+export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.20.0}"
+VER="${EXPECT_API_VERSION:-v1.20.0}"
 hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${KEY}")
 
 echo "== Readiness /v1/ready =="
@@ -130,7 +130,7 @@ curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d '{"path":"root.ci.metrics",
 curl -sf -H 'Accept-Encoding: identity' "${API}/metrics" | grep -qE 'pcmi_memory_(stores|retrieves)_total'
 curl -sf "${API}/v1/admin/tenants?limit=5" -H "X-API-Key: ${KEY}" | jq -e '.total >= 1'
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true
-go run ./scripts/grpc_health_smoke.go
+GRPC_HOST="${GRPC_HOST:-localhost:50051}" GRPC_TEST_API_KEY="${KEY}" go run ./scripts/grpc_health_smoke.go
 
 echo "== v1.15 stats / tags / links / refine / lineage / TTL =="
 curl -sf "${API}/v1/stats" -H "X-API-Key: ${KEY}" | jq -e '.active_memories >= 1'
@@ -188,7 +188,7 @@ curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"root.ci.scope.
 COUNT=$(curl -sf -X POST "${API}/v1/retrieve" "${hdr[@]}" -d "{\"path_prefix\":\"root.ci.scope\",\"source_agent_id\":\"${AGENT}\",\"embedding_space\":\"experimental\",\"limit\":20}" | jq '.entries | length')
 test "$COUNT" -ge 1
 
-echo "== v1.19 memory compaction API =="
+echo "== memory compaction API =="
 PATH_C="root.ci.compact.${SUFFIX}"
 for _v in 1 2 3 4 5 6; do
   curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_C}\",\"content\":\"body\",\"metadata\":{}}" >/dev/null

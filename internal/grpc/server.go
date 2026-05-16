@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
@@ -18,9 +19,12 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/event"
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/service"
 )
+
+const releaseVersion = "v1.20.0"
 
 type memoryServer struct {
 	pcmiv1.UnimplementedMemoryServiceServer
@@ -70,6 +74,7 @@ func (s *memoryServer) Store(ctx context.Context, req *pcmiv1.StoreRequest) (*pc
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "store: %v", err)
 	}
+	metrics.IncStore()
 	return &pcmiv1.StoreResponse{
 		Id: result.Entry.ID, Status: "stored", Version: int32(result.Version),
 	}, nil
@@ -91,17 +96,74 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 		return nil, status.Errorf(codes.Internal, "retrieve: %v", err)
 	}
 	out := &pcmiv1.RetrieveResponse{Total: int32(result.Total)}
-	for _, e := range result.Entries {
-		out.Entries = append(out.Entries, &pcmiv1.RetrieveEntry{
-			Id: e.ID, Path: e.Path, Content: e.Content,
-			Version: int32(e.Version), RelevanceScore: e.RelevanceScore,
-		})
+	for i := range result.Entries {
+		out.Entries = append(out.Entries, memoryEntryToProtoRetrieve(&result.Entries[i]))
 	}
+	metrics.IncRetrieve()
 	return out, nil
 }
 
+func mapBatchRetrieveErr(err error) error {
+	msg := err.Error()
+	if strings.Contains(msg, "required") || strings.Contains(msg, "maximum") {
+		return status.Error(codes.InvalidArgument, msg)
+	}
+	return status.Errorf(codes.Internal, "batch retrieve: %v", err)
+}
+
+func (s *memoryServer) BatchRetrieve(ctx context.Context, req *pcmiv1.BatchRetrieveRequest) (*pcmiv1.BatchRetrieveResponse, error) {
+	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	if err != nil {
+		return nil, err
+	}
+	batch := &model.BatchRetrieveRequest{Queries: batchQueriesProtoToModel(req.GetQueries())}
+	result, err := s.svc.BatchRetrieve(ctx, batch, tenantID)
+	if err != nil {
+		return nil, mapBatchRetrieveErr(err)
+	}
+	return batchRetrieveModelToProto(result), nil
+}
+
+func (s *memoryServer) RetrieveStream(req *pcmiv1.RetrieveRequest, stream pcmiv1.MemoryService_RetrieveStreamServer) error {
+	ctx := stream.Context()
+	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	if err != nil {
+		return err
+	}
+	limit := int(req.GetLimit())
+	if limit <= 0 {
+		limit = 10
+	}
+	result, err := s.svc.Retrieve(ctx, &model.RetrieveRequest{
+		PathPrefix: req.GetPathPrefix(), Query: req.GetQuery(), Limit: limit,
+	}, tenantID)
+	if err != nil {
+		return status.Errorf(codes.Internal, "retrieve: %v", err)
+	}
+	if err := stream.Send(&pcmiv1.RetrieveStreamMsg{
+		Msg: &pcmiv1.RetrieveStreamMsg_Header{
+			Header: &pcmiv1.RetrieveStreamHeader{Total: int32(result.Total)},
+		},
+	}); err != nil {
+		return err
+	}
+	for i := range result.Entries {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		entry := memoryEntryToProtoRetrieve(&result.Entries[i])
+		if err := stream.Send(&pcmiv1.RetrieveStreamMsg{
+			Msg: &pcmiv1.RetrieveStreamMsg_Entry{Entry: entry},
+		}); err != nil {
+			return err
+		}
+	}
+	metrics.IncRetrieve()
+	return nil
+}
+
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
-	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.19.0"}, nil
+	return &pcmiv1.HealthResponse{Status: "ok", Version: releaseVersion}, nil
 }
 
 func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmiv1.ReadyResponse, error) {
@@ -112,10 +174,10 @@ func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmi
 		st = "ready"
 	}
 	return &pcmiv1.ReadyResponse{
-		Status:      st,
-		DatabaseOk:  dbOK,
-		RedisOk:     redisOK,
-		Version:     "v1.19.0",
+		Status:     st,
+		DatabaseOk: dbOK,
+		RedisOk:    redisOK,
+		Version:    releaseVersion,
 	}, nil
 }
 
@@ -130,10 +192,10 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 		log.Printf("gRPC listen failed: %v", err)
 		return
 	}
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{svc: memSvc, db: db})
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (Store/Retrieve/Health/Ready)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (Store/Retrieve/BatchRetrieve/RetrieveStream/Health/Ready)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

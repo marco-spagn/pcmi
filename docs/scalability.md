@@ -24,10 +24,12 @@
 ## gRPC
 
 - Prefer gRPC for high-throughput agents (lower overhead than REST JSON). Same MemoryService layer as HTTP.
+- **BatchRetrieve** and **RetrieveStream** mirror `POST /v1/retrieve/batch` and unary retrieve (stream sends `total` then one message per entry).
 
 ## Observability
 
 - Prometheus: `pcmi_http_requests_total`, `pcmi_http_request_duration_seconds`, `pcmi_memory_stores_total`, `pcmi_memory_retrieves_total`.
+- OpenTelemetry (optional): OTLP/HTTP trace export; HTTP spans via `otelfiber`, gRPC via `otelgrpc` — complements Prometheus, does not replace it.
 - Audit log API for per-tenant API usage forensics.
 
 ## Multi-tenant admin

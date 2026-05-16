@@ -7,6 +7,10 @@ option go_package = "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1";
 service MemoryService {
   rpc Store(StoreRequest) returns (StoreResponse);
   rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
+  // BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
+  rpc BatchRetrieve(BatchRetrieveRequest) returns (BatchRetrieveResponse);
+  // RetrieveStream returns the same data as Retrieve: first message carries total count, then one message per entry.
+  rpc RetrieveStream(RetrieveRequest) returns (stream RetrieveStreamMsg);
   rpc Health(HealthRequest) returns (HealthResponse);
   // Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
   rpc Ready(ReadyRequest) returns (ReadyResponse);
@@ -52,6 +56,38 @@ message RetrieveEntry {
 message RetrieveResponse {
   repeated RetrieveEntry entries = 1;
   int32 total = 2;
+}
+
+message BatchRetrieveQuery {
+  string path_prefix = 1;
+  string query = 2;
+  int32 limit = 3;
+}
+
+message BatchRetrieveRequest {
+  repeated BatchRetrieveQuery queries = 1;
+  string api_key = 2;
+}
+
+message BatchRetrieveResult {
+  repeated RetrieveEntry entries = 1;
+  int32 total = 2;
+}
+
+message BatchRetrieveResponse {
+  repeated BatchRetrieveResult results = 1;
+  int32 total = 2;
+}
+
+message RetrieveStreamHeader {
+  int32 total = 1;
+}
+
+message RetrieveStreamMsg {
+  oneof msg {
+    RetrieveStreamHeader header = 1;
+    RetrieveEntry entry = 2;
+  }
 }
 
 message HealthRequest {}

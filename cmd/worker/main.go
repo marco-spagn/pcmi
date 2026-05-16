@@ -43,7 +43,7 @@ func main() {
 			stats := db.Stat()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.19.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.20.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
 				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
 		log.Println("💓 Worker health endpoint started on :8081")

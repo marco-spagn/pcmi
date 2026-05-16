@@ -30,14 +30,14 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **Read replica (read-scale)** — optional `DATABASE_READ_URL`; vedi `docs/federation-read-replicas.md`  
 - **Celery / Temporal samples** — `examples/celery`, `examples/temporal` (HTTP verso PCMI)  
 - **Readiness** — `GET /ready`, `GET /v1/ready`, gRPC `MemoryService/Ready` (PostgreSQL + Redis ping; use for Kubernetes readiness)  
-- **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, Health, Ready alongside REST (shared service layer)  
+- **gRPC API** (`GRPC_PORT`, default 50051) — Store, Retrieve, **BatchRetrieve**, **RetrieveStream**, Health, Ready alongside REST (shared service layer)  
 - **Consolidation worker** — merges ≥3 related memories under a path prefix into `{prefix}.consolidated`  
 - **BM25-tuned hybrid** — `pcmi_bm25_rank` + `websearch_to_tsquery` for improved keyword leg  
 - **Multi-tenant admin API** — `GET/POST /v1/admin/tenants`, API key create/rotate (`admin` role)  
 - **GET /v1/memories/{path}** — single memory with optional `version` / `as_of`  
 - **Batch** — `POST /v1/memories/batch`, `POST /v1/retrieve/batch`  
 - **Export/import** — tenant-scoped JSON migration (`POST /v1/memories/export`, `/import`)  
-- **Prometheus** — `GET /metrics` (no auth)  
+- **Prometheus** — `GET /metrics` (no auth); **OpenTelemetry** traces via OTLP/HTTP when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set (see `.env.example`)  
 - Ops docs: `docs/failure-modes.md`, `docs/scalability.md`  
 - **Refine API** — `POST /v1/memories/refine` queues distillation for a path prefix (SDK `refine()`)  
 - **Memory lineage** — `GET /v1/lineage/memory`, `GET /v1/lineage/distilled/{id}`  

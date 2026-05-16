@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.30.0 (current)
+## v1.31.0 (current)
+
+- **Distillation E2E**: `scripts/run_pcmi_distillation_test.sh` + `generate_soc_incidents_enterprise_v2.py`; report fix (`/v1/distilled` → `entries`); batch distill **LIMIT 100**; `.gitignore` per `.venv_e2e/` e `.pcmi_test_out/`.
+- Versione API `v1.31.0`.
+
+## v1.30.0
 
 - **Documentazione**: README con guide d’uso, diagrammi Mermaid, [docs/INDEX.md](INDEX.md), [USAGE.md](USAGE.md), [DATA-MODEL.md](DATA-MODEL.md), [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md); `architecture.md` aggiornato.
 - Versione API `v1.30.0` (solo documentazione; comportamento invariato).

@@ -103,7 +103,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 		  AND path <@ $2::ltree
 		  AND valid_to IS NULL
 		ORDER BY created_at DESC
-		LIMIT 10`, tenantID, pathPrefix)
+		LIMIT 100`, tenantID, pathPrefix)
 	if err != nil {
 		log.Printf("❌ distillation query error: %v", err)
 		return

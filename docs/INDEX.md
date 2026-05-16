@@ -1,6 +1,6 @@
 # PCMI — indice documentazione
 
-Mappa di tutta la documentazione del repository (API **v1.30.0**).
+Mappa di tutta la documentazione del repository (API **v1.31.0**).
 
 ## Iniziare
 
@@ -20,6 +20,13 @@ Mappa di tutta la documentazione del repository (API **v1.30.0**).
 | [../sdk/README.md](../sdk/README.md) | SDK Python e TypeScript |
 | [../sdk/HTTP-API.md](../sdk/HTTP-API.md) | Mapping endpoint → metodi SDK |
 | [../proto/pcmi/v1/memory.proto](../proto/pcmi/v1/memory.proto) | Definizione gRPC |
+
+## Test locali (script)
+
+| Script | Contenuto |
+|--------|-----------|
+| [../scripts/run_pcmi_distillation_test.sh](../scripts/run_pcmi_distillation_test.sh) | E2E ingest SOC + refine Redis + verifica distilled (`make distillation-e2e`) |
+| [../scripts/generate_soc_incidents_enterprise_v2.py](../scripts/generate_soc_incidents_enterprise_v2.py) | Generatore incidenti sintetici per il test sopra |
 
 ## Pipeline e operazioni
 

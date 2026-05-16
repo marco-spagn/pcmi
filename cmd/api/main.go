@@ -106,7 +106,7 @@ func main() {
 		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": version.Tag})
 	})
 
-	grpcserver.Start(db, memSvc)
+	grpcserver.Start(db, pools.Read, memSvc)
 
 	port := os.Getenv("API_PORT")
 	if port == "" {

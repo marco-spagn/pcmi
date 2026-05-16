@@ -218,6 +218,62 @@ func TestGRPCStoreClientEmbeddingIntegration(t *testing.T) {
 	}
 }
 
+func TestGRPCOperationalIntegration(t *testing.T) {
+	host := os.Getenv("GRPC_HOST")
+	if host == "" {
+		host = "localhost:50051"
+	}
+	key := os.Getenv("GRPC_TEST_API_KEY")
+	if key == "" {
+		t.Skip("GRPC_TEST_API_KEY not set")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	client := pcmiv1.NewMemoryServiceClient(conn)
+	path := "root.ci.grpc.ops." + time.Now().Format("150405")
+	_, err = client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "ops", Tags: []string{"ops"}, EmbeddingModel: "unspecified",
+	})
+	if err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	ref, err := client.Refine(ctx, &pcmiv1.RefineRequest{ApiKey: key, PathPrefix: path})
+	if err != nil || ref.GetStatus() != "queued" {
+		t.Fatalf("refine: %v %+v", err, ref)
+	}
+
+	_, err = client.CreateLink(ctx, &pcmiv1.CreateLinkRequest{
+		ApiKey: key, FromPath: path, ToPath: path + ".linked", LinkType: "related",
+	})
+	if err != nil {
+		t.Fatalf("create link: %v", err)
+	}
+
+	st, err := client.GetStats(ctx, &pcmiv1.GetStatsRequest{ApiKey: key})
+	if err != nil || st.GetActiveMemories() < 1 {
+		t.Fatalf("stats: %v %+v", err, st)
+	}
+
+	schemas, err := client.ListEventSchemas(ctx, &pcmiv1.ListEventSchemasRequest{})
+	if err != nil || schemas.GetTotal() < 1 {
+		t.Fatalf("schemas: %v %+v", err, schemas)
+	}
+
+	hist, err := client.GetHistory(ctx, &pcmiv1.GetHistoryRequest{ApiKey: key, Path: path, Limit: 10})
+	if err != nil || hist.GetTotal() < 1 {
+		t.Fatalf("history: %v %+v", err, hist)
+	}
+}
+
 func TestGRPCGetMemoryCompactIntegration(t *testing.T) {
 	host := os.Getenv("GRPC_HOST")
 	if host == "" {

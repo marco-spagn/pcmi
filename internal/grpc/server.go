@@ -20,14 +20,23 @@ import (
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/model"
+	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/version"
 )
 
 type memoryServer struct {
 	pcmiv1.UnimplementedMemoryServiceServer
-	svc *service.MemoryService
-	db  *pgxpool.Pool
+	svc         *service.MemoryService
+	db          *pgxpool.Pool
+	readDB      *pgxpool.Pool
+	eventSvc    *service.EventService
+	linksRepo   *repository.LinksRepository
+	statsRepo   *repository.StatsRepository
+	lineageRepo *repository.LineageRepository
+	auditRepo   *repository.AuditRepository
+	summarize   *service.SummarizeService
+	memRepo     *repository.MemoryRepository
 }
 
 func (s *memoryServer) resolveTenantAndRole(ctx context.Context, apiKey string) (tenantID string, role string, err error) {
@@ -242,8 +251,17 @@ func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmi
 	}, nil
 }
 
+func (s *memoryServer) setTenant(ctx context.Context, tenantID string) error {
+	_, err := s.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID)
+	return err
+}
+
 // Start launches the gRPC server on GRPC_PORT (default 50051).
-func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
+func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService) {
+	if dbRead == nil {
+		dbRead = dbWrite
+	}
+	memRepo := repository.NewMemoryRepository(dbWrite, dbRead)
 	port := os.Getenv("GRPC_PORT")
 	if port == "" {
 		port = "50051"
@@ -254,9 +272,20 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 		return
 	}
 	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
-	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{svc: memSvc, db: db})
+	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{
+		svc:         memSvc,
+		db:          dbWrite,
+		readDB:      dbRead,
+		eventSvc:    service.NewEventService(repository.NewEventRepository(dbWrite)),
+		linksRepo:   repository.NewLinksRepository(dbWrite, dbRead),
+		statsRepo:   repository.NewStatsRepository(dbWrite, dbRead),
+		lineageRepo: repository.NewLineageRepository(dbWrite, dbRead),
+		auditRepo:   repository.NewAuditRepository(dbWrite),
+		summarize:   service.NewSummarizeService(memRepo),
+		memRepo:     memRepo,
+	})
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (Store/BatchStore/Retrieve/BatchRetrieve/RetrieveStream/GetMemory/Compact/Health/Ready)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (full MemoryService RPC surface)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

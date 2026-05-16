@@ -20,6 +20,28 @@ service MemoryService {
   rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse);
   // Compact mirrors POST /v1/memories/compact.
   rpc Compact(CompactRequest) returns (CompactResponse);
+
+  // --- Operational parity (v1.29.0); admin + /metrics remain HTTP-only ---
+  rpc Refine(RefineRequest) returns (RefineResponse);
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+  rpc ListLinks(ListLinksRequest) returns (ListLinksResponse);
+  rpc GetStats(GetStatsRequest) returns (StatsResponse);
+  rpc IngestEvent(IngestEventRequest) returns (IngestEventResponse);
+  rpc ListEventSchemas(ListEventSchemasRequest) returns (ListEventSchemasResponse);
+  rpc StreamEvents(StreamEventsRequest) returns (stream StreamEventMsg);
+  rpc RegisterWebhook(RegisterWebhookRequest) returns (RegisterWebhookResponse);
+  rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse);
+  rpc ListWebhookDeadLetter(ListWebhookDeadLetterRequest) returns (JSONResponse);
+  rpc MigrateEmbeddings(MigrateEmbeddingsRequest) returns (MigrateEmbeddingsResponse);
+  rpc Rollback(RollbackRequest) returns (RollbackResponse);
+  rpc Summarize(SummarizeRequest) returns (SummarizeResponse);
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse);
+  rpc GetMemoryLineage(GetMemoryLineageRequest) returns (JSONResponse);
+  rpc GetDistilledLineage(GetDistilledLineageRequest) returns (JSONResponse);
+  rpc ListDistilled(ListDistilledRequest) returns (JSONResponse);
+  rpc ListAudit(ListAuditRequest) returns (JSONResponse);
+  rpc ExportMemories(ExportMemoriesRequest) returns (ExportMemoriesResponse);
+  rpc ImportMemories(ImportMemoriesRequest) returns (ImportMemoriesResponse);
 }
 
 message ReadyRequest {}
@@ -194,4 +216,245 @@ message CompactResponse {
   string path = 1;
   int32 deleted_count = 2;
   int32 keep_superseded = 3;
+}
+
+message JSONResponse {
+  string json = 1;
+}
+
+message RefineRequest {
+  string path_prefix = 1;
+  string api_key = 2;
+}
+
+message RefineResponse {
+  string status = 1;
+  string path_prefix = 2;
+}
+
+message CreateLinkRequest {
+  string api_key = 1;
+  string from_path = 2;
+  string to_path = 3;
+  string link_type = 4;
+  string metadata_json = 5;
+}
+
+message MemoryLinkMsg {
+  int64 id = 1;
+  string from_path = 2;
+  string to_path = 3;
+  string link_type = 4;
+  string metadata_json = 5;
+  string created_at_rfc3339 = 6;
+}
+
+message CreateLinkResponse {
+  MemoryLinkMsg link = 1;
+}
+
+message ListLinksRequest {
+  string api_key = 1;
+  string from_path = 2;
+  string to_path = 3;
+  string link_type = 4;
+  int32 limit = 5;
+}
+
+message ListLinksResponse {
+  repeated MemoryLinkMsg entries = 1;
+  int32 total = 2;
+}
+
+message GetStatsRequest {
+  string api_key = 1;
+}
+
+message StatsResponse {
+  int32 active_memories = 1;
+  int32 superseded_memories = 2;
+  int32 distilled_count = 3;
+  int32 links_count = 4;
+  int32 events_count = 5;
+  int32 expiring_soon = 6;
+}
+
+message IngestEventRequest {
+  string api_key = 1;
+  string event_type = 2;
+  string agent_id = 3;
+  string correlation_id = 4;
+  string payload_json = 5;
+}
+
+message IngestEventResponse {
+  string id = 1;
+  string event_type = 2;
+  string timestamp_rfc3339 = 3;
+  string status = 4;
+}
+
+message ListEventSchemasRequest {
+  string api_key = 1;
+}
+
+message EventSchemaMsg {
+  string type = 1;
+  string description = 2;
+  string payload_json = 3;
+}
+
+message ListEventSchemasResponse {
+  repeated EventSchemaMsg schemas = 1;
+  int32 total = 2;
+}
+
+message StreamEventsRequest {
+  string api_key = 1;
+  string types = 2; // comma-separated filter (optional)
+}
+
+message StreamEventMsg {
+  string type = 1;
+  string payload_json = 2;
+}
+
+message RegisterWebhookRequest {
+  string api_key = 1;
+  string url = 2;
+  repeated string event_types = 3;
+  string secret = 4;
+}
+
+message RegisterWebhookResponse {
+  string id = 1;
+  string status = 2;
+}
+
+message ListWebhooksRequest {
+  string api_key = 1;
+}
+
+message WebhookEndpointMsg {
+  string id = 1;
+  string url = 2;
+  repeated string event_types = 3;
+  bool enabled = 4;
+  string created_at_rfc3339 = 5;
+}
+
+message ListWebhooksResponse {
+  repeated WebhookEndpointMsg entries = 1;
+  int32 total = 2;
+}
+
+message ListWebhookDeadLetterRequest {
+  string api_key = 1;
+  int32 limit = 2;
+}
+
+message MigrateEmbeddingsRequest {
+  string api_key = 1;
+  string path_prefix = 2;
+  string target_model = 3;
+  string embedding_space = 4;
+}
+
+message MigrateEmbeddingsResponse {
+  string status = 1;
+  int32 marked_count = 2;
+  string path_prefix = 3;
+  string target_model = 4;
+  string embedding_space = 5;
+}
+
+message RollbackRequest {
+  string api_key = 1;
+  string path = 2;
+  int32 version = 3;
+  string as_of_rfc3339 = 4;
+}
+
+message RollbackResponse {
+  int64 id = 1;
+  string status = 2;
+  int32 version = 3;
+  int32 restored_from_version = 4;
+  optional int64 superseded_id = 5;
+}
+
+message SummarizeRequest {
+  string api_key = 1;
+  string path_prefix = 2;
+  int32 limit = 3;
+  string style = 4;
+}
+
+message SummarizeResponse {
+  string path_prefix = 1;
+  string summary = 2;
+  repeated int64 source_ids = 3;
+  string method = 4;
+  int32 total = 5;
+}
+
+message GetHistoryRequest {
+  string api_key = 1;
+  string path = 2;
+  int32 limit = 3;
+}
+
+message GetHistoryResponse {
+  string path = 1;
+  repeated RetrieveEntry entries = 2;
+  int32 total = 3;
+}
+
+message GetMemoryLineageRequest {
+  string api_key = 1;
+  string path = 2;
+}
+
+message GetDistilledLineageRequest {
+  string api_key = 1;
+  int64 distilled_id = 2;
+}
+
+message ListDistilledRequest {
+  string api_key = 1;
+  string path_prefix = 2;
+  int32 limit = 3;
+}
+
+message ListAuditRequest {
+  string api_key = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  string since_rfc3339 = 4;
+}
+
+message ExportMemoriesRequest {
+  string api_key = 1;
+  string path_prefix = 2;
+  int32 limit = 3;
+  bool include_embeddings = 4;
+}
+
+message ExportMemoriesResponse {
+  string tenant_id = 1;
+  int32 exported = 2;
+  repeated RetrieveEntry entries = 3;
+  string exported_at_rfc3339 = 4;
+}
+
+message ImportMemoriesRequest {
+  string api_key = 1;
+  repeated BatchStoreItem items = 2;
+  string mode = 3;
+}
+
+message ImportMemoriesResponse {
+  int32 imported = 1;
+  int32 skipped = 2;
+  repeated BatchStoreItemResult results = 3;
 }

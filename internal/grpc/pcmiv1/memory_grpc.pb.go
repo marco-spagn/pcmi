@@ -19,15 +19,35 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MemoryService_Store_FullMethodName          = "/pcmi.v1.MemoryService/Store"
-	MemoryService_BatchStore_FullMethodName     = "/pcmi.v1.MemoryService/BatchStore"
-	MemoryService_Retrieve_FullMethodName       = "/pcmi.v1.MemoryService/Retrieve"
-	MemoryService_BatchRetrieve_FullMethodName  = "/pcmi.v1.MemoryService/BatchRetrieve"
-	MemoryService_RetrieveStream_FullMethodName = "/pcmi.v1.MemoryService/RetrieveStream"
-	MemoryService_Health_FullMethodName         = "/pcmi.v1.MemoryService/Health"
-	MemoryService_Ready_FullMethodName          = "/pcmi.v1.MemoryService/Ready"
-	MemoryService_GetMemory_FullMethodName      = "/pcmi.v1.MemoryService/GetMemory"
-	MemoryService_Compact_FullMethodName        = "/pcmi.v1.MemoryService/Compact"
+	MemoryService_Store_FullMethodName                 = "/pcmi.v1.MemoryService/Store"
+	MemoryService_BatchStore_FullMethodName            = "/pcmi.v1.MemoryService/BatchStore"
+	MemoryService_Retrieve_FullMethodName              = "/pcmi.v1.MemoryService/Retrieve"
+	MemoryService_BatchRetrieve_FullMethodName         = "/pcmi.v1.MemoryService/BatchRetrieve"
+	MemoryService_RetrieveStream_FullMethodName        = "/pcmi.v1.MemoryService/RetrieveStream"
+	MemoryService_Health_FullMethodName                = "/pcmi.v1.MemoryService/Health"
+	MemoryService_Ready_FullMethodName                 = "/pcmi.v1.MemoryService/Ready"
+	MemoryService_GetMemory_FullMethodName             = "/pcmi.v1.MemoryService/GetMemory"
+	MemoryService_Compact_FullMethodName               = "/pcmi.v1.MemoryService/Compact"
+	MemoryService_Refine_FullMethodName                = "/pcmi.v1.MemoryService/Refine"
+	MemoryService_CreateLink_FullMethodName            = "/pcmi.v1.MemoryService/CreateLink"
+	MemoryService_ListLinks_FullMethodName             = "/pcmi.v1.MemoryService/ListLinks"
+	MemoryService_GetStats_FullMethodName              = "/pcmi.v1.MemoryService/GetStats"
+	MemoryService_IngestEvent_FullMethodName           = "/pcmi.v1.MemoryService/IngestEvent"
+	MemoryService_ListEventSchemas_FullMethodName      = "/pcmi.v1.MemoryService/ListEventSchemas"
+	MemoryService_StreamEvents_FullMethodName          = "/pcmi.v1.MemoryService/StreamEvents"
+	MemoryService_RegisterWebhook_FullMethodName       = "/pcmi.v1.MemoryService/RegisterWebhook"
+	MemoryService_ListWebhooks_FullMethodName          = "/pcmi.v1.MemoryService/ListWebhooks"
+	MemoryService_ListWebhookDeadLetter_FullMethodName = "/pcmi.v1.MemoryService/ListWebhookDeadLetter"
+	MemoryService_MigrateEmbeddings_FullMethodName     = "/pcmi.v1.MemoryService/MigrateEmbeddings"
+	MemoryService_Rollback_FullMethodName              = "/pcmi.v1.MemoryService/Rollback"
+	MemoryService_Summarize_FullMethodName             = "/pcmi.v1.MemoryService/Summarize"
+	MemoryService_GetHistory_FullMethodName            = "/pcmi.v1.MemoryService/GetHistory"
+	MemoryService_GetMemoryLineage_FullMethodName      = "/pcmi.v1.MemoryService/GetMemoryLineage"
+	MemoryService_GetDistilledLineage_FullMethodName   = "/pcmi.v1.MemoryService/GetDistilledLineage"
+	MemoryService_ListDistilled_FullMethodName         = "/pcmi.v1.MemoryService/ListDistilled"
+	MemoryService_ListAudit_FullMethodName             = "/pcmi.v1.MemoryService/ListAudit"
+	MemoryService_ExportMemories_FullMethodName        = "/pcmi.v1.MemoryService/ExportMemories"
+	MemoryService_ImportMemories_FullMethodName        = "/pcmi.v1.MemoryService/ImportMemories"
 )
 
 // MemoryServiceClient is the client API for MemoryService service.
@@ -49,6 +69,27 @@ type MemoryServiceClient interface {
 	GetMemory(ctx context.Context, in *GetMemoryRequest, opts ...grpc.CallOption) (*GetMemoryResponse, error)
 	// Compact mirrors POST /v1/memories/compact.
 	Compact(ctx context.Context, in *CompactRequest, opts ...grpc.CallOption) (*CompactResponse, error)
+	// --- Operational parity (v1.29.0); admin + /metrics remain HTTP-only ---
+	Refine(ctx context.Context, in *RefineRequest, opts ...grpc.CallOption) (*RefineResponse, error)
+	CreateLink(ctx context.Context, in *CreateLinkRequest, opts ...grpc.CallOption) (*CreateLinkResponse, error)
+	ListLinks(ctx context.Context, in *ListLinksRequest, opts ...grpc.CallOption) (*ListLinksResponse, error)
+	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*StatsResponse, error)
+	IngestEvent(ctx context.Context, in *IngestEventRequest, opts ...grpc.CallOption) (*IngestEventResponse, error)
+	ListEventSchemas(ctx context.Context, in *ListEventSchemasRequest, opts ...grpc.CallOption) (*ListEventSchemasResponse, error)
+	StreamEvents(ctx context.Context, in *StreamEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamEventMsg], error)
+	RegisterWebhook(ctx context.Context, in *RegisterWebhookRequest, opts ...grpc.CallOption) (*RegisterWebhookResponse, error)
+	ListWebhooks(ctx context.Context, in *ListWebhooksRequest, opts ...grpc.CallOption) (*ListWebhooksResponse, error)
+	ListWebhookDeadLetter(ctx context.Context, in *ListWebhookDeadLetterRequest, opts ...grpc.CallOption) (*JSONResponse, error)
+	MigrateEmbeddings(ctx context.Context, in *MigrateEmbeddingsRequest, opts ...grpc.CallOption) (*MigrateEmbeddingsResponse, error)
+	Rollback(ctx context.Context, in *RollbackRequest, opts ...grpc.CallOption) (*RollbackResponse, error)
+	Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (*SummarizeResponse, error)
+	GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error)
+	GetMemoryLineage(ctx context.Context, in *GetMemoryLineageRequest, opts ...grpc.CallOption) (*JSONResponse, error)
+	GetDistilledLineage(ctx context.Context, in *GetDistilledLineageRequest, opts ...grpc.CallOption) (*JSONResponse, error)
+	ListDistilled(ctx context.Context, in *ListDistilledRequest, opts ...grpc.CallOption) (*JSONResponse, error)
+	ListAudit(ctx context.Context, in *ListAuditRequest, opts ...grpc.CallOption) (*JSONResponse, error)
+	ExportMemories(ctx context.Context, in *ExportMemoriesRequest, opts ...grpc.CallOption) (*ExportMemoriesResponse, error)
+	ImportMemories(ctx context.Context, in *ImportMemoriesRequest, opts ...grpc.CallOption) (*ImportMemoriesResponse, error)
 }
 
 type memoryServiceClient struct {
@@ -158,6 +199,215 @@ func (c *memoryServiceClient) Compact(ctx context.Context, in *CompactRequest, o
 	return out, nil
 }
 
+func (c *memoryServiceClient) Refine(ctx context.Context, in *RefineRequest, opts ...grpc.CallOption) (*RefineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefineResponse)
+	err := c.cc.Invoke(ctx, MemoryService_Refine_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) CreateLink(ctx context.Context, in *CreateLinkRequest, opts ...grpc.CallOption) (*CreateLinkResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateLinkResponse)
+	err := c.cc.Invoke(ctx, MemoryService_CreateLink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListLinks(ctx context.Context, in *ListLinksRequest, opts ...grpc.CallOption) (*ListLinksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLinksResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListLinks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*StatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatsResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) IngestEvent(ctx context.Context, in *IngestEventRequest, opts ...grpc.CallOption) (*IngestEventResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IngestEventResponse)
+	err := c.cc.Invoke(ctx, MemoryService_IngestEvent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListEventSchemas(ctx context.Context, in *ListEventSchemasRequest, opts ...grpc.CallOption) (*ListEventSchemasResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListEventSchemasResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListEventSchemas_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) StreamEvents(ctx context.Context, in *StreamEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[StreamEventMsg], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MemoryService_ServiceDesc.Streams[1], MemoryService_StreamEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[StreamEventsRequest, StreamEventMsg]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MemoryService_StreamEventsClient = grpc.ServerStreamingClient[StreamEventMsg]
+
+func (c *memoryServiceClient) RegisterWebhook(ctx context.Context, in *RegisterWebhookRequest, opts ...grpc.CallOption) (*RegisterWebhookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RegisterWebhookResponse)
+	err := c.cc.Invoke(ctx, MemoryService_RegisterWebhook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListWebhooks(ctx context.Context, in *ListWebhooksRequest, opts ...grpc.CallOption) (*ListWebhooksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWebhooksResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListWebhooks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListWebhookDeadLetter(ctx context.Context, in *ListWebhookDeadLetterRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JSONResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListWebhookDeadLetter_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) MigrateEmbeddings(ctx context.Context, in *MigrateEmbeddingsRequest, opts ...grpc.CallOption) (*MigrateEmbeddingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MigrateEmbeddingsResponse)
+	err := c.cc.Invoke(ctx, MemoryService_MigrateEmbeddings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) Rollback(ctx context.Context, in *RollbackRequest, opts ...grpc.CallOption) (*RollbackResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RollbackResponse)
+	err := c.cc.Invoke(ctx, MemoryService_Rollback_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) Summarize(ctx context.Context, in *SummarizeRequest, opts ...grpc.CallOption) (*SummarizeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SummarizeResponse)
+	err := c.cc.Invoke(ctx, MemoryService_Summarize_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHistoryResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) GetMemoryLineage(ctx context.Context, in *GetMemoryLineageRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JSONResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetMemoryLineage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) GetDistilledLineage(ctx context.Context, in *GetDistilledLineageRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JSONResponse)
+	err := c.cc.Invoke(ctx, MemoryService_GetDistilledLineage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListDistilled(ctx context.Context, in *ListDistilledRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JSONResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListDistilled_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ListAudit(ctx context.Context, in *ListAuditRequest, opts ...grpc.CallOption) (*JSONResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JSONResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ListAudit_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ExportMemories(ctx context.Context, in *ExportMemoriesRequest, opts ...grpc.CallOption) (*ExportMemoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ExportMemoriesResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ExportMemories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) ImportMemories(ctx context.Context, in *ImportMemoriesRequest, opts ...grpc.CallOption) (*ImportMemoriesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportMemoriesResponse)
+	err := c.cc.Invoke(ctx, MemoryService_ImportMemories_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MemoryServiceServer is the server API for MemoryService service.
 // All implementations must embed UnimplementedMemoryServiceServer
 // for forward compatibility.
@@ -177,6 +427,27 @@ type MemoryServiceServer interface {
 	GetMemory(context.Context, *GetMemoryRequest) (*GetMemoryResponse, error)
 	// Compact mirrors POST /v1/memories/compact.
 	Compact(context.Context, *CompactRequest) (*CompactResponse, error)
+	// --- Operational parity (v1.29.0); admin + /metrics remain HTTP-only ---
+	Refine(context.Context, *RefineRequest) (*RefineResponse, error)
+	CreateLink(context.Context, *CreateLinkRequest) (*CreateLinkResponse, error)
+	ListLinks(context.Context, *ListLinksRequest) (*ListLinksResponse, error)
+	GetStats(context.Context, *GetStatsRequest) (*StatsResponse, error)
+	IngestEvent(context.Context, *IngestEventRequest) (*IngestEventResponse, error)
+	ListEventSchemas(context.Context, *ListEventSchemasRequest) (*ListEventSchemasResponse, error)
+	StreamEvents(*StreamEventsRequest, grpc.ServerStreamingServer[StreamEventMsg]) error
+	RegisterWebhook(context.Context, *RegisterWebhookRequest) (*RegisterWebhookResponse, error)
+	ListWebhooks(context.Context, *ListWebhooksRequest) (*ListWebhooksResponse, error)
+	ListWebhookDeadLetter(context.Context, *ListWebhookDeadLetterRequest) (*JSONResponse, error)
+	MigrateEmbeddings(context.Context, *MigrateEmbeddingsRequest) (*MigrateEmbeddingsResponse, error)
+	Rollback(context.Context, *RollbackRequest) (*RollbackResponse, error)
+	Summarize(context.Context, *SummarizeRequest) (*SummarizeResponse, error)
+	GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error)
+	GetMemoryLineage(context.Context, *GetMemoryLineageRequest) (*JSONResponse, error)
+	GetDistilledLineage(context.Context, *GetDistilledLineageRequest) (*JSONResponse, error)
+	ListDistilled(context.Context, *ListDistilledRequest) (*JSONResponse, error)
+	ListAudit(context.Context, *ListAuditRequest) (*JSONResponse, error)
+	ExportMemories(context.Context, *ExportMemoriesRequest) (*ExportMemoriesResponse, error)
+	ImportMemories(context.Context, *ImportMemoriesRequest) (*ImportMemoriesResponse, error)
 	mustEmbedUnimplementedMemoryServiceServer()
 }
 
@@ -213,6 +484,66 @@ func (UnimplementedMemoryServiceServer) GetMemory(context.Context, *GetMemoryReq
 }
 func (UnimplementedMemoryServiceServer) Compact(context.Context, *CompactRequest) (*CompactResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Compact not implemented")
+}
+func (UnimplementedMemoryServiceServer) Refine(context.Context, *RefineRequest) (*RefineResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Refine not implemented")
+}
+func (UnimplementedMemoryServiceServer) CreateLink(context.Context, *CreateLinkRequest) (*CreateLinkResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateLink not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListLinks(context.Context, *ListLinksRequest) (*ListLinksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListLinks not implemented")
+}
+func (UnimplementedMemoryServiceServer) GetStats(context.Context, *GetStatsRequest) (*StatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStats not implemented")
+}
+func (UnimplementedMemoryServiceServer) IngestEvent(context.Context, *IngestEventRequest) (*IngestEventResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IngestEvent not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListEventSchemas(context.Context, *ListEventSchemasRequest) (*ListEventSchemasResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListEventSchemas not implemented")
+}
+func (UnimplementedMemoryServiceServer) StreamEvents(*StreamEventsRequest, grpc.ServerStreamingServer[StreamEventMsg]) error {
+	return status.Errorf(codes.Unimplemented, "method StreamEvents not implemented")
+}
+func (UnimplementedMemoryServiceServer) RegisterWebhook(context.Context, *RegisterWebhookRequest) (*RegisterWebhookResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterWebhook not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListWebhooks(context.Context, *ListWebhooksRequest) (*ListWebhooksResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListWebhooks not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListWebhookDeadLetter(context.Context, *ListWebhookDeadLetterRequest) (*JSONResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListWebhookDeadLetter not implemented")
+}
+func (UnimplementedMemoryServiceServer) MigrateEmbeddings(context.Context, *MigrateEmbeddingsRequest) (*MigrateEmbeddingsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method MigrateEmbeddings not implemented")
+}
+func (UnimplementedMemoryServiceServer) Rollback(context.Context, *RollbackRequest) (*RollbackResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Rollback not implemented")
+}
+func (UnimplementedMemoryServiceServer) Summarize(context.Context, *SummarizeRequest) (*SummarizeResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Summarize not implemented")
+}
+func (UnimplementedMemoryServiceServer) GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHistory not implemented")
+}
+func (UnimplementedMemoryServiceServer) GetMemoryLineage(context.Context, *GetMemoryLineageRequest) (*JSONResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMemoryLineage not implemented")
+}
+func (UnimplementedMemoryServiceServer) GetDistilledLineage(context.Context, *GetDistilledLineageRequest) (*JSONResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDistilledLineage not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListDistilled(context.Context, *ListDistilledRequest) (*JSONResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListDistilled not implemented")
+}
+func (UnimplementedMemoryServiceServer) ListAudit(context.Context, *ListAuditRequest) (*JSONResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListAudit not implemented")
+}
+func (UnimplementedMemoryServiceServer) ExportMemories(context.Context, *ExportMemoriesRequest) (*ExportMemoriesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ExportMemories not implemented")
+}
+func (UnimplementedMemoryServiceServer) ImportMemories(context.Context, *ImportMemoriesRequest) (*ImportMemoriesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImportMemories not implemented")
 }
 func (UnimplementedMemoryServiceServer) mustEmbedUnimplementedMemoryServiceServer() {}
 func (UnimplementedMemoryServiceServer) testEmbeddedByValue()                       {}
@@ -390,6 +721,359 @@ func _MemoryService_Compact_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoryService_Refine_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).Refine(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_Refine_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).Refine(ctx, req.(*RefineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_CreateLink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateLinkRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).CreateLink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_CreateLink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).CreateLink(ctx, req.(*CreateLinkRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListLinks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLinksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListLinks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListLinks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListLinks(ctx, req.(*ListLinksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_GetStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).GetStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_GetStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).GetStats(ctx, req.(*GetStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_IngestEvent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IngestEventRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).IngestEvent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_IngestEvent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).IngestEvent(ctx, req.(*IngestEventRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListEventSchemas_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEventSchemasRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListEventSchemas(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListEventSchemas_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListEventSchemas(ctx, req.(*ListEventSchemasRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_StreamEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(StreamEventsRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MemoryServiceServer).StreamEvents(m, &grpc.GenericServerStream[StreamEventsRequest, StreamEventMsg]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MemoryService_StreamEventsServer = grpc.ServerStreamingServer[StreamEventMsg]
+
+func _MemoryService_RegisterWebhook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterWebhookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).RegisterWebhook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_RegisterWebhook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).RegisterWebhook(ctx, req.(*RegisterWebhookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListWebhooks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWebhooksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListWebhooks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListWebhooks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListWebhooks(ctx, req.(*ListWebhooksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListWebhookDeadLetter_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWebhookDeadLetterRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListWebhookDeadLetter(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListWebhookDeadLetter_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListWebhookDeadLetter(ctx, req.(*ListWebhookDeadLetterRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_MigrateEmbeddings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MigrateEmbeddingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).MigrateEmbeddings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_MigrateEmbeddings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).MigrateEmbeddings(ctx, req.(*MigrateEmbeddingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_Rollback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RollbackRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).Rollback(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_Rollback_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).Rollback(ctx, req.(*RollbackRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_Summarize_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SummarizeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).Summarize(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_Summarize_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).Summarize(ctx, req.(*SummarizeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_GetHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).GetHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_GetHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).GetHistory(ctx, req.(*GetHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_GetMemoryLineage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMemoryLineageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).GetMemoryLineage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_GetMemoryLineage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).GetMemoryLineage(ctx, req.(*GetMemoryLineageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_GetDistilledLineage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDistilledLineageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).GetDistilledLineage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_GetDistilledLineage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).GetDistilledLineage(ctx, req.(*GetDistilledLineageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListDistilled_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDistilledRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListDistilled(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListDistilled_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListDistilled(ctx, req.(*ListDistilledRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ListAudit_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAuditRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ListAudit(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ListAudit_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ListAudit(ctx, req.(*ListAuditRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ExportMemories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ExportMemoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ExportMemories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ExportMemories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ExportMemories(ctx, req.(*ExportMemoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_ImportMemories_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportMemoriesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).ImportMemories(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_ImportMemories_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).ImportMemories(ctx, req.(*ImportMemoriesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MemoryService_ServiceDesc is the grpc.ServiceDesc for MemoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -429,11 +1113,92 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "Compact",
 			Handler:    _MemoryService_Compact_Handler,
 		},
+		{
+			MethodName: "Refine",
+			Handler:    _MemoryService_Refine_Handler,
+		},
+		{
+			MethodName: "CreateLink",
+			Handler:    _MemoryService_CreateLink_Handler,
+		},
+		{
+			MethodName: "ListLinks",
+			Handler:    _MemoryService_ListLinks_Handler,
+		},
+		{
+			MethodName: "GetStats",
+			Handler:    _MemoryService_GetStats_Handler,
+		},
+		{
+			MethodName: "IngestEvent",
+			Handler:    _MemoryService_IngestEvent_Handler,
+		},
+		{
+			MethodName: "ListEventSchemas",
+			Handler:    _MemoryService_ListEventSchemas_Handler,
+		},
+		{
+			MethodName: "RegisterWebhook",
+			Handler:    _MemoryService_RegisterWebhook_Handler,
+		},
+		{
+			MethodName: "ListWebhooks",
+			Handler:    _MemoryService_ListWebhooks_Handler,
+		},
+		{
+			MethodName: "ListWebhookDeadLetter",
+			Handler:    _MemoryService_ListWebhookDeadLetter_Handler,
+		},
+		{
+			MethodName: "MigrateEmbeddings",
+			Handler:    _MemoryService_MigrateEmbeddings_Handler,
+		},
+		{
+			MethodName: "Rollback",
+			Handler:    _MemoryService_Rollback_Handler,
+		},
+		{
+			MethodName: "Summarize",
+			Handler:    _MemoryService_Summarize_Handler,
+		},
+		{
+			MethodName: "GetHistory",
+			Handler:    _MemoryService_GetHistory_Handler,
+		},
+		{
+			MethodName: "GetMemoryLineage",
+			Handler:    _MemoryService_GetMemoryLineage_Handler,
+		},
+		{
+			MethodName: "GetDistilledLineage",
+			Handler:    _MemoryService_GetDistilledLineage_Handler,
+		},
+		{
+			MethodName: "ListDistilled",
+			Handler:    _MemoryService_ListDistilled_Handler,
+		},
+		{
+			MethodName: "ListAudit",
+			Handler:    _MemoryService_ListAudit_Handler,
+		},
+		{
+			MethodName: "ExportMemories",
+			Handler:    _MemoryService_ExportMemories_Handler,
+		},
+		{
+			MethodName: "ImportMemories",
+			Handler:    _MemoryService_ImportMemories_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "RetrieveStream",
 			Handler:       _MemoryService_RetrieveStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamEvents",
+			Handler:       _MemoryService_StreamEvents_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.28.0 (current)
+## v1.29.0 (current)
+
+- **gRPC operational parity**: refine, links, stats, events (ingest + schemas + **StreamEvents**), webhooks, migrate embeddings, rollback, summarize, history, lineage, distilled, audit, export/import. Admin e `/metrics` restano HTTP-only.
+- Versione API `v1.29.0`.
+
+## v1.28.0
 
 - **gRPC operational**: `GetMemory` (GET `/v1/memories/*`) e `Compact` (POST `/v1/memories/compact`).
 - **SDK admin**: `create_tenant`, `list_api_keys`, `create_api_key`, `rotate_api_key` (Python + TypeScript).

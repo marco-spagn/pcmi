@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.23.0 (current)
+## v1.24.0 (current)
+
+- **Parità store gRPC ↔ REST**: `StoreRequest` / `BatchStoreItem` con `tags`, `embedding_model`, `embedding_space`, `source_agent_id`, `encrypt_content`, `expires_at_rfc3339`; `StoreResponse` con `superseded_id` opzionale. Test integrazione gRPC (`go test -tags=integration`) e smoke store+retrieve con tag.
+- Versione API `v1.24.0`.
+
+## v1.23.0
 
 - **Osservabilità worker**: `cmd/worker` inizializza `telemetry.Init` (OTLP/HTTP opzionale, default `service.name=pcmi-worker`), shutdown ordinato; span **consumer** per ogni messaggio Redis `memory_events`; **`GET :8081/metrics`** Prometheus (`WorkerRegistry`, `pcmi_worker_redis_events_total`). `telemetry.Init` accetta un `defaultServiceName` (`pcmi-api` vs `pcmi-worker`).
 - Versione API `v1.23.0`.

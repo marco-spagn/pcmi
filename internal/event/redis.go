@@ -74,7 +74,7 @@ func SubscribeEventsContext(parent context.Context) <-chan Event {
 
 	go func() {
 		defer close(ch)
-		defer pubsub.Close()
+		defer func() { _ = pubsub.Close() }()
 		for {
 			select {
 			case <-parent.Done():

@@ -40,7 +40,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.23.0"
+		expected = "v1.24.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
@@ -106,4 +106,22 @@ func main() {
 		}
 	}
 	fmt.Println("gRPC BatchStore + BatchRetrieve + RetrieveStream smoke ok")
+
+	path := fmt.Sprintf("root.ci.grpc.%d", time.Now().Unix())
+	_, err = client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "grpc-tags-smoke",
+		Tags: []string{"grpc-smoke"}, EmbeddingModel: "unspecified",
+	})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Store with tags: %v\n", err)
+		os.Exit(1)
+	}
+	ret, err := client.Retrieve(ctx, &pcmiv1.RetrieveRequest{
+		ApiKey: key, PathPrefix: path, Tags: []string{"grpc-smoke"}, TagsMatch: "all", Limit: 5,
+	})
+	if err != nil || ret.GetTotal() < 1 {
+		fmt.Fprintf(os.Stderr, "Retrieve with tags: err=%v total=%d\n", err, ret.GetTotal())
+		os.Exit(1)
+	}
+	fmt.Println("gRPC Store+Retrieve tags parity smoke ok")
 }

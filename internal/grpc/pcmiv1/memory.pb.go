@@ -126,13 +126,21 @@ func (x *ReadyResponse) GetVersion() string {
 }
 
 type StoreRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	MetadataJson  string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
-	ApiKey        string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Path         string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Content      string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	MetadataJson string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	ApiKey       string                 `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	// Same semantics as REST POST /v1/memories JSON body.
+	Tags           []string `protobuf:"bytes,5,rep,name=tags,proto3" json:"tags,omitempty"`
+	EmbeddingModel string   `protobuf:"bytes,6,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
+	EmbeddingSpace string   `protobuf:"bytes,7,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	SourceAgentId  string   `protobuf:"bytes,8,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
+	EncryptContent bool     `protobuf:"varint,9,opt,name=encrypt_content,json=encryptContent,proto3" json:"encrypt_content,omitempty"`
+	// Optional TTL, RFC3339 or RFC3339Nano.
+	ExpiresAtRfc3339 string `protobuf:"bytes,10,opt,name=expires_at_rfc3339,json=expiresAtRfc3339,proto3" json:"expires_at_rfc3339,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *StoreRequest) Reset() {
@@ -193,11 +201,54 @@ func (x *StoreRequest) GetApiKey() string {
 	return ""
 }
 
+func (x *StoreRequest) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *StoreRequest) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
+}
+
+func (x *StoreRequest) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
+}
+
+func (x *StoreRequest) GetSourceAgentId() string {
+	if x != nil {
+		return x.SourceAgentId
+	}
+	return ""
+}
+
+func (x *StoreRequest) GetEncryptContent() bool {
+	if x != nil {
+		return x.EncryptContent
+	}
+	return false
+}
+
+func (x *StoreRequest) GetExpiresAtRfc3339() string {
+	if x != nil {
+		return x.ExpiresAtRfc3339
+	}
+	return ""
+}
+
 type StoreResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
 	Version       int32                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	SupersededId  *int64                 `protobuf:"varint,4,opt,name=superseded_id,json=supersededId,proto3,oneof" json:"superseded_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,13 +304,26 @@ func (x *StoreResponse) GetVersion() int32 {
 	return 0
 }
 
+func (x *StoreResponse) GetSupersededId() int64 {
+	if x != nil && x.SupersededId != nil {
+		return *x.SupersededId
+	}
+	return 0
+}
+
 type BatchStoreItem struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
-	MetadataJson  string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Path             string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Content          string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	MetadataJson     string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	Tags             []string               `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
+	EmbeddingModel   string                 `protobuf:"bytes,5,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
+	EmbeddingSpace   string                 `protobuf:"bytes,6,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	SourceAgentId    string                 `protobuf:"bytes,7,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
+	EncryptContent   bool                   `protobuf:"varint,8,opt,name=encrypt_content,json=encryptContent,proto3" json:"encrypt_content,omitempty"`
+	ExpiresAtRfc3339 string                 `protobuf:"bytes,9,opt,name=expires_at_rfc3339,json=expiresAtRfc3339,proto3" json:"expires_at_rfc3339,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *BatchStoreItem) Reset() {
@@ -309,6 +373,48 @@ func (x *BatchStoreItem) GetContent() string {
 func (x *BatchStoreItem) GetMetadataJson() string {
 	if x != nil {
 		return x.MetadataJson
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *BatchStoreItem) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetSourceAgentId() string {
+	if x != nil {
+		return x.SourceAgentId
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetEncryptContent() bool {
+	if x != nil {
+		return x.EncryptContent
+	}
+	return false
+}
+
+func (x *BatchStoreItem) GetExpiresAtRfc3339() string {
+	if x != nil {
+		return x.ExpiresAtRfc3339
 	}
 	return ""
 }
@@ -1221,20 +1327,35 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\vdatabase_ok\x18\x02 \x01(\bR\n" +
 	"databaseOk\x12\x19\n" +
 	"\bredis_ok\x18\x03 \x01(\bR\aredisOk\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\tR\aversion\"z\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\"\xdf\x02\n" +
 	"\fStoreRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
 	"\rmetadata_json\x18\x03 \x01(\tR\fmetadataJson\x12\x17\n" +
-	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\"Q\n" +
+	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12\x12\n" +
+	"\x04tags\x18\x05 \x03(\tR\x04tags\x12'\n" +
+	"\x0fembedding_model\x18\x06 \x01(\tR\x0eembeddingModel\x12'\n" +
+	"\x0fembedding_space\x18\a \x01(\tR\x0eembeddingSpace\x12&\n" +
+	"\x0fsource_agent_id\x18\b \x01(\tR\rsourceAgentId\x12'\n" +
+	"\x0fencrypt_content\x18\t \x01(\bR\x0eencryptContent\x12,\n" +
+	"\x12expires_at_rfc3339\x18\n" +
+	" \x01(\tR\x10expiresAtRfc3339\"\x8d\x01\n" +
 	"\rStoreResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\x05R\aversion\"c\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x12(\n" +
+	"\rsuperseded_id\x18\x04 \x01(\x03H\x00R\fsupersededId\x88\x01\x01B\x10\n" +
+	"\x0e_superseded_id\"\xc8\x02\n" +
 	"\x0eBatchStoreItem\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
-	"\rmetadata_json\x18\x03 \x01(\tR\fmetadataJson\"[\n" +
+	"\rmetadata_json\x18\x03 \x01(\tR\fmetadataJson\x12\x12\n" +
+	"\x04tags\x18\x04 \x03(\tR\x04tags\x12'\n" +
+	"\x0fembedding_model\x18\x05 \x01(\tR\x0eembeddingModel\x12'\n" +
+	"\x0fembedding_space\x18\x06 \x01(\tR\x0eembeddingSpace\x12&\n" +
+	"\x0fsource_agent_id\x18\a \x01(\tR\rsourceAgentId\x12'\n" +
+	"\x0fencrypt_content\x18\b \x01(\bR\x0eencryptContent\x12,\n" +
+	"\x12expires_at_rfc3339\x18\t \x01(\tR\x10expiresAtRfc3339\"[\n" +
 	"\x11BatchStoreRequest\x12-\n" +
 	"\x05items\x18\x01 \x03(\v2\x17.pcmi.v1.BatchStoreItemR\x05items\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"\xc0\x01\n" +
@@ -1379,6 +1500,7 @@ func file_pcmi_v1_memory_proto_init() {
 	if File_pcmi_v1_memory_proto != nil {
 		return
 	}
+	file_pcmi_v1_memory_proto_msgTypes[3].OneofWrappers = []any{}
 	file_pcmi_v1_memory_proto_msgTypes[6].OneofWrappers = []any{}
 	file_pcmi_v1_memory_proto_msgTypes[16].OneofWrappers = []any{
 		(*RetrieveStreamMsg_Header)(nil),

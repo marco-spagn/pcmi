@@ -98,10 +98,18 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 
 func TestBatchStoreProtoToModel(t *testing.T) {
 	items := []*pcmiv1.BatchStoreItem{
-		{Path: "a", Content: "c", MetadataJson: `{"k":1}`},
+		{
+			Path: "a", Content: "c", MetadataJson: `{"k":1}`,
+			Tags: []string{"ci"}, EmbeddingModel: "text-embedding-3-small",
+			SourceAgentId: "agent-1", EncryptContent: true,
+			ExpiresAtRfc3339: "2030-01-02T15:04:05Z",
+		},
 		nil,
 	}
-	got := batchStoreProtoToModel(items)
+	got, err := batchStoreProtoToModel(items)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(got) != 2 {
 		t.Fatal(len(got))
 	}
@@ -110,6 +118,66 @@ func TestBatchStoreProtoToModel(t *testing.T) {
 	}
 	if v, ok := got[0].Metadata["k"].(float64); !ok || v != 1 {
 		t.Fatalf("metadata %#v", got[0].Metadata)
+	}
+	if len(got[0].Tags) != 1 || got[0].Tags[0] != "ci" {
+		t.Fatalf("tags %#v", got[0].Tags)
+	}
+	if got[0].EmbeddingModel != "text-embedding-3-small" || got[0].SourceAgentID != "agent-1" || !got[0].EncryptContent {
+		t.Fatalf("fields %#v", got[0])
+	}
+	if got[0].ExpiresAt == nil {
+		t.Fatal("expires_at")
+	}
+}
+
+func TestStoreProtoToModel_invalidExpires(t *testing.T) {
+	_, err := storeProtoToModel(&pcmiv1.StoreRequest{ExpiresAtRfc3339: "bad"})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestStoreProtoToModel_full(t *testing.T) {
+	m, err := storeProtoToModel(&pcmiv1.StoreRequest{
+		Path: "p", Content: "c", MetadataJson: `{"k":1}`,
+		Tags: []string{"a", "b"}, EmbeddingModel: "m1", EmbeddingSpace: "space1",
+		SourceAgentId: "agent", EncryptContent: true,
+		ExpiresAtRfc3339: "2030-06-01T12:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m.Path != "p" || len(m.Tags) != 2 || !m.EncryptContent || m.ExpiresAt == nil {
+		t.Fatalf("%#v", m)
+	}
+}
+
+func TestStoreItemProtoToModel_nil(t *testing.T) {
+	m, err := storeItemProtoToModel(nil)
+	if err != nil || m.Path != "" {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
+func TestParseRFC3339Time_empty(t *testing.T) {
+	tm, err := parseRFC3339Time("", "field")
+	if err != nil || tm != nil {
+		t.Fatalf("tm=%v err=%v", tm, err)
+	}
+}
+
+func TestBatchStoreProtoToModel_invalidExpires(t *testing.T) {
+	_, err := batchStoreProtoToModel([]*pcmiv1.BatchStoreItem{{ExpiresAtRfc3339: "bad"}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestStoreResultToProto_superseded(t *testing.T) {
+	sid := int64(42)
+	pb := storeResultToProto(1, 2, &sid)
+	if pb.GetId() != 1 || pb.GetVersion() != 2 || pb.GetSupersededId() != 42 {
+		t.Fatal(pb)
 	}
 }
 

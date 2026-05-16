@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"log"
 	"net"
 	"os"
@@ -80,20 +79,16 @@ func (s *memoryServer) Store(ctx context.Context, req *pcmiv1.StoreRequest) (*pc
 	if err := requireWriteRole(role); err != nil {
 		return nil, err
 	}
-	meta := map[string]interface{}{}
-	if req.GetMetadataJson() != "" {
-		_ = json.Unmarshal([]byte(req.GetMetadataJson()), &meta)
+	sr, err := storeProtoToModel(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	result, err := s.svc.Store(ctx, &model.StoreRequest{
-		Path: req.GetPath(), Content: req.GetContent(), Metadata: meta,
-	}, tenantID)
+	result, err := s.svc.Store(ctx, &sr, tenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "store: %v", err)
 	}
 	metrics.IncStore()
-	return &pcmiv1.StoreResponse{
-		Id: result.Entry.ID, Status: "stored", Version: int32(result.Version),
-	}, nil
+	return storeResultToProto(result.Entry.ID, result.Version, result.SupersededID), nil
 }
 
 func (s *memoryServer) BatchStore(ctx context.Context, req *pcmiv1.BatchStoreRequest) (*pcmiv1.BatchStoreResponse, error) {
@@ -104,7 +99,11 @@ func (s *memoryServer) BatchStore(ctx context.Context, req *pcmiv1.BatchStoreReq
 	if err := requireWriteRole(role); err != nil {
 		return nil, err
 	}
-	batch := &model.BatchStoreRequest{Items: batchStoreProtoToModel(req.GetItems())}
+	items, err := batchStoreProtoToModel(req.GetItems())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	batch := &model.BatchStoreRequest{Items: items}
 	result, err := s.svc.BatchStore(ctx, batch, tenantID)
 	if err != nil {
 		return nil, mapSvcValidationErr("batch store", err)

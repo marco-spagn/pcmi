@@ -40,7 +40,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.28.0"
+		expected = "v1.29.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
@@ -136,4 +136,16 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println("gRPC GetMemory + Compact smoke ok")
+
+	ref, err := client.Refine(ctx, &pcmiv1.RefineRequest{ApiKey: key, PathPrefix: path})
+	if err != nil || ref.GetStatus() != "queued" {
+		fmt.Fprintf(os.Stderr, "Refine: %v %+v\n", err, ref)
+		os.Exit(1)
+	}
+	st, err := client.GetStats(ctx, &pcmiv1.GetStatsRequest{ApiKey: key})
+	if err != nil || st.GetActiveMemories() < 1 {
+		fmt.Fprintf(os.Stderr, "GetStats: %v %+v\n", err, st)
+		os.Exit(1)
+	}
+	fmt.Println("gRPC Refine + GetStats smoke ok")
 }

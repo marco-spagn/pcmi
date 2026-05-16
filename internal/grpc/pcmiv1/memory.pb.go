@@ -1663,6 +1663,2402 @@ func (x *CompactResponse) GetKeepSuperseded() int32 {
 	return 0
 }
 
+type JSONResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Json          string                 `protobuf:"bytes,1,opt,name=json,proto3" json:"json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *JSONResponse) Reset() {
+	*x = JSONResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *JSONResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*JSONResponse) ProtoMessage() {}
+
+func (x *JSONResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use JSONResponse.ProtoReflect.Descriptor instead.
+func (*JSONResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *JSONResponse) GetJson() string {
+	if x != nil {
+		return x.Json
+	}
+	return ""
+}
+
+type RefineRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PathPrefix    string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefineRequest) Reset() {
+	*x = RefineRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefineRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefineRequest) ProtoMessage() {}
+
+func (x *RefineRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefineRequest.ProtoReflect.Descriptor instead.
+func (*RefineRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *RefineRequest) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *RefineRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type RefineResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	PathPrefix    string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RefineResponse) Reset() {
+	*x = RefineResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RefineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RefineResponse) ProtoMessage() {}
+
+func (x *RefineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RefineResponse.ProtoReflect.Descriptor instead.
+func (*RefineResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RefineResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *RefineResponse) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+type CreateLinkRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	FromPath      string                 `protobuf:"bytes,2,opt,name=from_path,json=fromPath,proto3" json:"from_path,omitempty"`
+	ToPath        string                 `protobuf:"bytes,3,opt,name=to_path,json=toPath,proto3" json:"to_path,omitempty"`
+	LinkType      string                 `protobuf:"bytes,4,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	MetadataJson  string                 `protobuf:"bytes,5,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLinkRequest) Reset() {
+	*x = CreateLinkRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLinkRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLinkRequest) ProtoMessage() {}
+
+func (x *CreateLinkRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLinkRequest.ProtoReflect.Descriptor instead.
+func (*CreateLinkRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *CreateLinkRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *CreateLinkRequest) GetFromPath() string {
+	if x != nil {
+		return x.FromPath
+	}
+	return ""
+}
+
+func (x *CreateLinkRequest) GetToPath() string {
+	if x != nil {
+		return x.ToPath
+	}
+	return ""
+}
+
+func (x *CreateLinkRequest) GetLinkType() string {
+	if x != nil {
+		return x.LinkType
+	}
+	return ""
+}
+
+func (x *CreateLinkRequest) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+type MemoryLinkMsg struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	FromPath         string                 `protobuf:"bytes,2,opt,name=from_path,json=fromPath,proto3" json:"from_path,omitempty"`
+	ToPath           string                 `protobuf:"bytes,3,opt,name=to_path,json=toPath,proto3" json:"to_path,omitempty"`
+	LinkType         string                 `protobuf:"bytes,4,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	MetadataJson     string                 `protobuf:"bytes,5,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	CreatedAtRfc3339 string                 `protobuf:"bytes,6,opt,name=created_at_rfc3339,json=createdAtRfc3339,proto3" json:"created_at_rfc3339,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *MemoryLinkMsg) Reset() {
+	*x = MemoryLinkMsg{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MemoryLinkMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MemoryLinkMsg) ProtoMessage() {}
+
+func (x *MemoryLinkMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MemoryLinkMsg.ProtoReflect.Descriptor instead.
+func (*MemoryLinkMsg) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *MemoryLinkMsg) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *MemoryLinkMsg) GetFromPath() string {
+	if x != nil {
+		return x.FromPath
+	}
+	return ""
+}
+
+func (x *MemoryLinkMsg) GetToPath() string {
+	if x != nil {
+		return x.ToPath
+	}
+	return ""
+}
+
+func (x *MemoryLinkMsg) GetLinkType() string {
+	if x != nil {
+		return x.LinkType
+	}
+	return ""
+}
+
+func (x *MemoryLinkMsg) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+func (x *MemoryLinkMsg) GetCreatedAtRfc3339() string {
+	if x != nil {
+		return x.CreatedAtRfc3339
+	}
+	return ""
+}
+
+type CreateLinkResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Link          *MemoryLinkMsg         `protobuf:"bytes,1,opt,name=link,proto3" json:"link,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLinkResponse) Reset() {
+	*x = CreateLinkResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLinkResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLinkResponse) ProtoMessage() {}
+
+func (x *CreateLinkResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLinkResponse.ProtoReflect.Descriptor instead.
+func (*CreateLinkResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CreateLinkResponse) GetLink() *MemoryLinkMsg {
+	if x != nil {
+		return x.Link
+	}
+	return nil
+}
+
+type ListLinksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	FromPath      string                 `protobuf:"bytes,2,opt,name=from_path,json=fromPath,proto3" json:"from_path,omitempty"`
+	ToPath        string                 `protobuf:"bytes,3,opt,name=to_path,json=toPath,proto3" json:"to_path,omitempty"`
+	LinkType      string                 `protobuf:"bytes,4,opt,name=link_type,json=linkType,proto3" json:"link_type,omitempty"`
+	Limit         int32                  `protobuf:"varint,5,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLinksRequest) Reset() {
+	*x = ListLinksRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLinksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLinksRequest) ProtoMessage() {}
+
+func (x *ListLinksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLinksRequest.ProtoReflect.Descriptor instead.
+func (*ListLinksRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListLinksRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetFromPath() string {
+	if x != nil {
+		return x.FromPath
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetToPath() string {
+	if x != nil {
+		return x.ToPath
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetLinkType() string {
+	if x != nil {
+		return x.LinkType
+	}
+	return ""
+}
+
+func (x *ListLinksRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListLinksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*MemoryLinkMsg       `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLinksResponse) Reset() {
+	*x = ListLinksResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLinksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLinksResponse) ProtoMessage() {}
+
+func (x *ListLinksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLinksResponse.ProtoReflect.Descriptor instead.
+func (*ListLinksResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ListLinksResponse) GetEntries() []*MemoryLinkMsg {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListLinksResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type GetStatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetStatsRequest) Reset() {
+	*x = GetStatsRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetStatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetStatsRequest) ProtoMessage() {}
+
+func (x *GetStatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetStatsRequest.ProtoReflect.Descriptor instead.
+func (*GetStatsRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetStatsRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type StatsResponse struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	ActiveMemories     int32                  `protobuf:"varint,1,opt,name=active_memories,json=activeMemories,proto3" json:"active_memories,omitempty"`
+	SupersededMemories int32                  `protobuf:"varint,2,opt,name=superseded_memories,json=supersededMemories,proto3" json:"superseded_memories,omitempty"`
+	DistilledCount     int32                  `protobuf:"varint,3,opt,name=distilled_count,json=distilledCount,proto3" json:"distilled_count,omitempty"`
+	LinksCount         int32                  `protobuf:"varint,4,opt,name=links_count,json=linksCount,proto3" json:"links_count,omitempty"`
+	EventsCount        int32                  `protobuf:"varint,5,opt,name=events_count,json=eventsCount,proto3" json:"events_count,omitempty"`
+	ExpiringSoon       int32                  `protobuf:"varint,6,opt,name=expiring_soon,json=expiringSoon,proto3" json:"expiring_soon,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *StatsResponse) Reset() {
+	*x = StatsResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StatsResponse) ProtoMessage() {}
+
+func (x *StatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StatsResponse.ProtoReflect.Descriptor instead.
+func (*StatsResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *StatsResponse) GetActiveMemories() int32 {
+	if x != nil {
+		return x.ActiveMemories
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetSupersededMemories() int32 {
+	if x != nil {
+		return x.SupersededMemories
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetDistilledCount() int32 {
+	if x != nil {
+		return x.DistilledCount
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetLinksCount() int32 {
+	if x != nil {
+		return x.LinksCount
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetEventsCount() int32 {
+	if x != nil {
+		return x.EventsCount
+	}
+	return 0
+}
+
+func (x *StatsResponse) GetExpiringSoon() int32 {
+	if x != nil {
+		return x.ExpiringSoon
+	}
+	return 0
+}
+
+type IngestEventRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	EventType     string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	AgentId       string                 `protobuf:"bytes,3,opt,name=agent_id,json=agentId,proto3" json:"agent_id,omitempty"`
+	CorrelationId string                 `protobuf:"bytes,4,opt,name=correlation_id,json=correlationId,proto3" json:"correlation_id,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,5,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *IngestEventRequest) Reset() {
+	*x = IngestEventRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngestEventRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngestEventRequest) ProtoMessage() {}
+
+func (x *IngestEventRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngestEventRequest.ProtoReflect.Descriptor instead.
+func (*IngestEventRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *IngestEventRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *IngestEventRequest) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *IngestEventRequest) GetAgentId() string {
+	if x != nil {
+		return x.AgentId
+	}
+	return ""
+}
+
+func (x *IngestEventRequest) GetCorrelationId() string {
+	if x != nil {
+		return x.CorrelationId
+	}
+	return ""
+}
+
+func (x *IngestEventRequest) GetPayloadJson() string {
+	if x != nil {
+		return x.PayloadJson
+	}
+	return ""
+}
+
+type IngestEventResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	EventType        string                 `protobuf:"bytes,2,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`
+	TimestampRfc3339 string                 `protobuf:"bytes,3,opt,name=timestamp_rfc3339,json=timestampRfc3339,proto3" json:"timestamp_rfc3339,omitempty"`
+	Status           string                 `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *IngestEventResponse) Reset() {
+	*x = IngestEventResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *IngestEventResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*IngestEventResponse) ProtoMessage() {}
+
+func (x *IngestEventResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use IngestEventResponse.ProtoReflect.Descriptor instead.
+func (*IngestEventResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *IngestEventResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *IngestEventResponse) GetEventType() string {
+	if x != nil {
+		return x.EventType
+	}
+	return ""
+}
+
+func (x *IngestEventResponse) GetTimestampRfc3339() string {
+	if x != nil {
+		return x.TimestampRfc3339
+	}
+	return ""
+}
+
+func (x *IngestEventResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type ListEventSchemasRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventSchemasRequest) Reset() {
+	*x = ListEventSchemasRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventSchemasRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventSchemasRequest) ProtoMessage() {}
+
+func (x *ListEventSchemasRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventSchemasRequest.ProtoReflect.Descriptor instead.
+func (*ListEventSchemasRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *ListEventSchemasRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type EventSchemaMsg struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,3,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EventSchemaMsg) Reset() {
+	*x = EventSchemaMsg{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EventSchemaMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EventSchemaMsg) ProtoMessage() {}
+
+func (x *EventSchemaMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EventSchemaMsg.ProtoReflect.Descriptor instead.
+func (*EventSchemaMsg) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *EventSchemaMsg) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *EventSchemaMsg) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *EventSchemaMsg) GetPayloadJson() string {
+	if x != nil {
+		return x.PayloadJson
+	}
+	return ""
+}
+
+type ListEventSchemasResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Schemas       []*EventSchemaMsg      `protobuf:"bytes,1,rep,name=schemas,proto3" json:"schemas,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEventSchemasResponse) Reset() {
+	*x = ListEventSchemasResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEventSchemasResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEventSchemasResponse) ProtoMessage() {}
+
+func (x *ListEventSchemasResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEventSchemasResponse.ProtoReflect.Descriptor instead.
+func (*ListEventSchemasResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ListEventSchemasResponse) GetSchemas() []*EventSchemaMsg {
+	if x != nil {
+		return x.Schemas
+	}
+	return nil
+}
+
+func (x *ListEventSchemasResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type StreamEventsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Types         string                 `protobuf:"bytes,2,opt,name=types,proto3" json:"types,omitempty"` // comma-separated filter (optional)
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamEventsRequest) Reset() {
+	*x = StreamEventsRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamEventsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamEventsRequest) ProtoMessage() {}
+
+func (x *StreamEventsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamEventsRequest.ProtoReflect.Descriptor instead.
+func (*StreamEventsRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *StreamEventsRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *StreamEventsRequest) GetTypes() string {
+	if x != nil {
+		return x.Types
+	}
+	return ""
+}
+
+type StreamEventMsg struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	PayloadJson   string                 `protobuf:"bytes,2,opt,name=payload_json,json=payloadJson,proto3" json:"payload_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StreamEventMsg) Reset() {
+	*x = StreamEventMsg{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StreamEventMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StreamEventMsg) ProtoMessage() {}
+
+func (x *StreamEventMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StreamEventMsg.ProtoReflect.Descriptor instead.
+func (*StreamEventMsg) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *StreamEventMsg) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *StreamEventMsg) GetPayloadJson() string {
+	if x != nil {
+		return x.PayloadJson
+	}
+	return ""
+}
+
+type RegisterWebhookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Url           string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	EventTypes    []string               `protobuf:"bytes,3,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	Secret        string                 `protobuf:"bytes,4,opt,name=secret,proto3" json:"secret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterWebhookRequest) Reset() {
+	*x = RegisterWebhookRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterWebhookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterWebhookRequest) ProtoMessage() {}
+
+func (x *RegisterWebhookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterWebhookRequest.ProtoReflect.Descriptor instead.
+func (*RegisterWebhookRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *RegisterWebhookRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *RegisterWebhookRequest) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *RegisterWebhookRequest) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *RegisterWebhookRequest) GetSecret() string {
+	if x != nil {
+		return x.Secret
+	}
+	return ""
+}
+
+type RegisterWebhookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status        string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterWebhookResponse) Reset() {
+	*x = RegisterWebhookResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterWebhookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterWebhookResponse) ProtoMessage() {}
+
+func (x *RegisterWebhookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterWebhookResponse.ProtoReflect.Descriptor instead.
+func (*RegisterWebhookResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *RegisterWebhookResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RegisterWebhookResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+type ListWebhooksRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWebhooksRequest) Reset() {
+	*x = ListWebhooksRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWebhooksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWebhooksRequest) ProtoMessage() {}
+
+func (x *ListWebhooksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWebhooksRequest.ProtoReflect.Descriptor instead.
+func (*ListWebhooksRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ListWebhooksRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type WebhookEndpointMsg struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Url              string                 `protobuf:"bytes,2,opt,name=url,proto3" json:"url,omitempty"`
+	EventTypes       []string               `protobuf:"bytes,3,rep,name=event_types,json=eventTypes,proto3" json:"event_types,omitempty"`
+	Enabled          bool                   `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	CreatedAtRfc3339 string                 `protobuf:"bytes,5,opt,name=created_at_rfc3339,json=createdAtRfc3339,proto3" json:"created_at_rfc3339,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *WebhookEndpointMsg) Reset() {
+	*x = WebhookEndpointMsg{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WebhookEndpointMsg) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WebhookEndpointMsg) ProtoMessage() {}
+
+func (x *WebhookEndpointMsg) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WebhookEndpointMsg.ProtoReflect.Descriptor instead.
+func (*WebhookEndpointMsg) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *WebhookEndpointMsg) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *WebhookEndpointMsg) GetUrl() string {
+	if x != nil {
+		return x.Url
+	}
+	return ""
+}
+
+func (x *WebhookEndpointMsg) GetEventTypes() []string {
+	if x != nil {
+		return x.EventTypes
+	}
+	return nil
+}
+
+func (x *WebhookEndpointMsg) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *WebhookEndpointMsg) GetCreatedAtRfc3339() string {
+	if x != nil {
+		return x.CreatedAtRfc3339
+	}
+	return ""
+}
+
+type ListWebhooksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Entries       []*WebhookEndpointMsg  `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	Total         int32                  `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWebhooksResponse) Reset() {
+	*x = ListWebhooksResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWebhooksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWebhooksResponse) ProtoMessage() {}
+
+func (x *ListWebhooksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWebhooksResponse.ProtoReflect.Descriptor instead.
+func (*ListWebhooksResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListWebhooksResponse) GetEntries() []*WebhookEndpointMsg {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListWebhooksResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type ListWebhookDeadLetterRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWebhookDeadLetterRequest) Reset() {
+	*x = ListWebhookDeadLetterRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWebhookDeadLetterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWebhookDeadLetterRequest) ProtoMessage() {}
+
+func (x *ListWebhookDeadLetterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWebhookDeadLetterRequest.ProtoReflect.Descriptor instead.
+func (*ListWebhookDeadLetterRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *ListWebhookDeadLetterRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ListWebhookDeadLetterRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type MigrateEmbeddingsRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey         string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	PathPrefix     string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	TargetModel    string                 `protobuf:"bytes,3,opt,name=target_model,json=targetModel,proto3" json:"target_model,omitempty"`
+	EmbeddingSpace string                 `protobuf:"bytes,4,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MigrateEmbeddingsRequest) Reset() {
+	*x = MigrateEmbeddingsRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MigrateEmbeddingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MigrateEmbeddingsRequest) ProtoMessage() {}
+
+func (x *MigrateEmbeddingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MigrateEmbeddingsRequest.ProtoReflect.Descriptor instead.
+func (*MigrateEmbeddingsRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *MigrateEmbeddingsRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsRequest) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsRequest) GetTargetModel() string {
+	if x != nil {
+		return x.TargetModel
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsRequest) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
+}
+
+type MigrateEmbeddingsResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Status         string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	MarkedCount    int32                  `protobuf:"varint,2,opt,name=marked_count,json=markedCount,proto3" json:"marked_count,omitempty"`
+	PathPrefix     string                 `protobuf:"bytes,3,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	TargetModel    string                 `protobuf:"bytes,4,opt,name=target_model,json=targetModel,proto3" json:"target_model,omitempty"`
+	EmbeddingSpace string                 `protobuf:"bytes,5,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *MigrateEmbeddingsResponse) Reset() {
+	*x = MigrateEmbeddingsResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MigrateEmbeddingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MigrateEmbeddingsResponse) ProtoMessage() {}
+
+func (x *MigrateEmbeddingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MigrateEmbeddingsResponse.ProtoReflect.Descriptor instead.
+func (*MigrateEmbeddingsResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *MigrateEmbeddingsResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsResponse) GetMarkedCount() int32 {
+	if x != nil {
+		return x.MarkedCount
+	}
+	return 0
+}
+
+func (x *MigrateEmbeddingsResponse) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsResponse) GetTargetModel() string {
+	if x != nil {
+		return x.TargetModel
+	}
+	return ""
+}
+
+func (x *MigrateEmbeddingsResponse) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
+}
+
+type RollbackRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Version       int32                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	AsOfRfc3339   string                 `protobuf:"bytes,4,opt,name=as_of_rfc3339,json=asOfRfc3339,proto3" json:"as_of_rfc3339,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RollbackRequest) Reset() {
+	*x = RollbackRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackRequest) ProtoMessage() {}
+
+func (x *RollbackRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackRequest.ProtoReflect.Descriptor instead.
+func (*RollbackRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *RollbackRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *RollbackRequest) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *RollbackRequest) GetAsOfRfc3339() string {
+	if x != nil {
+		return x.AsOfRfc3339
+	}
+	return ""
+}
+
+type RollbackResponse struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Id                  int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Status              string                 `protobuf:"bytes,2,opt,name=status,proto3" json:"status,omitempty"`
+	Version             int32                  `protobuf:"varint,3,opt,name=version,proto3" json:"version,omitempty"`
+	RestoredFromVersion int32                  `protobuf:"varint,4,opt,name=restored_from_version,json=restoredFromVersion,proto3" json:"restored_from_version,omitempty"`
+	SupersededId        *int64                 `protobuf:"varint,5,opt,name=superseded_id,json=supersededId,proto3,oneof" json:"superseded_id,omitempty"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *RollbackResponse) Reset() {
+	*x = RollbackResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RollbackResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RollbackResponse) ProtoMessage() {}
+
+func (x *RollbackResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RollbackResponse.ProtoReflect.Descriptor instead.
+func (*RollbackResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *RollbackResponse) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *RollbackResponse) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *RollbackResponse) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *RollbackResponse) GetRestoredFromVersion() int32 {
+	if x != nil {
+		return x.RestoredFromVersion
+	}
+	return 0
+}
+
+func (x *RollbackResponse) GetSupersededId() int64 {
+	if x != nil && x.SupersededId != nil {
+		return *x.SupersededId
+	}
+	return 0
+}
+
+type SummarizeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	PathPrefix    string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	Style         string                 `protobuf:"bytes,4,opt,name=style,proto3" json:"style,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SummarizeRequest) Reset() {
+	*x = SummarizeRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummarizeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummarizeRequest) ProtoMessage() {}
+
+func (x *SummarizeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummarizeRequest.ProtoReflect.Descriptor instead.
+func (*SummarizeRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *SummarizeRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *SummarizeRequest) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *SummarizeRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *SummarizeRequest) GetStyle() string {
+	if x != nil {
+		return x.Style
+	}
+	return ""
+}
+
+type SummarizeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PathPrefix    string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Summary       string                 `protobuf:"bytes,2,opt,name=summary,proto3" json:"summary,omitempty"`
+	SourceIds     []int64                `protobuf:"varint,3,rep,packed,name=source_ids,json=sourceIds,proto3" json:"source_ids,omitempty"`
+	Method        string                 `protobuf:"bytes,4,opt,name=method,proto3" json:"method,omitempty"`
+	Total         int32                  `protobuf:"varint,5,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SummarizeResponse) Reset() {
+	*x = SummarizeResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SummarizeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SummarizeResponse) ProtoMessage() {}
+
+func (x *SummarizeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SummarizeResponse.ProtoReflect.Descriptor instead.
+func (*SummarizeResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *SummarizeResponse) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *SummarizeResponse) GetSummary() string {
+	if x != nil {
+		return x.Summary
+	}
+	return ""
+}
+
+func (x *SummarizeResponse) GetSourceIds() []int64 {
+	if x != nil {
+		return x.SourceIds
+	}
+	return nil
+}
+
+func (x *SummarizeResponse) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SummarizeResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type GetHistoryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHistoryRequest) Reset() {
+	*x = GetHistoryRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[52]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryRequest) ProtoMessage() {}
+
+func (x *GetHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[52]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{52}
+}
+
+func (x *GetHistoryRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *GetHistoryRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetHistoryRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type GetHistoryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Entries       []*RetrieveEntry       `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	Total         int32                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHistoryResponse) Reset() {
+	*x = GetHistoryResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[53]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryResponse) ProtoMessage() {}
+
+func (x *GetHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[53]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{53}
+}
+
+func (x *GetHistoryResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *GetHistoryResponse) GetEntries() []*RetrieveEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *GetHistoryResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+type GetMemoryLineageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetMemoryLineageRequest) Reset() {
+	*x = GetMemoryLineageRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[54]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetMemoryLineageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetMemoryLineageRequest) ProtoMessage() {}
+
+func (x *GetMemoryLineageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[54]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetMemoryLineageRequest.ProtoReflect.Descriptor instead.
+func (*GetMemoryLineageRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{54}
+}
+
+func (x *GetMemoryLineageRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *GetMemoryLineageRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type GetDistilledLineageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	DistilledId   int64                  `protobuf:"varint,2,opt,name=distilled_id,json=distilledId,proto3" json:"distilled_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetDistilledLineageRequest) Reset() {
+	*x = GetDistilledLineageRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[55]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetDistilledLineageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetDistilledLineageRequest) ProtoMessage() {}
+
+func (x *GetDistilledLineageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[55]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetDistilledLineageRequest.ProtoReflect.Descriptor instead.
+func (*GetDistilledLineageRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{55}
+}
+
+func (x *GetDistilledLineageRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *GetDistilledLineageRequest) GetDistilledId() int64 {
+	if x != nil {
+		return x.DistilledId
+	}
+	return 0
+}
+
+type ListDistilledRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	PathPrefix    string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Limit         int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDistilledRequest) Reset() {
+	*x = ListDistilledRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[56]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDistilledRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDistilledRequest) ProtoMessage() {}
+
+func (x *ListDistilledRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[56]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDistilledRequest.ProtoReflect.Descriptor instead.
+func (*ListDistilledRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{56}
+}
+
+func (x *ListDistilledRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ListDistilledRequest) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *ListDistilledRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type ListAuditRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Limit         int32                  `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
+	Offset        int32                  `protobuf:"varint,3,opt,name=offset,proto3" json:"offset,omitempty"`
+	SinceRfc3339  string                 `protobuf:"bytes,4,opt,name=since_rfc3339,json=sinceRfc3339,proto3" json:"since_rfc3339,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditRequest) Reset() {
+	*x = ListAuditRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[57]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditRequest) ProtoMessage() {}
+
+func (x *ListAuditRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[57]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{57}
+}
+
+func (x *ListAuditRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ListAuditRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ListAuditRequest) GetOffset() int32 {
+	if x != nil {
+		return x.Offset
+	}
+	return 0
+}
+
+func (x *ListAuditRequest) GetSinceRfc3339() string {
+	if x != nil {
+		return x.SinceRfc3339
+	}
+	return ""
+}
+
+type ExportMemoriesRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey            string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	PathPrefix        string                 `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
+	Limit             int32                  `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
+	IncludeEmbeddings bool                   `protobuf:"varint,4,opt,name=include_embeddings,json=includeEmbeddings,proto3" json:"include_embeddings,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ExportMemoriesRequest) Reset() {
+	*x = ExportMemoriesRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[58]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExportMemoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportMemoriesRequest) ProtoMessage() {}
+
+func (x *ExportMemoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[58]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportMemoriesRequest.ProtoReflect.Descriptor instead.
+func (*ExportMemoriesRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{58}
+}
+
+func (x *ExportMemoriesRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ExportMemoriesRequest) GetPathPrefix() string {
+	if x != nil {
+		return x.PathPrefix
+	}
+	return ""
+}
+
+func (x *ExportMemoriesRequest) GetLimit() int32 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+func (x *ExportMemoriesRequest) GetIncludeEmbeddings() bool {
+	if x != nil {
+		return x.IncludeEmbeddings
+	}
+	return false
+}
+
+type ExportMemoriesResponse struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	TenantId          string                 `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	Exported          int32                  `protobuf:"varint,2,opt,name=exported,proto3" json:"exported,omitempty"`
+	Entries           []*RetrieveEntry       `protobuf:"bytes,3,rep,name=entries,proto3" json:"entries,omitempty"`
+	ExportedAtRfc3339 string                 `protobuf:"bytes,4,opt,name=exported_at_rfc3339,json=exportedAtRfc3339,proto3" json:"exported_at_rfc3339,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *ExportMemoriesResponse) Reset() {
+	*x = ExportMemoriesResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[59]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ExportMemoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ExportMemoriesResponse) ProtoMessage() {}
+
+func (x *ExportMemoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[59]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ExportMemoriesResponse.ProtoReflect.Descriptor instead.
+func (*ExportMemoriesResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{59}
+}
+
+func (x *ExportMemoriesResponse) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *ExportMemoriesResponse) GetExported() int32 {
+	if x != nil {
+		return x.Exported
+	}
+	return 0
+}
+
+func (x *ExportMemoriesResponse) GetEntries() []*RetrieveEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ExportMemoriesResponse) GetExportedAtRfc3339() string {
+	if x != nil {
+		return x.ExportedAtRfc3339
+	}
+	return ""
+}
+
+type ImportMemoriesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiKey        string                 `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Items         []*BatchStoreItem      `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	Mode          string                 `protobuf:"bytes,3,opt,name=mode,proto3" json:"mode,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportMemoriesRequest) Reset() {
+	*x = ImportMemoriesRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[60]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportMemoriesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportMemoriesRequest) ProtoMessage() {}
+
+func (x *ImportMemoriesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[60]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportMemoriesRequest.ProtoReflect.Descriptor instead.
+func (*ImportMemoriesRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{60}
+}
+
+func (x *ImportMemoriesRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *ImportMemoriesRequest) GetItems() []*BatchStoreItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *ImportMemoriesRequest) GetMode() string {
+	if x != nil {
+		return x.Mode
+	}
+	return ""
+}
+
+type ImportMemoriesResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Imported      int32                   `protobuf:"varint,1,opt,name=imported,proto3" json:"imported,omitempty"`
+	Skipped       int32                   `protobuf:"varint,2,opt,name=skipped,proto3" json:"skipped,omitempty"`
+	Results       []*BatchStoreItemResult `protobuf:"bytes,3,rep,name=results,proto3" json:"results,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportMemoriesResponse) Reset() {
+	*x = ImportMemoriesResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[61]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportMemoriesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportMemoriesResponse) ProtoMessage() {}
+
+func (x *ImportMemoriesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[61]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportMemoriesResponse.ProtoReflect.Descriptor instead.
+func (*ImportMemoriesResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{61}
+}
+
+func (x *ImportMemoriesResponse) GetImported() int32 {
+	if x != nil {
+		return x.Imported
+	}
+	return 0
+}
+
+func (x *ImportMemoriesResponse) GetSkipped() int32 {
+	if x != nil {
+		return x.Skipped
+	}
+	return 0
+}
+
+func (x *ImportMemoriesResponse) GetResults() []*BatchStoreItemResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
 var File_pcmi_v1_memory_proto protoreflect.FileDescriptor
 
 const file_pcmi_v1_memory_proto_rawDesc = "" +
@@ -1798,7 +4194,185 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x0fCompactResponse\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12#\n" +
 	"\rdeleted_count\x18\x02 \x01(\x05R\fdeletedCount\x12'\n" +
-	"\x0fkeep_superseded\x18\x03 \x01(\x05R\x0ekeepSuperseded2\xde\x04\n" +
+	"\x0fkeep_superseded\x18\x03 \x01(\x05R\x0ekeepSuperseded\"\"\n" +
+	"\fJSONResponse\x12\x12\n" +
+	"\x04json\x18\x01 \x01(\tR\x04json\"I\n" +
+	"\rRefineRequest\x12\x1f\n" +
+	"\vpath_prefix\x18\x01 \x01(\tR\n" +
+	"pathPrefix\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"I\n" +
+	"\x0eRefineResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12\x1f\n" +
+	"\vpath_prefix\x18\x02 \x01(\tR\n" +
+	"pathPrefix\"\xa4\x01\n" +
+	"\x11CreateLinkRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1b\n" +
+	"\tfrom_path\x18\x02 \x01(\tR\bfromPath\x12\x17\n" +
+	"\ato_path\x18\x03 \x01(\tR\x06toPath\x12\x1b\n" +
+	"\tlink_type\x18\x04 \x01(\tR\blinkType\x12#\n" +
+	"\rmetadata_json\x18\x05 \x01(\tR\fmetadataJson\"\xc5\x01\n" +
+	"\rMemoryLinkMsg\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
+	"\tfrom_path\x18\x02 \x01(\tR\bfromPath\x12\x17\n" +
+	"\ato_path\x18\x03 \x01(\tR\x06toPath\x12\x1b\n" +
+	"\tlink_type\x18\x04 \x01(\tR\blinkType\x12#\n" +
+	"\rmetadata_json\x18\x05 \x01(\tR\fmetadataJson\x12,\n" +
+	"\x12created_at_rfc3339\x18\x06 \x01(\tR\x10createdAtRfc3339\"@\n" +
+	"\x12CreateLinkResponse\x12*\n" +
+	"\x04link\x18\x01 \x01(\v2\x16.pcmi.v1.MemoryLinkMsgR\x04link\"\x94\x01\n" +
+	"\x10ListLinksRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1b\n" +
+	"\tfrom_path\x18\x02 \x01(\tR\bfromPath\x12\x17\n" +
+	"\ato_path\x18\x03 \x01(\tR\x06toPath\x12\x1b\n" +
+	"\tlink_type\x18\x04 \x01(\tR\blinkType\x12\x14\n" +
+	"\x05limit\x18\x05 \x01(\x05R\x05limit\"[\n" +
+	"\x11ListLinksResponse\x120\n" +
+	"\aentries\x18\x01 \x03(\v2\x16.pcmi.v1.MemoryLinkMsgR\aentries\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"*\n" +
+	"\x0fGetStatsRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\"\xfb\x01\n" +
+	"\rStatsResponse\x12'\n" +
+	"\x0factive_memories\x18\x01 \x01(\x05R\x0eactiveMemories\x12/\n" +
+	"\x13superseded_memories\x18\x02 \x01(\x05R\x12supersededMemories\x12'\n" +
+	"\x0fdistilled_count\x18\x03 \x01(\x05R\x0edistilledCount\x12\x1f\n" +
+	"\vlinks_count\x18\x04 \x01(\x05R\n" +
+	"linksCount\x12!\n" +
+	"\fevents_count\x18\x05 \x01(\x05R\veventsCount\x12#\n" +
+	"\rexpiring_soon\x18\x06 \x01(\x05R\fexpiringSoon\"\xb1\x01\n" +
+	"\x12IngestEventRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12\x19\n" +
+	"\bagent_id\x18\x03 \x01(\tR\aagentId\x12%\n" +
+	"\x0ecorrelation_id\x18\x04 \x01(\tR\rcorrelationId\x12!\n" +
+	"\fpayload_json\x18\x05 \x01(\tR\vpayloadJson\"\x89\x01\n" +
+	"\x13IngestEventResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x02 \x01(\tR\teventType\x12+\n" +
+	"\x11timestamp_rfc3339\x18\x03 \x01(\tR\x10timestampRfc3339\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\"2\n" +
+	"\x17ListEventSchemasRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\"i\n" +
+	"\x0eEventSchemaMsg\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12!\n" +
+	"\fpayload_json\x18\x03 \x01(\tR\vpayloadJson\"c\n" +
+	"\x18ListEventSchemasResponse\x121\n" +
+	"\aschemas\x18\x01 \x03(\v2\x17.pcmi.v1.EventSchemaMsgR\aschemas\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"D\n" +
+	"\x13StreamEventsRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x14\n" +
+	"\x05types\x18\x02 \x01(\tR\x05types\"G\n" +
+	"\x0eStreamEventMsg\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12!\n" +
+	"\fpayload_json\x18\x02 \x01(\tR\vpayloadJson\"|\n" +
+	"\x16RegisterWebhookRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1f\n" +
+	"\vevent_types\x18\x03 \x03(\tR\n" +
+	"eventTypes\x12\x16\n" +
+	"\x06secret\x18\x04 \x01(\tR\x06secret\"A\n" +
+	"\x17RegisterWebhookResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\".\n" +
+	"\x13ListWebhooksRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\"\x9f\x01\n" +
+	"\x12WebhookEndpointMsg\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
+	"\x03url\x18\x02 \x01(\tR\x03url\x12\x1f\n" +
+	"\vevent_types\x18\x03 \x03(\tR\n" +
+	"eventTypes\x12\x18\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x12,\n" +
+	"\x12created_at_rfc3339\x18\x05 \x01(\tR\x10createdAtRfc3339\"c\n" +
+	"\x14ListWebhooksResponse\x125\n" +
+	"\aentries\x18\x01 \x03(\v2\x1b.pcmi.v1.WebhookEndpointMsgR\aentries\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"M\n" +
+	"\x1cListWebhookDeadLetterRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\"\xa0\x01\n" +
+	"\x18MigrateEmbeddingsRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1f\n" +
+	"\vpath_prefix\x18\x02 \x01(\tR\n" +
+	"pathPrefix\x12!\n" +
+	"\ftarget_model\x18\x03 \x01(\tR\vtargetModel\x12'\n" +
+	"\x0fembedding_space\x18\x04 \x01(\tR\x0eembeddingSpace\"\xc3\x01\n" +
+	"\x19MigrateEmbeddingsResponse\x12\x16\n" +
+	"\x06status\x18\x01 \x01(\tR\x06status\x12!\n" +
+	"\fmarked_count\x18\x02 \x01(\x05R\vmarkedCount\x12\x1f\n" +
+	"\vpath_prefix\x18\x03 \x01(\tR\n" +
+	"pathPrefix\x12!\n" +
+	"\ftarget_model\x18\x04 \x01(\tR\vtargetModel\x12'\n" +
+	"\x0fembedding_space\x18\x05 \x01(\tR\x0eembeddingSpace\"|\n" +
+	"\x0fRollbackRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x12\"\n" +
+	"\ras_of_rfc3339\x18\x04 \x01(\tR\vasOfRfc3339\"\xc4\x01\n" +
+	"\x10RollbackResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\x122\n" +
+	"\x15restored_from_version\x18\x04 \x01(\x05R\x13restoredFromVersion\x12(\n" +
+	"\rsuperseded_id\x18\x05 \x01(\x03H\x00R\fsupersededId\x88\x01\x01B\x10\n" +
+	"\x0e_superseded_id\"x\n" +
+	"\x10SummarizeRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1f\n" +
+	"\vpath_prefix\x18\x02 \x01(\tR\n" +
+	"pathPrefix\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12\x14\n" +
+	"\x05style\x18\x04 \x01(\tR\x05style\"\x9b\x01\n" +
+	"\x11SummarizeResponse\x12\x1f\n" +
+	"\vpath_prefix\x18\x01 \x01(\tR\n" +
+	"pathPrefix\x12\x18\n" +
+	"\asummary\x18\x02 \x01(\tR\asummary\x12\x1d\n" +
+	"\n" +
+	"source_ids\x18\x03 \x03(\x03R\tsourceIds\x12\x16\n" +
+	"\x06method\x18\x04 \x01(\tR\x06method\x12\x14\n" +
+	"\x05total\x18\x05 \x01(\x05R\x05total\"V\n" +
+	"\x11GetHistoryRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"p\n" +
+	"\x12GetHistoryResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x120\n" +
+	"\aentries\x18\x02 \x03(\v2\x16.pcmi.v1.RetrieveEntryR\aentries\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x05R\x05total\"F\n" +
+	"\x17GetMemoryLineageRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"X\n" +
+	"\x1aGetDistilledLineageRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12!\n" +
+	"\fdistilled_id\x18\x02 \x01(\x03R\vdistilledId\"f\n" +
+	"\x14ListDistilledRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1f\n" +
+	"\vpath_prefix\x18\x02 \x01(\tR\n" +
+	"pathPrefix\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\"~\n" +
+	"\x10ListAuditRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x14\n" +
+	"\x05limit\x18\x02 \x01(\x05R\x05limit\x12\x16\n" +
+	"\x06offset\x18\x03 \x01(\x05R\x06offset\x12#\n" +
+	"\rsince_rfc3339\x18\x04 \x01(\tR\fsinceRfc3339\"\x96\x01\n" +
+	"\x15ExportMemoriesRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12\x1f\n" +
+	"\vpath_prefix\x18\x02 \x01(\tR\n" +
+	"pathPrefix\x12\x14\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12-\n" +
+	"\x12include_embeddings\x18\x04 \x01(\bR\x11includeEmbeddings\"\xb3\x01\n" +
+	"\x16ExportMemoriesResponse\x12\x1b\n" +
+	"\ttenant_id\x18\x01 \x01(\tR\btenantId\x12\x1a\n" +
+	"\bexported\x18\x02 \x01(\x05R\bexported\x120\n" +
+	"\aentries\x18\x03 \x03(\v2\x16.pcmi.v1.RetrieveEntryR\aentries\x12.\n" +
+	"\x13exported_at_rfc3339\x18\x04 \x01(\tR\x11exportedAtRfc3339\"s\n" +
+	"\x15ImportMemoriesRequest\x12\x17\n" +
+	"\aapi_key\x18\x01 \x01(\tR\x06apiKey\x12-\n" +
+	"\x05items\x18\x02 \x03(\v2\x17.pcmi.v1.BatchStoreItemR\x05items\x12\x12\n" +
+	"\x04mode\x18\x03 \x01(\tR\x04mode\"\x87\x01\n" +
+	"\x16ImportMemoriesResponse\x12\x1a\n" +
+	"\bimported\x18\x01 \x01(\x05R\bimported\x12\x18\n" +
+	"\askipped\x18\x02 \x01(\x05R\askipped\x127\n" +
+	"\aresults\x18\x03 \x03(\v2\x1d.pcmi.v1.BatchStoreItemResultR\aresults2\xbc\x10\n" +
 	"\rMemoryService\x126\n" +
 	"\x05Store\x12\x15.pcmi.v1.StoreRequest\x1a\x16.pcmi.v1.StoreResponse\x12E\n" +
 	"\n" +
@@ -1809,7 +4383,29 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x06Health\x12\x16.pcmi.v1.HealthRequest\x1a\x17.pcmi.v1.HealthResponse\x126\n" +
 	"\x05Ready\x12\x15.pcmi.v1.ReadyRequest\x1a\x16.pcmi.v1.ReadyResponse\x12B\n" +
 	"\tGetMemory\x12\x19.pcmi.v1.GetMemoryRequest\x1a\x1a.pcmi.v1.GetMemoryResponse\x12<\n" +
-	"\aCompact\x12\x17.pcmi.v1.CompactRequest\x1a\x18.pcmi.v1.CompactResponseB9Z7github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1b\x06proto3"
+	"\aCompact\x12\x17.pcmi.v1.CompactRequest\x1a\x18.pcmi.v1.CompactResponse\x129\n" +
+	"\x06Refine\x12\x16.pcmi.v1.RefineRequest\x1a\x17.pcmi.v1.RefineResponse\x12E\n" +
+	"\n" +
+	"CreateLink\x12\x1a.pcmi.v1.CreateLinkRequest\x1a\x1b.pcmi.v1.CreateLinkResponse\x12B\n" +
+	"\tListLinks\x12\x19.pcmi.v1.ListLinksRequest\x1a\x1a.pcmi.v1.ListLinksResponse\x12<\n" +
+	"\bGetStats\x12\x18.pcmi.v1.GetStatsRequest\x1a\x16.pcmi.v1.StatsResponse\x12H\n" +
+	"\vIngestEvent\x12\x1b.pcmi.v1.IngestEventRequest\x1a\x1c.pcmi.v1.IngestEventResponse\x12W\n" +
+	"\x10ListEventSchemas\x12 .pcmi.v1.ListEventSchemasRequest\x1a!.pcmi.v1.ListEventSchemasResponse\x12G\n" +
+	"\fStreamEvents\x12\x1c.pcmi.v1.StreamEventsRequest\x1a\x17.pcmi.v1.StreamEventMsg0\x01\x12T\n" +
+	"\x0fRegisterWebhook\x12\x1f.pcmi.v1.RegisterWebhookRequest\x1a .pcmi.v1.RegisterWebhookResponse\x12K\n" +
+	"\fListWebhooks\x12\x1c.pcmi.v1.ListWebhooksRequest\x1a\x1d.pcmi.v1.ListWebhooksResponse\x12U\n" +
+	"\x15ListWebhookDeadLetter\x12%.pcmi.v1.ListWebhookDeadLetterRequest\x1a\x15.pcmi.v1.JSONResponse\x12Z\n" +
+	"\x11MigrateEmbeddings\x12!.pcmi.v1.MigrateEmbeddingsRequest\x1a\".pcmi.v1.MigrateEmbeddingsResponse\x12?\n" +
+	"\bRollback\x12\x18.pcmi.v1.RollbackRequest\x1a\x19.pcmi.v1.RollbackResponse\x12B\n" +
+	"\tSummarize\x12\x19.pcmi.v1.SummarizeRequest\x1a\x1a.pcmi.v1.SummarizeResponse\x12E\n" +
+	"\n" +
+	"GetHistory\x12\x1a.pcmi.v1.GetHistoryRequest\x1a\x1b.pcmi.v1.GetHistoryResponse\x12K\n" +
+	"\x10GetMemoryLineage\x12 .pcmi.v1.GetMemoryLineageRequest\x1a\x15.pcmi.v1.JSONResponse\x12Q\n" +
+	"\x13GetDistilledLineage\x12#.pcmi.v1.GetDistilledLineageRequest\x1a\x15.pcmi.v1.JSONResponse\x12E\n" +
+	"\rListDistilled\x12\x1d.pcmi.v1.ListDistilledRequest\x1a\x15.pcmi.v1.JSONResponse\x12=\n" +
+	"\tListAudit\x12\x19.pcmi.v1.ListAuditRequest\x1a\x15.pcmi.v1.JSONResponse\x12Q\n" +
+	"\x0eExportMemories\x12\x1e.pcmi.v1.ExportMemoriesRequest\x1a\x1f.pcmi.v1.ExportMemoriesResponse\x12Q\n" +
+	"\x0eImportMemories\x12\x1e.pcmi.v1.ImportMemoriesRequest\x1a\x1f.pcmi.v1.ImportMemoriesResponseB9Z7github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1b\x06proto3"
 
 var (
 	file_pcmi_v1_memory_proto_rawDescOnce sync.Once
@@ -1823,31 +4419,70 @@ func file_pcmi_v1_memory_proto_rawDescGZIP() []byte {
 	return file_pcmi_v1_memory_proto_rawDescData
 }
 
-var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 62)
 var file_pcmi_v1_memory_proto_goTypes = []any{
-	(*ReadyRequest)(nil),          // 0: pcmi.v1.ReadyRequest
-	(*ReadyResponse)(nil),         // 1: pcmi.v1.ReadyResponse
-	(*StoreRequest)(nil),          // 2: pcmi.v1.StoreRequest
-	(*StoreResponse)(nil),         // 3: pcmi.v1.StoreResponse
-	(*BatchStoreItem)(nil),        // 4: pcmi.v1.BatchStoreItem
-	(*BatchStoreRequest)(nil),     // 5: pcmi.v1.BatchStoreRequest
-	(*BatchStoreItemResult)(nil),  // 6: pcmi.v1.BatchStoreItemResult
-	(*BatchStoreResponse)(nil),    // 7: pcmi.v1.BatchStoreResponse
-	(*RetrieveRequest)(nil),       // 8: pcmi.v1.RetrieveRequest
-	(*RetrieveEntry)(nil),         // 9: pcmi.v1.RetrieveEntry
-	(*RetrieveResponse)(nil),      // 10: pcmi.v1.RetrieveResponse
-	(*BatchRetrieveQuery)(nil),    // 11: pcmi.v1.BatchRetrieveQuery
-	(*BatchRetrieveRequest)(nil),  // 12: pcmi.v1.BatchRetrieveRequest
-	(*BatchRetrieveResult)(nil),   // 13: pcmi.v1.BatchRetrieveResult
-	(*BatchRetrieveResponse)(nil), // 14: pcmi.v1.BatchRetrieveResponse
-	(*RetrieveStreamHeader)(nil),  // 15: pcmi.v1.RetrieveStreamHeader
-	(*RetrieveStreamMsg)(nil),     // 16: pcmi.v1.RetrieveStreamMsg
-	(*HealthRequest)(nil),         // 17: pcmi.v1.HealthRequest
-	(*HealthResponse)(nil),        // 18: pcmi.v1.HealthResponse
-	(*GetMemoryRequest)(nil),      // 19: pcmi.v1.GetMemoryRequest
-	(*GetMemoryResponse)(nil),     // 20: pcmi.v1.GetMemoryResponse
-	(*CompactRequest)(nil),        // 21: pcmi.v1.CompactRequest
-	(*CompactResponse)(nil),       // 22: pcmi.v1.CompactResponse
+	(*ReadyRequest)(nil),                 // 0: pcmi.v1.ReadyRequest
+	(*ReadyResponse)(nil),                // 1: pcmi.v1.ReadyResponse
+	(*StoreRequest)(nil),                 // 2: pcmi.v1.StoreRequest
+	(*StoreResponse)(nil),                // 3: pcmi.v1.StoreResponse
+	(*BatchStoreItem)(nil),               // 4: pcmi.v1.BatchStoreItem
+	(*BatchStoreRequest)(nil),            // 5: pcmi.v1.BatchStoreRequest
+	(*BatchStoreItemResult)(nil),         // 6: pcmi.v1.BatchStoreItemResult
+	(*BatchStoreResponse)(nil),           // 7: pcmi.v1.BatchStoreResponse
+	(*RetrieveRequest)(nil),              // 8: pcmi.v1.RetrieveRequest
+	(*RetrieveEntry)(nil),                // 9: pcmi.v1.RetrieveEntry
+	(*RetrieveResponse)(nil),             // 10: pcmi.v1.RetrieveResponse
+	(*BatchRetrieveQuery)(nil),           // 11: pcmi.v1.BatchRetrieveQuery
+	(*BatchRetrieveRequest)(nil),         // 12: pcmi.v1.BatchRetrieveRequest
+	(*BatchRetrieveResult)(nil),          // 13: pcmi.v1.BatchRetrieveResult
+	(*BatchRetrieveResponse)(nil),        // 14: pcmi.v1.BatchRetrieveResponse
+	(*RetrieveStreamHeader)(nil),         // 15: pcmi.v1.RetrieveStreamHeader
+	(*RetrieveStreamMsg)(nil),            // 16: pcmi.v1.RetrieveStreamMsg
+	(*HealthRequest)(nil),                // 17: pcmi.v1.HealthRequest
+	(*HealthResponse)(nil),               // 18: pcmi.v1.HealthResponse
+	(*GetMemoryRequest)(nil),             // 19: pcmi.v1.GetMemoryRequest
+	(*GetMemoryResponse)(nil),            // 20: pcmi.v1.GetMemoryResponse
+	(*CompactRequest)(nil),               // 21: pcmi.v1.CompactRequest
+	(*CompactResponse)(nil),              // 22: pcmi.v1.CompactResponse
+	(*JSONResponse)(nil),                 // 23: pcmi.v1.JSONResponse
+	(*RefineRequest)(nil),                // 24: pcmi.v1.RefineRequest
+	(*RefineResponse)(nil),               // 25: pcmi.v1.RefineResponse
+	(*CreateLinkRequest)(nil),            // 26: pcmi.v1.CreateLinkRequest
+	(*MemoryLinkMsg)(nil),                // 27: pcmi.v1.MemoryLinkMsg
+	(*CreateLinkResponse)(nil),           // 28: pcmi.v1.CreateLinkResponse
+	(*ListLinksRequest)(nil),             // 29: pcmi.v1.ListLinksRequest
+	(*ListLinksResponse)(nil),            // 30: pcmi.v1.ListLinksResponse
+	(*GetStatsRequest)(nil),              // 31: pcmi.v1.GetStatsRequest
+	(*StatsResponse)(nil),                // 32: pcmi.v1.StatsResponse
+	(*IngestEventRequest)(nil),           // 33: pcmi.v1.IngestEventRequest
+	(*IngestEventResponse)(nil),          // 34: pcmi.v1.IngestEventResponse
+	(*ListEventSchemasRequest)(nil),      // 35: pcmi.v1.ListEventSchemasRequest
+	(*EventSchemaMsg)(nil),               // 36: pcmi.v1.EventSchemaMsg
+	(*ListEventSchemasResponse)(nil),     // 37: pcmi.v1.ListEventSchemasResponse
+	(*StreamEventsRequest)(nil),          // 38: pcmi.v1.StreamEventsRequest
+	(*StreamEventMsg)(nil),               // 39: pcmi.v1.StreamEventMsg
+	(*RegisterWebhookRequest)(nil),       // 40: pcmi.v1.RegisterWebhookRequest
+	(*RegisterWebhookResponse)(nil),      // 41: pcmi.v1.RegisterWebhookResponse
+	(*ListWebhooksRequest)(nil),          // 42: pcmi.v1.ListWebhooksRequest
+	(*WebhookEndpointMsg)(nil),           // 43: pcmi.v1.WebhookEndpointMsg
+	(*ListWebhooksResponse)(nil),         // 44: pcmi.v1.ListWebhooksResponse
+	(*ListWebhookDeadLetterRequest)(nil), // 45: pcmi.v1.ListWebhookDeadLetterRequest
+	(*MigrateEmbeddingsRequest)(nil),     // 46: pcmi.v1.MigrateEmbeddingsRequest
+	(*MigrateEmbeddingsResponse)(nil),    // 47: pcmi.v1.MigrateEmbeddingsResponse
+	(*RollbackRequest)(nil),              // 48: pcmi.v1.RollbackRequest
+	(*RollbackResponse)(nil),             // 49: pcmi.v1.RollbackResponse
+	(*SummarizeRequest)(nil),             // 50: pcmi.v1.SummarizeRequest
+	(*SummarizeResponse)(nil),            // 51: pcmi.v1.SummarizeResponse
+	(*GetHistoryRequest)(nil),            // 52: pcmi.v1.GetHistoryRequest
+	(*GetHistoryResponse)(nil),           // 53: pcmi.v1.GetHistoryResponse
+	(*GetMemoryLineageRequest)(nil),      // 54: pcmi.v1.GetMemoryLineageRequest
+	(*GetDistilledLineageRequest)(nil),   // 55: pcmi.v1.GetDistilledLineageRequest
+	(*ListDistilledRequest)(nil),         // 56: pcmi.v1.ListDistilledRequest
+	(*ListAuditRequest)(nil),             // 57: pcmi.v1.ListAuditRequest
+	(*ExportMemoriesRequest)(nil),        // 58: pcmi.v1.ExportMemoriesRequest
+	(*ExportMemoriesResponse)(nil),       // 59: pcmi.v1.ExportMemoriesResponse
+	(*ImportMemoriesRequest)(nil),        // 60: pcmi.v1.ImportMemoriesRequest
+	(*ImportMemoriesResponse)(nil),       // 61: pcmi.v1.ImportMemoriesResponse
 }
 var file_pcmi_v1_memory_proto_depIdxs = []int32{
 	4,  // 0: pcmi.v1.BatchStoreRequest.items:type_name -> pcmi.v1.BatchStoreItem
@@ -1859,29 +4494,77 @@ var file_pcmi_v1_memory_proto_depIdxs = []int32{
 	15, // 6: pcmi.v1.RetrieveStreamMsg.header:type_name -> pcmi.v1.RetrieveStreamHeader
 	9,  // 7: pcmi.v1.RetrieveStreamMsg.entry:type_name -> pcmi.v1.RetrieveEntry
 	9,  // 8: pcmi.v1.GetMemoryResponse.entry:type_name -> pcmi.v1.RetrieveEntry
-	2,  // 9: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
-	5,  // 10: pcmi.v1.MemoryService.BatchStore:input_type -> pcmi.v1.BatchStoreRequest
-	8,  // 11: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
-	12, // 12: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
-	8,  // 13: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
-	17, // 14: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
-	0,  // 15: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
-	19, // 16: pcmi.v1.MemoryService.GetMemory:input_type -> pcmi.v1.GetMemoryRequest
-	21, // 17: pcmi.v1.MemoryService.Compact:input_type -> pcmi.v1.CompactRequest
-	3,  // 18: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
-	7,  // 19: pcmi.v1.MemoryService.BatchStore:output_type -> pcmi.v1.BatchStoreResponse
-	10, // 20: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
-	14, // 21: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
-	16, // 22: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
-	18, // 23: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
-	1,  // 24: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
-	20, // 25: pcmi.v1.MemoryService.GetMemory:output_type -> pcmi.v1.GetMemoryResponse
-	22, // 26: pcmi.v1.MemoryService.Compact:output_type -> pcmi.v1.CompactResponse
-	18, // [18:27] is the sub-list for method output_type
-	9,  // [9:18] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	27, // 9: pcmi.v1.CreateLinkResponse.link:type_name -> pcmi.v1.MemoryLinkMsg
+	27, // 10: pcmi.v1.ListLinksResponse.entries:type_name -> pcmi.v1.MemoryLinkMsg
+	36, // 11: pcmi.v1.ListEventSchemasResponse.schemas:type_name -> pcmi.v1.EventSchemaMsg
+	43, // 12: pcmi.v1.ListWebhooksResponse.entries:type_name -> pcmi.v1.WebhookEndpointMsg
+	9,  // 13: pcmi.v1.GetHistoryResponse.entries:type_name -> pcmi.v1.RetrieveEntry
+	9,  // 14: pcmi.v1.ExportMemoriesResponse.entries:type_name -> pcmi.v1.RetrieveEntry
+	4,  // 15: pcmi.v1.ImportMemoriesRequest.items:type_name -> pcmi.v1.BatchStoreItem
+	6,  // 16: pcmi.v1.ImportMemoriesResponse.results:type_name -> pcmi.v1.BatchStoreItemResult
+	2,  // 17: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
+	5,  // 18: pcmi.v1.MemoryService.BatchStore:input_type -> pcmi.v1.BatchStoreRequest
+	8,  // 19: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
+	12, // 20: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
+	8,  // 21: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
+	17, // 22: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
+	0,  // 23: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
+	19, // 24: pcmi.v1.MemoryService.GetMemory:input_type -> pcmi.v1.GetMemoryRequest
+	21, // 25: pcmi.v1.MemoryService.Compact:input_type -> pcmi.v1.CompactRequest
+	24, // 26: pcmi.v1.MemoryService.Refine:input_type -> pcmi.v1.RefineRequest
+	26, // 27: pcmi.v1.MemoryService.CreateLink:input_type -> pcmi.v1.CreateLinkRequest
+	29, // 28: pcmi.v1.MemoryService.ListLinks:input_type -> pcmi.v1.ListLinksRequest
+	31, // 29: pcmi.v1.MemoryService.GetStats:input_type -> pcmi.v1.GetStatsRequest
+	33, // 30: pcmi.v1.MemoryService.IngestEvent:input_type -> pcmi.v1.IngestEventRequest
+	35, // 31: pcmi.v1.MemoryService.ListEventSchemas:input_type -> pcmi.v1.ListEventSchemasRequest
+	38, // 32: pcmi.v1.MemoryService.StreamEvents:input_type -> pcmi.v1.StreamEventsRequest
+	40, // 33: pcmi.v1.MemoryService.RegisterWebhook:input_type -> pcmi.v1.RegisterWebhookRequest
+	42, // 34: pcmi.v1.MemoryService.ListWebhooks:input_type -> pcmi.v1.ListWebhooksRequest
+	45, // 35: pcmi.v1.MemoryService.ListWebhookDeadLetter:input_type -> pcmi.v1.ListWebhookDeadLetterRequest
+	46, // 36: pcmi.v1.MemoryService.MigrateEmbeddings:input_type -> pcmi.v1.MigrateEmbeddingsRequest
+	48, // 37: pcmi.v1.MemoryService.Rollback:input_type -> pcmi.v1.RollbackRequest
+	50, // 38: pcmi.v1.MemoryService.Summarize:input_type -> pcmi.v1.SummarizeRequest
+	52, // 39: pcmi.v1.MemoryService.GetHistory:input_type -> pcmi.v1.GetHistoryRequest
+	54, // 40: pcmi.v1.MemoryService.GetMemoryLineage:input_type -> pcmi.v1.GetMemoryLineageRequest
+	55, // 41: pcmi.v1.MemoryService.GetDistilledLineage:input_type -> pcmi.v1.GetDistilledLineageRequest
+	56, // 42: pcmi.v1.MemoryService.ListDistilled:input_type -> pcmi.v1.ListDistilledRequest
+	57, // 43: pcmi.v1.MemoryService.ListAudit:input_type -> pcmi.v1.ListAuditRequest
+	58, // 44: pcmi.v1.MemoryService.ExportMemories:input_type -> pcmi.v1.ExportMemoriesRequest
+	60, // 45: pcmi.v1.MemoryService.ImportMemories:input_type -> pcmi.v1.ImportMemoriesRequest
+	3,  // 46: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
+	7,  // 47: pcmi.v1.MemoryService.BatchStore:output_type -> pcmi.v1.BatchStoreResponse
+	10, // 48: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
+	14, // 49: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
+	16, // 50: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
+	18, // 51: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
+	1,  // 52: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
+	20, // 53: pcmi.v1.MemoryService.GetMemory:output_type -> pcmi.v1.GetMemoryResponse
+	22, // 54: pcmi.v1.MemoryService.Compact:output_type -> pcmi.v1.CompactResponse
+	25, // 55: pcmi.v1.MemoryService.Refine:output_type -> pcmi.v1.RefineResponse
+	28, // 56: pcmi.v1.MemoryService.CreateLink:output_type -> pcmi.v1.CreateLinkResponse
+	30, // 57: pcmi.v1.MemoryService.ListLinks:output_type -> pcmi.v1.ListLinksResponse
+	32, // 58: pcmi.v1.MemoryService.GetStats:output_type -> pcmi.v1.StatsResponse
+	34, // 59: pcmi.v1.MemoryService.IngestEvent:output_type -> pcmi.v1.IngestEventResponse
+	37, // 60: pcmi.v1.MemoryService.ListEventSchemas:output_type -> pcmi.v1.ListEventSchemasResponse
+	39, // 61: pcmi.v1.MemoryService.StreamEvents:output_type -> pcmi.v1.StreamEventMsg
+	41, // 62: pcmi.v1.MemoryService.RegisterWebhook:output_type -> pcmi.v1.RegisterWebhookResponse
+	44, // 63: pcmi.v1.MemoryService.ListWebhooks:output_type -> pcmi.v1.ListWebhooksResponse
+	23, // 64: pcmi.v1.MemoryService.ListWebhookDeadLetter:output_type -> pcmi.v1.JSONResponse
+	47, // 65: pcmi.v1.MemoryService.MigrateEmbeddings:output_type -> pcmi.v1.MigrateEmbeddingsResponse
+	49, // 66: pcmi.v1.MemoryService.Rollback:output_type -> pcmi.v1.RollbackResponse
+	51, // 67: pcmi.v1.MemoryService.Summarize:output_type -> pcmi.v1.SummarizeResponse
+	53, // 68: pcmi.v1.MemoryService.GetHistory:output_type -> pcmi.v1.GetHistoryResponse
+	23, // 69: pcmi.v1.MemoryService.GetMemoryLineage:output_type -> pcmi.v1.JSONResponse
+	23, // 70: pcmi.v1.MemoryService.GetDistilledLineage:output_type -> pcmi.v1.JSONResponse
+	23, // 71: pcmi.v1.MemoryService.ListDistilled:output_type -> pcmi.v1.JSONResponse
+	23, // 72: pcmi.v1.MemoryService.ListAudit:output_type -> pcmi.v1.JSONResponse
+	59, // 73: pcmi.v1.MemoryService.ExportMemories:output_type -> pcmi.v1.ExportMemoriesResponse
+	61, // 74: pcmi.v1.MemoryService.ImportMemories:output_type -> pcmi.v1.ImportMemoriesResponse
+	46, // [46:75] is the sub-list for method output_type
+	17, // [17:46] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_pcmi_v1_memory_proto_init() }
@@ -1895,13 +4578,14 @@ func file_pcmi_v1_memory_proto_init() {
 		(*RetrieveStreamMsg_Header)(nil),
 		(*RetrieveStreamMsg_Entry)(nil),
 	}
+	file_pcmi_v1_memory_proto_msgTypes[49].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pcmi_v1_memory_proto_rawDesc), len(file_pcmi_v1_memory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   23,
+			NumMessages:   62,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -88,7 +88,7 @@ Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultService
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. **Store** / **BatchStore** e **Retrieve** (richiesta e risposta `RetrieveEntry`) sono allineati alle API REST. Endpoint solo-HTTP: `docs/grpc-vs-http.md`. Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC core + operational (refine, links, stats, events stream, webhooks, …) — vedi `docs/grpc-vs-http.md`. **Admin** e **/metrics** restano HTTP-only. Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
 
 ## `internal/webhook`
 

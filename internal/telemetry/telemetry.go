@@ -19,12 +19,13 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
-// Init sets W3C tracecontext + baggage propagators and a TracerProvider.
-// If neither OTEL_EXPORTER_OTLP_TRACES_ENDPOINT nor OTEL_EXPORTER_OTLP_ENDPOINT
-// is set, a noop tracer provider is installed (no network I/O).
-// Service name defaults to OTEL_SERVICE_NAME or "pcmi-api".
+// Init configures W3C propagators (tracecontext + baggage) and an optional OTLP/HTTP trace exporter.
+// If neither OTEL_EXPORTER_OTLP_TRACES_ENDPOINT nor OTEL_EXPORTER_OTLP_ENDPOINT is set,
+// a noop tracer provider is installed (no network I/O).
+// OTEL_SERVICE_NAME overrides defaultServiceName when set.
+// defaultServiceName is used in OTLP resource attributes (e.g. "pcmi-api", "pcmi-worker").
 // The returned shutdown function should be called on exit (with a timeout context).
-func Init(ctx context.Context) (shutdown func(context.Context) error, err error) {
+func Init(ctx context.Context, defaultServiceName string) (shutdown func(context.Context) error, err error) {
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
@@ -35,6 +36,9 @@ func Init(ctx context.Context) (shutdown func(context.Context) error, err error)
 		endpoint = strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	}
 	serviceName := strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME"))
+	if serviceName == "" {
+		serviceName = strings.TrimSpace(defaultServiceName)
+	}
 	if serviceName == "" {
 		serviceName = "pcmi-api"
 	}

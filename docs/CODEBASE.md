@@ -58,7 +58,7 @@ Processi asincroni; condividono DB e Redis con l’API.
 - `pruning.go` — chiamata a funzione SQL `prune_superseded_memories`.
 - `expiry.go` — chiama periodicamente `expire_memory_entries()` per TTL.
 
-**Eventi Redis** consumati in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested`.
+**Eventi Redis** consumati in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested` — ogni gestione è wrappata in uno span OpenTelemetry (`redis.memory_event`) se OTLP è configurato.
 
 ## `internal/event`
 
@@ -80,11 +80,11 @@ Costanti `Tag` (`vX.Y.Z`) e `Semver` (`X.Y.Z` per OpenAPI) — unico punto per h
 
 ## `internal/metrics`
 
-Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
+Registry Prometheus dedicato (`metrics.Registry`) per **API**, contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Registry separato **`WorkerRegistry`** per **pcmi-worker** (`cmd/worker`), con `pcmi_worker_redis_events_total{event_type=…}` e collector Go/process. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
 
 ## `internal/telemetry`
 
-Inizializzazione tracer OTLP/HTTP opzionale (`telemetry.Init` in `cmd/api`): propagatori W3C globali; se nessun endpoint OTLP è configurato, tracer **noop** (zero overhead rete). Variabili: `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`.
+Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultServiceName)` da **`cmd/api`** (`pcmi-api`) e **`cmd/worker`** (`pcmi-worker`); `OTEL_SERVICE_NAME` ha priorità sul default. Propagatori W3C globali; senza endpoint OTLP, tracer **noop**. Variabili: `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`.
 
 ## `internal/grpc`
 

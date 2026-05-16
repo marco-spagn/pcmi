@@ -18,7 +18,8 @@ Deve coincidere con l’ordine in `docker-compose.yml` (lista volumi postgres) e
 | `008_v1_12_distilled_webhooks_encrypt.sql` | Webhook registry, miglioramenti `distilled_knowledge`, cifratura contenuti.
 | `009_v1_13_event_schemas_webhook_dlq.sql` | Registro schemi eventi, DLQ webhook.
 | `010_v1_14_consolidation_bm25_admin.sql` | Consolidation runs, BM25 helper, estensioni admin.
-| `011_v1_15_links_expiry_tags.sql` | `memory_links`, `expires_at`, indice GIN su `tags`, `expire_memory_entries()`.
+| `011_v1_15_links_expiry_tags.sql` | `memory_links`, `expires_at`, indice GIN su `tags`, `expire_memory_entries()`. |
+| `012_v1_19_memory_compaction.sql` | `compact_memory_path_history` — rimuove versioni chiuse in eccesso per un singolo path. |
 
 ## Aggiungere una nuova migrazione
 

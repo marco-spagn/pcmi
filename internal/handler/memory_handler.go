@@ -76,6 +76,22 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
 		return c.JSON(result)
 	})
 
+	api.Post("/memories/compact", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
+		var req model.CompactMemoryRequest
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if strings.TrimSpace(req.Path) == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "path is required"})
+		}
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		out, err := svc.Compact(c.Context(), tenantID, &req)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(out)
+	})
+
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -175,7 +191,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
 		stats := dbWrite.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.18.0",
+			"version": "v1.19.0",
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

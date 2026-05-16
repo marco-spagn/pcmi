@@ -14,4 +14,5 @@ type MemoryRepo interface {
 	GetHistoricalVersion(ctx context.Context, tenantID, path string, version *int, asOf *time.Time) (*model.MemoryEntry, error)
 	GetByPath(ctx context.Context, tenantID, path string, version *int, asOf *time.Time) (*model.MemoryEntry, error)
 	ExportMemories(ctx context.Context, tenantID, pathPrefix string, limit int, includeEmb bool) ([]model.MemoryEntry, error)
+	CompactPathHistory(ctx context.Context, tenantID, path string, keepSuperseded int) (deleted int, err error)
 }

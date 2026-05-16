@@ -17,7 +17,7 @@ Documento di orientamento per chi legge o modifica il repository: cosa fa ogni a
 
 HTTP handlers Fiber; leggono tenant da `middleware.TenantContextKey`, chiamano repository o service.
 
-- `memory_handler.go` — routing principale memorie, retrieve, history, refine, links, stats, get-by-path wildcard.
+- `memory_handler.go` — routing principale memorie, retrieve, history, refine, links, stats, get-by-path wildcard, **`POST /memories/compact`**.
 - `batch_handler.go`, `admin_handler.go` — batch API e admin tenant/chiavi.
 - `events_handler.go` — SSE stream, ingest eventi, lista schemi.
 - `lineage_handler.go` — `/v1/lineage/memory`, `/v1/lineage/distilled/:id` (fuori da `/memories/*`).
@@ -116,7 +116,7 @@ Client HTTP thin; vedere `sdk/README.md`.
 
 ## `scripts/`
 
-Smoke/E2E per CI (`ci_e2e_*.sh`, `test_pcmi.sh`, `grpc_health_smoke.go`). Locale: `scripts/local_smoke_orchestration.sh` (store→GET / Temporal).
+Smoke/E2E per CI: un unico `scripts/ci_integration_smoke.sh` (job **integration-smoke**), più `test_pcmi.sh` / `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI (E2E compose). Locale: `scripts/local_smoke_orchestration.sh`.
 
 ## `examples/`
 

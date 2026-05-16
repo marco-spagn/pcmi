@@ -277,3 +277,24 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	}
 	return entries, rows.Err()
 }
+
+// CompactPathHistory deletes older superseded rows for a path, keeping the newest keepSuperseded closed versions.
+func (r *MemoryRepository) CompactPathHistory(ctx context.Context, tenantID, path string, keepSuperseded int) (int, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return 0, fmt.Errorf("path is required")
+	}
+	if keepSuperseded < 1 {
+		keepSuperseded = 20
+	}
+	if keepSuperseded > 500 {
+		keepSuperseded = 500
+	}
+	var n int
+	err := r.w.QueryRow(ctx, `SELECT compact_memory_path_history($1::uuid, $2::ltree, $3)`,
+		tenantID, path, keepSuperseded).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("compact path history: %w", err)
+	}
+	return n, nil
+}

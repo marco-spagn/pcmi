@@ -101,7 +101,7 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 }
 
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
-	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.18.0"}, nil
+	return &pcmiv1.HealthResponse{Status: "ok", Version: "v1.19.0"}, nil
 }
 
 func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmiv1.ReadyResponse, error) {
@@ -115,7 +115,7 @@ func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmi
 		Status:      st,
 		DatabaseOk:  dbOK,
 		RedisOk:     redisOK,
-		Version:     "v1.18.0",
+		Version:     "v1.19.0",
 	}, nil
 }
 

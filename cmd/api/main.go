@@ -25,7 +25,7 @@ import (
 )
 
 func main() {
-	log.Println("🚀 PCMI API v1.18 starting...")
+	log.Println("🚀 PCMI API v1.19 starting...")
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -53,7 +53,7 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.18",
+		AppName: "PCMI API v1.19",
 	})
 
 	app.Use(metrics.Middleware())
@@ -71,7 +71,7 @@ func main() {
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.18.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.19.0"})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -81,7 +81,7 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.18 started on port %s (/v1/ready per readiness)", port)
+	log.Printf("✅ PCMI API v1.19 started on port %s (/v1/ready per readiness)", port)
 	if pools.Read != nil {
 		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
 	}

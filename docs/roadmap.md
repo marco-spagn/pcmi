@@ -1,6 +1,12 @@
 # PCMI evolution roadmap
 
-## v1.18.0 (current)
+## v1.19.0 (current)
+
+- **Compaction per path**: `POST /v1/memories/compact` + SQL `compact_memory_path_history` — rimuove versioni **chiuse** (`valid_to` valorizzato) oltre le ultime `keep_superseded` per un path; la riga corrente resta intatta. Complementare al **pruning** globale per età (`prune_superseded_memories`).
+- **CI**: smoke HTTP unificato in `scripts/ci_integration_smoke.sh`; job `go` e `golangci-lint` in parallelo; E2E compose alleggerito (niente duplicati `ci_e2e_v1_14` / `v1_15` / `ci_e2e_embedding` già coperti dallo smoke).
+- Versione API `v1.19.0`.
+
+## v1.18.0
 
 - **Esempi orchestratori**: `examples/celery` e `examples/temporal` — task/activity HTTP verso PCMI.
 - **Read replica opzionale**: `DATABASE_READ_URL` instrada SELECT pesanti (retrieve, stats, lineage, …) su una streaming replica; federazione multi-tenant invariata (stesso cluster PG). Dettaglio in `docs/federation-read-replicas.md`.
@@ -27,7 +33,6 @@
 
 ## Near term
 
-- Memory compaction policies beyond pruning
 - gRPC batch + streaming retrieve
 - OpenTelemetry traces alongside Prometheus metrics
 

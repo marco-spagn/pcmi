@@ -146,6 +146,23 @@ func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest
 	}, nil
 }
 
+// Compact trims superseded history for one path (tenant-scoped).
+func (s *MemoryService) Compact(ctx context.Context, tenantID string, req *model.CompactMemoryRequest) (*model.CompactMemoryResponse, error) {
+	keep := req.KeepSuperseded
+	if keep <= 0 {
+		keep = 20
+	}
+	n, err := s.repo.CompactPathHistory(ctx, tenantID, req.Path, keep)
+	if err != nil {
+		return nil, err
+	}
+	return &model.CompactMemoryResponse{
+		Path:           strings.TrimSpace(req.Path),
+		DeletedCount:   n,
+		KeepSuperseded: keep,
+	}, nil
+}
+
 func (s *MemoryService) GetByPath(ctx context.Context, tenantID, path string, version *int, asOf *time.Time) (*model.MemoryEntry, error) {
 	return s.repo.GetByPath(ctx, tenantID, path, version, asOf)
 }

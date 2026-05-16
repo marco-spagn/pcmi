@@ -2,12 +2,17 @@
 // Prometheus. Avvio da cmd/api; configurazione via variabili d’ambiente (vedi .env.example e docs/CODEBASE.md).
 // Readiness: GET /ready e GET /v1/ready (ping Postgres + Redis, senza API key).
 // Optional DATABASE_READ_URL: PostgreSQL read replica per query di lettura (retrieve, stats, ecc.).
+// Optional OpenTelemetry: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT / OTEL_EXPORTER_OTLP_ENDPOINT (vedi .env.example).
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/gofiber/contrib/otelfiber/v2"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,11 +26,36 @@ import (
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/telemetry"
 	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
+func skipTracePath(c *fiber.Ctx) bool {
+	p := c.Path()
+	if p == "/metrics" || p == "/health" || p == "/v1/health" {
+		return true
+	}
+	if strings.HasPrefix(p, "/ready") || strings.HasPrefix(p, "/v1/ready") {
+		return true
+	}
+	return false
+}
+
 func main() {
-	log.Println("🚀 PCMI API v1.19 starting...")
+	log.Println("🚀 PCMI API v1.20 starting...")
+
+	ctx := context.Background()
+	shutdownTelemetry, err := telemetry.Init(ctx)
+	if err != nil {
+		log.Fatalf("telemetry: %v", err)
+	}
+	defer func() {
+		sdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if e := shutdownTelemetry(sdCtx); e != nil {
+			log.Printf("telemetry shutdown: %v", e)
+		}
+	}()
 
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -53,9 +83,10 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.19",
+		AppName: "PCMI API v1.20",
 	})
 
+	app.Use(otelfiber.Middleware(otelfiber.WithNext(skipTracePath)))
 	app.Use(metrics.Middleware())
 	app.Use(middleware.APIKeyMiddleware(db))
 	app.Use(middleware.RateLimitMiddleware())
@@ -71,7 +102,7 @@ func main() {
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.19.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.20.0"})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -81,7 +112,7 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.19 started on port %s (/v1/ready per readiness)", port)
+	log.Printf("✅ PCMI API v1.20 started on port %s (/v1/ready per readiness)", port)
 	if pools.Read != nil {
 		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
 	}

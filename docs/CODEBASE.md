@@ -9,7 +9,7 @@ Documento di orientamento per chi legge o modifica il repository: cosa fa ogni a
 | `cmd/api/main.go` | Pool `database.NewPools(DATABASE_URL, DATABASE_READ_URL)`, readiness sul primario, middleware su primario, `handler.SetupMemoryRoutes(app, primary, readReplica)`; gRPC e admin sul primario. |
 | `cmd/worker/main.go` | Worker: embedding (se c’è `OPENAI_API_KEY`), distillation, pruning, consolidation, expiry, subscribe Redis. |
 
-**Ordine middleware API** (dal basso verso l’alto nel codice: prima registrato = ultimo eseguito… no, Fiber: `app.Use` order is first registered = outer): `metrics` → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
+**Ordine middleware API** (Fiber: il primo `Use` registrato è il più esterno): `otelfiber` (tracing, salta `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 
 **Registrazione route**: in `memory_handler.go` le route specifiche (`/memories/history`, batch, lineage sotto `/lineage/*`) vanno **prima** del wildcard `GET /memories/*` per evitare che Fiber catturi segmenti come nomi di path.
 
@@ -76,11 +76,15 @@ Processi asincroni; condividono DB e Redis con l’API.
 
 ## `internal/metrics`
 
-Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico.
+Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
+
+## `internal/telemetry`
+
+Inizializzazione tracer OTLP/HTTP opzionale (`telemetry.Init` in `cmd/api`): propagatori W3C globali; se nessun endpoint OTLP è configurato, tracer **noop** (zero overhead rete). Variabili: `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`.
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. `Health` (liveness) e `Ready` (PostgreSQL + Redis) non richiedono API key.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, `Retrieve`, **`BatchRetrieve`**, **`RetrieveStream`**, `Health`, `Ready`. `Health` (liveness) e `Ready` non richiedono API key. Proto: `proto/pcmi/v1/memory.proto` (rigenerare con `protoc` come in CI). Instrumentazione server: `grpc.StatsHandler(otelgrpc.NewServerHandler())`.
 
 ## `internal/webhook`
 
@@ -132,7 +136,7 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 1. **Nuove route memoria**: aggiungere sotto `/v1` in `SetupMemoryRoutes` **prima** del wildcard `/memories/*` se il path rischia conflitto.
 2. **Nuove migration**: includere il file in `docker-compose.yml` sotto `postgres.volumes` e in ogni path che applica migrazioni manualmente.
 3. **Eventi worker**: estendere `internal/event/schema.go` e sottoscrittore in `cmd/worker/main.go`.
-4. **Versione API**: stringa allineata in `cmd/api`, `cmd/worker`, `internal/grpc`, smoke CI, `scripts/grpc_health_smoke.go` (`PCMI_EXPECT_VERSION`).
+4. **Versione API**: stringa allineata in `cmd/api`, `cmd/worker`, `internal/grpc`, smoke CI, `scripts/grpc_health_smoke.go` (`PCMI_EXPECT_VERSION`). Dopo modifiche a `proto/pcmi/v1/memory.proto`: `protoc --proto_path=proto --go_out=. --go_opt=module=github.com/marco-spagn/pcmi --go-grpc_out=. --go-grpc_opt=module=github.com/marco-spagn/pcmi pcmi/v1/memory.proto`.
 
 ## Riferimenti
 

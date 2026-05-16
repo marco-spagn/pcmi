@@ -14,7 +14,7 @@ Persistent Cognitive Memory Infrastructure (PCMI) separates **ephemeral agents**
 
 | Component | Role |
 |-----------|------|
-| `cmd/api` | Fiber REST API, SSE `/v1/events`, Prometheus `/metrics`, optional gRPC |
+| `cmd/api` | Fiber REST API, SSE `/v1/events`, Prometheus `/metrics`, optional gRPC, optional OpenTelemetry OTLP traces |
 | `cmd/worker` | Embeddings, distillation, pruning, consolidation, TTL expiry |
 | PostgreSQL | `memory_entries`, `distilled_knowledge`, `memory_links`, RLS per tenant |
 | Redis | `memory_events` channel for cross-process fan-out |

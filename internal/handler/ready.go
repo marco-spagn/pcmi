@@ -33,6 +33,6 @@ func readyResponse(c *fiber.Ctx, db *pgxpool.Pool) error {
 		"database_ok":  dbOK,
 		"redis_ok":     redisOK,
 		"service":      "pcmi-api",
-		"version":      "v1.19.0",
+		"version":      "v1.20.0",
 	})
 }

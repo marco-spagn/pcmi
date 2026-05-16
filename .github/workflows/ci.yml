@@ -156,8 +156,8 @@ jobs:
 
       - name: Integration smoke suite (bash)
         env:
-          PCMI_EXPECT_VERSION: v1.19.0
-          EXPECT_API_VERSION: v1.19.0
+          PCMI_EXPECT_VERSION: v1.20.0
+          EXPECT_API_VERSION: v1.20.0
         run: |
           chmod +x scripts/ci_integration_smoke.sh
           ./scripts/ci_integration_smoke.sh

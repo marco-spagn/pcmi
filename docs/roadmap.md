@@ -2,7 +2,7 @@
 
 ## v1.23.0 (current)
 
-- **Osservabilità worker**: `cmd/worker` inizializza `telemetry.Init` (OTLP/HTTP opzionale, default `service.name=pcmi-worker`), shutdown ordinato; span **consumer** per ogni messaggio Redis `memory_events` (`pcmi.event.type`, `pcmi.tenant_id`). `telemetry.Init` accetta un `defaultServiceName` (`pcmi-api` vs `pcmi-worker`).
+- **Osservabilità worker**: `cmd/worker` inizializza `telemetry.Init` (OTLP/HTTP opzionale, default `service.name=pcmi-worker`), shutdown ordinato; span **consumer** per ogni messaggio Redis `memory_events`; **`GET :8081/metrics`** Prometheus (`WorkerRegistry`, `pcmi_worker_redis_events_total`). `telemetry.Init` accetta un `defaultServiceName` (`pcmi-api` vs `pcmi-worker`).
 - Versione API `v1.23.0`.
 
 ## v1.22.0

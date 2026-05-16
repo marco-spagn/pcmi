@@ -6,7 +6,7 @@
 |-----------|----------------|
 | **API** | Stateless; scale behind load balancer. Share Postgres + Redis. Enable `/metrics` scraping per pod. |
 | **Postgres replica (optional)** | Set `DATABASE_READ_URL` on API pods to offload SELECT-heavy routes (retrieve, stats, lineage, export read path, link list) to a streaming replica; `DATABASE_URL` remains the primary for writes and strong reads. See `docs/federation-read-replicas.md`. |
-| **Worker** | Multiple replicas consume Redis pub/sub; distillation/consolidation use DB row locks implicitly via single-writer patterns per prefix—expect some duplicate work at scale; safe due to append-only store. |
+| **Worker** | Multiple replicas consume Redis pub/sub; distillation/consolidation may duplicate work per prefix at scale (safe with append-only store). Scrape **`/metrics`** on worker HTTP (default **8081**) for `pcmi_worker_redis_events_total` and runtime collectors. |
 | **Postgres** | Primary bottleneck for write-heavy workloads. Partition by `tenant_id` at very large scale; index `path`, `content_tsv`, `embedding` already present. |
 | **Redis** | Fan-out only; not durable source of truth. |
 
@@ -29,7 +29,7 @@
 
 ## Observability
 
-- Prometheus: `pcmi_http_requests_total`, `pcmi_http_request_duration_seconds`, `pcmi_memory_stores_total`, `pcmi_memory_retrieves_total`.
+- Prometheus: API `GET /metrics`; worker **`GET :8081/metrics`** (`pcmi_worker_redis_events_total`, Go/process collectors); `pcmi_http_requests_total`, `pcmi_memory_stores_total`, `pcmi_memory_retrieves_total` on API scrape.
 - OpenTelemetry (optional): OTLP/HTTP trace export; HTTP spans via `otelfiber`, gRPC via `otelgrpc`. **Worker** uses the same OTLP env vars with default `service.name=pcmi-worker`, plus consumer spans for Redis `memory_events`.
 - Audit log API for per-tenant API usage forensics.
 

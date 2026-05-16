@@ -37,7 +37,7 @@ Memory lives **outside** agents. Agents are ephemeral; this layer is persistent,
 - **GET /v1/memories/{path}** — single memory with optional `version` / `as_of`  
 - **Batch** — `POST /v1/memories/batch`, `POST /v1/retrieve/batch`  
 - **Export/import** — tenant-scoped JSON migration (`POST /v1/memories/export`, `/import`)  
-- **Prometheus** — `GET /metrics` (no auth); **OpenTelemetry** traces via OTLP/HTTP when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set on **API** and **worker** (see `.env.example`; default service names `pcmi-api` / `pcmi-worker`)  
+- **Prometheus** — `GET /metrics` (no auth) on API; **worker** exposes `GET :8081/metrics` with dedicated `WorkerRegistry` (`pcmi_worker_redis_events_total` by `event_type`, plus Go/process collectors)  
 - Ops docs: `docs/failure-modes.md`, `docs/scalability.md`  
 - **Refine API** — `POST /v1/memories/refine` queues distillation for a path prefix (SDK `refine()`)  
 - **Memory lineage** — `GET /v1/lineage/memory`, `GET /v1/lineage/distilled/{id}`  

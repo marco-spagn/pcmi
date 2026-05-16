@@ -80,7 +80,7 @@ Costanti `Tag` (`vX.Y.Z`) e `Semver` (`X.Y.Z` per OpenAPI) — unico punto per h
 
 ## `internal/metrics`
 
-Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
+Registry Prometheus dedicato (`metrics.Registry`) per **API**, contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Registry separato **`WorkerRegistry`** per **pcmi-worker** (`cmd/worker`), con `pcmi_worker_redis_events_total{event_type=…}` e collector Go/process. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
 
 ## `internal/telemetry`
 

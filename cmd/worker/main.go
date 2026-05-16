@@ -1,5 +1,5 @@
 // Programma pcmi-worker: job di embedding, distillation, pruning, consolidation ed expiry, più
-// subscribe al canale Redis memory_events. Richiede DATABASE_URL e REDIS_ADDR; health su :8081.
+// subscribe al canale Redis memory_events. Health e Prometheus su :8081 (`/health`, `/metrics`).
 // OpenTelemetry: stesse variabili OTLP dell’API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
 package main
 
@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -20,6 +21,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
 	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/worker"
@@ -69,7 +71,11 @@ func main() {
 				version.Tag,
 				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
-		log.Println("💓 Worker health endpoint started on :8081")
+		mux.Handle("/metrics", promhttp.HandlerFor(
+			metrics.WorkerRegistry,
+			promhttp.HandlerOpts{EnableOpenMetrics: false},
+		))
+		log.Println("💓 Worker HTTP on :8081 (/health, /metrics)")
 		if err := http.ListenAndServe(":8081", mux); err != nil {
 			log.Printf("Health server error: %v", err)
 		}
@@ -108,6 +114,7 @@ func main() {
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
+			metrics.IncWorkerRedisEvent(evt.Type)
 			_, span := tr.Start(context.Background(), "redis.memory_event",
 				trace.WithSpanKind(trace.SpanKindConsumer),
 				trace.WithAttributes(

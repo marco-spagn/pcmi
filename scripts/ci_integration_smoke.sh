@@ -128,6 +128,8 @@ curl -sf -X POST "${API}/v1/memories/import" "${hdr[@]}" -d "{\"mode\":\"skip\",
 curl -sf "${API}/health" >/dev/null
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d '{"path":"root.ci.metrics","content":"m","metadata":{}}' >/dev/null
 curl -sf -H 'Accept-Encoding: identity' "${API}/metrics" | grep -qE 'pcmi_memory_(stores|retrieves)_total'
+WORKER_HTTP="${WORKER_HTTP:-http://localhost:8081}"
+curl -sf -H 'Accept-Encoding: identity' "${WORKER_HTTP}/metrics" | grep -qE 'pcmi_worker_redis_events_total'
 curl -sf "${API}/v1/admin/tenants?limit=5" -H "X-API-Key: ${KEY}" | jq -e '.total >= 1'
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true
 GRPC_HOST="${GRPC_HOST:-localhost:50051}" GRPC_TEST_API_KEY="${KEY}" go run ./scripts/grpc_health_smoke.go

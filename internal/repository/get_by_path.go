@@ -35,7 +35,7 @@ func (r *MemoryRepository) GetByPath(
 		WHERE tenant_id = $1::uuid AND path = $2::ltree AND valid_to IS NULL
 		LIMIT 1`
 
-	row := r.db.QueryRow(ctx, q, tenantID, path)
+	row := r.r.QueryRow(ctx, q, tenantID, path)
 	e, err := r.scanMemoryEntry(row, false)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("memory not found for path %s", path)

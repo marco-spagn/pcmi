@@ -1,6 +1,12 @@
 # PCMI evolution roadmap
 
-## v1.17.0 (current)
+## v1.18.0 (current)
+
+- **Esempi orchestratori**: `examples/celery` e `examples/temporal` — task/activity HTTP verso PCMI.
+- **Read replica opzionale**: `DATABASE_READ_URL` instrada SELECT pesanti (retrieve, stats, lineage, …) su una streaming replica; federazione multi-tenant invariata (stesso cluster PG). Dettaglio in `docs/federation-read-replicas.md`.
+- Versione API `v1.18.0` allineata su health REST/gRPC, worker e CI.
+
+## v1.17.0
 
 - **Readiness**: `GET /ready`, `GET /v1/ready` (HTTP) e RPC `pcmi.v1.MemoryService/Ready` — ping PostgreSQL + Redis; 503 / `not_ready` se una dipendenza non risponde. Kubernetes sample usa `/v1/ready` per `readinessProbe`.
 - Versione API `v1.17.0` allineata su health REST/gRPC, worker e CI.
@@ -21,8 +27,6 @@
 
 ## Near term
 
-- Celery/Temporal adapter samples (external orchestrators calling PCMI HTTP)
-- Cross-tenant federation read replicas
 - Memory compaction policies beyond pruning
 - gRPC batch + streaming retrieve
 - OpenTelemetry traces alongside Prometheus metrics

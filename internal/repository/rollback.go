@@ -51,7 +51,7 @@ func (r *MemoryRepository) GetHistoricalVersion(
 		args = []any{tenantID, path, asOf}
 	}
 
-	row := r.db.QueryRow(ctx, q, args...)
+	row := r.w.QueryRow(ctx, q, args...)
 	e, err := r.scanMemoryEntry(row, false)
 	if err == pgx.ErrNoRows {
 		return nil, fmt.Errorf("no historical version found for path %s", path)

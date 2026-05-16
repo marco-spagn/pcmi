@@ -424,7 +424,7 @@ jobs:
       - name: v1.13 API pool metrics smoke
         run: |
           set -euo pipefail
-          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.17.0"'
+          curl -sf http://localhost:8000/v1/health | jq -e '.pool.total_conns >= 1 and .version == "v1.18.0"'
 
       - name: v1.14 get memory by path smoke
         run: |
@@ -484,7 +484,7 @@ jobs:
 
       - name: v1.14 gRPC health smoke
         env:
-          PCMI_EXPECT_VERSION: v1.17.0
+          PCMI_EXPECT_VERSION: v1.18.0
         run: |
           set -euo pipefail
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1 2>/dev/null || true

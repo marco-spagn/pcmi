@@ -12,8 +12,8 @@ type HistoryHandler struct {
 	repo *repository.MemoryRepository
 }
 
-func NewHistoryHandler(db *pgxpool.Pool) *HistoryHandler {
-	return &HistoryHandler{repo: repository.NewMemoryRepository(db)}
+func NewHistoryHandler(dbWrite, readReplica *pgxpool.Pool) *HistoryHandler {
+	return &HistoryHandler{repo: repository.NewMemoryRepository(dbWrite, readReplica)}
 }
 
 // Get returns all versions for a path (GET /v1/memories/history).

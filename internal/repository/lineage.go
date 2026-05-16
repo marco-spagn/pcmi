@@ -10,11 +10,15 @@ import (
 )
 
 type LineageRepository struct {
-	db *pgxpool.Pool
+	w *pgxpool.Pool
+	r *pgxpool.Pool
 }
 
-func NewLineageRepository(db *pgxpool.Pool) *LineageRepository {
-	return &LineageRepository{db: db}
+func NewLineageRepository(writePool, readPool *pgxpool.Pool) *LineageRepository {
+	if readPool == nil {
+		readPool = writePool
+	}
+	return &LineageRepository{w: writePool, r: readPool}
 }
 
 func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path string) (*model.MemoryLineageResponse, error) {
@@ -23,7 +27,7 @@ func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path st
 		return nil, fmt.Errorf("path is required")
 	}
 
-	memRepo := NewMemoryRepository(r.db)
+	memRepo := NewMemoryRepository(r.w, r.r)
 	versions, err := memRepo.ListPathHistory(ctx, tenantID, path, 100)
 	if err != nil {
 		return nil, err
@@ -33,7 +37,7 @@ func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path st
 	}
 
 	var distilled []model.DistilledLineageItem
-	rows, err := r.db.Query(ctx, `
+	rows, err := r.r.Query(ctx, `
 		SELECT id, path::text, summary, version, source_entry_ids, confidence_score
 		FROM distilled_knowledge
 		WHERE tenant_id = $1::uuid AND path <@ $2::ltree
@@ -64,7 +68,7 @@ func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path st
 
 func (r *LineageRepository) DistilledLineage(ctx context.Context, tenantID string, distilledID int64) (*model.DistilledLineageResponse, error) {
 	var item model.DistilledLineageItem
-	err := r.db.QueryRow(ctx, `
+	err := r.r.QueryRow(ctx, `
 		SELECT id, path::text, summary, version, source_entry_ids, confidence_score
 		FROM distilled_knowledge
 		WHERE tenant_id = $1::uuid AND id = $2`,
@@ -76,7 +80,7 @@ func (r *LineageRepository) DistilledLineage(ctx context.Context, tenantID strin
 
 	var sources []model.MemoryEntry
 	if len(item.SourceEntryIDs) > 0 {
-		rows, qErr := r.db.Query(ctx, `
+		rows, qErr := r.r.Query(ctx, `
 			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
 			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at, content_encrypted,
 			       NULL::float8
@@ -87,7 +91,7 @@ func (r *LineageRepository) DistilledLineage(ctx context.Context, tenantID strin
 			return nil, qErr
 		}
 		defer rows.Close()
-		memRepo := &MemoryRepository{db: r.db}
+		memRepo := NewMemoryRepository(r.w, r.r)
 		for rows.Next() {
 			e, scanErr := memRepo.scanMemoryEntry(rows, false)
 			if scanErr != nil {

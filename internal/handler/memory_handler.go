@@ -17,8 +17,8 @@ import (
 	"github.com/marco-spagn/pcmi/internal/service"
 )
 
-func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
-	repo := repository.NewMemoryRepository(db)
+func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
+	repo := repository.NewMemoryRepository(dbWrite, readReplica)
 
 	var embed embedding.Provider
 	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
@@ -95,43 +95,43 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 
 	registerBatchRoutes(api, svc)
 
-	lh := NewLineageHandler(db)
+	lh := NewLineageHandler(dbWrite, readReplica)
 	// Use /lineage/* — /memories/lineage is captured by the /memories/* wildcard.
 	api.Get("/lineage/memory", lh.MemoryLineage)
 
 	rfh := NewRefineHandler()
 	api.Post("/memories/refine", middleware.RequireWriteRole, rfh.Post)
 
-	lnh := NewLinksHandler(db)
+	lnh := NewLinksHandler(dbWrite, readReplica)
 	api.Post("/memories/links", middleware.RequireWriteRole, lnh.Post)
 	api.Get("/memories/links", lnh.List)
 
-	RegisterStatsRoute(api, db)
+	RegisterStatsRoute(api, dbWrite, readReplica)
 
-	dh := NewDistilledHandler(db)
+	dh := NewDistilledHandler(dbWrite)
 	api.Get("/distilled", dh.Get)
 	api.Get("/lineage/distilled/:id", lh.DistilledLineage)
 
-	eh := NewEventsHandler(db)
+	eh := NewEventsHandler(dbWrite)
 	api.Get("/events/schemas", eh.ListSchemas)
 	api.Get("/events", eh.Stream)
 	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
 
-	sh := NewSummarizeHandler(db)
+	sh := NewSummarizeHandler(dbWrite, readReplica)
 	api.Post("/memories/summarize", sh.Post)
 
-	hh := NewHistoryHandler(db)
+	hh := NewHistoryHandler(dbWrite, readReplica)
 	api.Get("/memories/history", hh.Get)
 
-	ah := NewAuditHandler(db)
+	ah := NewAuditHandler(dbWrite)
 	api.Get("/audit", ah.List)
 
-	wh := NewWebhookHandler(db)
+	wh := NewWebhookHandler(dbWrite)
 	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)
 	api.Get("/webhooks", wh.List)
 	api.Get("/webhooks/dead-letter", wh.DeadLetter)
 
-	emh := NewEmbeddingMigrateHandler(db)
+	emh := NewEmbeddingMigrateHandler(dbWrite)
 	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
 
 	// Wildcard GET must be registered after all specific /memories/* routes (history, batch, etc.)
@@ -172,10 +172,10 @@ func SetupMemoryRoutes(app *fiber.App, db *pgxpool.Pool) {
 	})
 
 	api.Get("/health", func(c *fiber.Ctx) error {
-		stats := db.Stat()
+		stats := dbWrite.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.17.0",
+			"version": "v1.18.0",
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

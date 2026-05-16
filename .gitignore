@@ -48,3 +48,8 @@ coverage.out
 coverage.html
 
 # ====================== PCMI SPECIFIC ======================
+# Smoke script venv (local only)
+examples/temporal/.venv_smoke/
+examples/celery/.venv_smoke/
+__pycache__/
+*.py[cod]

@@ -14,11 +14,17 @@ import (
 )
 
 type MemoryRepository struct {
-	db *pgxpool.Pool
+	w *pgxpool.Pool // primary: transactions, inserts, strong reads (rollback / historical)
+	r *pgxpool.Pool // read pool: replica when configured, else same as w
 }
 
-func NewMemoryRepository(db *pgxpool.Pool) *MemoryRepository {
-	return &MemoryRepository{db: db}
+// NewMemoryRepository routes writes to writePool and SELECT-heavy paths to readPool.
+// If readPool is nil, readPool defaults to writePool.
+func NewMemoryRepository(writePool, readPool *pgxpool.Pool) *MemoryRepository {
+	if readPool == nil {
+		readPool = writePool
+	}
+	return &MemoryRepository{w: writePool, r: readPool}
 }
 
 // Store appends a new version for path, soft-closing the current row when one exists.
@@ -55,7 +61,7 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		contentEncrypted = true
 	}
 
-	tx, err := r.db.Begin(ctx)
+	tx, err := r.w.Begin(ctx)
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store begin tx: %w", err)
 	}
@@ -255,7 +261,7 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		args = []any{tenantID, path, req.AsOf, agentFilter, spaceFilter, tagList, tagMatch, limit}
 	}
 
-	rows, err := r.db.Query(ctx, q, args...)
+	rows, err := r.r.Query(ctx, q, args...)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}

@@ -5,6 +5,7 @@
 | Component | Scale strategy |
 |-----------|----------------|
 | **API** | Stateless; scale behind load balancer. Share Postgres + Redis. Enable `/metrics` scraping per pod. |
+| **Postgres replica (optional)** | Set `DATABASE_READ_URL` on API pods to offload SELECT-heavy routes (retrieve, stats, lineage, export read path, link list) to a streaming replica; `DATABASE_URL` remains the primary for writes and strong reads. See `docs/federation-read-replicas.md`. |
 | **Worker** | Multiple replicas consume Redis pub/sub; distillation/consolidation use DB row locks implicitly via single-writer patterns per prefix—expect some duplicate work at scale; safe due to append-only store. |
 | **Postgres** | Primary bottleneck for write-heavy workloads. Partition by `tenant_id` at very large scale; index `path`, `content_tsv`, `embedding` already present. |
 | **Redis** | Fan-out only; not durable source of truth. |
@@ -18,6 +19,7 @@
 ## Connection pools
 
 - API and worker expose pool stats on health endpoints. Tune `pgxpool` max conns per pod so `replicas × max_conns` stays below Postgres `max_connections`.
+- If the API uses `DATABASE_READ_URL`, add the replica pool’s max conns to the same capacity planning (two pools per API pod).
 
 ## gRPC
 

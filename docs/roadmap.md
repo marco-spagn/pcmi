@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.29.0 (current)
+## v1.30.0 (current)
+
+- **Documentazione**: README con guide d’uso, diagrammi Mermaid, [docs/INDEX.md](INDEX.md), [USAGE.md](USAGE.md), [DATA-MODEL.md](DATA-MODEL.md), [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md); `architecture.md` aggiornato.
+- Versione API `v1.30.0` (solo documentazione; comportamento invariato).
+
+## v1.29.0
 
 - **gRPC operational parity**: refine, links, stats, events (ingest + schemas + **StreamEvents**), webhooks, migrate embeddings, rollback, summarize, history, lineage, distilled, audit, export/import. Admin e `/metrics` restano HTTP-only.
 - Versione API `v1.29.0`.

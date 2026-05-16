@@ -22,9 +22,8 @@ import (
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/version"
 )
-
-const releaseVersion = "v1.20.0"
 
 type memoryServer struct {
 	pcmiv1.UnimplementedMemoryServiceServer
@@ -32,7 +31,7 @@ type memoryServer struct {
 	db  *pgxpool.Pool
 }
 
-func (s *memoryServer) resolveTenant(ctx context.Context, apiKey string) (string, error) {
+func (s *memoryServer) resolveTenantAndRole(ctx context.Context, apiKey string) (tenantID string, role string, err error) {
 	apiKey = strings.TrimSpace(apiKey)
 	if apiKey == "" {
 		if md, ok := metadata.FromIncomingContext(ctx); ok {
@@ -42,26 +41,43 @@ func (s *memoryServer) resolveTenant(ctx context.Context, apiKey string) (string
 		}
 	}
 	if apiKey == "" {
-		return "", status.Error(codes.Unauthenticated, "missing API key")
+		return "", "", status.Error(codes.Unauthenticated, "missing API key")
 	}
 	hash := sha256.Sum256([]byte(apiKey))
 	keyHash := hex.EncodeToString(hash[:])
-	var tenantID string
 	var active bool
-	err := s.db.QueryRow(ctx, `
-		SELECT tenant_id::text, is_active FROM api_keys
+	err = s.db.QueryRow(ctx, `
+		SELECT tenant_id::text, role, is_active FROM api_keys
 		WHERE key_hash = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
-		keyHash).Scan(&tenantID, &active)
+		keyHash).Scan(&tenantID, &role, &active)
 	if err != nil || !active {
-		return "", status.Error(codes.Unauthenticated, "invalid API key")
+		return "", "", status.Error(codes.Unauthenticated, "invalid API key")
 	}
 	_, _ = s.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID)
-	return tenantID, nil
+	return tenantID, role, nil
+}
+
+func requireWriteRole(role string) error {
+	if role == "readonly" {
+		return status.Error(codes.PermissionDenied, "read-only API key cannot perform write operations")
+	}
+	return nil
+}
+
+func mapSvcValidationErr(context string, err error) error {
+	msg := err.Error()
+	if strings.Contains(msg, "required") || strings.Contains(msg, "maximum") {
+		return status.Error(codes.InvalidArgument, msg)
+	}
+	return status.Errorf(codes.Internal, "%s: %v", context, err)
 }
 
 func (s *memoryServer) Store(ctx context.Context, req *pcmiv1.StoreRequest) (*pcmiv1.StoreResponse, error) {
-	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	tenantID, role, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
 	if err != nil {
+		return nil, err
+	}
+	if err := requireWriteRole(role); err != nil {
 		return nil, err
 	}
 	meta := map[string]interface{}{}
@@ -80,8 +96,24 @@ func (s *memoryServer) Store(ctx context.Context, req *pcmiv1.StoreRequest) (*pc
 	}, nil
 }
 
+func (s *memoryServer) BatchStore(ctx context.Context, req *pcmiv1.BatchStoreRequest) (*pcmiv1.BatchStoreResponse, error) {
+	tenantID, role, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
+	if err != nil {
+		return nil, err
+	}
+	if err := requireWriteRole(role); err != nil {
+		return nil, err
+	}
+	batch := &model.BatchStoreRequest{Items: batchStoreProtoToModel(req.GetItems())}
+	result, err := s.svc.BatchStore(ctx, batch, tenantID)
+	if err != nil {
+		return nil, mapSvcValidationErr("batch store", err)
+	}
+	return batchStoreModelToProto(result), nil
+}
+
 func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest) (*pcmiv1.RetrieveResponse, error) {
-	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	tenantID, _, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
 	if err != nil {
 		return nil, err
 	}
@@ -103,30 +135,22 @@ func (s *memoryServer) Retrieve(ctx context.Context, req *pcmiv1.RetrieveRequest
 	return out, nil
 }
 
-func mapBatchRetrieveErr(err error) error {
-	msg := err.Error()
-	if strings.Contains(msg, "required") || strings.Contains(msg, "maximum") {
-		return status.Error(codes.InvalidArgument, msg)
-	}
-	return status.Errorf(codes.Internal, "batch retrieve: %v", err)
-}
-
 func (s *memoryServer) BatchRetrieve(ctx context.Context, req *pcmiv1.BatchRetrieveRequest) (*pcmiv1.BatchRetrieveResponse, error) {
-	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	tenantID, _, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
 	if err != nil {
 		return nil, err
 	}
 	batch := &model.BatchRetrieveRequest{Queries: batchQueriesProtoToModel(req.GetQueries())}
 	result, err := s.svc.BatchRetrieve(ctx, batch, tenantID)
 	if err != nil {
-		return nil, mapBatchRetrieveErr(err)
+		return nil, mapSvcValidationErr("batch retrieve", err)
 	}
 	return batchRetrieveModelToProto(result), nil
 }
 
 func (s *memoryServer) RetrieveStream(req *pcmiv1.RetrieveRequest, stream pcmiv1.MemoryService_RetrieveStreamServer) error {
 	ctx := stream.Context()
-	tenantID, err := s.resolveTenant(ctx, req.GetApiKey())
+	tenantID, _, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
 	if err != nil {
 		return err
 	}
@@ -163,7 +187,7 @@ func (s *memoryServer) RetrieveStream(req *pcmiv1.RetrieveRequest, stream pcmiv1
 }
 
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
-	return &pcmiv1.HealthResponse{Status: "ok", Version: releaseVersion}, nil
+	return &pcmiv1.HealthResponse{Status: "ok", Version: version.Tag}, nil
 }
 
 func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmiv1.ReadyResponse, error) {
@@ -177,7 +201,7 @@ func (s *memoryServer) Ready(ctx context.Context, _ *pcmiv1.ReadyRequest) (*pcmi
 		Status:     st,
 		DatabaseOk: dbOK,
 		RedisOk:    redisOK,
-		Version:    releaseVersion,
+		Version:    version.Tag,
 	}, nil
 }
 
@@ -195,7 +219,7 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{svc: memSvc, db: db})
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (Store/Retrieve/BatchRetrieve/RetrieveStream/Health/Ready)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (Store/BatchStore/Retrieve/BatchRetrieve/RetrieveStream/Health/Ready)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}
@@ -203,7 +227,7 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 }
 
 // ResolveTenantForTest exposes tenant resolution for integration tests.
-func ResolveTenantForTest(ctx context.Context, db *pgxpool.Pool, apiKey string) (string, error) {
+func ResolveTenantForTest(ctx context.Context, db *pgxpool.Pool, apiKey string) (tenantID string, role string, err error) {
 	s := &memoryServer{db: db}
-	return s.resolveTenant(ctx, apiKey)
+	return s.resolveTenantAndRole(ctx, apiKey)
 }

@@ -40,7 +40,7 @@ func main() {
 	}
 	expected := os.Getenv("PCMI_EXPECT_VERSION")
 	if expected == "" {
-		expected = "v1.20.0"
+	expected = "v1.21.0"
 	}
 	if resp.GetStatus() != "ok" || resp.GetVersion() != expected {
 		fmt.Fprintf(os.Stderr, "unexpected health: %+v (want version %s)\n", resp, expected)
@@ -60,6 +60,15 @@ func main() {
 	key := strings.TrimSpace(os.Getenv("GRPC_TEST_API_KEY"))
 	if key == "" {
 		return
+	}
+	_, err = client.BatchStore(ctx, &pcmiv1.BatchStoreRequest{ApiKey: key})
+	if err == nil {
+		fmt.Fprintln(os.Stderr, "BatchStore with no items: expected error")
+		os.Exit(1)
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.InvalidArgument {
+		fmt.Fprintf(os.Stderr, "BatchStore empty: want InvalidArgument, got %v\n", err)
+		os.Exit(1)
 	}
 	_, err = client.BatchRetrieve(ctx, &pcmiv1.BatchRetrieveRequest{ApiKey: key})
 	if err == nil {
@@ -96,5 +105,5 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	fmt.Println("gRPC BatchRetrieve + RetrieveStream smoke ok")
+	fmt.Println("gRPC BatchStore + BatchRetrieve + RetrieveStream smoke ok")
 }

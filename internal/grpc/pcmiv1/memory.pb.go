@@ -253,6 +253,254 @@ func (x *StoreResponse) GetVersion() int32 {
 	return 0
 }
 
+type BatchStoreItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	MetadataJson  string                 `protobuf:"bytes,3,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchStoreItem) Reset() {
+	*x = BatchStoreItem{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchStoreItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchStoreItem) ProtoMessage() {}
+
+func (x *BatchStoreItem) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchStoreItem.ProtoReflect.Descriptor instead.
+func (*BatchStoreItem) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *BatchStoreItem) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *BatchStoreItem) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+type BatchStoreRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Items         []*BatchStoreItem      `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,2,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchStoreRequest) Reset() {
+	*x = BatchStoreRequest{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchStoreRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchStoreRequest) ProtoMessage() {}
+
+func (x *BatchStoreRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchStoreRequest.ProtoReflect.Descriptor instead.
+func (*BatchStoreRequest) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *BatchStoreRequest) GetItems() []*BatchStoreItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *BatchStoreRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type BatchStoreItemResult struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Index         int32                  `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Id            int64                  `protobuf:"varint,2,opt,name=id,proto3" json:"id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Version       int32                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	SupersededId  *int64                 `protobuf:"varint,5,opt,name=superseded_id,json=supersededId,proto3,oneof" json:"superseded_id,omitempty"`
+	Error         string                 `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchStoreItemResult) Reset() {
+	*x = BatchStoreItemResult{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchStoreItemResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchStoreItemResult) ProtoMessage() {}
+
+func (x *BatchStoreItemResult) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchStoreItemResult.ProtoReflect.Descriptor instead.
+func (*BatchStoreItemResult) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BatchStoreItemResult) GetIndex() int32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *BatchStoreItemResult) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *BatchStoreItemResult) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *BatchStoreItemResult) GetVersion() int32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *BatchStoreItemResult) GetSupersededId() int64 {
+	if x != nil && x.SupersededId != nil {
+		return *x.SupersededId
+	}
+	return 0
+}
+
+func (x *BatchStoreItemResult) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type BatchStoreResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Results       []*BatchStoreItemResult `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Total         int32                   `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchStoreResponse) Reset() {
+	*x = BatchStoreResponse{}
+	mi := &file_pcmi_v1_memory_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchStoreResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchStoreResponse) ProtoMessage() {}
+
+func (x *BatchStoreResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pcmi_v1_memory_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchStoreResponse.ProtoReflect.Descriptor instead.
+func (*BatchStoreResponse) Descriptor() ([]byte, []int) {
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BatchStoreResponse) GetResults() []*BatchStoreItemResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *BatchStoreResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 type RetrieveRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	PathPrefix    string                 `protobuf:"bytes,1,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
@@ -265,7 +513,7 @@ type RetrieveRequest struct {
 
 func (x *RetrieveRequest) Reset() {
 	*x = RetrieveRequest{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[4]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -277,7 +525,7 @@ func (x *RetrieveRequest) String() string {
 func (*RetrieveRequest) ProtoMessage() {}
 
 func (x *RetrieveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[4]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,7 +538,7 @@ func (x *RetrieveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetrieveRequest.ProtoReflect.Descriptor instead.
 func (*RetrieveRequest) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{4}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *RetrieveRequest) GetPathPrefix() string {
@@ -334,7 +582,7 @@ type RetrieveEntry struct {
 
 func (x *RetrieveEntry) Reset() {
 	*x = RetrieveEntry{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[5]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -346,7 +594,7 @@ func (x *RetrieveEntry) String() string {
 func (*RetrieveEntry) ProtoMessage() {}
 
 func (x *RetrieveEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[5]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -359,7 +607,7 @@ func (x *RetrieveEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetrieveEntry.ProtoReflect.Descriptor instead.
 func (*RetrieveEntry) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{5}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RetrieveEntry) GetId() int64 {
@@ -407,7 +655,7 @@ type RetrieveResponse struct {
 
 func (x *RetrieveResponse) Reset() {
 	*x = RetrieveResponse{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[6]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -419,7 +667,7 @@ func (x *RetrieveResponse) String() string {
 func (*RetrieveResponse) ProtoMessage() {}
 
 func (x *RetrieveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[6]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -432,7 +680,7 @@ func (x *RetrieveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetrieveResponse.ProtoReflect.Descriptor instead.
 func (*RetrieveResponse) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{6}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RetrieveResponse) GetEntries() []*RetrieveEntry {
@@ -460,7 +708,7 @@ type BatchRetrieveQuery struct {
 
 func (x *BatchRetrieveQuery) Reset() {
 	*x = BatchRetrieveQuery{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[7]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -472,7 +720,7 @@ func (x *BatchRetrieveQuery) String() string {
 func (*BatchRetrieveQuery) ProtoMessage() {}
 
 func (x *BatchRetrieveQuery) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[7]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -485,7 +733,7 @@ func (x *BatchRetrieveQuery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRetrieveQuery.ProtoReflect.Descriptor instead.
 func (*BatchRetrieveQuery) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{7}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *BatchRetrieveQuery) GetPathPrefix() string {
@@ -519,7 +767,7 @@ type BatchRetrieveRequest struct {
 
 func (x *BatchRetrieveRequest) Reset() {
 	*x = BatchRetrieveRequest{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[8]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -531,7 +779,7 @@ func (x *BatchRetrieveRequest) String() string {
 func (*BatchRetrieveRequest) ProtoMessage() {}
 
 func (x *BatchRetrieveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[8]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +792,7 @@ func (x *BatchRetrieveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRetrieveRequest.ProtoReflect.Descriptor instead.
 func (*BatchRetrieveRequest) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{8}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *BatchRetrieveRequest) GetQueries() []*BatchRetrieveQuery {
@@ -571,7 +819,7 @@ type BatchRetrieveResult struct {
 
 func (x *BatchRetrieveResult) Reset() {
 	*x = BatchRetrieveResult{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[9]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -583,7 +831,7 @@ func (x *BatchRetrieveResult) String() string {
 func (*BatchRetrieveResult) ProtoMessage() {}
 
 func (x *BatchRetrieveResult) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[9]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -596,7 +844,7 @@ func (x *BatchRetrieveResult) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRetrieveResult.ProtoReflect.Descriptor instead.
 func (*BatchRetrieveResult) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{9}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *BatchRetrieveResult) GetEntries() []*RetrieveEntry {
@@ -623,7 +871,7 @@ type BatchRetrieveResponse struct {
 
 func (x *BatchRetrieveResponse) Reset() {
 	*x = BatchRetrieveResponse{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[10]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +883,7 @@ func (x *BatchRetrieveResponse) String() string {
 func (*BatchRetrieveResponse) ProtoMessage() {}
 
 func (x *BatchRetrieveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[10]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +896,7 @@ func (x *BatchRetrieveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BatchRetrieveResponse.ProtoReflect.Descriptor instead.
 func (*BatchRetrieveResponse) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{10}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *BatchRetrieveResponse) GetResults() []*BatchRetrieveResult {
@@ -674,7 +922,7 @@ type RetrieveStreamHeader struct {
 
 func (x *RetrieveStreamHeader) Reset() {
 	*x = RetrieveStreamHeader{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[11]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -686,7 +934,7 @@ func (x *RetrieveStreamHeader) String() string {
 func (*RetrieveStreamHeader) ProtoMessage() {}
 
 func (x *RetrieveStreamHeader) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[11]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -699,7 +947,7 @@ func (x *RetrieveStreamHeader) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetrieveStreamHeader.ProtoReflect.Descriptor instead.
 func (*RetrieveStreamHeader) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{11}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *RetrieveStreamHeader) GetTotal() int32 {
@@ -722,7 +970,7 @@ type RetrieveStreamMsg struct {
 
 func (x *RetrieveStreamMsg) Reset() {
 	*x = RetrieveStreamMsg{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[12]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +982,7 @@ func (x *RetrieveStreamMsg) String() string {
 func (*RetrieveStreamMsg) ProtoMessage() {}
 
 func (x *RetrieveStreamMsg) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[12]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +995,7 @@ func (x *RetrieveStreamMsg) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetrieveStreamMsg.ProtoReflect.Descriptor instead.
 func (*RetrieveStreamMsg) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{12}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *RetrieveStreamMsg) GetMsg() isRetrieveStreamMsg_Msg {
@@ -799,7 +1047,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[13]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -811,7 +1059,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[13]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -824,7 +1072,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{13}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{17}
 }
 
 type HealthResponse struct {
@@ -837,7 +1085,7 @@ type HealthResponse struct {
 
 func (x *HealthResponse) Reset() {
 	*x = HealthResponse{}
-	mi := &file_pcmi_v1_memory_proto_msgTypes[14]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -849,7 +1097,7 @@ func (x *HealthResponse) String() string {
 func (*HealthResponse) ProtoMessage() {}
 
 func (x *HealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pcmi_v1_memory_proto_msgTypes[14]
+	mi := &file_pcmi_v1_memory_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -862,7 +1110,7 @@ func (x *HealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthResponse.ProtoReflect.Descriptor instead.
 func (*HealthResponse) Descriptor() ([]byte, []int) {
-	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{14}
+	return file_pcmi_v1_memory_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *HealthResponse) GetStatus() string {
@@ -899,7 +1147,25 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\rStoreResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +
-	"\aversion\x18\x03 \x01(\x05R\aversion\"w\n" +
+	"\aversion\x18\x03 \x01(\x05R\aversion\"c\n" +
+	"\x0eBatchStoreItem\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
+	"\rmetadata_json\x18\x03 \x01(\tR\fmetadataJson\"[\n" +
+	"\x11BatchStoreRequest\x12-\n" +
+	"\x05items\x18\x01 \x03(\v2\x17.pcmi.v1.BatchStoreItemR\x05items\x12\x17\n" +
+	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"\xc0\x01\n" +
+	"\x14BatchStoreItemResult\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\x05R\x05index\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\x03R\x02id\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x18\n" +
+	"\aversion\x18\x04 \x01(\x05R\aversion\x12(\n" +
+	"\rsuperseded_id\x18\x05 \x01(\x03H\x00R\fsupersededId\x88\x01\x01\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05errorB\x10\n" +
+	"\x0e_superseded_id\"c\n" +
+	"\x12BatchStoreResponse\x127\n" +
+	"\aresults\x18\x01 \x03(\v2\x1d.pcmi.v1.BatchStoreItemResultR\aresults\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\"w\n" +
 	"\x0fRetrieveRequest\x12\x1f\n" +
 	"\vpath_prefix\x18\x01 \x01(\tR\n" +
 	"pathPrefix\x12\x14\n" +
@@ -938,9 +1204,11 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\rHealthRequest\"B\n" +
 	"\x0eHealthResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\x18\n" +
-	"\aversion\x18\x02 \x01(\tR\aversion2\x95\x03\n" +
+	"\aversion\x18\x02 \x01(\tR\aversion2\xdc\x03\n" +
 	"\rMemoryService\x126\n" +
-	"\x05Store\x12\x15.pcmi.v1.StoreRequest\x1a\x16.pcmi.v1.StoreResponse\x12?\n" +
+	"\x05Store\x12\x15.pcmi.v1.StoreRequest\x1a\x16.pcmi.v1.StoreResponse\x12E\n" +
+	"\n" +
+	"BatchStore\x12\x1a.pcmi.v1.BatchStoreRequest\x1a\x1b.pcmi.v1.BatchStoreResponse\x12?\n" +
 	"\bRetrieve\x12\x18.pcmi.v1.RetrieveRequest\x1a\x19.pcmi.v1.RetrieveResponse\x12N\n" +
 	"\rBatchRetrieve\x12\x1d.pcmi.v1.BatchRetrieveRequest\x1a\x1e.pcmi.v1.BatchRetrieveResponse\x12H\n" +
 	"\x0eRetrieveStream\x12\x18.pcmi.v1.RetrieveRequest\x1a\x1a.pcmi.v1.RetrieveStreamMsg0\x01\x129\n" +
@@ -959,48 +1227,56 @@ func file_pcmi_v1_memory_proto_rawDescGZIP() []byte {
 	return file_pcmi_v1_memory_proto_rawDescData
 }
 
-var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_pcmi_v1_memory_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_pcmi_v1_memory_proto_goTypes = []any{
 	(*ReadyRequest)(nil),          // 0: pcmi.v1.ReadyRequest
 	(*ReadyResponse)(nil),         // 1: pcmi.v1.ReadyResponse
 	(*StoreRequest)(nil),          // 2: pcmi.v1.StoreRequest
 	(*StoreResponse)(nil),         // 3: pcmi.v1.StoreResponse
-	(*RetrieveRequest)(nil),       // 4: pcmi.v1.RetrieveRequest
-	(*RetrieveEntry)(nil),         // 5: pcmi.v1.RetrieveEntry
-	(*RetrieveResponse)(nil),      // 6: pcmi.v1.RetrieveResponse
-	(*BatchRetrieveQuery)(nil),    // 7: pcmi.v1.BatchRetrieveQuery
-	(*BatchRetrieveRequest)(nil),  // 8: pcmi.v1.BatchRetrieveRequest
-	(*BatchRetrieveResult)(nil),   // 9: pcmi.v1.BatchRetrieveResult
-	(*BatchRetrieveResponse)(nil), // 10: pcmi.v1.BatchRetrieveResponse
-	(*RetrieveStreamHeader)(nil),  // 11: pcmi.v1.RetrieveStreamHeader
-	(*RetrieveStreamMsg)(nil),     // 12: pcmi.v1.RetrieveStreamMsg
-	(*HealthRequest)(nil),         // 13: pcmi.v1.HealthRequest
-	(*HealthResponse)(nil),        // 14: pcmi.v1.HealthResponse
+	(*BatchStoreItem)(nil),        // 4: pcmi.v1.BatchStoreItem
+	(*BatchStoreRequest)(nil),     // 5: pcmi.v1.BatchStoreRequest
+	(*BatchStoreItemResult)(nil),  // 6: pcmi.v1.BatchStoreItemResult
+	(*BatchStoreResponse)(nil),    // 7: pcmi.v1.BatchStoreResponse
+	(*RetrieveRequest)(nil),       // 8: pcmi.v1.RetrieveRequest
+	(*RetrieveEntry)(nil),         // 9: pcmi.v1.RetrieveEntry
+	(*RetrieveResponse)(nil),      // 10: pcmi.v1.RetrieveResponse
+	(*BatchRetrieveQuery)(nil),    // 11: pcmi.v1.BatchRetrieveQuery
+	(*BatchRetrieveRequest)(nil),  // 12: pcmi.v1.BatchRetrieveRequest
+	(*BatchRetrieveResult)(nil),   // 13: pcmi.v1.BatchRetrieveResult
+	(*BatchRetrieveResponse)(nil), // 14: pcmi.v1.BatchRetrieveResponse
+	(*RetrieveStreamHeader)(nil),  // 15: pcmi.v1.RetrieveStreamHeader
+	(*RetrieveStreamMsg)(nil),     // 16: pcmi.v1.RetrieveStreamMsg
+	(*HealthRequest)(nil),         // 17: pcmi.v1.HealthRequest
+	(*HealthResponse)(nil),        // 18: pcmi.v1.HealthResponse
 }
 var file_pcmi_v1_memory_proto_depIdxs = []int32{
-	5,  // 0: pcmi.v1.RetrieveResponse.entries:type_name -> pcmi.v1.RetrieveEntry
-	7,  // 1: pcmi.v1.BatchRetrieveRequest.queries:type_name -> pcmi.v1.BatchRetrieveQuery
-	5,  // 2: pcmi.v1.BatchRetrieveResult.entries:type_name -> pcmi.v1.RetrieveEntry
-	9,  // 3: pcmi.v1.BatchRetrieveResponse.results:type_name -> pcmi.v1.BatchRetrieveResult
-	11, // 4: pcmi.v1.RetrieveStreamMsg.header:type_name -> pcmi.v1.RetrieveStreamHeader
-	5,  // 5: pcmi.v1.RetrieveStreamMsg.entry:type_name -> pcmi.v1.RetrieveEntry
-	2,  // 6: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
-	4,  // 7: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
-	8,  // 8: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
-	4,  // 9: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
-	13, // 10: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
-	0,  // 11: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
-	3,  // 12: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
-	6,  // 13: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
-	10, // 14: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
-	12, // 15: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
-	14, // 16: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
-	1,  // 17: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
-	12, // [12:18] is the sub-list for method output_type
-	6,  // [6:12] is the sub-list for method input_type
-	6,  // [6:6] is the sub-list for extension type_name
-	6,  // [6:6] is the sub-list for extension extendee
-	0,  // [0:6] is the sub-list for field type_name
+	4,  // 0: pcmi.v1.BatchStoreRequest.items:type_name -> pcmi.v1.BatchStoreItem
+	6,  // 1: pcmi.v1.BatchStoreResponse.results:type_name -> pcmi.v1.BatchStoreItemResult
+	9,  // 2: pcmi.v1.RetrieveResponse.entries:type_name -> pcmi.v1.RetrieveEntry
+	11, // 3: pcmi.v1.BatchRetrieveRequest.queries:type_name -> pcmi.v1.BatchRetrieveQuery
+	9,  // 4: pcmi.v1.BatchRetrieveResult.entries:type_name -> pcmi.v1.RetrieveEntry
+	13, // 5: pcmi.v1.BatchRetrieveResponse.results:type_name -> pcmi.v1.BatchRetrieveResult
+	15, // 6: pcmi.v1.RetrieveStreamMsg.header:type_name -> pcmi.v1.RetrieveStreamHeader
+	9,  // 7: pcmi.v1.RetrieveStreamMsg.entry:type_name -> pcmi.v1.RetrieveEntry
+	2,  // 8: pcmi.v1.MemoryService.Store:input_type -> pcmi.v1.StoreRequest
+	5,  // 9: pcmi.v1.MemoryService.BatchStore:input_type -> pcmi.v1.BatchStoreRequest
+	8,  // 10: pcmi.v1.MemoryService.Retrieve:input_type -> pcmi.v1.RetrieveRequest
+	12, // 11: pcmi.v1.MemoryService.BatchRetrieve:input_type -> pcmi.v1.BatchRetrieveRequest
+	8,  // 12: pcmi.v1.MemoryService.RetrieveStream:input_type -> pcmi.v1.RetrieveRequest
+	17, // 13: pcmi.v1.MemoryService.Health:input_type -> pcmi.v1.HealthRequest
+	0,  // 14: pcmi.v1.MemoryService.Ready:input_type -> pcmi.v1.ReadyRequest
+	3,  // 15: pcmi.v1.MemoryService.Store:output_type -> pcmi.v1.StoreResponse
+	7,  // 16: pcmi.v1.MemoryService.BatchStore:output_type -> pcmi.v1.BatchStoreResponse
+	10, // 17: pcmi.v1.MemoryService.Retrieve:output_type -> pcmi.v1.RetrieveResponse
+	14, // 18: pcmi.v1.MemoryService.BatchRetrieve:output_type -> pcmi.v1.BatchRetrieveResponse
+	16, // 19: pcmi.v1.MemoryService.RetrieveStream:output_type -> pcmi.v1.RetrieveStreamMsg
+	18, // 20: pcmi.v1.MemoryService.Health:output_type -> pcmi.v1.HealthResponse
+	1,  // 21: pcmi.v1.MemoryService.Ready:output_type -> pcmi.v1.ReadyResponse
+	15, // [15:22] is the sub-list for method output_type
+	8,  // [8:15] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_pcmi_v1_memory_proto_init() }
@@ -1008,7 +1284,8 @@ func file_pcmi_v1_memory_proto_init() {
 	if File_pcmi_v1_memory_proto != nil {
 		return
 	}
-	file_pcmi_v1_memory_proto_msgTypes[12].OneofWrappers = []any{
+	file_pcmi_v1_memory_proto_msgTypes[6].OneofWrappers = []any{}
+	file_pcmi_v1_memory_proto_msgTypes[16].OneofWrappers = []any{
 		(*RetrieveStreamMsg_Header)(nil),
 		(*RetrieveStreamMsg_Entry)(nil),
 	}
@@ -1018,7 +1295,7 @@ func file_pcmi_v1_memory_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pcmi_v1_memory_proto_rawDesc), len(file_pcmi_v1_memory_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

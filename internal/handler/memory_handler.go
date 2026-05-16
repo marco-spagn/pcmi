@@ -15,6 +15,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/version"
 )
 
 func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
@@ -191,7 +192,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
 		stats := dbWrite.Stat()
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"version": "v1.20.0",
+			"version": version.Tag,
 			"pool": fiber.Map{
 				"total_conns":    stats.TotalConns(),
 				"idle_conns":     stats.IdleConns(),

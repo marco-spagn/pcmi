@@ -27,6 +27,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
+	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
@@ -42,7 +43,7 @@ func skipTracePath(c *fiber.Ctx) bool {
 }
 
 func main() {
-	log.Println("🚀 PCMI API v1.20 starting...")
+	log.Println("🚀 PCMI API " + version.Tag + " starting...")
 
 	ctx := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctx)
@@ -83,7 +84,7 @@ func main() {
 	memSvc := service.NewMemoryService(repo, embed)
 
 	app := fiber.New(fiber.Config{
-		AppName: "PCMI API v1.20",
+		AppName: "PCMI API " + version.Tag,
 	})
 
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(skipTracePath)))
@@ -102,7 +103,7 @@ func main() {
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": "v1.20.0"})
+		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": version.Tag})
 	})
 
 	grpcserver.Start(db, memSvc)
@@ -112,7 +113,7 @@ func main() {
 		port = "8000"
 	}
 
-	log.Printf("✅ PCMI API v1.20 started on port %s (/v1/ready per readiness)", port)
+	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, port)
 	if pools.Read != nil {
 		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
 	}

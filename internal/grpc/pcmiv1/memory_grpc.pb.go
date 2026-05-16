@@ -20,6 +20,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	MemoryService_Store_FullMethodName          = "/pcmi.v1.MemoryService/Store"
+	MemoryService_BatchStore_FullMethodName     = "/pcmi.v1.MemoryService/BatchStore"
 	MemoryService_Retrieve_FullMethodName       = "/pcmi.v1.MemoryService/Retrieve"
 	MemoryService_BatchRetrieve_FullMethodName  = "/pcmi.v1.MemoryService/BatchRetrieve"
 	MemoryService_RetrieveStream_FullMethodName = "/pcmi.v1.MemoryService/RetrieveStream"
@@ -32,6 +33,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MemoryServiceClient interface {
 	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
+	// BatchStore mirrors POST /v1/memories/batch (max 50 items; write role required; same semantics as REST).
+	BatchStore(ctx context.Context, in *BatchStoreRequest, opts ...grpc.CallOption) (*BatchStoreResponse, error)
 	Retrieve(ctx context.Context, in *RetrieveRequest, opts ...grpc.CallOption) (*RetrieveResponse, error)
 	// BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
 	BatchRetrieve(ctx context.Context, in *BatchRetrieveRequest, opts ...grpc.CallOption) (*BatchRetrieveResponse, error)
@@ -54,6 +57,16 @@ func (c *memoryServiceClient) Store(ctx context.Context, in *StoreRequest, opts 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StoreResponse)
 	err := c.cc.Invoke(ctx, MemoryService_Store_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryServiceClient) BatchStore(ctx context.Context, in *BatchStoreRequest, opts ...grpc.CallOption) (*BatchStoreResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchStoreResponse)
+	err := c.cc.Invoke(ctx, MemoryService_BatchStore_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,6 +137,8 @@ func (c *memoryServiceClient) Ready(ctx context.Context, in *ReadyRequest, opts 
 // for forward compatibility.
 type MemoryServiceServer interface {
 	Store(context.Context, *StoreRequest) (*StoreResponse, error)
+	// BatchStore mirrors POST /v1/memories/batch (max 50 items; write role required; same semantics as REST).
+	BatchStore(context.Context, *BatchStoreRequest) (*BatchStoreResponse, error)
 	Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error)
 	// BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
 	BatchRetrieve(context.Context, *BatchRetrieveRequest) (*BatchRetrieveResponse, error)
@@ -144,6 +159,9 @@ type UnimplementedMemoryServiceServer struct{}
 
 func (UnimplementedMemoryServiceServer) Store(context.Context, *StoreRequest) (*StoreResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
+}
+func (UnimplementedMemoryServiceServer) BatchStore(context.Context, *BatchStoreRequest) (*BatchStoreResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method BatchStore not implemented")
 }
 func (UnimplementedMemoryServiceServer) Retrieve(context.Context, *RetrieveRequest) (*RetrieveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Retrieve not implemented")
@@ -195,6 +213,24 @@ func _MemoryService_Store_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MemoryServiceServer).Store(ctx, req.(*StoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MemoryService_BatchStore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchStoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryServiceServer).BatchStore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryService_BatchStore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryServiceServer).BatchStore(ctx, req.(*BatchStoreRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -292,6 +328,10 @@ var MemoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Store",
 			Handler:    _MemoryService_Store_Handler,
+		},
+		{
+			MethodName: "BatchStore",
+			Handler:    _MemoryService_BatchStore_Handler,
 		},
 		{
 			MethodName: "Retrieve",

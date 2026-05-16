@@ -1,6 +1,12 @@
 # PCMI evolution roadmap
 
-## v1.20.0 (current)
+## v1.21.0 (current)
+
+- **gRPC batch store**: `BatchStore` RPC (stessi limiti di `POST /v1/memories/batch`, max 50 item). Chiavi **readonly** ricevono `PermissionDenied` su `Store` e `BatchStore`, allineato a REST.
+- **Versione centralizzata**: `internal/version` (`Tag` / `Semver`) per health REST/gRPC, worker e smoke CI.
+- Versione API `v1.21.0`.
+
+## v1.20.0
 
 - **gRPC retrieve**: `BatchRetrieve` (fino a 20 query, stessi limiti di `POST /v1/retrieve/batch`) e `RetrieveStream` (header con `total` poi un messaggio per entry, stessi dati di `Retrieve`).
 - **OpenTelemetry**: propagazione W3C (`tracecontext` + `baggage`); export OTLP/HTTP quando `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` o `OTEL_EXPORTER_OTLP_ENDPOINT` è valorizzato; altrimenti tracer noop. **Prometheus** resta su `GET /metrics` (registry dedicato). HTTP instrumentato con `otelfiber`; gRPC con `otelgrpc` (`grpc.StatsHandler`).

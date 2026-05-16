@@ -5,6 +5,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/version"
 )
 
 // RegisterReadyRoutes registers GET /ready and GET /v1/ready (no API key).
@@ -29,10 +30,10 @@ func readyResponse(c *fiber.Ctx, db *pgxpool.Pool) error {
 		statusTxt = "ready"
 	}
 	return c.Status(code).JSON(fiber.Map{
-		"status":       statusTxt,
-		"database_ok":  dbOK,
-		"redis_ok":     redisOK,
-		"service":      "pcmi-api",
-		"version":      "v1.20.0",
+		"status":      statusTxt,
+		"database_ok": dbOK,
+		"redis_ok":    redisOK,
+		"service":     "pcmi-api",
+		"version":     version.Tag,
 	})
 }

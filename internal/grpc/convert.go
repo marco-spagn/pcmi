@@ -1,6 +1,8 @@
 package grpcserver
 
 import (
+	"encoding/json"
+
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
@@ -52,4 +54,38 @@ func memoryEntryToProtoRetrieve(e *model.MemoryEntry) *pcmiv1.RetrieveEntry {
 		Version:        int32(e.Version),
 		RelevanceScore: e.RelevanceScore,
 	}
+}
+
+func batchStoreProtoToModel(items []*pcmiv1.BatchStoreItem) []model.StoreRequest {
+	out := make([]model.StoreRequest, 0, len(items))
+	for _, it := range items {
+		if it == nil {
+			out = append(out, model.StoreRequest{})
+			continue
+		}
+		meta := map[string]interface{}{}
+		if it.GetMetadataJson() != "" {
+			_ = json.Unmarshal([]byte(it.GetMetadataJson()), &meta)
+		}
+		out = append(out, model.StoreRequest{
+			Path: it.GetPath(), Content: it.GetContent(), Metadata: meta,
+		})
+	}
+	return out
+}
+
+func batchStoreModelToProto(res *model.BatchStoreResult) *pcmiv1.BatchStoreResponse {
+	out := &pcmiv1.BatchStoreResponse{Total: int32(res.Total)}
+	for _, r := range res.Results {
+		br := &pcmiv1.BatchStoreItemResult{
+			Index: int32(r.Index), Id: r.ID, Status: r.Status,
+			Version: int32(r.Version), Error: r.Error,
+		}
+		if r.SupersededID != nil {
+			sid := *r.SupersededID
+			br.SupersededId = &sid
+		}
+		out.Results = append(out.Results, br)
+	}
+	return out
 }

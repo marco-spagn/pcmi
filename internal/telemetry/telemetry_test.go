@@ -8,7 +8,7 @@ import (
 func TestInitNoExporter(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
-	shutdown, err := Init(context.Background())
+	shutdown, err := Init(context.Background(), "pcmi-test")
 	if err != nil {
 		t.Fatal(err)
 	}

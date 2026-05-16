@@ -30,7 +30,7 @@
 ## Observability
 
 - Prometheus: `pcmi_http_requests_total`, `pcmi_http_request_duration_seconds`, `pcmi_memory_stores_total`, `pcmi_memory_retrieves_total`.
-- OpenTelemetry (optional): OTLP/HTTP trace export; HTTP spans via `otelfiber`, gRPC via `otelgrpc` — complements Prometheus, does not replace it.
+- OpenTelemetry (optional): OTLP/HTTP trace export; HTTP spans via `otelfiber`, gRPC via `otelgrpc`. **Worker** uses the same OTLP env vars with default `service.name=pcmi-worker`, plus consumer spans for Redis `memory_events`.
 - Audit log API for per-tenant API usage forensics.
 
 ## Multi-tenant admin

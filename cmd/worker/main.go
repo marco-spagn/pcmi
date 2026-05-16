@@ -1,5 +1,6 @@
 // Programma pcmi-worker: job di embedding, distillation, pruning, consolidation ed expiry, più
 // subscribe al canale Redis memory_events. Richiede DATABASE_URL e REDIS_ADDR; health su :8081.
+// OpenTelemetry: stesse variabili OTLP dell’API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
 package main
 
 import (
@@ -12,15 +13,35 @@ import (
 	"syscall"
 	"time"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
+
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/telemetry"
 	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/worker"
 )
 
+const workerTracerName = "github.com/marco-spagn/pcmi/cmd/worker"
+
 func main() {
 	log.Println("🚀 PCMI Worker starting...")
+
+	ctxTelemetry := context.Background()
+	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, "pcmi-worker")
+	if err != nil {
+		log.Fatalf("telemetry: %v", err)
+	}
+	defer func() {
+		sdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if e := shutdownTelemetry(sdCtx); e != nil {
+			log.Printf("telemetry shutdown: %v", e)
+		}
+	}()
 
 	// Database connection
 	dbURL := os.Getenv("DATABASE_URL")
@@ -82,11 +103,20 @@ func main() {
 	expiryWorker := worker.NewExpiryWorker(db)
 	go expiryWorker.Start(ctx)
 
+	tr := otel.Tracer(workerTracerName)
 	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
+			_, span := tr.Start(context.Background(), "redis.memory_event",
+				trace.WithSpanKind(trace.SpanKindConsumer),
+				trace.WithAttributes(
+					attribute.String("pcmi.event.type", evt.Type),
+				))
 			tenantID, _ := evt.Payload["tenant_id"].(string)
+			if tenantID != "" {
+				span.SetAttributes(attribute.String("pcmi.tenant_id", tenantID))
+			}
 			switch evt.Type {
 			case event.EventMemoryStored, event.EventMemoryUpdated:
 				path, _ := evt.Payload["path"].(string)
@@ -98,6 +128,7 @@ func main() {
 				log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
 				distWorker.TriggerForPrefix(tenantID, prefix)
 			}
+			span.End()
 		}
 	}()
 

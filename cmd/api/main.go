@@ -46,7 +46,7 @@ func main() {
 	log.Println("🚀 PCMI API " + version.Tag + " starting...")
 
 	ctx := context.Background()
-	shutdownTelemetry, err := telemetry.Init(ctx)
+	shutdownTelemetry, err := telemetry.Init(ctx, "pcmi-api")
 	if err != nil {
 		log.Fatalf("telemetry: %v", err)
 	}

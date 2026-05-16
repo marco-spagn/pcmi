@@ -74,6 +74,10 @@ Processi asincroni; condividono DB e Redis con l’API.
 - `audit.go` — scrittura `audit_log`.
 - `admin.go`, `rbac.go`, `tenant.go` — ruoli admin e vincoli scrittura.
 
+## `internal/version`
+
+Costanti `Tag` (`vX.Y.Z`) e `Semver` (`X.Y.Z` per OpenAPI) — unico punto per health API, gRPC, worker e aggiornamento smoke CI.
+
 ## `internal/metrics`
 
 Registry Prometheus dedicato (`metrics.Registry`), contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
@@ -84,7 +88,7 @@ Inizializzazione tracer OTLP/HTTP opzionale (`telemetry.Init` in `cmd/api`): pro
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, `Retrieve`, **`BatchRetrieve`**, **`RetrieveStream`**, `Health`, `Ready`. `Health` (liveness) e `Ready` non richiedono API key. Proto: `proto/pcmi/v1/memory.proto` (rigenerare con `protoc` come in CI). Instrumentazione server: `grpc.StatsHandler(otelgrpc.NewServerHandler())`.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. `Health` (liveness) e `Ready` non richiedono API key. Scritture (`Store`, `BatchStore`) rifiutano ruolo `readonly` (`PermissionDenied`). Proto: `proto/pcmi/v1/memory.proto` (rigenerare con `protoc` come sotto). Instrumentazione server: `grpc.StatsHandler(otelgrpc.NewServerHandler())`.
 
 ## `internal/webhook`
 
@@ -136,7 +140,7 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 1. **Nuove route memoria**: aggiungere sotto `/v1` in `SetupMemoryRoutes` **prima** del wildcard `/memories/*` se il path rischia conflitto.
 2. **Nuove migration**: includere il file in `docker-compose.yml` sotto `postgres.volumes` e in ogni path che applica migrazioni manualmente.
 3. **Eventi worker**: estendere `internal/event/schema.go` e sottoscrittore in `cmd/worker/main.go`.
-4. **Versione API**: stringa allineata in `cmd/api`, `cmd/worker`, `internal/grpc`, smoke CI, `scripts/grpc_health_smoke.go` (`PCMI_EXPECT_VERSION`). Dopo modifiche a `proto/pcmi/v1/memory.proto`: `protoc --proto_path=proto --go_out=. --go_opt=module=github.com/marco-spagn/pcmi --go-grpc_out=. --go-grpc_opt=module=github.com/marco-spagn/pcmi pcmi/v1/memory.proto`.
+4. **Versione API**: costanti in `internal/version` (`Tag` / `Semver`); smoke CI `PCMI_EXPECT_VERSION`. Dopo modifiche a `proto/pcmi/v1/memory.proto`: `protoc --proto_path=proto --go_out=. --go_opt=module=github.com/marco-spagn/pcmi --go-grpc_out=. --go-grpc_opt=module=github.com/marco-spagn/pcmi pcmi/v1/memory.proto`.
 
 ## Riferimenti
 

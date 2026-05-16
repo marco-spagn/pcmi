@@ -15,6 +15,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/worker"
 )
 
@@ -43,7 +44,8 @@ func main() {
 			stats := db.Stat()
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"v1.20.0","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+			_, _ = fmt.Fprintf(w, `{"status":"healthy","service":"worker","version":"%s","pool":{"total_conns":%d,"idle_conns":%d,"acquired_conns":%d}}`,
+				version.Tag,
 				stats.TotalConns(), stats.IdleConns(), stats.AcquiredConns())
 		})
 		log.Println("💓 Worker health endpoint started on :8081")

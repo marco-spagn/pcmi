@@ -62,3 +62,41 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 		t.Fatal(r0.GetEntries()[0])
 	}
 }
+
+func TestBatchStoreProtoToModel(t *testing.T) {
+	items := []*pcmiv1.BatchStoreItem{
+		{Path: "a", Content: "c", MetadataJson: `{"k":1}`},
+		nil,
+	}
+	got := batchStoreProtoToModel(items)
+	if len(got) != 2 {
+		t.Fatal(len(got))
+	}
+	if got[0].Path != "a" || got[0].Content != "c" {
+		t.Fatal(got[0])
+	}
+	if v, ok := got[0].Metadata["k"].(float64); !ok || v != 1 {
+		t.Fatalf("metadata %#v", got[0].Metadata)
+	}
+}
+
+func TestBatchStoreModelToProto(t *testing.T) {
+	sid := int64(99)
+	res := &model.BatchStoreResult{
+		Total: 1,
+		Results: []model.BatchStoreItemResult{
+			{Index: 0, ID: 1, Status: "stored", Version: 2, SupersededID: &sid},
+			{Index: 1, Status: "error", Error: "boom"},
+		},
+	}
+	pb := batchStoreModelToProto(res)
+	if pb.GetTotal() != 1 || len(pb.GetResults()) != 2 {
+		t.Fatal(pb)
+	}
+	if pb.GetResults()[0].GetSupersededId() != 99 {
+		t.Fatal(pb.GetResults()[0])
+	}
+	if pb.GetResults()[1].GetError() != "boom" {
+		t.Fatal(pb.GetResults()[1])
+	}
+}

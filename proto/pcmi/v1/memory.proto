@@ -6,6 +6,8 @@ option go_package = "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1";
 
 service MemoryService {
   rpc Store(StoreRequest) returns (StoreResponse);
+  // BatchStore mirrors POST /v1/memories/batch (max 50 items; write role required; same semantics as REST).
+  rpc BatchStore(BatchStoreRequest) returns (BatchStoreResponse);
   rpc Retrieve(RetrieveRequest) returns (RetrieveResponse);
   // BatchRetrieve runs multiple retrieve queries in one round-trip (same limits as REST: max 20 queries).
   rpc BatchRetrieve(BatchRetrieveRequest) returns (BatchRetrieveResponse);
@@ -36,6 +38,31 @@ message StoreResponse {
   int64 id = 1;
   string status = 2;
   int32 version = 3;
+}
+
+message BatchStoreItem {
+  string path = 1;
+  string content = 2;
+  string metadata_json = 3;
+}
+
+message BatchStoreRequest {
+  repeated BatchStoreItem items = 1;
+  string api_key = 2;
+}
+
+message BatchStoreItemResult {
+  int32 index = 1;
+  int64 id = 2;
+  string status = 3;
+  int32 version = 4;
+  optional int64 superseded_id = 5;
+  string error = 6;
+}
+
+message BatchStoreResponse {
+  repeated BatchStoreItemResult results = 1;
+  int32 total = 2;
 }
 
 message RetrieveRequest {

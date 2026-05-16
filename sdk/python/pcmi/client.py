@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 
-from .models import MemoryStore, MemoryRetrieve, MemoryRollback, IngestEvent
+from .models import MemoryStore, MemoryRetrieve, MemoryRollback, IngestEvent, CompactMemory
 
 
 class PCMIClient:
@@ -15,6 +15,15 @@ class PCMIClient:
             base_url=self.base_url,
             headers={"X-API-Key": api_key, "Content-Type": "application/json"},
         )
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *_args):
+        await self.close()
+
+    async def close(self):
+        await self.client.aclose()
 
     async def store(
         self,
@@ -27,6 +36,8 @@ class PCMIClient:
         embedding_space: str | None = None,
         embedding: list[float] | None = None,
         source_agent_id: str | None = None,
+        encrypt_content: bool | None = None,
+        expires_at: str | None = None,
     ):
         payload = MemoryStore(
             path=path,
@@ -37,6 +48,8 @@ class PCMIClient:
             embedding_space=embedding_space,
             embedding=embedding,
             source_agent_id=source_agent_id,
+            encrypt_content=encrypt_content,
+            expires_at=expires_at,
         )
         resp = await self.client.post("/v1/memories", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()
@@ -51,6 +64,8 @@ class PCMIClient:
         as_of: str | None = None,
         source_agent_id: str | None = None,
         embedding_space: str | None = None,
+        tags: list[str] | None = None,
+        tags_match: str | None = None,
     ):
         payload = MemoryRetrieve(
             path_prefix=path_prefix,
@@ -59,6 +74,8 @@ class PCMIClient:
             as_of=as_of,
             source_agent_id=source_agent_id,
             embedding_space=embedding_space,
+            tags=tags,
+            tags_match=tags_match,
         )
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()
@@ -173,6 +190,47 @@ class PCMIClient:
             "/v1/distilled",
             params={"path_prefix": path_prefix, "limit": limit},
         )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def compact(self, path: str, *, keep_superseded: int = 20):
+        payload = CompactMemory(path=path, keep_superseded=keep_superseded)
+        resp = await self.client.post(
+            "/v1/memories/compact", json=payload.model_dump(exclude_none=True)
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def register_webhook(
+        self,
+        url: str,
+        *,
+        event_types: list[str] | None = None,
+        secret: str = "",
+    ):
+        resp = await self.client.post(
+            "/v1/webhooks",
+            json={"url": url, "event_types": event_types or [], "secret": secret},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_webhooks(self, limit: int = 50):
+        resp = await self.client.get("/v1/webhooks", params={"limit": limit})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def migrate_embeddings(
+        self,
+        path_prefix: str,
+        *,
+        target_model: str = "",
+        embedding_space: str | None = None,
+    ):
+        body: dict[str, Any] = {"path_prefix": path_prefix, "target_model": target_model}
+        if embedding_space:
+            body["embedding_space"] = embedding_space
+        resp = await self.client.post("/v1/embeddings/migrate", json=body)
         resp.raise_for_status()
         return resp.json()
 

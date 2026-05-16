@@ -120,7 +120,7 @@ Ordine **lessicografico** in `docker-compose` e in CI: `001`, `002`, … Non rin
 
 ## `sdk/`
 
-Client HTTP thin; vedere `sdk/README.md`.
+Client HTTP thin; vedere `sdk/README.md`, mapping API solo-HTTP in `sdk/HTTP-API.md`, trasporti in `docs/grpc-vs-http.md`.
 
 ## `scripts/`
 

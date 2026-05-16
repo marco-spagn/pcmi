@@ -1,6 +1,12 @@
 # PCMI evolution roadmap
 
-## v1.26.0 (current)
+## v1.27.0 (current)
+
+- **SDK HTTP-only**: `sdk/HTTP-API.md` — tabella mapping endpoint → metodi Python/TypeScript; client allineati (store/retrieve completi, `compact`, webhooks, `migrate_embeddings`, `list_links`, …).
+- **Polish SDK**: TypeScript `StoreOptions` / `RetrieveOptions` (`embedding`, `tags`, `encrypt_content`, `expires_at`, `tags_match`); Python `async with`, stessi campi e metodi mancanti.
+- Versione API `v1.27.0`.
+
+## v1.26.0
 
 - **Parità risposta retrieve gRPC ↔ REST**: `RetrieveEntry` espone `tenant_id`, `metadata_json`, `tags`, `embedding_model` / `embedding_space`, timestamp RFC3339 (`valid_from`, `valid_to`, `created_at`), `source_agent_id` / `source_event_id`, `content_encrypted`, `embedding` (se presente). Vale per `Retrieve`, `BatchRetrieve`, `RetrieveStream`.
 - Versione API `v1.26.0`.

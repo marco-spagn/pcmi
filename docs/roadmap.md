@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.21.0 (current)
+## v1.22.0 (current)
+
+- **Parità retrieve gRPC ↔ REST**: `RetrieveRequest` e `BatchRetrieveQuery` espongono gli stessi filtri del body JSON REST: `tags`, `tags_match`, `as_of_rfc3339` (RFC3339/RFC3339Nano), `source_agent_id`, `embedding_space`. Valori `as_of` non validi → `InvalidArgument`.
+- Versione API `v1.22.0`.
+
+## v1.21.0
 
 - **gRPC batch store**: `BatchStore` RPC (stessi limiti di `POST /v1/memories/batch`, max 50 item). Chiavi **readonly** ricevono `PermissionDenied` su `Store` e `BatchStore`, allineato a REST.
 - **Versione centralizzata**: `internal/version` (`Tag` / `Semver`) per health REST/gRPC, worker e smoke CI.

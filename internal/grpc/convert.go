@@ -2,6 +2,9 @@ package grpcserver
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
 
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -15,20 +18,71 @@ func defaultRetrieveLimit(v int32) int {
 	return n
 }
 
-func batchQueriesProtoToModel(queries []*pcmiv1.BatchRetrieveQuery) []model.RetrieveRequest {
+func parseAsOfRFC3339(s string) (*time.Time, error) {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return nil, nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, s)
+	if err != nil {
+		t, err = time.Parse(time.RFC3339, s)
+		if err != nil {
+			return nil, fmt.Errorf("as_of_rfc3339: %w", err)
+		}
+	}
+	return &t, nil
+}
+
+func retrieveFieldsToModel(pathPrefix, query string, limit int32, tags []string, tagsMatch, asOfRFC, sourceAgentID, embeddingSpace string) (model.RetrieveRequest, error) {
+	asOf, err := parseAsOfRFC3339(asOfRFC)
+	if err != nil {
+		return model.RetrieveRequest{}, err
+	}
+	var tagsCopy []string
+	if len(tags) > 0 {
+		tagsCopy = append(tagsCopy, tags...)
+	}
+	return model.RetrieveRequest{
+		PathPrefix:     pathPrefix,
+		Query:          query,
+		Limit:          defaultRetrieveLimit(limit),
+		Tags:           tagsCopy,
+		TagsMatch:      tagsMatch,
+		AsOf:           asOf,
+		SourceAgentID:  strings.TrimSpace(sourceAgentID),
+		EmbeddingSpace: strings.TrimSpace(embeddingSpace),
+	}, nil
+}
+
+func retrieveProtoToModel(req *pcmiv1.RetrieveRequest) (model.RetrieveRequest, error) {
+	if req == nil {
+		return model.RetrieveRequest{Limit: 10}, nil
+	}
+	return retrieveFieldsToModel(
+		req.GetPathPrefix(), req.GetQuery(), req.GetLimit(),
+		req.GetTags(), req.GetTagsMatch(), req.GetAsOfRfc3339(),
+		req.GetSourceAgentId(), req.GetEmbeddingSpace(),
+	)
+}
+
+func batchQueriesProtoToModel(queries []*pcmiv1.BatchRetrieveQuery) ([]model.RetrieveRequest, error) {
 	out := make([]model.RetrieveRequest, 0, len(queries))
 	for _, q := range queries {
 		if q == nil {
 			out = append(out, model.RetrieveRequest{Limit: 10})
 			continue
 		}
-		out = append(out, model.RetrieveRequest{
-			PathPrefix: q.GetPathPrefix(),
-			Query:      q.GetQuery(),
-			Limit:      defaultRetrieveLimit(q.GetLimit()),
-		})
+		m, err := retrieveFieldsToModel(
+			q.GetPathPrefix(), q.GetQuery(), q.GetLimit(),
+			q.GetTags(), q.GetTagsMatch(), q.GetAsOfRfc3339(),
+			q.GetSourceAgentId(), q.GetEmbeddingSpace(),
+		)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, m)
 	}
-	return out
+	return out, nil
 }
 
 func batchRetrieveModelToProto(res *model.BatchRetrieveResponse) *pcmiv1.BatchRetrieveResponse {

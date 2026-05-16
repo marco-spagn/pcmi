@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.25.0 (current)
+## v1.26.0 (current)
+
+- **Parità risposta retrieve gRPC ↔ REST**: `RetrieveEntry` espone `tenant_id`, `metadata_json`, `tags`, `embedding_model` / `embedding_space`, timestamp RFC3339 (`valid_from`, `valid_to`, `created_at`), `source_agent_id` / `source_event_id`, `content_encrypted`, `embedding` (se presente). Vale per `Retrieve`, `BatchRetrieve`, `RetrieveStream`.
+- Versione API `v1.26.0`.
+
+## v1.25.0
 
 - **Embedding vettoriale su gRPC store**: `StoreRequest` / `BatchStoreItem` con `repeated float embedding` (parità con REST `embedding`); worker backfill se assente.
 - **Documentazione API solo-HTTP**: `docs/grpc-vs-http.md` (compact, refine, links, stats, admin, webhooks, SSE, …).

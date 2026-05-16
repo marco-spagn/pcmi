@@ -48,8 +48,10 @@ func TestGRPCStoreRetrieveTagsIntegration(t *testing.T) {
 	_, err = client.Store(ctx, &pcmiv1.StoreRequest{
 		Path:           path,
 		Content:        "grpc-integration",
+		MetadataJson:   `{"suite":"integration"}`,
 		Tags:           []string{"grpc-integration"},
 		EmbeddingModel: "unspecified",
+		EmbeddingSpace: "default",
 		ApiKey:         key,
 	})
 	if err != nil {
@@ -69,15 +71,24 @@ func TestGRPCStoreRetrieveTagsIntegration(t *testing.T) {
 	if resp.GetTotal() < 1 {
 		t.Fatalf("retrieve total=%d", resp.GetTotal())
 	}
-	found := false
+	var entry *pcmiv1.RetrieveEntry
 	for _, e := range resp.GetEntries() {
 		if e.GetPath() == path {
-			found = true
+			entry = e
 			break
 		}
 	}
-	if !found {
+	if entry == nil {
 		t.Fatalf("path %q not in entries", path)
+	}
+	if entry.GetTenantId() == "" || entry.GetEmbeddingModel() != "unspecified" {
+		t.Fatalf("tenant/model: %+v", entry)
+	}
+	if len(entry.GetTags()) != 1 || entry.GetTags()[0] != "grpc-integration" {
+		t.Fatalf("tags: %+v", entry.GetTags())
+	}
+	if entry.GetMetadataJson() == "" || entry.GetValidFromRfc3339() == "" || entry.GetCreatedAtRfc3339() == "" {
+		t.Fatalf("metadata/timestamps: %+v", entry)
 	}
 }
 

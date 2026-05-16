@@ -96,6 +96,32 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 	}
 }
 
+func TestMemoryEntryToProtoRetrieve_full(t *testing.T) {
+	agent := "a1"
+	event := "e1"
+	validTo := time.Date(2030, 1, 2, 0, 0, 0, 0, time.UTC)
+	created := time.Date(2025, 6, 1, 12, 0, 0, 0, time.UTC)
+	validFrom := time.Date(2025, 6, 1, 11, 0, 0, 0, time.UTC)
+	pb := memoryEntryToProtoRetrieve(&model.MemoryEntry{
+		ID: 9, TenantID: "tid", Path: "root.p", Content: "body", Version: 3,
+		Metadata: map[string]interface{}{"k": "v"}, Tags: []string{"t1"},
+		EmbeddingModel: "m1", EmbeddingSpace: "space1",
+		ValidFrom: validFrom, ValidTo: &validTo,
+		SourceAgentID: &agent, SourceEventID: &event,
+		CreatedAt: created, RelevanceScore: 0.9, ContentEncrypted: true,
+		Embedding: []float32{0.5, 0.6},
+	})
+	if pb.GetTenantId() != "tid" || pb.GetMetadataJson() != `{"k":"v"}` {
+		t.Fatalf("meta/tenant: %+v", pb)
+	}
+	if len(pb.GetTags()) != 1 || pb.GetEmbeddingModel() != "m1" || !pb.GetContentEncrypted() {
+		t.Fatalf("tags/model: %+v", pb)
+	}
+	if pb.GetValidToRfc3339() == "" || pb.GetSourceAgentId() != agent || len(pb.GetEmbedding()) != 2 {
+		t.Fatalf("optional fields: %+v", pb)
+	}
+}
+
 func TestBatchStoreProtoToModel(t *testing.T) {
 	items := []*pcmiv1.BatchStoreItem{
 		{

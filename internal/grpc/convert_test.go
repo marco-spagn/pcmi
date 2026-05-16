@@ -140,7 +140,8 @@ func TestStoreProtoToModel_invalidExpires(t *testing.T) {
 func TestStoreProtoToModel_full(t *testing.T) {
 	m, err := storeProtoToModel(&pcmiv1.StoreRequest{
 		Path: "p", Content: "c", MetadataJson: `{"k":1}`,
-		Tags: []string{"a", "b"}, EmbeddingModel: "m1", EmbeddingSpace: "space1",
+		Tags: []string{"a", "b"}, Embedding: []float32{0.1, 0.2, 0.3},
+		EmbeddingModel: "m1", EmbeddingSpace: "space1",
 		SourceAgentId: "agent", EncryptContent: true,
 		ExpiresAtRfc3339: "2030-06-01T12:00:00Z",
 	})
@@ -149,6 +150,21 @@ func TestStoreProtoToModel_full(t *testing.T) {
 	}
 	if m.Path != "p" || len(m.Tags) != 2 || !m.EncryptContent || m.ExpiresAt == nil {
 		t.Fatalf("%#v", m)
+	}
+	if len(m.Embedding) != 3 || m.Embedding[0] != 0.1 {
+		t.Fatalf("embedding %#v", m.Embedding)
+	}
+}
+
+func TestBatchStoreProtoToModel_embedding(t *testing.T) {
+	got, err := batchStoreProtoToModel([]*pcmiv1.BatchStoreItem{
+		{Path: "p", Content: "c", Embedding: []float32{1, 2}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got[0].Embedding) != 2 || got[0].Embedding[1] != 2 {
+		t.Fatalf("%#v", got[0].Embedding)
 	}
 }
 

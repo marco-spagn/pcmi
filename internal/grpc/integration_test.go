@@ -148,6 +148,65 @@ func TestGRPCStoreInvalidExpiresIntegration(t *testing.T) {
 	}
 }
 
+// testEmbedding1536 returns a minimal non-zero vector matching DB VECTOR(1536).
+func testEmbedding1536() []float32 {
+	v := make([]float32, 1536)
+	v[0] = 1
+	return v
+}
+
+func TestGRPCStoreClientEmbeddingIntegration(t *testing.T) {
+	host := os.Getenv("GRPC_HOST")
+	if host == "" {
+		host = "localhost:50051"
+	}
+	key := os.Getenv("GRPC_TEST_API_KEY")
+	dbURL := os.Getenv("DATABASE_URL")
+	if key == "" || dbURL == "" {
+		t.Skip("GRPC_TEST_API_KEY and DATABASE_URL required")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	conn, err := grpc.NewClient(host, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	client := pcmiv1.NewMemoryServiceClient(conn)
+	path := "root.ci.grpc.embedding." + time.Now().Format("150405")
+	storeResp, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "grpc-embedding-vector",
+		Embedding: testEmbedding1536(), EmbeddingModel: "client-supplied",
+	})
+	if err != nil {
+		t.Fatalf("store: %v", err)
+	}
+	if storeResp.GetId() == 0 {
+		t.Fatalf("store response: %+v", storeResp)
+	}
+
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+
+	var hasEmbedding bool
+	err = pool.QueryRow(ctx,
+		`SELECT embedding IS NOT NULL FROM memory_entries WHERE id = $1`,
+		storeResp.GetId(),
+	).Scan(&hasEmbedding)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasEmbedding {
+		t.Fatal("expected embedding persisted")
+	}
+}
+
 // TestResolveTenantIntegration requires DATABASE_URL and a valid test API key hash in DB.
 func TestResolveTenantIntegration(t *testing.T) {
 	dbURL := os.Getenv("DATABASE_URL")

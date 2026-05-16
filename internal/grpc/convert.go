@@ -41,7 +41,7 @@ func parseRFC3339Time(s, field string) (*time.Time, error) {
 	return &t, nil
 }
 
-func storeFieldsToModel(path, content, metadataJSON string, tags []string, embeddingModel, embeddingSpace, sourceAgentID string, encryptContent bool, expiresAtRFC string) (model.StoreRequest, error) {
+func storeFieldsToModel(path, content, metadataJSON string, tags []string, embedding []float32, embeddingModel, embeddingSpace, sourceAgentID string, encryptContent bool, expiresAtRFC string) (model.StoreRequest, error) {
 	expiresAt, err := parseExpiresAtRFC3339(expiresAtRFC)
 	if err != nil {
 		return model.StoreRequest{}, err
@@ -54,11 +54,16 @@ func storeFieldsToModel(path, content, metadataJSON string, tags []string, embed
 	if len(tags) > 0 {
 		tagsCopy = append(tagsCopy, tags...)
 	}
+	var embCopy []float32
+	if len(embedding) > 0 {
+		embCopy = append(embCopy, embedding...)
+	}
 	return model.StoreRequest{
 		Path:           path,
 		Content:        content,
 		Metadata:       meta,
 		Tags:           tagsCopy,
+		Embedding:      embCopy,
 		EmbeddingModel: strings.TrimSpace(embeddingModel),
 		EmbeddingSpace: strings.TrimSpace(embeddingSpace),
 		SourceAgentID:  strings.TrimSpace(sourceAgentID),
@@ -73,7 +78,7 @@ func storeProtoToModel(req *pcmiv1.StoreRequest) (model.StoreRequest, error) {
 	}
 	return storeFieldsToModel(
 		req.GetPath(), req.GetContent(), req.GetMetadataJson(),
-		req.GetTags(), req.GetEmbeddingModel(), req.GetEmbeddingSpace(),
+		req.GetTags(), req.GetEmbedding(), req.GetEmbeddingModel(), req.GetEmbeddingSpace(),
 		req.GetSourceAgentId(), req.GetEncryptContent(), req.GetExpiresAtRfc3339(),
 	)
 }
@@ -84,7 +89,7 @@ func storeItemProtoToModel(it *pcmiv1.BatchStoreItem) (model.StoreRequest, error
 	}
 	return storeFieldsToModel(
 		it.GetPath(), it.GetContent(), it.GetMetadataJson(),
-		it.GetTags(), it.GetEmbeddingModel(), it.GetEmbeddingSpace(),
+		it.GetTags(), it.GetEmbedding(), it.GetEmbeddingModel(), it.GetEmbeddingSpace(),
 		it.GetSourceAgentId(), it.GetEncryptContent(), it.GetExpiresAtRfc3339(),
 	)
 }

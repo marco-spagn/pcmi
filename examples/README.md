@@ -14,4 +14,4 @@ Shared environment (see each README):
 
 Read scaling: optional `DATABASE_READ_URL` on the API server sends SELECT-heavy work to a PostgreSQL replica; see [docs/federation-read-replicas.md](../docs/federation-read-replicas.md).
 
-Local automation: [`scripts/local_smoke_orchestration.sh`](../scripts/local_smoke_orchestration.sh) — smoke store→GET (replica lag) e opzionale Temporal (`replica` | `temporal` | `all`).
+Local automation: [`scripts/local_smoke_orchestration.sh`](../scripts/local_smoke_orchestration.sh) — smoke store→GET (replica lag) e opzionale Temporal (`replica` | `temporal` | `all`). Se `pip install` va in timeout (PyPI), lo script riprova e salta `pip` se il venv ha già i pacchetti; oppure `SKIP_TEMPORAL_VENV=1` se `temporalio` e `httpx` sono nel Python di sistema.

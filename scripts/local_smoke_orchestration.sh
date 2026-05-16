@@ -13,6 +13,7 @@
 #   TEMPORAL_ADDRESS (default localhost:7233)
 #   START_TEMPORAL_DEV=1  try to run `temporal server start-dev` in background (requires Temporal CLI)
 #   SKIP_TEMPORAL=1       with `all`, run only replica
+#   SKIP_TEMPORAL_VENV=1  use system python3 (must have temporalio + httpx); skips venv + pip
 
 set -euo pipefail
 
@@ -136,11 +137,42 @@ smoke_temporal() {
 
   local td="${ROOT}/examples/temporal"
   local venv="${td}/.venv_smoke"
-  echo "== Python venv + dipendenze (solo smoke) in ${venv} =="
-  python3 -m venv "$venv"
-  # shellcheck disable=SC1090
-  source "${venv}/bin/activate"
-  pip install -q -r "${td}/requirements.txt"
+
+  if [[ "${SKIP_TEMPORAL_VENV:-}" == "1" ]]; then
+    echo "== SKIP_TEMPORAL_VENV=1: uso python3 di sistema (import temporalio, httpx) =="
+    python3 -c "import temporalio, httpx" 2>/dev/null || {
+      echo "Installa: pip install temporalio httpx" >&2
+      return 1
+    }
+  else
+    echo "== Python venv + dipendenze (solo smoke) in ${venv} =="
+    if [[ ! -d "$venv" ]]; then
+      python3 -m venv "$venv"
+    fi
+    # shellcheck disable=SC1090
+    source "${venv}/bin/activate"
+    if python3 -c "import temporalio, httpx" 2>/dev/null; then
+      echo "== Dipendenze già installate nel venv (salto pip) =="
+    else
+      echo "== pip install (timeout lungo + retry; se fallisce riprova o usa SKIP_TEMPORAL_VENV=1) =="
+      local attempt ok=0
+      for attempt in 1 2 3 4 5; do
+        if PIP_DEFAULT_TIMEOUT=180 pip install -q --retries 10 -r "${td}/requirements.txt"; then
+          ok=1
+          break
+        fi
+        if [[ "$attempt" -eq 5 ]]; then
+          echo "pip install fallito dopo 5 tentativi. Suggerimenti: VPN stabile, mirror PyPI, oppure:" >&2
+          echo "  cd examples/temporal && python3 -m venv .venv_smoke && . .venv_smoke/bin/activate && pip install -r requirements.txt" >&2
+          echo "  oppure SKIP_TEMPORAL_VENV=1 se temporalio e httpx sono già nel python di sistema." >&2
+          deactivate 2>/dev/null || true
+          return 1
+        fi
+        echo "pip tentativo ${attempt}/5 fallito (rete/PyPI); attesa 5s..." >&2
+        sleep 5
+      done
+    fi
+  fi
 
   export PCMI_BASE_URL="$BASE"
   export PCMI_API_KEY="$KEY"
@@ -148,7 +180,7 @@ smoke_temporal() {
 
   echo "== Avvio worker Temporal (coda pcmi-demo) in background =="
   cd "$td"
-  python worker.py &
+  python3 worker.py &
   local wp=$!
   sleep 4
 
@@ -156,11 +188,13 @@ smoke_temporal() {
   wf_path="root.temporal.smoke.$(date +%s).$RANDOM"
   wf_body="temporal-smoke-$RANDOM"
   echo "== Esecuzione workflow (starter) path=${wf_path} =="
-  python starter.py "$wf_path" "$wf_body"
+  python3 starter.py "$wf_path" "$wf_body"
 
   kill "$wp" 2>/dev/null || true
   wait "$wp" 2>/dev/null || true
-  deactivate 2>/dev/null || true
+  if [[ "${SKIP_TEMPORAL_VENV:-}" != "1" ]]; then
+    deactivate 2>/dev/null || true
+  fi
   cd "$ROOT"
   echo "== Temporal smoke OK =="
 }

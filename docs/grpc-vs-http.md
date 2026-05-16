@@ -24,6 +24,10 @@ gRPC `Store` / `BatchStore` accept the same store fields as REST JSON, including
 
 Responses return `id`, `status`, `version`, optional `superseded_id` (embeddings are not echoed back, same as REST).
 
+### Retrieve parity (v1.26.0)
+
+`Retrieve`, `BatchRetrieve`, and `RetrieveStream` return `RetrieveEntry` fields aligned with REST `MemoryEntry`: metadata, tags, model/space labels, temporal fields, agent/event IDs, `content_encrypted`, and optional `embedding` vector when stored.
+
 ## HTTP-only endpoints
 
 These routes have **no gRPC RPC** today. Use HTTP (or extend proto in a future release if needed).

@@ -158,17 +158,58 @@ func batchRetrieveModelToProto(res *model.BatchRetrieveResponse) *pcmiv1.BatchRe
 	return out
 }
 
+func formatTimeRFC3339(t time.Time) string {
+	if t.IsZero() {
+		return ""
+	}
+	return t.UTC().Format(time.RFC3339Nano)
+}
+
+func metadataToJSON(meta any) string {
+	if meta == nil {
+		return "{}"
+	}
+	b, err := json.Marshal(meta)
+	if err != nil || len(b) == 0 {
+		return "{}"
+	}
+	return string(b)
+}
+
 func memoryEntryToProtoRetrieve(e *model.MemoryEntry) *pcmiv1.RetrieveEntry {
 	if e == nil {
 		return nil
 	}
-	return &pcmiv1.RetrieveEntry{
-		Id:             e.ID,
-		Path:           e.Path,
-		Content:        e.Content,
-		Version:        int32(e.Version),
-		RelevanceScore: e.RelevanceScore,
+	out := &pcmiv1.RetrieveEntry{
+		Id:               e.ID,
+		TenantId:         e.TenantID,
+		Path:             e.Path,
+		Content:          e.Content,
+		Version:          int32(e.Version),
+		RelevanceScore:   e.RelevanceScore,
+		MetadataJson:     metadataToJSON(e.Metadata),
+		EmbeddingModel:   e.EmbeddingModel,
+		EmbeddingSpace:   e.EmbeddingSpace,
+		ValidFromRfc3339: formatTimeRFC3339(e.ValidFrom),
+		CreatedAtRfc3339: formatTimeRFC3339(e.CreatedAt),
+		ContentEncrypted: e.ContentEncrypted,
 	}
+	if len(e.Tags) > 0 {
+		out.Tags = append([]string(nil), e.Tags...)
+	}
+	if e.ValidTo != nil {
+		out.ValidToRfc3339 = formatTimeRFC3339(*e.ValidTo)
+	}
+	if e.SourceAgentID != nil {
+		out.SourceAgentId = *e.SourceAgentID
+	}
+	if e.SourceEventID != nil {
+		out.SourceEventId = *e.SourceEventID
+	}
+	if len(e.Embedding) > 0 {
+		out.Embedding = append([]float32(nil), e.Embedding...)
+	}
+	return out
 }
 
 func batchStoreProtoToModel(items []*pcmiv1.BatchStoreItem) ([]model.StoreRequest, error) {

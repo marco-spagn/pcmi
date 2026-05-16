@@ -735,15 +735,28 @@ func (x *RetrieveRequest) GetEmbeddingSpace() string {
 	return ""
 }
 
+// RetrieveEntry mirrors REST MemoryEntry in retrieve responses (v1.26.0+).
 type RetrieveEntry struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Path           string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Content        string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
-	Version        int32                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
-	RelevanceScore float64                `protobuf:"fixed64,5,opt,name=relevance_score,json=relevanceScore,proto3" json:"relevance_score,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Path             string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Content          string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	Version          int32                  `protobuf:"varint,4,opt,name=version,proto3" json:"version,omitempty"`
+	RelevanceScore   float64                `protobuf:"fixed64,5,opt,name=relevance_score,json=relevanceScore,proto3" json:"relevance_score,omitempty"`
+	TenantId         string                 `protobuf:"bytes,6,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	MetadataJson     string                 `protobuf:"bytes,7,opt,name=metadata_json,json=metadataJson,proto3" json:"metadata_json,omitempty"`
+	Tags             []string               `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
+	EmbeddingModel   string                 `protobuf:"bytes,9,opt,name=embedding_model,json=embeddingModel,proto3" json:"embedding_model,omitempty"`
+	EmbeddingSpace   string                 `protobuf:"bytes,10,opt,name=embedding_space,json=embeddingSpace,proto3" json:"embedding_space,omitempty"`
+	ValidFromRfc3339 string                 `protobuf:"bytes,11,opt,name=valid_from_rfc3339,json=validFromRfc3339,proto3" json:"valid_from_rfc3339,omitempty"`
+	ValidToRfc3339   string                 `protobuf:"bytes,12,opt,name=valid_to_rfc3339,json=validToRfc3339,proto3" json:"valid_to_rfc3339,omitempty"` // empty when current row has no valid_to
+	SourceAgentId    string                 `protobuf:"bytes,13,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
+	SourceEventId    string                 `protobuf:"bytes,14,opt,name=source_event_id,json=sourceEventId,proto3" json:"source_event_id,omitempty"`
+	CreatedAtRfc3339 string                 `protobuf:"bytes,15,opt,name=created_at_rfc3339,json=createdAtRfc3339,proto3" json:"created_at_rfc3339,omitempty"`
+	ContentEncrypted bool                   `protobuf:"varint,16,opt,name=content_encrypted,json=contentEncrypted,proto3" json:"content_encrypted,omitempty"`
+	Embedding        []float32              `protobuf:"fixed32,17,rep,packed,name=embedding,proto3" json:"embedding,omitempty"` // omitted when not loaded / null in DB
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *RetrieveEntry) Reset() {
@@ -809,6 +822,90 @@ func (x *RetrieveEntry) GetRelevanceScore() float64 {
 		return x.RelevanceScore
 	}
 	return 0
+}
+
+func (x *RetrieveEntry) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetMetadataJson() string {
+	if x != nil {
+		return x.MetadataJson
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *RetrieveEntry) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetEmbeddingSpace() string {
+	if x != nil {
+		return x.EmbeddingSpace
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetValidFromRfc3339() string {
+	if x != nil {
+		return x.ValidFromRfc3339
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetValidToRfc3339() string {
+	if x != nil {
+		return x.ValidToRfc3339
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetSourceAgentId() string {
+	if x != nil {
+		return x.SourceAgentId
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetSourceEventId() string {
+	if x != nil {
+		return x.SourceEventId
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetCreatedAtRfc3339() string {
+	if x != nil {
+		return x.CreatedAtRfc3339
+	}
+	return ""
+}
+
+func (x *RetrieveEntry) GetContentEncrypted() bool {
+	if x != nil {
+		return x.ContentEncrypted
+	}
+	return false
+}
+
+func (x *RetrieveEntry) GetEmbedding() []float32 {
+	if x != nil {
+		return x.Embedding
+	}
+	return nil
 }
 
 type RetrieveResponse struct {
@@ -1401,13 +1498,26 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"tags_match\x18\x06 \x01(\tR\ttagsMatch\x12\"\n" +
 	"\ras_of_rfc3339\x18\a \x01(\tR\vasOfRfc3339\x12&\n" +
 	"\x0fsource_agent_id\x18\b \x01(\tR\rsourceAgentId\x12'\n" +
-	"\x0fembedding_space\x18\t \x01(\tR\x0eembeddingSpace\"\x90\x01\n" +
+	"\x0fembedding_space\x18\t \x01(\tR\x0eembeddingSpace\"\xd9\x04\n" +
 	"\rRetrieveEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12\x18\n" +
 	"\aversion\x18\x04 \x01(\x05R\aversion\x12'\n" +
-	"\x0frelevance_score\x18\x05 \x01(\x01R\x0erelevanceScore\"Z\n" +
+	"\x0frelevance_score\x18\x05 \x01(\x01R\x0erelevanceScore\x12\x1b\n" +
+	"\ttenant_id\x18\x06 \x01(\tR\btenantId\x12#\n" +
+	"\rmetadata_json\x18\a \x01(\tR\fmetadataJson\x12\x12\n" +
+	"\x04tags\x18\b \x03(\tR\x04tags\x12'\n" +
+	"\x0fembedding_model\x18\t \x01(\tR\x0eembeddingModel\x12'\n" +
+	"\x0fembedding_space\x18\n" +
+	" \x01(\tR\x0eembeddingSpace\x12,\n" +
+	"\x12valid_from_rfc3339\x18\v \x01(\tR\x10validFromRfc3339\x12(\n" +
+	"\x10valid_to_rfc3339\x18\f \x01(\tR\x0evalidToRfc3339\x12&\n" +
+	"\x0fsource_agent_id\x18\r \x01(\tR\rsourceAgentId\x12&\n" +
+	"\x0fsource_event_id\x18\x0e \x01(\tR\rsourceEventId\x12,\n" +
+	"\x12created_at_rfc3339\x18\x0f \x01(\tR\x10createdAtRfc3339\x12+\n" +
+	"\x11content_encrypted\x18\x10 \x01(\bR\x10contentEncrypted\x12\x1c\n" +
+	"\tembedding\x18\x11 \x03(\x02R\tembedding\"Z\n" +
 	"\x10RetrieveResponse\x120\n" +
 	"\aentries\x18\x01 \x03(\v2\x16.pcmi.v1.RetrieveEntryR\aentries\x12\x14\n" +
 	"\x05total\x18\x02 \x01(\x05R\x05total\"\x89\x02\n" +

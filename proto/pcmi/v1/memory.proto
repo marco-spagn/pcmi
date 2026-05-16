@@ -98,12 +98,25 @@ message RetrieveRequest {
   string embedding_space = 9;
 }
 
+// RetrieveEntry mirrors REST MemoryEntry in retrieve responses (v1.26.0+).
 message RetrieveEntry {
   int64 id = 1;
   string path = 2;
   string content = 3;
   int32 version = 4;
   double relevance_score = 5;
+  string tenant_id = 6;
+  string metadata_json = 7;
+  repeated string tags = 8;
+  string embedding_model = 9;
+  string embedding_space = 10;
+  string valid_from_rfc3339 = 11;
+  string valid_to_rfc3339 = 12; // empty when current row has no valid_to
+  string source_agent_id = 13;
+  string source_event_id = 14;
+  string created_at_rfc3339 = 15;
+  bool content_encrypted = 16;
+  repeated float embedding = 17; // omitted when not loaded / null in DB
 }
 
 message RetrieveResponse {

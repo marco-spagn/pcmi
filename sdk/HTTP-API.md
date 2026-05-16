@@ -59,11 +59,12 @@ async with PCMIClient(base_url, api_key) as client:
 
 ### TypeScript
 
-```typescript
-const client = new PCMIClient(baseUrl, apiKey);
-await client.store("root.note", "hello", {}, { tags: ["demo"], embeddingModel: "unspecified" });
-await client.compact("root.note", { keepSuperseded: 10 });
-client.subscribe((ev) => console.log(ev.type), { types: ["memory.stored"] });
+```bash
+cd sdk/typescript && npm install && npm install -D tsx
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+npm run smoke
 ```
+
+Use `smoke.mts` (not `tsx` heredocs) — stdin eval breaks named imports on Node 23+.
 
 For gRPC agents, use `proto/pcmi/v1/memory.proto` and generated stubs — SDKs remain HTTP-first.

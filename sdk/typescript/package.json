@@ -1,7 +1,15 @@
 {
   "name": "@marco-spagn/pcmi-sdk",
   "version": "1.0.0",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "scripts": { "build": "tsc" }
+  "scripts": {
+    "build": "tsc",
+    "smoke": "tsx smoke.mts"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.0",
+    "typescript": "^6.0.3"
+  }
 }

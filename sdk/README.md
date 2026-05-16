@@ -31,20 +31,29 @@ Set header `X-API-Key` on every request (tenant + role). Writes need `write` or 
 pip install -e sdk/python
 ```
 
-```python
-from pcmi import PCMIClient
-
-async def main():
-    async with PCMIClient("http://localhost:8000", "your-key") as client:
-        await client.store("root.demo", "hello", tags=["sdk"])
-        result = await client.retrieve("root.demo", limit=5)
-        print(result["total"])
+```bash
+cd sdk/python
+python -m venv .venv && source .venv/bin/activate
+pip install -e .
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+python smoke.py
 ```
 
 ### TypeScript
 
+```bash
+cd sdk/typescript
+npm install
+npm install -D typescript tsx
+npm run build   # optional; smoke uses source via tsx
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+npm run smoke   # runs smoke.mts
+```
+
+Do **not** use `npx tsx <<'HEREDOC'` for imports: Node treats stdin as `[eval]` and named exports from `.ts` fail. Use `npm run smoke` or `npx tsx smoke.mts`.
+
 ```typescript
-import { PCMIClient } from "./src/client";
+import { PCMIClient } from "./src/client.ts";
 
 const client = new PCMIClient("http://localhost:8000", "your-key");
 await client.store("root.demo", "hello", {}, { tags: ["sdk"] });

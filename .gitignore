@@ -51,5 +51,9 @@ coverage.html
 # Smoke script venv (local only)
 examples/temporal/.venv_smoke/
 examples/celery/.venv_smoke/
+sdk/python/.venv/
+sdk/python/pcmi.egg-info/
+sdk/typescript/node_modules/
+sdk/typescript/dist/
 __pycache__/
 *.py[cod]

@@ -139,8 +139,10 @@ type StoreRequest struct {
 	EncryptContent bool     `protobuf:"varint,9,opt,name=encrypt_content,json=encryptContent,proto3" json:"encrypt_content,omitempty"`
 	// Optional TTL, RFC3339 or RFC3339Nano.
 	ExpiresAtRfc3339 string `protobuf:"bytes,10,opt,name=expires_at_rfc3339,json=expiresAtRfc3339,proto3" json:"expires_at_rfc3339,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	// Optional client-supplied embedding vector (same as REST JSON "embedding"); dimension must match DB (1536).
+	Embedding     []float32 `protobuf:"fixed32,11,rep,packed,name=embedding,proto3" json:"embedding,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StoreRequest) Reset() {
@@ -243,6 +245,13 @@ func (x *StoreRequest) GetExpiresAtRfc3339() string {
 	return ""
 }
 
+func (x *StoreRequest) GetEmbedding() []float32 {
+	if x != nil {
+		return x.Embedding
+	}
+	return nil
+}
+
 type StoreResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -322,6 +331,7 @@ type BatchStoreItem struct {
 	SourceAgentId    string                 `protobuf:"bytes,7,opt,name=source_agent_id,json=sourceAgentId,proto3" json:"source_agent_id,omitempty"`
 	EncryptContent   bool                   `protobuf:"varint,8,opt,name=encrypt_content,json=encryptContent,proto3" json:"encrypt_content,omitempty"`
 	ExpiresAtRfc3339 string                 `protobuf:"bytes,9,opt,name=expires_at_rfc3339,json=expiresAtRfc3339,proto3" json:"expires_at_rfc3339,omitempty"`
+	Embedding        []float32              `protobuf:"fixed32,10,rep,packed,name=embedding,proto3" json:"embedding,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -417,6 +427,13 @@ func (x *BatchStoreItem) GetExpiresAtRfc3339() string {
 		return x.ExpiresAtRfc3339
 	}
 	return ""
+}
+
+func (x *BatchStoreItem) GetEmbedding() []float32 {
+	if x != nil {
+		return x.Embedding
+	}
+	return nil
 }
 
 type BatchStoreRequest struct {
@@ -1327,7 +1344,7 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\vdatabase_ok\x18\x02 \x01(\bR\n" +
 	"databaseOk\x12\x19\n" +
 	"\bredis_ok\x18\x03 \x01(\bR\aredisOk\x12\x18\n" +
-	"\aversion\x18\x04 \x01(\tR\aversion\"\xdf\x02\n" +
+	"\aversion\x18\x04 \x01(\tR\aversion\"\xfd\x02\n" +
 	"\fStoreRequest\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
@@ -1339,13 +1356,14 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x0fsource_agent_id\x18\b \x01(\tR\rsourceAgentId\x12'\n" +
 	"\x0fencrypt_content\x18\t \x01(\bR\x0eencryptContent\x12,\n" +
 	"\x12expires_at_rfc3339\x18\n" +
-	" \x01(\tR\x10expiresAtRfc3339\"\x8d\x01\n" +
+	" \x01(\tR\x10expiresAtRfc3339\x12\x1c\n" +
+	"\tembedding\x18\v \x03(\x02R\tembedding\"\x8d\x01\n" +
 	"\rStoreResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x16\n" +
 	"\x06status\x18\x02 \x01(\tR\x06status\x12\x18\n" +
 	"\aversion\x18\x03 \x01(\x05R\aversion\x12(\n" +
 	"\rsuperseded_id\x18\x04 \x01(\x03H\x00R\fsupersededId\x88\x01\x01B\x10\n" +
-	"\x0e_superseded_id\"\xc8\x02\n" +
+	"\x0e_superseded_id\"\xe6\x02\n" +
 	"\x0eBatchStoreItem\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12#\n" +
@@ -1355,7 +1373,9 @@ const file_pcmi_v1_memory_proto_rawDesc = "" +
 	"\x0fembedding_space\x18\x06 \x01(\tR\x0eembeddingSpace\x12&\n" +
 	"\x0fsource_agent_id\x18\a \x01(\tR\rsourceAgentId\x12'\n" +
 	"\x0fencrypt_content\x18\b \x01(\bR\x0eencryptContent\x12,\n" +
-	"\x12expires_at_rfc3339\x18\t \x01(\tR\x10expiresAtRfc3339\"[\n" +
+	"\x12expires_at_rfc3339\x18\t \x01(\tR\x10expiresAtRfc3339\x12\x1c\n" +
+	"\tembedding\x18\n" +
+	" \x03(\x02R\tembedding\"[\n" +
 	"\x11BatchStoreRequest\x12-\n" +
 	"\x05items\x18\x01 \x03(\v2\x17.pcmi.v1.BatchStoreItemR\x05items\x12\x17\n" +
 	"\aapi_key\x18\x02 \x01(\tR\x06apiKey\"\xc0\x01\n" +

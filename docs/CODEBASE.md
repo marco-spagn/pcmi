@@ -88,7 +88,7 @@ Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultService
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. **Store** / **BatchStore** e **Retrieve** accettano gli stessi campi/filtri delle rispettive API REST (tag, TTL `expires_at_rfc3339`, agent, embedding, encrypt). Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
+Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC: `Store`, **`BatchStore`**, `Retrieve`, `BatchRetrieve`, `RetrieveStream`, `Health`, `Ready`. **Store** / **BatchStore** e **Retrieve** accettano gli stessi campi/filtri delle rispettive API REST (tag, TTL `expires_at_rfc3339`, agent, `embedding` vettoriale, `embedding_model` / `embedding_space`, encrypt). Endpoint solo-HTTP: `docs/grpc-vs-http.md`. Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
 
 ## `internal/webhook`
 
@@ -147,6 +147,7 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 ## Riferimenti
 
 - API HTTP: `docs/openapi.yaml`
+- gRPC vs HTTP: `docs/grpc-vs-http.md`
 - Architettura: `docs/architecture.md`
 - Migrations: `docs/MIGRATIONS.md`
 - Failure / scale: `docs/failure-modes.md`, `docs/scalability.md`

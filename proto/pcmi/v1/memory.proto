@@ -40,6 +40,8 @@ message StoreRequest {
   bool encrypt_content = 9;
   // Optional TTL, RFC3339 or RFC3339Nano.
   string expires_at_rfc3339 = 10;
+  // Optional client-supplied embedding vector (same as REST JSON "embedding"); dimension must match DB (1536).
+  repeated float embedding = 11;
 }
 
 message StoreResponse {
@@ -59,6 +61,7 @@ message BatchStoreItem {
   string source_agent_id = 7;
   bool encrypt_content = 8;
   string expires_at_rfc3339 = 9;
+  repeated float embedding = 10;
 }
 
 message BatchStoreRequest {

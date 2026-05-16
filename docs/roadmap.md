@@ -1,6 +1,12 @@
 # PCMI evolution roadmap
 
-## v1.24.0 (current)
+## v1.25.0 (current)
+
+- **Embedding vettoriale su gRPC store**: `StoreRequest` / `BatchStoreItem` con `repeated float embedding` (parità con REST `embedding`); worker backfill se assente.
+- **Documentazione API solo-HTTP**: `docs/grpc-vs-http.md` (compact, refine, links, stats, admin, webhooks, SSE, …).
+- Versione API `v1.25.0`.
+
+## v1.24.0
 
 - **Parità store gRPC ↔ REST**: `StoreRequest` / `BatchStoreItem` con `tags`, `embedding_model`, `embedding_space`, `source_agent_id`, `encrypt_content`, `expires_at_rfc3339`; `StoreResponse` con `superseded_id` opzionale. Test integrazione gRPC (`go test -tags=integration`) e smoke store+retrieve con tag.
 - Versione API `v1.24.0`.

@@ -151,6 +151,47 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def create_tenant(self, slug: str, name: str, settings: dict | None = None):
+        resp = await self.client.post(
+            "/v1/admin/tenants",
+            json={"slug": slug, "name": name, "settings": settings or {}},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_api_keys(self, *, tenant_id: str | None = None, limit: int = 50):
+        params: dict[str, str | int] = {"limit": limit}
+        if tenant_id:
+            params["tenant_id"] = tenant_id
+        resp = await self.client.get("/v1/admin/api-keys", params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def create_api_key(
+        self,
+        name: str,
+        *,
+        tenant_id: str | None = None,
+        role: str = "user",
+        expires_at: str | None = None,
+    ):
+        body: dict = {"name": name, "role": role}
+        if tenant_id:
+            body["tenant_id"] = tenant_id
+        if expires_at:
+            body["expires_at"] = expires_at
+        resp = await self.client.post("/v1/admin/api-keys", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def rotate_api_key(self, key_id: str, name: str = ""):
+        resp = await self.client.post(
+            f"/v1/admin/api-keys/{key_id}/rotate",
+            json={"name": name},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
     async def get_history(self, path: str, limit: int = 50):
         resp = await self.client.get(
             "/v1/memories/history",

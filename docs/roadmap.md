@@ -1,6 +1,13 @@
 # PCMI evolution roadmap
 
-## v1.27.0 (current)
+## v1.28.0 (current)
+
+- **gRPC operational**: `GetMemory` (GET `/v1/memories/*`) e `Compact` (POST `/v1/memories/compact`).
+- **SDK admin**: `create_tenant`, `list_api_keys`, `create_api_key`, `rotate_api_key` (Python + TypeScript).
+- **CI/DX**: `make sdk-smoke`, `scripts/ci_sdk_smoke.sh` in integration-smoke; smoke admin read-only.
+- Versione API `v1.28.0`.
+
+## v1.27.0
 
 - **SDK HTTP-only**: `sdk/HTTP-API.md` — tabella mapping endpoint → metodi Python/TypeScript; client allineati (store/retrieve completi, `compact`, webhooks, `migrate_embeddings`, `list_links`, …).
 - **Polish SDK**: TypeScript `StoreOptions` / `RetrieveOptions` (`embedding`, `tags`, `encrypt_content`, `expires_at`, `tags_match`); Python `async with`, stessi campi e metodi mancanti.

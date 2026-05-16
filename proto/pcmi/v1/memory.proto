@@ -16,6 +16,10 @@ service MemoryService {
   rpc Health(HealthRequest) returns (HealthResponse);
   // Ready checks PostgreSQL and Redis (no API key); suitable for Kubernetes readiness.
   rpc Ready(ReadyRequest) returns (ReadyResponse);
+  // GetMemory mirrors GET /v1/memories/{path} (optional version / as_of).
+  rpc GetMemory(GetMemoryRequest) returns (GetMemoryResponse);
+  // Compact mirrors POST /v1/memories/compact.
+  rpc Compact(CompactRequest) returns (CompactResponse);
 }
 
 message ReadyRequest {}
@@ -166,4 +170,28 @@ message HealthRequest {}
 message HealthResponse {
   string status = 1;
   string version = 2;
+}
+
+message GetMemoryRequest {
+  string path = 1;
+  string api_key = 2;
+  // Optional exact version; 0 means latest/current.
+  int32 version = 3;
+  string as_of_rfc3339 = 4;
+}
+
+message GetMemoryResponse {
+  RetrieveEntry entry = 1;
+}
+
+message CompactRequest {
+  string path = 1;
+  string api_key = 2;
+  int32 keep_superseded = 3;
+}
+
+message CompactResponse {
+  string path = 1;
+  int32 deleted_count = 2;
+  int32 keep_superseded = 3;
 }

@@ -223,6 +223,26 @@ func TestStoreResultToProto_superseded(t *testing.T) {
 	}
 }
 
+func TestGetMemoryProtoToParams(t *testing.T) {
+	path, ver, asOf, err := getMemoryProtoToParams(&pcmiv1.GetMemoryRequest{
+		Path: "root.p", Version: 2, AsOfRfc3339: "2020-01-02T15:04:05Z",
+	})
+	if err != nil || path != "root.p" || ver == nil || *ver != 2 || asOf == nil {
+		t.Fatalf("path=%q ver=%v asOf=%v err=%v", path, ver, asOf, err)
+	}
+}
+
+func TestCompactProtoToModel(t *testing.T) {
+	m, err := compactProtoToModel(&pcmiv1.CompactRequest{Path: "root.p", KeepSuperseded: 10})
+	if err != nil || m.Path != "root.p" || m.KeepSuperseded != 10 {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+	m2, err := compactProtoToModel(&pcmiv1.CompactRequest{Path: "x"})
+	if err != nil || m2.KeepSuperseded != 20 {
+		t.Fatalf("default keep: %#v", m2)
+	}
+}
+
 func TestBatchStoreModelToProto(t *testing.T) {
 	sid := int64(99)
 	res := &model.BatchStoreResult{

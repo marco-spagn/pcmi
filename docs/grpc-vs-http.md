@@ -13,6 +13,8 @@ PCMI exposes a **dual transport** for core memory operations. Many operational a
 | `RetrieveStream` | same as retrieve (streamed entries) |
 | `Health` | `GET /v1/health` |
 | `Ready` | `GET /v1/ready` |
+| `GetMemory` | `GET /v1/memories/{path}` |
+| `Compact` | `POST /v1/memories/compact` |
 
 ### Store parity (v1.25.0)
 
@@ -36,7 +38,7 @@ These routes have **no gRPC RPC** today. Use HTTP (or extend proto in a future r
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/v1/memories/compact` | Trim superseded versions for one path |
+| POST | `/v1/memories/compact` | Trim superseded versions (also **gRPC `Compact`**) |
 | POST | `/v1/memories/refine` | Trigger distillation for a path prefix |
 | POST | `/v1/memories/links` | Create cross-memory link |
 | GET | `/v1/memories/links` | List links |
@@ -54,7 +56,7 @@ These routes have **no gRPC RPC** today. Use HTTP (or extend proto in a future r
 | POST | `/v1/memories/rollback` | Version rollback |
 | POST | `/v1/memories/summarize` | LLM summarize under prefix |
 | GET | `/v1/memories/history` | All versions for a path |
-| GET | `/v1/memories/*` | Get memory by path |
+| GET | `/v1/memories/*` | Get memory by path (also **gRPC `GetMemory`**) |
 | GET | `/v1/lineage/memory` | Memory lineage |
 | GET | `/v1/lineage/distilled/:id` | Distilled lineage |
 | GET | `/v1/distilled` | List distilled knowledge |

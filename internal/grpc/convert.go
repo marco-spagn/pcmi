@@ -250,3 +250,45 @@ func batchStoreModelToProto(res *model.BatchStoreResult) *pcmiv1.BatchStoreRespo
 	}
 	return out
 }
+
+func getMemoryProtoToParams(req *pcmiv1.GetMemoryRequest) (path string, version *int, asOf *time.Time, err error) {
+	if req == nil {
+		return "", nil, nil, fmt.Errorf("path is required")
+	}
+	path = strings.TrimSpace(req.GetPath())
+	if path == "" {
+		return "", nil, nil, fmt.Errorf("path is required")
+	}
+	if v := req.GetVersion(); v > 0 {
+		n := int(v)
+		version = &n
+	}
+	asOf, err = parseAsOfRFC3339(req.GetAsOfRfc3339())
+	if err != nil {
+		return "", nil, nil, err
+	}
+	return path, version, asOf, nil
+}
+
+func compactProtoToModel(req *pcmiv1.CompactRequest) (model.CompactMemoryRequest, error) {
+	if req == nil {
+		return model.CompactMemoryRequest{}, fmt.Errorf("path is required")
+	}
+	path := strings.TrimSpace(req.GetPath())
+	if path == "" {
+		return model.CompactMemoryRequest{}, fmt.Errorf("path is required")
+	}
+	keep := int(req.GetKeepSuperseded())
+	if keep <= 0 {
+		keep = 20
+	}
+	return model.CompactMemoryRequest{Path: path, KeepSuperseded: keep}, nil
+}
+
+func compactModelToProto(res *model.CompactMemoryResponse) *pcmiv1.CompactResponse {
+	return &pcmiv1.CompactResponse{
+		Path:           res.Path,
+		DeletedCount:   int32(res.DeletedCount),
+		KeepSuperseded: int32(res.KeepSuperseded),
+	}
+}

@@ -37,6 +37,13 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .
 export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
 python smoke.py
+python admin_smoke.py
+```
+
+From repo root (API on :8000):
+
+```bash
+make sdk-smoke
 ```
 
 ### TypeScript
@@ -47,7 +54,8 @@ npm install
 npm install -D typescript tsx
 npm run build   # optional; smoke uses source via tsx
 export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
-npm run smoke   # runs smoke.mts
+npm run smoke        # HTTP store/retrieve/compact
+npm run admin-smoke  # admin list tenants/keys (read-only)
 ```
 
 Do **not** use `npx tsx <<'HEREDOC'` for imports: Node treats stdin as `[eval]` and named exports from `.ts` fail. Use `npm run smoke` or `npx tsx smoke.mts`.

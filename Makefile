@@ -1,4 +1,4 @@
-.PHONY: test lint test-integration install-lint
+.PHONY: test lint test-integration sdk-smoke install-lint
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -21,3 +21,8 @@ install-lint:
 test-integration:
 	GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) DATABASE_URL=$(DATABASE_URL) \
 		go test -tags=integration -count=1 ./internal/grpc/...
+
+# HTTP SDK smoke (Python + TypeScript). Requires API on :8000 (see scripts/ci_integration_smoke.sh).
+sdk-smoke:
+	PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
+		bash scripts/ci_sdk_smoke.sh

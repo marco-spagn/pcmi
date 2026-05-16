@@ -197,6 +197,50 @@ export class PCMIClient {
     return res.json();
   }
 
+  async createTenant(slug: string, name: string, settings: Record<string, unknown> = {}) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/admin/tenants`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({ slug, name, settings }),
+    });
+    if (!res.ok) throw new Error(`createTenant failed: ${res.status}`);
+    return res.json();
+  }
+
+  async listApiKeys(opts?: { tenantId?: string; limit?: number }) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/admin/api-keys`);
+    u.searchParams.set("limit", String(opts?.limit ?? 50));
+    if (opts?.tenantId) u.searchParams.set("tenant_id", opts.tenantId);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`listApiKeys failed: ${res.status}`);
+    return res.json();
+  }
+
+  async createApiKey(
+    name: string,
+    opts?: { tenantId?: string; role?: string; expiresAt?: string },
+  ) {
+    const body: Record<string, unknown> = { name, role: opts?.role ?? "user" };
+    if (opts?.tenantId) body.tenant_id = opts.tenantId;
+    if (opts?.expiresAt) body.expires_at = opts.expiresAt;
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/admin/api-keys`, {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`createApiKey failed: ${res.status}`);
+    return res.json();
+  }
+
+  async rotateApiKey(keyId: string, name = "") {
+    const res = await fetch(
+      `${this.baseUrl.replace(/\/$/, "")}/v1/admin/api-keys/${encodeURIComponent(keyId)}/rotate`,
+      { method: "POST", headers: this.headers(), body: JSON.stringify({ name }) },
+    );
+    if (!res.ok) throw new Error(`rotateApiKey failed: ${res.status}`);
+    return res.json();
+  }
+
   async getHistory(path: string, limit = 50) {
     const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/history`);
     u.searchParams.set("path", path);

@@ -185,6 +185,44 @@ func (s *memoryServer) RetrieveStream(req *pcmiv1.RetrieveRequest, stream pcmiv1
 	return nil
 }
 
+func (s *memoryServer) GetMemory(ctx context.Context, req *pcmiv1.GetMemoryRequest) (*pcmiv1.GetMemoryResponse, error) {
+	tenantID, _, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
+	if err != nil {
+		return nil, err
+	}
+	path, ver, asOf, err := getMemoryProtoToParams(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	entry, err := s.svc.GetByPath(ctx, tenantID, path, ver, asOf)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		return nil, status.Errorf(codes.Internal, "get memory: %v", err)
+	}
+	return &pcmiv1.GetMemoryResponse{Entry: memoryEntryToProtoRetrieve(entry)}, nil
+}
+
+func (s *memoryServer) Compact(ctx context.Context, req *pcmiv1.CompactRequest) (*pcmiv1.CompactResponse, error) {
+	tenantID, role, err := s.resolveTenantAndRole(ctx, req.GetApiKey())
+	if err != nil {
+		return nil, err
+	}
+	if err := requireWriteRole(role); err != nil {
+		return nil, err
+	}
+	cr, err := compactProtoToModel(req)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+	out, err := s.svc.Compact(ctx, tenantID, &cr)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "compact: %v", err)
+	}
+	return compactModelToProto(out), nil
+}
+
 func (s *memoryServer) Health(context.Context, *pcmiv1.HealthRequest) (*pcmiv1.HealthResponse, error) {
 	return &pcmiv1.HealthResponse{Status: "ok", Version: version.Tag}, nil
 }
@@ -218,7 +256,7 @@ func Start(db *pgxpool.Pool, memSvc *service.MemoryService) {
 	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{svc: memSvc, db: db})
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (Store/BatchStore/Retrieve/BatchRetrieve/RetrieveStream/Health/Ready)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (Store/BatchStore/Retrieve/BatchRetrieve/RetrieveStream/GetMemory/Compact/Health/Ready)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

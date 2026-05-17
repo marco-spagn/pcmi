@@ -41,8 +41,15 @@ type Config struct {
 	WebhookMaxAttempts   int
 
 	// Rate limiting
-	RateLimitDisabled bool
-	RateLimitRPM      int
+	RateLimitDisabled   bool
+	RateLimitRPM        int
+	RateLimitRPMAdmin   int
+	RateLimitRPMWrite   int
+	RateLimitRPMReadonly int
+
+	// TLS (optional — leave empty for plain HTTP)
+	TLSCertFile string
+	TLSKeyFile  string
 
 	// Encryption
 	EncryptionKey string
@@ -82,8 +89,14 @@ func Load() *Config {
 		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),
 		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
 
-		RateLimitDisabled: envBool("RATE_LIMIT_DISABLED", false),
-		RateLimitRPM:      envInt("RATE_LIMIT_RPM", 60),
+		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
+		RateLimitRPM:         envInt("RATE_LIMIT_RPM", 60),
+		RateLimitRPMAdmin:    envInt("RATE_LIMIT_RPM_ADMIN", 30),
+		RateLimitRPMWrite:    envInt("RATE_LIMIT_RPM_WRITE", 100),
+		RateLimitRPMReadonly: envInt("RATE_LIMIT_RPM_READONLY", 200),
+
+		TLSCertFile: strings.TrimSpace(os.Getenv("PCMI_TLS_CERT")),
+		TLSKeyFile:  strings.TrimSpace(os.Getenv("PCMI_TLS_KEY")),
 
 		EncryptionKey: strings.TrimSpace(os.Getenv("PCMI_ENCRYPTION_KEY")),
 

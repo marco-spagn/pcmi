@@ -7,8 +7,8 @@ cd "$ROOT"
 
 API="${API:-http://localhost:8000}"
 KEY="${PCMI_API_KEY:-testkey123}"
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.32.0}"
-VER="${EXPECT_API_VERSION:-v1.32.0}"
+export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.33.0}"
+VER="${EXPECT_API_VERSION:-v1.33.0}"
 hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${KEY}")
 
 echo "== Readiness /v1/ready =="

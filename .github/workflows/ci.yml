@@ -66,8 +66,28 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      - name: Test
-        run: go test ./...
+      - name: Test (with race detector + coverage)
+        run: |
+          go test -race -count=1 \
+            -coverprofile=coverage.out \
+            -covermode=atomic \
+            ./internal/event/... \
+            ./internal/eventschema/... \
+            ./internal/handler/... \
+            ./internal/middleware/... \
+            ./internal/repository/... \
+            ./internal/service/... \
+            ./internal/version/... \
+            ./internal/webhook/... \
+            ./internal/worker/...
+
+      - name: Print coverage summary
+        run: |
+          echo "=== Total coverage ==="
+          go tool cover -func=coverage.out | tail -1
+          echo ""
+          echo "=== Top uncovered functions ==="
+          go tool cover -func=coverage.out | grep -v "100.0%" | sort -t$'\t' -k3 -n | tail -20 || true
 
   integration-smoke:
     name: Integration smoke (Postgres + Redis)
@@ -156,8 +176,8 @@ jobs:
 
       - name: Integration smoke suite (bash)
         env:
-          PCMI_EXPECT_VERSION: v1.31.0
-          EXPECT_API_VERSION: v1.31.0
+          PCMI_EXPECT_VERSION: v1.32.0
+          EXPECT_API_VERSION: v1.32.0
         run: |
           chmod +x scripts/ci_integration_smoke.sh
           ./scripts/ci_integration_smoke.sh

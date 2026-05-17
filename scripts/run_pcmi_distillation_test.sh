@@ -14,7 +14,7 @@
 # Modello di verifica (x → y, atteso z):
 #   - active_memories:     x=baseline,  y=dopo ingest,  z=x+NUM_INCIDENTS
 #   - distilled_count:     x=baseline,  y=dopo refine,  z=x+NUM_REFINE_EVENTS
-#   - eventi Redis refine: x=0,         y=pubblicati,   z=8 (uno per threat_type)
+#   - eventi Redis refine: x=0,         y=pubblicati,   z=ceil(NUM_INCIDENTS/10) (uno per shard)
 #   - raw in distillati:   somma source_entry_ids ≈ NUM_INCIDENTS
 #
 # Idempotente: si può rilanciare quante volte si vuole.
@@ -51,11 +51,16 @@ PCMI_REDIS_URL="${PCMI_REDIS_URL:-redis://localhost:6379/0}"
 TENANT_ID="${TENANT_ID:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}"
 TENANT_SLUG="${TENANT_SLUG:-soc-test}"
 
-NUM_INCIDENTS=100
+NUM_INCIDENTS=1000
 SEED=42
 SKIP_BUILD=0
 SKIP_TEARDOWN=0
 SKIP_DISTILL=0
+# DISTILLATION_BATCH_SIZE (LIMIT della query del worker). Modificabile via flag
+# --distill-batch-size oppure env DISTILLATION_BATCH_SIZE.
+# Lo shard size del generator viene tenuto sincronizzato con questo valore così
+# che ogni refine prenda esattamente un intero shard.
+DISTILL_BATCH_SIZE="${DISTILLATION_BATCH_SIZE:-10}"
 # Throttle: praticamente irrilevante se fermiamo il worker durante l'ingest,
 # perché gli eventi memory.stored non vengono mai consumati (Redis pub/sub
 # non è persistente). Lo manteniamo basso giusto per non rompere il pool DB.
@@ -82,9 +87,14 @@ err()  { echo -e "${RED}[ERR]${NC} $*" >&2; }
 
 TEST_FAILED=0
 
-# Threat shards (1 refine event Redis ciascuno → 1 distilled record)
-THREAT_TYPES=(phishing brute_force ransomware malware sql_injection insider_threat zero_day ddos)
-NUM_REFINE_EVENTS="${#THREAT_TYPES[@]}"
+# Sharding: ogni shard ha DISTILL_BATCH_SIZE record (= LIMIT della query worker).
+# Numero refine events = ceil(NUM_INCIDENTS / DISTILL_BATCH_SIZE).
+# Esempi:
+#   1000 incidenti / batch=10  → 100 shard → 100 distilled
+#   1000 incidenti / batch=100 →  10 shard →  10 distilled (con summary più ricchi)
+#   1000 incidenti / batch=50  →  20 shard →  20 distilled
+SHARD_SIZE="$DISTILL_BATCH_SIZE"
+NUM_REFINE_EVENTS=$(( (NUM_INCIDENTS + SHARD_SIZE - 1) / SHARD_SIZE ))
 
 fetch_active_memories() {
   curl -fsS -H "X-API-Key: ${PCMI_API_KEY}" "${PCMI_BASE_URL}/v1/stats" \
@@ -149,7 +159,7 @@ print_test_plan() {
   fi
   echo -e "${CYAN}──────────────────────────────────────────────────────────────────────${NC}"
   echo "  Eventi Redis che invieremo: ${NUM_REFINE_EVENTS}× memory.refine.requested"
-  echo "    (uno per threat_type: ${THREAT_TYPES[*]})"
+  echo "    (uno per shard: shard_000..shard_$(printf "%03d" $((NUM_REFINE_EVENTS-1))), ${SHARD_SIZE} record/shard)"
   echo
 }
 
@@ -159,10 +169,17 @@ while [[ $# -gt 0 ]]; do
     --no-build)     SKIP_BUILD=1; shift ;;
     --no-teardown)  SKIP_TEARDOWN=1; shift ;;
     --skip-distill) SKIP_DISTILL=1; shift ;;
-    --num)          NUM_INCIDENTS="${2:?missing N}"; shift 2 ;;
+    --num)          NUM_INCIDENTS="${2:?missing N}"
+                    NUM_REFINE_EVENTS=$(( (NUM_INCIDENTS + SHARD_SIZE - 1) / SHARD_SIZE ))
+                    shift 2 ;;
     --seed)         SEED="${2:?missing seed}"; shift 2 ;;
     --throttle-ms)  THROTTLE_MS="${2:?missing ms}"; shift 2 ;;
     --batch-size)   BATCH_SIZE="${2:?missing N}"; shift 2 ;;
+    --distill-batch-size)
+                    DISTILL_BATCH_SIZE="${2:?missing N}"
+                    SHARD_SIZE="$DISTILL_BATCH_SIZE"
+                    NUM_REFINE_EVENTS=$(( (NUM_INCIDENTS + SHARD_SIZE - 1) / SHARD_SIZE ))
+                    shift 2 ;;
     --fast)         THROTTLE_MS=0; shift ;;
     --keep-worker)  STOP_WORKER_DURING_INGEST=0; shift ;;
     --help|-h)
@@ -218,7 +235,8 @@ fi
 # Stop residui idempotente
 "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 
-log "  docker compose up -d…"
+log "  docker compose up -d (DISTILLATION_BATCH_SIZE=${DISTILL_BATCH_SIZE})…"
+export DISTILLATION_BATCH_SIZE="$DISTILL_BATCH_SIZE"
 "${COMPOSE[@]}" up -d >/dev/null
 
 # =============================================================================
@@ -352,6 +370,7 @@ python "${ROOT}/scripts/generate_soc_incidents_enterprise_v2.py" \
   --refine-path-prefix "$PATH_PREFIX" \
   --batch-size    "$BATCH_SIZE" \
   --throttle-ms   "$THROTTLE_MS" \
+  --shard-size    "$SHARD_SIZE" \
   --skip-publish
 
 ok "Generatore completato — JSONL backup: $JSONL_OUT"
@@ -379,25 +398,29 @@ if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
   done
 fi
 
-# --- 5d) Publish UN refine event PER OGNI threat_type ------------------------
-# Il worker fa LIMIT 100 per refine: 1 refine = 1 distilled (fino a 100 raw/shard).
+# --- 5d) Publish UN refine event PER OGNI shard (path: …soc.shard_NNN) -------
+# Il worker fa LIMIT 10 per refine. Pubblicando 1 refine per shard
+# otteniamo COPERTURA TOTALE dei raw incidents (1000 → 100 distilled).
+# Rate-limit gpt-4o-mini = 500 RPM / 200k TPM, ogni call ≈ 1500 token:
+# spacing 1.2s ≈ 50 RPM, ~75k TPM → ampio margine.
 log "  → pubblicazione ${NUM_REFINE_EVENTS} eventi Redis memory.refine.requested"
 log "     (atteso distilled_count: x=${X_DISTILLED} → z=${EXPECT_DISTILLED})"
 REFINE_PUBLISHED=0
-for tt in "${THREAT_TYPES[@]}"; do
-  PREFIX_TT="${PATH_PREFIX}.${tt}"
-  PAYLOAD_TT="$(jq -nc \
+for ((sh=0; sh<NUM_REFINE_EVENTS; sh++)); do
+  PREFIX_SH="$(printf "%s.shard_%03d" "$PATH_PREFIX" "$sh")"
+  PAYLOAD_SH="$(jq -nc \
     --arg t "$TENANT_ID" \
-    --arg p "$PREFIX_TT" \
-    --arg r "shard:${tt}" \
+    --arg p "$PREFIX_SH" \
+    --arg r "shard_$(printf "%03d" "$sh")" \
     '{Type:"memory.refine.requested", Payload:{tenant_id:$t, path_prefix:$p, reason:$r}}')"
-  SUBS="$("${COMPOSE[@]}" exec -T redis redis-cli PUBLISH memory_events "$PAYLOAD_TT" | tr -d '\r\n')"
+  "${COMPOSE[@]}" exec -T redis redis-cli PUBLISH memory_events "$PAYLOAD_SH" >/dev/null
   REFINE_PUBLISHED=$((REFINE_PUBLISHED + 1))
-  log "    evento ${REFINE_PUBLISHED}/${NUM_REFINE_EVENTS} memory.refine.requested  shard=${tt}  subscribers=${SUBS}"
-  # Spacing tra refine: 1 LLM call ≈ 3s con ~1500 tokens; con 8 shard
-  # restiamo ampiamente sotto 500 RPM. Bastano 2s.
-  sleep 2
+  if (( REFINE_PUBLISHED % 10 == 0 )); then
+    log "    refine published: ${REFINE_PUBLISHED}/${NUM_REFINE_EVENTS}"
+  fi
+  sleep 1.2
 done
+ok "Pubblicati ${REFINE_PUBLISHED} refine events"
 
 # =============================================================================
 # 6) Verifica distillation: distilled_count x → y, atteso z
@@ -458,7 +481,7 @@ assert_eq "active_memories (finale)" "$Y_ACTIVE" "$EXPECT_ACTIVE"
 assert_eq "distilled_count (finale)" "$Y_DISTILLED" "$EXPECT_DISTILLED"
 assert_eq "refine events pubblicati" "$REFINE_PUBLISHED" "$NUM_REFINE_EVENTS"
 assert_eq "raw sources nei distillati" "$Y_SOURCES" "$EXPECT_SOURCES" \
-  "ogni incidente dovrebbe finire in un solo shard threat_type"
+  "ogni shard contiene esattamente ${SHARD_SIZE} record → ogni distillato ha ${SHARD_SIZE} source_entry_ids"
 assert_eq "worker 429 hits" "$RATE_LIMIT_HITS" "$EXPECT_RATE_LIMIT"
 
 # Sample delle distilled

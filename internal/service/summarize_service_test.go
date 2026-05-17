@@ -1,23 +1,50 @@
 package service
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
-func TestExtractiveSummaryBrief(t *testing.T) {
-	parts := []string{"alpha memory content", "beta memory content"}
-	s := extractiveSummary(parts, "brief")
-	if s == "" {
-		t.Fatal("expected non-empty summary")
+func TestExtractiveSummaryShort(t *testing.T) {
+	parts := []string{"hello", "world"}
+	got := extractiveSummary(parts, "")
+	if got != "hello\n\nworld" {
+		t.Fatalf("unexpected summary: %q", got)
 	}
 }
 
-func TestExtractiveSummaryDetailedLonger(t *testing.T) {
-	long := make([]byte, 2000)
-	for i := range long {
-		long[i] = 'x'
+func TestExtractiveSummaryTruncated(t *testing.T) {
+	// Build a string longer than 400 characters
+	longPart := strings.Repeat("a", 500)
+	got := extractiveSummary([]string{longPart}, "")
+	if len(got) > 405 { // 400 + "…"
+		t.Fatalf("summary not truncated: len=%d", len(got))
 	}
-	brief := extractiveSummary([]string{string(long)}, "brief")
-	detailed := extractiveSummary([]string{string(long)}, "detailed")
-	if len(detailed) <= len(brief) {
-		t.Fatalf("detailed should allow more chars: brief=%d detailed=%d", len(brief), len(detailed))
+	if !strings.HasSuffix(got, "…") {
+		t.Fatalf("expected ellipsis at end of truncated summary, got: %q", got[:20])
+	}
+}
+
+func TestExtractiveSummaryDetailed(t *testing.T) {
+	longPart := strings.Repeat("b", 1100)
+	got := extractiveSummary([]string{longPart}, "detailed")
+	// 1200 chars limit for detailed
+	if len(got) > 1205 {
+		t.Fatalf("detailed summary too long: %d", len(got))
+	}
+}
+
+func TestExtractiveSummaryDetailedNoTrunc(t *testing.T) {
+	part := strings.Repeat("c", 50)
+	got := extractiveSummary([]string{part}, "Detailed") // case-insensitive
+	if got != part {
+		t.Fatalf("expected no truncation for short detailed summary")
+	}
+}
+
+func TestExtractiveSummaryEmpty(t *testing.T) {
+	got := extractiveSummary(nil, "")
+	if got != "" {
+		t.Fatalf("expected empty summary for nil parts, got %q", got)
 	}
 }

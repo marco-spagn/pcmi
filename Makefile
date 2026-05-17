@@ -1,4 +1,4 @@
-.PHONY: test lint test-integration sdk-smoke install-lint
+.PHONY: test lint test-integration sdk-smoke distillation-e2e install-lint
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -26,3 +26,7 @@ test-integration:
 sdk-smoke:
 	PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
 		bash scripts/ci_sdk_smoke.sh
+
+# Full distillation pipeline e2e (Docker + OpenAI). Local only; artifacts in .pcmi_test_out/.
+distillation-e2e:
+	bash scripts/run_pcmi_distillation_test.sh

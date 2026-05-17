@@ -1,5 +1,5 @@
 // Programma pcmi-api: server HTTP (Fiber), stream SSE, eventuale gRPC MemoryService e endpoint
-// Prometheus. Avvio da cmd/api; configurazione via variabili d’ambiente (vedi .env.example e docs/CODEBASE.md).
+// Prometheus. Avvio da cmd/api; configurazione via variabili d'ambiente (vedi .env.example e docs/CODEBASE.md).
 // Readiness: GET /ready e GET /v1/ready (ping Postgres + Redis, senza API key).
 // Optional DATABASE_READ_URL: PostgreSQL read replica per query di lettura (retrieve, stats, ecc.).
 // Optional OpenTelemetry: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT / OTEL_EXPORTER_OTLP_ENDPOINT (vedi .env.example).
@@ -8,7 +8,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -45,6 +45,13 @@ func skipTracePath(c *fiber.Ctx) bool {
 func main() {
 	log.Println("🚀 PCMI API " + version.Tag + " starting...")
 
+	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
+	cfg := config.Load()
+	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
+		log.Fatalf("❌ FATAL: %v", err)
+	}
+	log.Printf("✅ Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
+
 	ctx := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctx, "pcmi-api")
 	if err != nil {
@@ -58,28 +65,18 @@ func main() {
 		}
 	}()
 
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://pcmi:pcmi@postgres:5432/pcmi?sslmode=disable"
-	}
-
-	readURL := os.Getenv("DATABASE_READ_URL")
-	pools := database.NewPools(dbURL, readURL)
+	pools := database.NewPools(cfg.DatabaseURL, cfg.DatabaseReadURL)
 	defer pools.Close()
 	db := pools.Primary
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-	}
-	event.InitRedis(redisAddr)
+	event.InitRedis(cfg.RedisAddr)
 	webhookDispatch := webhook.NewDispatcher(db)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
 	repo := repository.NewMemoryRepository(db, pools.Read)
 	var embed embedding.Provider
-	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
-		embed = embedding.NewOpenAIProvider(k, os.Getenv("EMBEDDING_MODEL"))
+	if cfg.OpenAIAPIKey != "" {
+		embed = embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
 	}
 	memSvc := service.NewMemoryService(repo, embed)
 
@@ -108,14 +105,16 @@ func main() {
 
 	grpcserver.Start(db, pools.Read, memSvc)
 
-	port := os.Getenv("API_PORT")
-	if port == "" {
-		port = "8000"
-	}
-
-	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, port)
+	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
 	if pools.Read != nil {
 		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
 	}
-	log.Fatal(app.Listen(":" + port))
+	log.Fatal(app.Listen(":" + cfg.APIPort))
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

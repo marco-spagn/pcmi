@@ -1,0 +1,88 @@
+# HorizontalPodAutoscaler — pcmi-api
+# Scale 2→10 repliche quando CPU > 70% o memoria > 75%.
+# Richiede metrics-server installato nel cluster.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pcmi-api
+  namespace: pcmi
+  labels:
+    app: pcmi-api
+    app.kubernetes.io/component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pcmi-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60       # evita scale-up istantaneo su spike brevi
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300      # aspetta 5 min prima di ridurre repliche
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+---
+# HorizontalPodAutoscaler — pcmi-worker
+# Il worker è CPU-intensive (embedding + distillation): scale 1→5 a 65% CPU.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: pcmi-worker
+  namespace: pcmi
+  labels:
+    app: pcmi-worker
+    app.kubernetes.io/component: worker
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: pcmi-worker
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 65
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 90
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 600     # il worker non va scalato giù troppo velocemente
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 180

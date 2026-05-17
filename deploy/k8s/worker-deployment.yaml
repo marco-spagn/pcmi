@@ -5,30 +5,70 @@ metadata:
   namespace: pcmi
   labels:
     app: pcmi-worker
+    app.kubernetes.io/name: pcmi-worker
+    app.kubernetes.io/component: worker
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: pcmi-worker
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
   template:
     metadata:
       labels:
         app: pcmi-worker
+        app.kubernetes.io/name: pcmi-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8081"
+        prometheus.io/path: "/metrics"
     spec:
+      terminationGracePeriodSeconds: 60   # worker ha job lunghi: 60 s di graceful drain
       containers:
         - name: worker
           image: pcmi-worker:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 8081
+            - name: health
+              containerPort: 8081
+              protocol: TCP
           envFrom:
             - configMapRef:
                 name: pcmi-config
             - secretRef:
                 name: pcmi-secrets
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
           readinessProbe:
             httpGet:
               path: /health
               port: 8081
             initialDelaySeconds: 5
             periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            failureThreshold: 3
+            timeoutSeconds: 5
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 12
+            timeoutSeconds: 5

@@ -109,7 +109,13 @@ func main() {
 	if pools.Read != nil {
 		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
 	}
-	log.Fatal(app.Listen(":" + cfg.APIPort))
+	addr := ":" + cfg.APIPort
+	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
+		log.Printf("🔒 TLS enabled (cert=%s)", cfg.TLSCertFile)
+		log.Fatal(app.ListenTLS(addr, cfg.TLSCertFile, cfg.TLSKeyFile))
+	} else {
+		log.Fatal(app.Listen(addr))
+	}
 }
 
 func min(a, b int) int {

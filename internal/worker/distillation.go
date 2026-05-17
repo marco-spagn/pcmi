@@ -15,6 +15,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+
 type DistillationWorker struct {
 	db        *pgxpool.Pool
 	openai    *openai.Client
@@ -63,7 +64,7 @@ func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Println("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer")
+	log.Printf("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", distillationBatchSize())
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -94,7 +95,8 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 		return
 	}
 
-	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s", tenantID, pathPrefix)
+	batchSize := distillationBatchSize()
+	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
 
 	rows, err := w.db.Query(ctx, `
 		SELECT id, content, metadata
@@ -103,7 +105,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 		  AND path <@ $2::ltree
 		  AND valid_to IS NULL
 		ORDER BY created_at DESC
-		LIMIT 100`, tenantID, pathPrefix)
+		LIMIT $3`, tenantID, pathPrefix, batchSize)
 	if err != nil {
 		log.Printf("❌ distillation query error: %v", err)
 		return

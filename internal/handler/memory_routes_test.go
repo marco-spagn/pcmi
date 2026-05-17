@@ -22,8 +22,7 @@ import (
 // ─── local mock repo for handler tests ───────────────────────────────────────
 
 type handlerMockRepo struct {
-	storePath string
-	storeErr  error
+	storeErr error
 }
 
 func (r *handlerMockRepo) Store(_ context.Context, req model.StoreRequest, _ string) (int64, int, *int64, error) {

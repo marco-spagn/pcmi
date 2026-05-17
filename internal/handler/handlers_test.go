@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"io"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -202,13 +200,3 @@ func TestWebhookRegisterBadJSON(t *testing.T) {
 	}
 }
 
-// ─── JSON helpers ─────────────────────────────────────────────────────────────
-
-func readBodyJSON(t *testing.T, r io.Reader) map[string]any {
-	t.Helper()
-	var m map[string]any
-	if err := json.NewDecoder(r).Decode(&m); err != nil {
-		t.Fatalf("could not decode body: %v", err)
-	}
-	return m
-}

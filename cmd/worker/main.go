@@ -1,6 +1,6 @@
 // Programma pcmi-worker: job di embedding, distillation, pruning, consolidation ed expiry, più
 // subscribe al canale Redis memory_events. Health e Prometheus su :8081 (`/health`, `/metrics`).
-// OpenTelemetry: stesse variabili OTLP dell’API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
+// OpenTelemetry: stesse variabili OTLP dell'API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
 package main
 
 import (
@@ -18,6 +18,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -32,6 +33,13 @@ const workerTracerName = "github.com/marco-spagn/pcmi/cmd/worker"
 func main() {
 	log.Println("🚀 PCMI Worker starting...")
 
+	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
+	cfg := config.Load()
+	if err := cfg.Validate(config.WorkerRequiredFields...); err != nil {
+		log.Fatalf("❌ FATAL: %v", err)
+	}
+	log.Printf("✅ Config loaded (DB=%s, Redis=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr)
+
 	ctxTelemetry := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, "pcmi-worker")
 	if err != nil {
@@ -45,20 +53,10 @@ func main() {
 		}
 	}()
 
-	// Database connection
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://pcmi:pcmi@postgres:5432/pcmi?sslmode=disable"
-	}
-
-	db := database.New(dbURL)
+	db := database.New(cfg.DatabaseURL)
 	defer db.Close()
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
-	}
-	event.InitRedis(redisAddr)
+	event.InitRedis(cfg.RedisAddr)
 
 	// Health check server (port 8081) with DB pool metrics
 	go func() {
@@ -81,14 +79,13 @@ func main() {
 		}
 	}()
 
-	// Initialize Redis
 	log.Println("✅ Redis connected, subscribing to memory_events…")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		prov := embedding.NewOpenAIProvider(key, os.Getenv("EMBEDDING_MODEL"))
+	if cfg.OpenAIAPIKey != "" {
+		prov := embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
 		ew := worker.NewEmbeddingWorker(db, prov)
 		go ew.Start(ctx)
 		log.Println("✅ Embedding worker started")
@@ -96,7 +93,6 @@ func main() {
 		log.Println("⚠️ OPENAI_API_KEY unset — embedding worker disabled")
 	}
 
-	// Start distillation worker
 	distWorker := worker.NewDistillationWorker(db)
 	go distWorker.Start(ctx)
 
@@ -110,7 +106,6 @@ func main() {
 	go expiryWorker.Start(ctx)
 
 	tr := otel.Tracer(workerTracerName)
-	// Subscribe to Redis events (API publishes memory.stored after store)
 	redisEvents := event.SubscribeEvents()
 	go func() {
 		for evt := range redisEvents {
@@ -139,7 +134,6 @@ func main() {
 		}
 	}()
 
-	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
@@ -148,4 +142,11 @@ func main() {
 	cancel()
 	time.Sleep(2 * time.Second)
 	log.Println("👋 Worker stopped")
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }

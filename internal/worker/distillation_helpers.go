@@ -12,6 +12,10 @@ import (
 // Override via env var DISTILLATION_BATCH_SIZE.
 const defaultDistillationBatchSize = 10
 
+// defaultDistillationConcurrency is the max number of LLM distillation jobs that
+// can run in parallel. Override via DISTILLATION_CONCURRENCY (range 1–16).
+const defaultDistillationConcurrency = 4
+
 // distillationBatchSize reads DISTILLATION_BATCH_SIZE from the environment (default 10).
 // Valid range: 1–200. Values outside this range fall back to the default.
 func distillationBatchSize() int {
@@ -23,6 +27,20 @@ func distillationBatchSize() int {
 	if err != nil || n < 1 || n > 200 {
 		log.Printf("⚠️  DISTILLATION_BATCH_SIZE=%q invalid, using default %d", raw, defaultDistillationBatchSize)
 		return defaultDistillationBatchSize
+	}
+	return n
+}
+
+// distillationConcurrency reads DISTILLATION_CONCURRENCY from env (default 4, range 1–16).
+func distillationConcurrency() int {
+	raw := strings.TrimSpace(os.Getenv("DISTILLATION_CONCURRENCY"))
+	if raw == "" {
+		return defaultDistillationConcurrency
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n < 1 || n > 16 {
+		log.Printf("⚠️  DISTILLATION_CONCURRENCY=%q invalid, using default %d", raw, defaultDistillationConcurrency)
+		return defaultDistillationConcurrency
 	}
 	return n
 }

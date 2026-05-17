@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -20,6 +21,11 @@ type DistillationWorker struct {
 	db        *pgxpool.Pool
 	openai    *openai.Client
 	modelName string
+	// sem is a buffered channel used as a semaphore to cap concurrent LLM jobs.
+	// Capacity = DISTILLATION_CONCURRENCY (default 4). Each goroutine sends a
+	// token before calling the LLM and receives it back when done, so at most
+	// cap(sem) jobs run simultaneously — preventing 429 bursts on OpenAI.
+	sem chan struct{}
 }
 
 func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
@@ -31,20 +37,43 @@ func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 	if model == "" {
 		model = "gpt-4o-mini"
 	}
+	concurrency := distillationConcurrency()
+	log.Printf("🔧 Distillation concurrency limit: %d parallel LLM jobs", concurrency)
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
 		modelName: model,
+		sem:       make(chan struct{}, concurrency),
 	}
 }
 
 func (w *DistillationWorker) TriggerForMemory(tenantID, path string) {
-	go w.runDistillationJob(tenantID, path)
+	metrics.IncDistillationQueued()
+	go func() {
+		w.sem <- struct{}{}           // acquire slot (blocks if at capacity)
+		metrics.DecDistillationQueued()
+		metrics.IncDistillationActive()
+		defer func() {
+			<-w.sem // release slot
+			metrics.DecDistillationActive()
+		}()
+		w.runDistillationJob(tenantID, path)
+	}()
 }
 
 // TriggerForPrefix runs distillation using path_prefix exactly (refine API).
 func (w *DistillationWorker) TriggerForPrefix(tenantID, pathPrefix string) {
-	go w.runDistillationJobExact(tenantID, pathPrefix)
+	metrics.IncDistillationQueued()
+	go func() {
+		w.sem <- struct{}{}
+		metrics.DecDistillationQueued()
+		metrics.IncDistillationActive()
+		defer func() {
+			<-w.sem
+			metrics.DecDistillationActive()
+		}()
+		w.runDistillationJobExact(tenantID, pathPrefix)
+	}()
 }
 
 func (w *DistillationWorker) runDistillationJobExact(tenantID, pathPrefix string) {
@@ -84,6 +113,7 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 }
 
 func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix string) {
+	start := time.Now()
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
@@ -92,6 +122,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	ctx := context.Background()
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
 		log.Printf("❌ distillation set tenant: %v", err)
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 
@@ -137,11 +168,15 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 
 	if len(entries) < 1 {
 		log.Printf("📊 No memories under %s — distillation skipped", pathPrefix)
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
 
+	metrics.ObserveDistillationSources(len(entries))
+
 	if os.Getenv("OPENAI_API_KEY") == "" {
 		log.Println("⚠️  Skipping LLM distillation (no OPENAI_API_KEY)")
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
 
@@ -169,6 +204,7 @@ Return ONLY valid JSON:
 	})
 	if err != nil {
 		log.Printf("❌ LLM distillation error: %v", err)
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 
@@ -199,6 +235,7 @@ Return ONLY valid JSON:
 	}
 	if dup {
 		log.Printf("⏭️  Distillation skipped (duplicate sources) path=%s tenant=%s", distilledPath, tenantID)
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "duplicate")
 		return
 	}
 
@@ -243,6 +280,7 @@ Return ONLY valid JSON:
 		log.Printf("⚠️  distilled event publish: %v", err)
 	}
 
+	metrics.ObserveDistillationJob(time.Since(start).Seconds(), "ok")
 	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)", distilledID, distilledPath, version, tenantID, len(sourceIDs))
 }
 

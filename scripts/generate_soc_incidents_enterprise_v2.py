@@ -358,6 +358,8 @@ class GeneratorConfig:
     redis_event_type: str = "memory.refine.requested"
     refine_path_prefix: str = "root.security.incidents.soc"
     test_data_version: str = "2.0"
+    use_sharding: bool = True
+    shard_size: int = 10
 
 
 @dataclass
@@ -513,6 +515,9 @@ def build_incident(
     rng: random.Random,
     threat_type: str,
     cfg: GeneratorConfig,
+    *,
+    shard_id: int | None = None,
+    shard_size: int = 10,
 ) -> Incident:
     """Costruisce un singolo Incident PCMI-compatibile."""
     incident_id = f"INC-{uuid.UUID(int=rng.getrandbits(128)).hex[:12].upper()}"
@@ -552,7 +557,17 @@ def build_incident(
     severity_seg = severity.replace("-", "_")
     threat_seg = threat_type.replace("-", "_")
     incident_seg = incident_id.replace("-", "_").lower()
-    path = f"root.security.incidents.soc.{threat_seg}.{severity_seg}.{incident_seg}"
+    # Shard segment (opzionale): se presente, viene inserito subito sotto 'soc'
+    # per consentire un refine event per shard → 1 distilled record ogni N raw,
+    # con copertura totale del dataset (no LIMIT 10 wasteful).
+    if shard_id is not None:
+        shard_seg = f"shard_{shard_id:03d}"
+        path = (
+            f"root.security.incidents.soc.{shard_seg}."
+            f"{threat_seg}.{severity_seg}.{incident_seg}"
+        )
+    else:
+        path = f"root.security.incidents.soc.{threat_seg}.{severity_seg}.{incident_seg}"
 
     metadata: dict[str, Any] = {
         "incident_id":           incident_id,
@@ -573,6 +588,7 @@ def build_incident(
         "service":               extras["service"],
         "test_data_seed":        "42",
         "test_data_version":     cfg.test_data_version,
+        "shard_id":              shard_id,
     }
 
     tags = [
@@ -588,6 +604,8 @@ def build_incident(
     ]
     if campaign_id:
         tags.append(f"campaign:{campaign_id.lower()}")
+    if shard_id is not None:
+        tags.append(f"shard:{shard_id:03d}")
 
     return Incident(
         path=path,
@@ -616,12 +634,26 @@ def generate_incidents(cfg: GeneratorConfig) -> list[Incident]:
         {k: threats.count(k) for k in THREAT_DISTRIBUTION},
     )
 
+    # Sharding deterministico: ogni shard contiene esattamente
+    # cfg.shard_size record. Numero shard = ceil(num_incidents/shard_size).
+    # Refinendo per ogni shard otteniamo 1 distilled per shard.
+    shard_size = max(1, cfg.shard_size) if cfg.use_sharding else 0
     incidents: list[Incident] = []
-    for i, threat_type in enumerate(threats, start=1):
-        incidents.append(build_incident(rng, threat_type, cfg))
-        if i % 100 == 0:
-            LOG.info("Generated %d/%d incidents", i, cfg.num_incidents)
+    for i, threat_type in enumerate(threats):
+        if shard_size > 0:
+            shard_id = i // shard_size
+            inc = build_incident(rng, threat_type, cfg,
+                                 shard_id=shard_id, shard_size=shard_size)
+        else:
+            inc = build_incident(rng, threat_type, cfg)
+        incidents.append(inc)
+        if (i + 1) % 100 == 0:
+            LOG.info("Generated %d/%d incidents", i + 1, cfg.num_incidents)
     LOG.info("Total generated: %d", len(incidents))
+    if shard_size > 0:
+        n_shards = (cfg.num_incidents + shard_size - 1) // shard_size
+        LOG.info("Sharding: %d shards of %d records (shard_000..shard_%03d)",
+                 n_shards, shard_size, n_shards - 1)
     return incidents
 
 
@@ -824,6 +856,10 @@ def parse_args(argv: list[str] | None = None) -> GeneratorConfig:
     p.add_argument("--redis-event-type", type=str, default="memory.refine.requested")
     p.add_argument("--refine-path-prefix", type=str,
                    default="root.security.incidents.soc")
+    p.add_argument("--shard-size", type=int, default=10,
+                   help="Numero di record per shard (cfr. LIMIT 10 del worker distillation).")
+    p.add_argument("--no-sharding", action="store_true",
+                   help="Disattiva lo sharding del path (1 refine event copre solo 10 record).")
     p.add_argument("--dry-run", action="store_true",
                    help="Generate + JSONL only, do not call the PCMI API/Redis.")
     p.add_argument("--skip-publish", action="store_true",
@@ -844,6 +880,8 @@ def parse_args(argv: list[str] | None = None) -> GeneratorConfig:
         redis_channel=args.redis_channel,
         redis_event_type=args.redis_event_type,
         refine_path_prefix=args.refine_path_prefix,
+        use_sharding=not args.no_sharding,
+        shard_size=args.shard_size,
     )
     cfg._dry_run = args.dry_run  # type: ignore[attr-defined]
     cfg._skip_publish = args.skip_publish  # type: ignore[attr-defined]

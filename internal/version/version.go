@@ -3,7 +3,7 @@ package version
 
 const (
 	// Tag is the public API version (e.g. "v1.27.0").
-	Tag = "v1.32.0"
+	Tag = "v1.33.0"
 	// Semver is OpenAPI info.version without the "v" prefix.
-	Semver = "1.32.0"
+	Semver = "1.33.0"
 )

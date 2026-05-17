@@ -5,7 +5,7 @@ go 1.25.0
 toolchain go1.25.10
 
 require (
-	github.com/alicebob/miniredis/v2 v2.34.0
+	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/gofiber/contrib/otelfiber/v2 v2.2.3
 	github.com/gofiber/fiber/v2 v2.52.13
 	github.com/jackc/pgx/v5 v5.7.2
@@ -22,7 +22,6 @@ require (
 )
 
 require (
-	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

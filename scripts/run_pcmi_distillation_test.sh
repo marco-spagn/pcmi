@@ -102,6 +102,13 @@ fetch_sources_used() {
   | jq '[(.entries // .items // .results // [])[] | (.source_entry_ids // .sources // []) | length] | add // 0' 2>/dev/null || echo 0
 }
 
+# grep -c con 0 match stampa "0" ma exit 1: NON usare "|| echo 0" (produce "0\n0").
+count_worker_429() {
+  local n
+  n=$("${COMPOSE[@]}" logs --no-color worker 2>/dev/null | grep -c 'status code: 429' || true)
+  echo "${n:-0}"
+}
+
 # Stampa riga metrica: partenza x, atteso z, (opzionale) valore attuale y
 metric_row() {
   local label="$1" x="$2" z="$3" y="${4:-—}"
@@ -422,7 +429,7 @@ EXPECT_SOURCES="$NUM_INCIDENTS"
 Y_SOURCES="$(fetch_sources_used)"
 COVERAGE_PCT=$(awk -v u="${Y_SOURCES:-0}" -v t="$Y_ACTIVE" \
   'BEGIN { if (t==0) print 0; else printf "%.1f", 100.0*u/t }')
-RATE_LIMIT_HITS="$("${COMPOSE[@]}" logs --no-color worker 2>/dev/null | grep -c 'status code: 429' || echo 0)"
+RATE_LIMIT_HITS="$(count_worker_429)"
 EXPECT_RATE_LIMIT=0
 
 echo

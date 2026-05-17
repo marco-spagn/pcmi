@@ -1,0 +1,33 @@
+# PodDisruptionBudget — pcmi-api
+# Garantisce che almeno 1 replica sia sempre disponibile durante drain del nodo
+# o rolling update. Con minReplicas=2 nell'HPA, questo assicura zero-downtime.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pcmi-api
+  namespace: pcmi
+  labels:
+    app: pcmi-api
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: pcmi-api
+---
+# PodDisruptionBudget — pcmi-worker
+# Il worker esegue job idempotenti (distillation, pruning); in caso di disruption
+# accettiamo al massimo 1 pod non disponibile contemporaneamente.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pcmi-worker
+  namespace: pcmi
+  labels:
+    app: pcmi-worker
+    app.kubernetes.io/component: worker
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: pcmi-worker

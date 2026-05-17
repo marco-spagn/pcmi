@@ -33,9 +33,10 @@ type Config struct {
 	EmbeddingModel string
 
 	// Distillation / Worker
-	DistillationModel    string
-	DistillationBatchSize int
-	PruneRetentionDays   int
+	DistillationModel       string
+	DistillationBatchSize   int
+	DistillationConcurrency int // max parallel LLM jobs, default 4
+	PruneRetentionDays      int
 	PruneIntervalSecs    int
 	ExpiryIntervalSecs   int
 	WebhookMaxAttempts   int
@@ -83,7 +84,8 @@ func Load() *Config {
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
 
-		DistillationBatchSize: envInt("DISTILLATION_BATCH_SIZE", 10),
+		DistillationBatchSize:   envInt("DISTILLATION_BATCH_SIZE", 10),
+		DistillationConcurrency: envInt("DISTILLATION_CONCURRENCY", 4),
 		PruneRetentionDays:   envInt("PRUNE_RETENTION_DAYS", 30),
 		PruneIntervalSecs:    envInt("PRUNE_INTERVAL_SECS", 3600),
 		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),
@@ -132,6 +134,9 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 	// Range validations (always checked)
 	if c.DistillationBatchSize < 1 || c.DistillationBatchSize > 1000 {
 		errs = append(errs, fmt.Sprintf("DISTILLATION_BATCH_SIZE must be 1–1000 (got %d)", c.DistillationBatchSize))
+	}
+	if c.DistillationConcurrency < 1 || c.DistillationConcurrency > 16 {
+		errs = append(errs, fmt.Sprintf("DISTILLATION_CONCURRENCY must be 1–16 (got %d)", c.DistillationConcurrency))
 	}
 	if c.PruneRetentionDays < 1 {
 		errs = append(errs, fmt.Sprintf("PRUNE_RETENTION_DAYS must be ≥ 1 (got %d)", c.PruneRetentionDays))

@@ -31,3 +31,73 @@ func IncWorkerRedisEvent(eventType string) {
 	}
 	workerRedisEvents.WithLabelValues(eventType).Inc()
 }
+
+// ── Distillation metrics ──────────────────────────────────────────────────────
+
+var (
+	// distillationDuration tracks how long each LLM distillation job takes.
+	distillationDuration = promauto.With(WorkerRegistry).NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "pcmi_distillation_duration_seconds",
+			Help:    "Duration of a single distillation LLM job in seconds",
+			Buckets: prometheus.DefBuckets, // 0.005 … 10s
+		},
+	)
+
+	// distillationTotal counts completed jobs by outcome.
+	distillationTotal = promauto.With(WorkerRegistry).NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "pcmi_distillation_total",
+			Help: "Total distillation jobs by status (ok|error|duplicate|skipped)",
+		},
+		[]string{"status"},
+	)
+
+	// distillationSourcesPerJob tracks how many raw memories went into each job.
+	distillationSourcesPerJob = promauto.With(WorkerRegistry).NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "pcmi_distillation_sources_per_job",
+			Help:    "Number of raw memory entries fed into each distillation job",
+			Buckets: []float64{1, 5, 10, 25, 50, 100, 200},
+		},
+	)
+
+	// distillationActiveJobs is the number of LLM jobs currently running.
+	distillationActiveJobs = promauto.With(WorkerRegistry).NewGauge(
+		prometheus.GaugeOpts{
+			Name: "pcmi_distillation_active_jobs",
+			Help: "Number of distillation LLM jobs currently executing",
+		},
+	)
+
+	// distillationQueuedJobs is the number of goroutines waiting for a semaphore slot.
+	distillationQueuedJobs = promauto.With(WorkerRegistry).NewGauge(
+		prometheus.GaugeOpts{
+			Name: "pcmi_distillation_queued_jobs",
+			Help: "Number of distillation jobs queued and waiting for a concurrency slot",
+		},
+	)
+)
+
+// ObserveDistillationJob records duration and status of one completed job.
+func ObserveDistillationJob(durationSecs float64, status string) {
+	distillationDuration.Observe(durationSecs)
+	distillationTotal.WithLabelValues(status).Inc()
+}
+
+// ObserveDistillationSources records the number of sources used by one job.
+func ObserveDistillationSources(n int) {
+	distillationSourcesPerJob.Observe(float64(n))
+}
+
+// IncDistillationActive increments the active-jobs gauge.
+func IncDistillationActive() { distillationActiveJobs.Inc() }
+
+// DecDistillationActive decrements the active-jobs gauge.
+func DecDistillationActive() { distillationActiveJobs.Dec() }
+
+// IncDistillationQueued increments the queued-jobs gauge.
+func IncDistillationQueued() { distillationQueuedJobs.Inc() }
+
+// DecDistillationQueued decrements the queued-jobs gauge.
+func DecDistillationQueued() { distillationQueuedJobs.Dec() }

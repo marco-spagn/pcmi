@@ -74,20 +74,35 @@ jobs:
     permissions:
       contents: read
     steps:
+      # All trivy-images steps short-circuit when running under nektos/act
+      # locally: the aquasecurity/trivy-action composite installs its binary
+      # via a cache-restore that act cannot fully emulate. Use `make act-trivy`
+      # to run the equivalent scan via the upstream trivy Docker image
+      # (identical severity/exit-code flags). The job itself reports success
+      # so dependents (`integration-smoke`) still run under act.
+      - name: Skip notice (act only)
+        if: ${{ env.ACT == 'true' }}
+        run: echo "::notice::trivy-images skipped under act; run 'make act-trivy' for the equivalent scan"
+
       - uses: actions/checkout@v4
+        if: ${{ env.ACT != 'true' }}
 
       - name: Set up Docker Buildx
+        if: ${{ env.ACT != 'true' }}
         uses: docker/setup-buildx-action@v3
 
       - name: Build pcmi-api image
+        if: ${{ env.ACT != 'true' }}
         run: docker build -f Dockerfile.api -t pcmi-api:ci .
 
       - name: Build pcmi-worker image
+        if: ${{ env.ACT != 'true' }}
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
       # Pinned to v0.28.0 (last self-contained release; v0.30.0+ requires a
       # separate aquasecurity/setup-trivy step which complicates local `act` runs).
       - name: Trivy scan pcmi-api
+        if: ${{ env.ACT != 'true' }}
         uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: pcmi-api:ci
@@ -100,6 +115,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Trivy scan pcmi-worker
+        if: ${{ env.ACT != 'true' }}
         uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: pcmi-worker:ci

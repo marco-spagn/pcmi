@@ -61,10 +61,16 @@ distillation-e2e:
 act-list:
 	act --list
 
-# Run the full pipeline locally (all jobs, in dependency order).
+# Run the full pipeline locally. `act` runs every job except `trivy-images`
+# (which `act` cannot execute — see act-trivy below); we then run the trivy
+# scan via direct docker for end-to-end equivalence with GitHub-hosted CI.
 # WARNING: ~15-20 minutes; downloads ~2 GB on first run.
 act-all:
 	act push
+	@echo ""
+	@echo "[act-all] act skipped trivy-images (composite action limitation)."
+	@echo "[act-all] running equivalent scan via direct docker…"
+	@$(MAKE) act-trivy
 
 # Run a single job by name. Example: make act-job JOB=integration-smoke
 act-job:

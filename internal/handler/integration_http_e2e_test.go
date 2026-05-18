@@ -55,13 +55,13 @@ func (s *sseBuffer) String() string {
 // drainIntegrationHTTPSSECopy tears down the client side of the SSE connection so
 // io.Copy on the response body cannot block until the go test package timeout, then
 // waits (with a cap) for the copy goroutine to finish.
-func drainIntegrationHTTPSSECopy(t *testing.T, srv *httptest.Server, errCh <-chan error) {
+func drainIntegrationHTTPSSECopy(t *testing.T, srv *httptest.Server, copyDone <-chan error) {
 	t.Helper()
 	if srv != nil {
 		srv.CloseClientConnections()
 	}
 	select {
-	case err := <-errCh:
+	case err := <-copyDone:
 		if err != nil && !errors.Is(err, context.Canceled) {
 			low := strings.ToLower(err.Error())
 			if !strings.Contains(low, "cancel") && !strings.Contains(low, "closed") &&
@@ -835,27 +835,36 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 	defer cancel()
 
 	var buf sseBuffer
-	errCh := make(chan error, 1)
+	startGate := make(chan error, 1)
+	finalErr := make(chan error, 1)
 	go func() {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/v1/events?types=memory.stored", nil)
 		if err != nil {
-			errCh <- err
+			startGate <- err
+			finalErr <- err
 			return
 		}
 		req.Header.Set("X-API-Key", httpE2EAPIKey)
 		req.Header.Set("Accept", "text/event-stream")
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			errCh <- err
+			startGate <- err
+			finalErr <- err
 			return
 		}
 		if resp.StatusCode != http.StatusOK {
 			_ = resp.Body.Close()
-			errCh <- fmt.Errorf("sse status %d", resp.StatusCode)
+			e := fmt.Errorf("sse status %d", resp.StatusCode)
+			startGate <- e
+			finalErr <- e
 			return
 		}
+		// Unblock the test only after headers are received: Stream() has already subscribed
+		// to Redis, so POST must not run before this gate or the first publish can be lost.
+		startGate <- nil
+
 		// Long-lived SSE + Fiber's adaptor.FiberApp can leave io.Copy blocked even after
-		// request context cancellation; closing the body unblocks the reader so errCh always completes.
+		// request context cancellation; closing the body unblocks the reader so finalErr completes.
 		copyDone := make(chan error, 1)
 		go func() {
 			_, err := io.Copy(&buf, resp.Body)
@@ -869,11 +878,17 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 		case copyErr = <-copyDone:
 			_ = resp.Body.Close()
 		}
-		errCh <- copyErr
+		finalErr <- copyErr
 	}()
 
-	// Give SSE + Redis subscribe time to settle on slow CI runners before publishing.
-	time.Sleep(500 * time.Millisecond)
+	select {
+	case err := <-startGate:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(30 * time.Second):
+		t.Fatal("timeout waiting for SSE GET (need subscription live before POST)")
+	}
 
 	path := "root.http.sse." + time.Now().Format("150405")
 	storeBody := `{"path":"` + path + `","content":"sse-body","embedding_model":"unspecified"}`
@@ -898,13 +913,13 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 		s := buf.String()
 		if strings.Contains(s, "memory.stored") && strings.Contains(s, path) {
 			cancel()
-			drainIntegrationHTTPSSECopy(t, srv, errCh)
+			drainIntegrationHTTPSSECopy(t, srv, finalErr)
 			return
 		}
 		time.Sleep(40 * time.Millisecond)
 	}
 
 	cancel()
-	drainIntegrationHTTPSSECopy(t, srv, errCh)
+	drainIntegrationHTTPSSECopy(t, srv, finalErr)
 	t.Fatalf("timeout waiting for memory.stored SSE; buf=%q", buf.String())
 }

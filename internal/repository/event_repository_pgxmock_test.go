@@ -104,3 +104,22 @@ func TestEventRepository_Insert_pgxmockQueryError(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestEventRepository_Insert_emptyEventType(t *testing.T) {
+	t.Parallel()
+	repo := NewEventRepository(nil)
+	if _, _, err := repo.Insert(context.Background(), uuid.New().String(), "  ", map[string]interface{}{}, nil); err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestEventRepository_Insert_marshalError(t *testing.T) {
+	t.Parallel()
+	repo := NewEventRepository(nil)
+	payload := map[string]interface{}{
+		"x": make(chan int),
+	}
+	if _, _, err := repo.Insert(context.Background(), uuid.New().String(), "t", payload, nil); err == nil {
+		t.Fatal("expected marshal error")
+	}
+}

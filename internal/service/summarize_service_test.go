@@ -2,10 +2,15 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sashabaranov/go-openai"
 
 	"github.com/marco-spagn/pcmi/internal/model"
 )
@@ -90,6 +95,58 @@ func TestSummarizeMethod_retrieveErr(t *testing.T) {
 func TestNewSummarizeService(t *testing.T) {
 	if NewSummarizeService(&summarizeMemRepoStub{}) == nil {
 		t.Fatal("nil svc")
+	}
+}
+
+func TestLLMSummarize_httptest(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/chat/completions" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(openai.ChatCompletionResponse{
+			ID: "test-id",
+			Choices: []openai.ChatCompletionChoice{
+				{Message: openai.ChatCompletionMessage{Content: "  trimmed answer  "}},
+			},
+		})
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Setenv("OPENAI_BASE_URL", srv.URL+"/v1")
+	t.Setenv("DISTILLATION_MODEL", "gpt-4o-mini")
+
+	got, err := llmSummarize(context.Background(), "sk-test", []string{"chunk-a", "chunk-b"}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "trimmed answer" {
+		t.Fatalf("got %q", got)
+	}
+
+	got2, err := llmSummarize(context.Background(), "sk-test", []string{"x"}, "detailed")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got2 == "" {
+		t.Fatal("expected non-empty detailed path")
+	}
+}
+
+func TestLLMSummarize_emptyChoices(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(openai.ChatCompletionResponse{
+			ID:      "x",
+			Choices: []openai.ChatCompletionChoice{},
+		})
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Setenv("OPENAI_BASE_URL", srv.URL+"/v1")
+	t.Setenv("DISTILLATION_MODEL", "gpt-4o-mini")
+
+	if _, err := llmSummarize(context.Background(), "k", []string{"a"}, ""); err == nil {
+		t.Fatal("expected error for empty choices")
 	}
 }
 

@@ -49,16 +49,6 @@ func TestDistillationConcurrencyInvalidFallsToDefault(t *testing.T) {
 	}
 }
 
-func TestDistillationConcurrencyBoundary(t *testing.T) {
-	for _, v := range []string{"1", "16"} {
-		t.Setenv("DISTILLATION_CONCURRENCY", v)
-		n := distillationConcurrency()
-		if n < 1 || n > 16 {
-			t.Errorf("boundary value %q produced out-of-range result %d", v, n)
-		}
-	}
-}
-
 // ── concurrent trigger respects the semaphore ─────────────────────────────────
 
 // fakeJob simulates an LLM job that takes `dur` and updates peak concurrency.

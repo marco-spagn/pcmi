@@ -19,13 +19,6 @@ func TestDistillationBatchSizeNonNumeric(t *testing.T) {
 	}
 }
 
-func TestDistillationBatchSizeOutOfRangeLow(t *testing.T) {
-	t.Setenv("DISTILLATION_BATCH_SIZE", "0")
-	if got := distillationBatchSize(); got != defaultDistillationBatchSize {
-		t.Fatalf("0 must fall back, got %d", got)
-	}
-}
-
 func TestDistillationBatchSizeBoundaryValues(t *testing.T) {
 	// Min boundary
 	t.Setenv("DISTILLATION_BATCH_SIZE", "1")

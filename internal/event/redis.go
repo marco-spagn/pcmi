@@ -68,9 +68,22 @@ func SubscribeEvents() <-chan Event {
 }
 
 // SubscribeEventsContext subscribes to Redis and stops when ctx is cancelled.
+//
+// We synchronously wait for the SUBSCRIBE confirmation via pubsub.Receive
+// before returning, so callers can publish immediately without racing the
+// subscription setup. go-redis sends the SUBSCRIBE command asynchronously
+// otherwise — without this priming the first publish can be lost on slower
+// machines (CI, docker-in-docker).
 func SubscribeEventsContext(parent context.Context) <-chan Event {
 	pubsub := RedisClient.Subscribe(parent, "memory_events")
 	ch := make(chan Event, 16)
+
+	if _, err := pubsub.Receive(parent); err != nil {
+		log.Printf("❌ Failed to confirm Redis SUBSCRIBE: %v", err)
+		_ = pubsub.Close()
+		close(ch)
+		return ch
+	}
 
 	go func() {
 		defer close(ch)

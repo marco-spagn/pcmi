@@ -85,8 +85,10 @@ jobs:
       - name: Build pcmi-worker image
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
+      # Pinned to v0.28.0 (last self-contained release; v0.30.0+ requires a
+      # separate aquasecurity/setup-trivy step which complicates local `act` runs).
       - name: Trivy scan pcmi-api
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: pcmi-api:ci
           format: table
@@ -98,7 +100,7 @@ jobs:
           vuln-type: "os,library"
 
       - name: Trivy scan pcmi-worker
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.28.0
         with:
           image-ref: pcmi-worker:ci
           format: table

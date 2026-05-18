@@ -86,5 +86,22 @@ act-test:
 act-vuln:
 	act -j security
 
+# `aquasecurity/trivy-action` is hard to run under act because the composite
+# action installs the trivy binary via cache restore that act doesn't fully
+# emulate. Locally we get an identical scan by running the upstream image
+# directly — same severity, same exit code, same flags as the workflow.
 act-trivy:
-	act -j trivy-images
+	@echo "[act-trivy] building images…"
+	docker build -f Dockerfile.api    -t pcmi-api:ci    .
+	docker build -f Dockerfile.worker -t pcmi-worker:ci .
+	@for img in pcmi-api:ci pcmi-worker:ci; do \
+	  echo "[act-trivy] scanning $$img"; \
+	  docker run --rm \
+	    -v /var/run/docker.sock:/var/run/docker.sock \
+	    aquasec/trivy:latest image \
+	    --severity HIGH,CRITICAL \
+	    --exit-code 1 \
+	    --ignore-unfixed \
+	    --vuln-type os,library \
+	    "$$img" || exit 1; \
+	done

@@ -337,6 +337,44 @@ func TestDockerComposeUsesSeparateDockerfiles(t *testing.T) {
 	}
 }
 
+// TestCITrivyActionTagFormat guards against the pattern that broke the
+// trivy-images job: a tag without the `v` prefix (e.g. `0.28.0`) which does
+// not exist on the aquasecurity/trivy-action repo. The action publishes tags
+// in the form `vMAJOR.MINOR.PATCH`.
+func TestCITrivyActionTagFormat(t *testing.T) {
+	path := filepath.Join(repoRoot(t), ".github", "workflows", "ci.yml")
+	body := string(readFile(t, path))
+
+	const marker = "aquasecurity/trivy-action@"
+	idx := 0
+	found := 0
+	for {
+		off := strings.Index(body[idx:], marker)
+		if off < 0 {
+			break
+		}
+		start := idx + off + len(marker)
+		// Read until newline or whitespace.
+		end := start
+		for end < len(body) && body[end] != '\n' && body[end] != ' ' && body[end] != '\r' {
+			end++
+		}
+		ref := strings.TrimSpace(body[start:end])
+		if ref == "" {
+			t.Errorf("empty trivy-action ref at offset %d", start)
+		}
+		// Must be either a v-prefixed tag or a full SHA (40 hex chars).
+		if !strings.HasPrefix(ref, "v") && len(ref) != 40 {
+			t.Errorf("trivy-action pinned to %q — expected v-prefixed tag (e.g. v0.28.0) or full commit SHA", ref)
+		}
+		found++
+		idx = end
+	}
+	if found == 0 {
+		t.Skip("no aquasecurity/trivy-action references in workflow — nothing to check")
+	}
+}
+
 // itoa is a tiny strconv replacement to keep imports minimal.
 func itoa(i int) string {
 	if i == 0 {

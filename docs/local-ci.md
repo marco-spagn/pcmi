@@ -61,7 +61,7 @@ act -j trivy-images     # run trivy on both Docker images
 | `golangci-lint` | ✅ | Identical to GitHub run |
 | `go` (build, vet, race test, coverage) | ✅ | Identical |
 | `security` (govulncheck) | ✅ | Identical |
-| `trivy-images` | ✅ | Requires Docker-in-Docker; the medium runner image supports it |
+| `trivy-images` | ✅ (via direct docker, not `act`) | `aquasecurity/trivy-action` is a composite action that act can't fully emulate (binary install via cache restore). `make act-trivy` runs `aquasec/trivy:latest` directly against the same images — identical scan, identical flags. |
 | `integration-smoke` | ✅ | Uses postgres+redis service containers, works in `act` |
 | `integration-e2e` (OpenAI) | ⚠️ | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY` |
 

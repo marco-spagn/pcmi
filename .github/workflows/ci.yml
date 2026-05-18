@@ -121,7 +121,6 @@ jobs:
             pcmi-api:ci
 
       - name: Trivy scan pcmi-worker
- main
         if: ${{ env.ACT != 'true' }}
 
         run: |

@@ -13,7 +13,9 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -34,7 +36,8 @@ func testIntegrationAPIKey(t *testing.T) string {
 
 // newBufconnMemoryClient starts an in-process gRPC server (same wiring as Start) over bufconn.
 // Requires DATABASE_URL; Redis via miniredis. Does not need GRPC_HOST.
-func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, func()) {
+// The returned pool is the same handle used by the server (for direct SQL in tests).
+func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.Pool, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -94,11 +97,11 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, func()) {
 		pool.Close()
 	}
 
-	return pcmiv1.NewMemoryServiceClient(conn), cleanup
+	return pcmiv1.NewMemoryServiceClient(conn), pool, cleanup
 }
 
 func TestIntegrationBufconn_HealthReady(t *testing.T) {
-	client, cleanup := newBufconnMemoryClient(t)
+	client, _, cleanup := newBufconnMemoryClient(t)
 	defer cleanup()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
@@ -119,7 +122,7 @@ func TestIntegrationBufconn_HealthReady(t *testing.T) {
 }
 
 func TestIntegrationBufconn_MemoryAndOperations(t *testing.T) {
-	client, cleanup := newBufconnMemoryClient(t)
+	client, _, cleanup := newBufconnMemoryClient(t)
 	defer cleanup()
 
 	ctx, cancel := context.WithTimeout(t.Context(), 45*time.Second)
@@ -298,5 +301,174 @@ func TestIntegrationBufconn_MemoryAndOperations(t *testing.T) {
 		if err != nil {
 			break
 		}
+	}
+}
+
+func TestIntegrationBufconn_RollbackToVersion(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	key := testIntegrationAPIKey(t)
+	path := "root.ci.bufconn.rollback." + time.Now().Format("150405")
+
+	if _, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "rollback-v1", EmbeddingModel: "unspecified",
+	}); err != nil {
+		t.Fatalf("store v1: %v", err)
+	}
+	if _, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "rollback-v2", EmbeddingModel: "unspecified",
+	}); err != nil {
+		t.Fatalf("store v2: %v", err)
+	}
+
+	got2, err := client.GetMemory(ctx, &pcmiv1.GetMemoryRequest{ApiKey: key, Path: path})
+	if err != nil || got2.GetEntry().GetContent() != "rollback-v2" {
+		t.Fatalf("before rollback: %v %+v", err, got2)
+	}
+
+	rb, err := client.Rollback(ctx, &pcmiv1.RollbackRequest{ApiKey: key, Path: path, Version: 1})
+	if err != nil {
+		t.Fatalf("rollback: %v", err)
+	}
+	if rb.GetStatus() != "rolled_back" || rb.GetRestoredFromVersion() != 1 {
+		t.Fatalf("rollback response: %+v", rb)
+	}
+
+	got1, err := client.GetMemory(ctx, &pcmiv1.GetMemoryRequest{ApiKey: key, Path: path})
+	if err != nil || got1.GetEntry().GetContent() != "rollback-v1" {
+		t.Fatalf("after rollback: %v %+v", err, got1)
+	}
+}
+
+func TestIntegrationBufconn_RollbackNotFound(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+
+	key := testIntegrationAPIKey(t)
+	path := "root.ci.bufconn.badrollback." + time.Now().Format("150405")
+
+	if _, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "x", EmbeddingModel: "unspecified",
+	}); err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	_, err := client.Rollback(ctx, &pcmiv1.RollbackRequest{ApiKey: key, Path: path, Version: 99})
+	if err == nil {
+		t.Fatal("expected NotFound")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.NotFound {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestIntegrationBufconn_MigrateEmbeddings(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+
+	key := testIntegrationAPIKey(t)
+	path := "root.ci.bufconn.migrate." + time.Now().Format("150405")
+
+	if _, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "emb-migrate", EmbeddingModel: "unspecified", EmbeddingSpace: "default",
+	}); err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	out, err := client.MigrateEmbeddings(ctx, &pcmiv1.MigrateEmbeddingsRequest{
+		ApiKey: key, PathPrefix: path, TargetModel: "text-embedding-3-small", EmbeddingSpace: "default",
+	})
+	if err != nil {
+		t.Fatalf("migrate embeddings: %v", err)
+	}
+	if out.GetStatus() != "queued" || out.GetPathPrefix() != path {
+		t.Fatalf("migrate response: %+v", out)
+	}
+}
+
+func TestIntegrationBufconn_DistilledLineage(t *testing.T) {
+	client, pool, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	defer cancel()
+
+	key := testIntegrationAPIKey(t)
+	tenantID, _, err := ResolveTenantForTest(ctx, pool, key)
+	if err != nil {
+		t.Fatalf("tenant: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID); err != nil {
+		t.Fatalf("set_tenant_context: %v", err)
+	}
+
+	path := "root.ci.bufconn.distill." + time.Now().Format("150405")
+	storeResp, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "distill-source", EmbeddingModel: "unspecified",
+	})
+	if err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	distPath := path + ".distilled"
+	var distillID int64
+	err = pool.QueryRow(ctx, `
+		INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
+		VALUES ($1::uuid, $2::ltree, $3, '[]'::jsonb, 0.85, $4::bigint[], 1)
+		RETURNING id`,
+		tenantID, distPath, "integration bufconn distilled", []int64{storeResp.GetId()},
+	).Scan(&distillID)
+	if err != nil {
+		t.Fatalf("insert distilled: %v", err)
+	}
+
+	lineage, err := client.GetDistilledLineage(ctx, &pcmiv1.GetDistilledLineageRequest{
+		ApiKey: key, DistilledId: distillID,
+	})
+	if err != nil || lineage.GetJson() == "" {
+		t.Fatalf("get distilled lineage: %v %q", err, lineage.GetJson())
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(lineage.GetJson()), &payload); err != nil {
+		t.Fatalf("lineage json: %v", err)
+	}
+
+	_, err = client.GetDistilledLineage(ctx, &pcmiv1.GetDistilledLineageRequest{ApiKey: key, DistilledId: 999999999999})
+	if err == nil {
+		t.Fatal("expected error for missing distilled id")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.NotFound {
+		t.Fatalf("distilled lineage missing: %v", err)
+	}
+}
+
+func TestIntegrationBufconn_StoreRequiresAPIKey(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	_, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		Path: "root.ci.bufconn.nokey", Content: "x", EmbeddingModel: "unspecified",
+	})
+	if err == nil {
+		t.Fatal("expected Unauthenticated")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.Unauthenticated {
+		t.Fatalf("got %v", err)
 	}
 }

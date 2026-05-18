@@ -306,8 +306,9 @@ func (s *memoryServer) Rollback(ctx context.Context, req *pcmiv1.RollbackRequest
 	}
 	res, err := s.svc.Rollback(ctx, rr, tenantID)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return nil, status.Error(codes.NotFound, err.Error())
+		msg := err.Error()
+		if strings.Contains(msg, "not found") || strings.Contains(msg, "no historical version") {
+			return nil, status.Error(codes.NotFound, msg)
 		}
 		return nil, status.Errorf(codes.Internal, "rollback: %v", err)
 	}

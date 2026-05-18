@@ -3,11 +3,14 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,6 +20,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/event"
+	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
@@ -335,5 +339,159 @@ func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 	if resp.StatusCode != 201 {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("create tenant %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_DistilledLineageAndRollback(t *testing.T) {
+	app, pool, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	tenantID, _, err := grpcserver.ResolveTenantForTest(ctx, pool, httpE2EAPIKey)
+	if err != nil {
+		t.Fatalf("tenant: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID); err != nil {
+		t.Fatalf("set_tenant_context: %v", err)
+	}
+
+	path := "root.http.distill." + time.Now().Format("150405")
+
+	storeVersion := func(content string) int64 {
+		storeBody := `{"path":"` + path + `","content":"` + content + `","embedding_model":"unspecified"}`
+		resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+		if err != nil {
+			t.Fatalf("store: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			b, _ := io.ReadAll(resp.Body)
+			t.Fatalf("store %d: %s", resp.StatusCode, b)
+		}
+		var out struct {
+			ID int64 `json:"id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+			t.Fatalf("decode store: %v", err)
+		}
+		return out.ID
+	}
+
+	entryIDv1 := storeVersion("http-rollback-v1")
+	_ = storeVersion("http-rollback-v2")
+
+	getContent := func() string {
+		getURL := "/v1/memories/" + path
+		req := httptest.NewRequest(http.MethodGet, getURL, nil)
+		req.Header.Set("X-API-Key", httpE2EAPIKey)
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != 200 {
+			b, _ := io.ReadAll(resp.Body)
+			t.Fatalf("get %d: %s", resp.StatusCode, b)
+		}
+		var ent struct {
+			Content string `json:"content"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&ent); err != nil {
+			t.Fatalf("decode entry: %v", err)
+		}
+		return ent.Content
+	}
+
+	if getContent() != "http-rollback-v2" {
+		t.Fatalf("expected v2 content before rollback")
+	}
+
+	distPath := path + ".distilled"
+	var distillID int64
+	err = pool.QueryRow(ctx, `
+		INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
+		VALUES ($1::uuid, $2::ltree, $3, '[]'::jsonb, 0.9, $4::bigint[], 1)
+		RETURNING id`,
+		tenantID, distPath, "http e2e distilled", []int64{entryIDv1},
+	).Scan(&distillID)
+	if err != nil {
+		t.Fatalf("insert distilled: %v", err)
+	}
+
+	distReq := httptest.NewRequest(http.MethodGet, "/v1/distilled?path_prefix="+url.QueryEscape(path)+"&limit=10", nil)
+	distReq.Header.Set("X-API-Key", httpE2EAPIKey)
+	resp, err := app.Test(distReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("distilled list %d: %s", resp.StatusCode, b)
+	}
+	var distList struct {
+		Entries []map[string]any `json:"entries"`
+		Total   int              `json:"total"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&distList); err != nil {
+		t.Fatalf("decode distilled: %v", err)
+	}
+	if distList.Total < 1 {
+		t.Fatalf("distilled list empty: %+v", distList)
+	}
+
+	linURL := "/v1/lineage/distilled/" + strconv.FormatInt(distillID, 10)
+	linReq := httptest.NewRequest(http.MethodGet, linURL, nil)
+	linReq.Header.Set("X-API-Key", httpE2EAPIKey)
+	resp, err = app.Test(linReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("distilled lineage %d: %s", resp.StatusCode, b)
+	}
+
+	rbBody := `{"path":"` + path + `","version":1}`
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/memories/rollback", rbBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("rollback %d: %s", resp.StatusCode, b)
+	}
+
+	if getContent() != "http-rollback-v1" {
+		t.Fatalf("after rollback want v1 content, got %q", getContent())
+	}
+}
+
+func TestIntegrationHTTP_RollbackNotFound(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.badrollback." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"only-one","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("store %d", resp.StatusCode)
+	}
+
+	rbBody := `{"path":"` + path + `","version":99}`
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/memories/rollback", rbBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 404 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected 404, got %d: %s", resp.StatusCode, b)
 	}
 }

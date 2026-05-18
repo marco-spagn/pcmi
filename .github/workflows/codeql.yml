@@ -95,6 +95,10 @@ jobs:
           # security-and-quality = "security" pack + the additional code-quality
           # queries. Strictly broader than the default "security-extended".
           queries: security-and-quality
+          # Path-scope tuning + explicit ignores live in a dedicated config so
+          # the same envelope applies to CLI runs (e.g. local codeql-cli use)
+          # as to the hosted action.
+          config-file: ./.github/codeql/codeql-config.yml
 
       # autobuild handles Go module compile + Python/TS source extraction.
       # When PCMI grows enough that autobuild fails (typically because of

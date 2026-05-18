@@ -1,0 +1,45 @@
+# PCMI CodeQL configuration (PR #3).
+#
+# Referenced from .github/workflows/codeql.yml via `config-file:`. Tightens
+# the scan envelope so CodeQL focuses on production code and skips:
+#   - generated protobufs (internal/grpc/pcmiv1/*.pb.go)
+#   - vendored / pre-compiled SDK artefacts (sdk/typescript/dist, dist/, build/)
+#   - test fixtures and golden files
+#   - docs, examples, scripts
+#
+# Query pack: GitHub's security-and-quality (security + maintainability),
+# matches what `queries:` claims in the workflow. Listing it here makes the
+# intent visible in code review.
+
+name: pcmi-codeql
+
+queries:
+  - uses: security-and-quality
+
+# Limit analysis to source we actually own. Generated and vendored files
+# either come with their own provenance (.pb.go is regenerated from proto,
+# protobuf-go is already audited) or are not deployed (dist/, build/).
+paths:
+  - cmd
+  - internal
+  - sdk/python/pcmi
+  - sdk/typescript/src
+  - scripts
+
+paths-ignore:
+  - '**/*_test.go'
+  - 'internal/grpc/pcmiv1/**'
+  - 'sdk/typescript/dist/**'
+  - 'sdk/typescript/node_modules/**'
+  - 'sdk/python/build/**'
+  - 'sdk/python/dist/**'
+  - 'sdk/python/**/*.egg-info/**'
+  - 'docs/**'
+  - 'examples/**'
+  - 'badges/**'
+  - 'deploy/grafana/**'
+  - '**/*.md'
+
+# Disable the default packs implicitly bundled with autobuild — we want
+# control over what runs, not whatever the action ships this week.
+disable-default-queries: false

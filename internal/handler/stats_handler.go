@@ -9,6 +9,10 @@ import (
 
 func RegisterStatsRoute(api fiber.Router, dbWrite, readReplica *pgxpool.Pool) {
 	repo := repository.NewStatsRepository(dbWrite, readReplica)
+	registerStatsRouteWithRepo(api, repo)
+}
+
+func registerStatsRouteWithRepo(api fiber.Router, repo *repository.StatsRepository) {
 	api.Get("/stats", func(c *fiber.Ctx) error {
 		tenantID := c.Locals(middleware.TenantContextKey).(string)
 		stats, err := repo.TenantStats(c.Context(), tenantID)

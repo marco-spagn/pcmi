@@ -3,8 +3,13 @@
 package handler
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +22,7 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -494,4 +500,355 @@ func TestIntegrationHTTP_RollbackNotFound(t *testing.T) {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected 404, got %d: %s", resp.StatusCode, b)
 	}
+}
+
+func TestIntegrationHTTP_MissingAndInvalidAPIKey(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/stats", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 401 {
+		t.Fatalf("missing key: want 401, got %d", resp.StatusCode)
+	}
+
+	req = httptest.NewRequest(http.MethodGet, "/v1/stats", nil)
+	req.Header.Set("X-API-Key", "not-a-valid-pcmi-key-xxxxxxxx")
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 401 {
+		t.Fatalf("invalid key: want 401, got %d", resp.StatusCode)
+	}
+}
+
+func TestIntegrationHTTP_ReadonlyKey(t *testing.T) {
+	app, pool, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	tenantID, _, err := grpcserver.ResolveTenantForTest(ctx, pool, httpE2EAPIKey)
+	if err != nil {
+		t.Fatalf("tenant: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID); err != nil {
+		t.Fatalf("set_tenant_context: %v", err)
+	}
+
+	roPlain := "ro-http-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	sum := sha256.Sum256([]byte(roPlain))
+	_, err = pool.Exec(ctx, `
+		INSERT INTO api_keys (tenant_id, key_hash, name, role, is_active)
+		VALUES ($1::uuid, $2, $3, 'readonly', true)`,
+		tenantID, hex.EncodeToString(sum[:]), "e2e-readonly",
+	)
+	if err != nil {
+		t.Fatalf("insert readonly key: %v", err)
+	}
+
+	storeReq := httptest.NewRequest(http.MethodPost, "/v1/memories", strings.NewReader(
+		`{"path":"root.http.ro.denied","content":"x","embedding_model":"unspecified"}`,
+	))
+	storeReq.Header.Set("X-API-Key", roPlain)
+	storeReq.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(storeReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 403 {
+		t.Fatalf("readonly store: want 403, got %d", resp.StatusCode)
+	}
+
+	statReq := httptest.NewRequest(http.MethodGet, "/v1/stats", nil)
+	statReq.Header.Set("X-API-Key", roPlain)
+	resp, err = app.Test(statReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("readonly stats: want 200, got %d", resp.StatusCode)
+	}
+}
+
+func TestIntegrationHTTP_MemoryImportAndEmbeddingsMigrate(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.import." + time.Now().Format("150405")
+
+	impBody := `{"mode":"skip","entries":[{"path":"` + path + `","content":"imported-line","embedding_model":"unspecified","embedding_space":"default"}]}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories/import", impBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("import %d: %s", resp.StatusCode, b)
+	}
+	var impOut struct {
+		Imported int `json:"imported"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&impOut); err != nil {
+		t.Fatalf("decode import: %v", err)
+	}
+	if impOut.Imported < 1 {
+		t.Fatalf("imported: %+v", impOut)
+	}
+
+	migBody := `{"path_prefix":"` + path + `","target_model":"text-embedding-3-small","embedding_space":"default"}`
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/embeddings/migrate", migBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("embed migrate %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_GetMemoryByVersionAndNotFound(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.versions." + time.Now().Format("150405")
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories",
+		`{"path":"`+path+`","content":"ver1","embedding_model":"unspecified"}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("store v1 %d", resp.StatusCode)
+	}
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/memories",
+		`{"path":"`+path+`","content":"ver2","embedding_model":"unspecified"}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("store v2 %d", resp.StatusCode)
+	}
+
+	u := "/v1/memories/" + url.PathEscape(path) + "?version=1"
+	req := httptest.NewRequest(http.MethodGet, u, nil)
+	req.Header.Set("X-API-Key", httpE2EAPIKey)
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("get v1 %d: %s", resp.StatusCode, b)
+	}
+	var ent struct {
+		Content string `json:"content"`
+		Version int    `json:"version"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ent); err != nil {
+		t.Fatal(err)
+	}
+	if ent.Content != "ver1" || ent.Version != 1 {
+		t.Fatalf("entry: %+v", ent)
+	}
+
+	missing := "/v1/memories/root.http.absent." + time.Now().Format("150405")
+	req = httptest.NewRequest(http.MethodGet, missing, nil)
+	req.Header.Set("X-API-Key", httpE2EAPIKey)
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != 404 {
+		t.Fatalf("missing memory: want 404, got %d", resp.StatusCode)
+	}
+}
+
+func TestIntegrationHTTP_AdminAPIKeysCreateAndRotate(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	tid := "00000000-0000-0000-0000-000000000000"
+	resp, err := app.Test(reqAuthed(t, http.MethodGet, "/v1/admin/api-keys?tenant_id="+tid+"&limit=20", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("list keys %d: %s", resp.StatusCode, b)
+	}
+	resp.Body.Close()
+
+	createBody, _ := json.Marshal(map[string]any{
+		"tenant_id": tid,
+		"name":      "e2e-integration-key",
+		"role":      "user",
+	})
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/admin/api-keys", string(createBody)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 201 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("create key %d: %s", resp.StatusCode, b)
+	}
+	var created struct {
+		ID     string `json:"id"`
+		APIKey string `json:"api_key"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&created); err != nil {
+		t.Fatalf("decode create: %v", err)
+	}
+	if created.ID == "" || created.APIKey == "" {
+		t.Fatalf("create response: %+v", created)
+	}
+
+	rotURL := "/v1/admin/api-keys/" + url.PathEscape(created.ID) + "/rotate"
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, rotURL, `{"name":"e2e-rotated"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("rotate %d: %s", resp.StatusCode, b)
+	}
+	var rotated struct {
+		APIKey string `json:"api_key"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&rotated); err != nil {
+		t.Fatalf("decode rotate: %v", err)
+	}
+	if rotated.APIKey == "" || rotated.APIKey == created.APIKey {
+		t.Fatalf("expected new api_key after rotate")
+	}
+}
+
+func TestIntegrationHTTP_ValidationErrors(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	cases := []struct {
+		name string
+		req  *http.Request
+		want int
+	}{
+		{
+			"rollback missing version",
+			reqAuthed(t, http.MethodPost, "/v1/memories/rollback", `{"path":"root.x"}`),
+			400,
+		},
+		{
+			"compact missing path",
+			reqAuthed(t, http.MethodPost, "/v1/memories/compact", `{}`),
+			400,
+		},
+		{
+			"distilled missing prefix",
+			reqAuthed(t, http.MethodGet, "/v1/distilled", ""),
+			400,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			resp, err := app.Test(tc.req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			resp.Body.Close()
+			if resp.StatusCode != tc.want {
+				t.Fatalf("got status %d, want %d", resp.StatusCode, tc.want)
+			}
+		})
+	}
+}
+
+func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	srv := httptest.NewServer(adaptor.FiberApp(app))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var buf bytes.Buffer
+	errCh := make(chan error, 1)
+	go func() {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, srv.URL+"/v1/events?types=memory.stored", nil)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		req.Header.Set("X-API-Key", httpE2EAPIKey)
+		req.Header.Set("Accept", "text/event-stream")
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			errCh <- err
+			return
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			errCh <- fmt.Errorf("sse status %d", resp.StatusCode)
+			return
+		}
+		_, err = io.Copy(&buf, resp.Body)
+		errCh <- err
+	}()
+
+	time.Sleep(400 * time.Millisecond)
+
+	path := "root.http.sse." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"sse-body","embedding_model":"unspecified"}`
+	postReq, err := http.NewRequest(http.MethodPost, srv.URL+"/v1/memories", strings.NewReader(storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	postReq.Header.Set("X-API-Key", httpE2EAPIKey)
+	postReq.Header.Set("Content-Type", "application/json")
+	postResp, err := http.DefaultClient.Do(postReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	bb, _ := io.ReadAll(postResp.Body)
+	_ = postResp.Body.Close()
+	if postResp.StatusCode != http.StatusOK {
+		t.Fatalf("store %d: %s", postResp.StatusCode, bb)
+	}
+
+	deadline := time.Now().Add(8 * time.Second)
+	for time.Now().Before(deadline) {
+		s := buf.String()
+		if strings.Contains(s, "memory.stored") && strings.Contains(s, path) {
+			cancel()
+			if err := <-errCh; err != nil && !errors.Is(err, context.Canceled) {
+				// Response body read may end with context cancellation or client close
+				if !strings.Contains(strings.ToLower(err.Error()), "cancel") {
+					t.Logf("sse copy: %v", err)
+				}
+			}
+			return
+		}
+		time.Sleep(40 * time.Millisecond)
+	}
+
+	cancel()
+	<-errCh
+	t.Fatalf("timeout waiting for memory.stored SSE; buf=%q", buf.String())
 }

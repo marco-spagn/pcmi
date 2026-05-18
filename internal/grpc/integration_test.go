@@ -22,7 +22,8 @@ import (
 // Integration tests against a real MemoryService:
 //
 //   - Live server: set GRPC_HOST (optional, default localhost:50051) and GRPC_TEST_API_KEY.
-//   - In-process (no listening port): package grpcserver — integration_bufconn_test.go uses DATABASE_URL + miniredis only.
+//   - In-process (no listening port): package grpcserver — integration_bufconn_test.go uses DATABASE_URL + miniredis only
+//     (including StreamEvents over Redis).
 //
 // Run (live):   GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 go test -tags=integration ./internal/grpc/...
 // Run (all):    DATABASE_URL=... go test -tags=integration ./internal/grpc/...

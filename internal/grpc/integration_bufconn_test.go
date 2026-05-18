@@ -4,9 +4,14 @@ package grpcserver
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"os"
+	"strconv"
+	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -471,4 +476,168 @@ func TestIntegrationBufconn_StoreRequiresAPIKey(t *testing.T) {
 	if !ok || st.Code() != codes.Unauthenticated {
 		t.Fatalf("got %v", err)
 	}
+}
+
+func TestIntegrationBufconn_InvalidAPIKey(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	_, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: "definitely-not-a-registered-key",
+		Path:   "root.ci.bufconn.badkey", Content: "x", EmbeddingModel: "unspecified",
+	})
+	if err == nil {
+		t.Fatal("expected Unauthenticated")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.Unauthenticated {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestIntegrationBufconn_IngestEventBadPayload(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+	defer cancel()
+
+	_, err := client.IngestEvent(ctx, &pcmiv1.IngestEventRequest{
+		ApiKey:      testIntegrationAPIKey(t),
+		EventType:   "test.bad.payload",
+		PayloadJson: "{",
+	})
+	if err == nil {
+		t.Fatal("expected InvalidArgument")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.InvalidArgument {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestIntegrationBufconn_ReadonlyKeyWriteDenied(t *testing.T) {
+	client, pool, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 20*time.Second)
+	defer cancel()
+
+	adminKey := testIntegrationAPIKey(t)
+	tenantID, _, err := ResolveTenantForTest(ctx, pool, adminKey)
+	if err != nil {
+		t.Fatalf("tenant: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID); err != nil {
+		t.Fatalf("set_tenant: %v", err)
+	}
+
+	roPlain := "ro-grpc-" + strconv.FormatInt(time.Now().UnixNano(), 10)
+	sum := sha256.Sum256([]byte(roPlain))
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO api_keys (tenant_id, key_hash, name, role, is_active)
+		VALUES ($1::uuid, $2, $3, 'readonly', true)`,
+		tenantID, hex.EncodeToString(sum[:]), "bufconn-readonly",
+	); err != nil {
+		t.Fatalf("insert readonly: %v", err)
+	}
+
+	_, err = client.BatchStore(ctx, &pcmiv1.BatchStoreRequest{
+		ApiKey: roPlain,
+		Items: []*pcmiv1.BatchStoreItem{
+			{Path: "root.ci.bufconn.ro", Content: "nope", EmbeddingModel: "unspecified"},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected PermissionDenied")
+	}
+	st, ok := status.FromError(err)
+	if !ok || st.Code() != codes.PermissionDenied {
+		t.Fatalf("got %v", err)
+	}
+
+	_, err = client.Retrieve(ctx, &pcmiv1.RetrieveRequest{
+		ApiKey: roPlain, PathPrefix: "root", Limit: 1,
+	})
+	if err != nil {
+		t.Fatalf("readonly retrieve: %v", err)
+	}
+}
+
+func TestIntegrationBufconn_ListAuditOffset(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
+	defer cancel()
+
+	key := testIntegrationAPIKey(t)
+	out, err := client.ListAudit(ctx, &pcmiv1.ListAuditRequest{
+		ApiKey: key, Limit: 3, Offset: 0,
+	})
+	if err != nil || out.GetJson() == "" {
+		t.Fatalf("list audit: %v", err)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(out.GetJson()), &payload); err != nil {
+		t.Fatalf("audit json: %v", err)
+	}
+	if _, ok := payload["entries"]; !ok {
+		t.Fatalf("audit shape: %+v", payload)
+	}
+}
+
+func TestIntegrationBufconn_StreamEventsMemoryStored(t *testing.T) {
+	client, _, cleanup := newBufconnMemoryClient(t)
+	defer cleanup()
+
+	key := testIntegrationAPIKey(t)
+	path := "root.ci.bufconn.stream." + time.Now().Format("150405")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	stream, err := client.StreamEvents(ctx, &pcmiv1.StreamEventsRequest{
+		ApiKey: key,
+		Types:  event.EventMemoryStored,
+	})
+	if err != nil {
+		t.Fatalf("StreamEvents: %v", err)
+	}
+
+	var matched atomic.Bool
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err != nil {
+				return
+			}
+			if msg.GetType() == event.EventMemoryStored && strings.Contains(msg.GetPayloadJson(), path) {
+				matched.Store(true)
+				return
+			}
+		}
+	}()
+
+	time.Sleep(400 * time.Millisecond)
+
+	if _, err := client.Store(ctx, &pcmiv1.StoreRequest{
+		ApiKey: key, Path: path, Content: "grpc-stream", EmbeddingModel: "unspecified",
+	}); err != nil {
+		t.Fatalf("store: %v", err)
+	}
+
+	deadline := time.Now().Add(8 * time.Second)
+	for time.Now().Before(deadline) {
+		if matched.Load() {
+			cancel()
+			return
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+	cancel()
+	t.Fatalf("timeout waiting for gRPC StreamEvents %s (payload with path %q)", event.EventMemoryStored, path)
 }

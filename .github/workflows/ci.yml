@@ -107,6 +107,7 @@ jobs:
       # semantics — identical to what `make act-trivy` does locally.
       - name: Trivy scan pcmi-api
         if: ${{ env.ACT != 'true' }}
+
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -120,7 +121,9 @@ jobs:
             pcmi-api:ci
 
       - name: Trivy scan pcmi-worker
+ main
         if: ${{ env.ACT != 'true' }}
+
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \

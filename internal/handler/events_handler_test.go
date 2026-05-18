@@ -1,14 +1,19 @@
 package handler
 
 import (
+	"context"
+	"encoding/json"
+	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 func TestParseEventTypes(t *testing.T) {
@@ -114,5 +119,111 @@ func TestEventsHandler_Ingest_invalidJSON(t *testing.T) {
 	_ = resp.Body.Close()
 	if resp.StatusCode != 400 {
 		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+type stubEventIngester struct {
+	res *model.IngestEventResponse
+	err error
+}
+
+func (s stubEventIngester) Ingest(_ context.Context, _ *model.IngestEventRequest, _ string) (*model.IngestEventResponse, error) {
+	return s.res, s.err
+}
+
+func TestEventsHandler_Ingest_missingEventType(t *testing.T) {
+	h := NewEventsHandler(nil)
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.TenantContextKey, "00000000-0000-0000-0000-000000000001")
+		return c.Next()
+	})
+	app.Post("/v1/events", h.Ingest)
+
+	req := httptest.NewRequest("POST", "/v1/events", strings.NewReader(`{"payload":{}}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestEventsHandler_Ingest_serviceErrorWithMissingKeyword(t *testing.T) {
+	h := &EventsHandler{ingest: stubEventIngester{err: errors.New("validation missing: schema")}}
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.TenantContextKey, "00000000-0000-0000-0000-000000000002")
+		return c.Next()
+	})
+	app.Post("/v1/events", h.Ingest)
+
+	req := httptest.NewRequest("POST", "/v1/events", strings.NewReader(`{"event_type":"x","payload":{}}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestEventsHandler_Ingest_serviceInternalError(t *testing.T) {
+	h := &EventsHandler{ingest: stubEventIngester{err: errors.New("insert failed")}}
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.TenantContextKey, "00000000-0000-0000-0000-000000000003")
+		return c.Next()
+	})
+	app.Post("/v1/events", h.Ingest)
+
+	req := httptest.NewRequest("POST", "/v1/events", strings.NewReader(`{"event_type":"x","payload":{}}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 500 {
+		t.Fatalf("status %d want 500", resp.StatusCode)
+	}
+}
+
+func TestEventsHandler_Ingest_success(t *testing.T) {
+	ts := time.Unix(1700000000, 0).UTC()
+	h := &EventsHandler{ingest: stubEventIngester{res: &model.IngestEventResponse{
+		ID:        "e1",
+		EventType: "memory.stored",
+		Timestamp: ts,
+		Status:    "ingested",
+	}}}
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.TenantContextKey, "00000000-0000-0000-0000-000000000004")
+		return c.Next()
+	})
+	app.Post("/v1/events", h.Ingest)
+
+	req := httptest.NewRequest("POST", "/v1/events", strings.NewReader(`{"event_type":"memory.stored","payload":{"k":1}}`))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	var got model.IngestEventResponse
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got.ID != "e1" || got.EventType != "memory.stored" || got.Status != "ingested" {
+		t.Fatalf("unexpected %+v", got)
 	}
 }

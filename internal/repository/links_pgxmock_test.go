@@ -28,7 +28,7 @@ func TestLinksRepository_List_defaultLimit(t *testing.T) {
 		WithArgs(tenant, 50).
 		WillReturnRows(rows)
 
-	repo := &LinksRepository{r: mock}
+	repo := NewLinksRepositoryReadOnly(mock)
 	got, err := repo.List(context.Background(), tenant, "", "", "", 0)
 	if err != nil {
 		t.Fatal(err)
@@ -58,7 +58,7 @@ func TestLinksRepository_List_clampsHighLimit(t *testing.T) {
 		WithArgs(tenant, 200).
 		WillReturnRows(rows)
 
-	repo := &LinksRepository{r: mock}
+	repo := NewLinksRepositoryReadOnly(mock)
 	if _, err := repo.List(context.Background(), tenant, "", "", "", 99999); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +84,7 @@ func TestLinksRepository_List_fromPathFilter(t *testing.T) {
 		WithArgs(tenant, "root.src", 5).
 		WillReturnRows(rows)
 
-	repo := &LinksRepository{r: mock}
+	repo := NewLinksRepositoryReadOnly(mock)
 	if _, err := repo.List(context.Background(), tenant, "root.src", "", "", 5); err != nil {
 		t.Fatal(err)
 	}

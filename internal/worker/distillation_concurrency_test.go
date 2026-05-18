@@ -7,15 +7,11 @@ import (
 	"time"
 )
 
-// newTestWorker builds a DistillationWorker with a nil DB and a semaphore of
-// the given capacity, suitable for concurrency tests that never hit the DB.
 func newTestWorker(concurrency int) *DistillationWorker {
 	return &DistillationWorker{
 		sem: make(chan struct{}, concurrency),
 	}
 }
-
-// ── semaphore capacity ────────────────────────────────────────────────────────
 
 func TestSemaphoreCapacity(t *testing.T) {
 	w := newTestWorker(3)
@@ -25,37 +21,28 @@ func TestSemaphoreCapacity(t *testing.T) {
 }
 
 func TestSemaphoreDefaultCapacity(t *testing.T) {
-	t.Setenv("DISTILLATION_CONCURRENCY", "")
-	if got := distillationConcurrency(); got != defaultDistillationConcurrency {
+	if got := distillationConcurrencyFrom(0); got != defaultDistillationConcurrency {
 		t.Fatalf("expected %d, got %d", defaultDistillationConcurrency, got)
 	}
 }
 
-// ── distillationConcurrency() parsing ────────────────────────────────────────
-
 func TestDistillationConcurrencyEnvOverride(t *testing.T) {
-	t.Setenv("DISTILLATION_CONCURRENCY", "7")
-	if got := distillationConcurrency(); got != 7 {
+	if got := distillationConcurrencyFrom(7); got != 7 {
 		t.Fatalf("expected 7, got %d", got)
 	}
 }
 
 func TestDistillationConcurrencyInvalidFallsToDefault(t *testing.T) {
-	for _, bad := range []string{"0", "-1", "17", "abc", "99999"} {
-		t.Setenv("DISTILLATION_CONCURRENCY", bad)
-		if got := distillationConcurrency(); got != defaultDistillationConcurrency {
-			t.Errorf("input %q: expected default %d, got %d", bad, defaultDistillationConcurrency, got)
+	for _, bad := range []int{0, -1, 17, 99999} {
+		if got := distillationConcurrencyFrom(bad); got != defaultDistillationConcurrency {
+			t.Errorf("input %d: expected default %d, got %d", bad, defaultDistillationConcurrency, got)
 		}
 	}
 }
 
-// ── concurrent trigger respects the semaphore ─────────────────────────────────
-
-// fakeJob simulates an LLM job that takes `dur` and updates peak concurrency.
 func fakeJob(sem chan struct{}, dur time.Duration, active *atomic.Int32, peak *atomic.Int32) {
 	sem <- struct{}{}
 	cur := active.Add(1)
-	// record peak
 	for {
 		p := peak.Load()
 		if cur <= p || peak.CompareAndSwap(p, cur) {
@@ -90,13 +77,9 @@ func TestSemaphoreLimitsConcurrency(t *testing.T) {
 	}
 }
 
-// TestSemaphoreRace verifies that TriggerForMemory / TriggerForPrefix with
-// concurrent callers produces no data race (run with go test -race).
 func TestSemaphoreRace(t *testing.T) {
 	w := newTestWorker(2)
 
-	// jobFunc is a closure that acquires/releases the semaphore like the real
-	// trigger methods do, without touching nil DB fields.
 	run := func() {
 		w.sem <- struct{}{}
 		defer func() { <-w.sem }()
@@ -114,17 +97,11 @@ func TestSemaphoreRace(t *testing.T) {
 	wg.Wait()
 }
 
-// ── TriggerForMemory / TriggerForPrefix empty-input guard (no panic) ──────────
-
 func TestTriggerForMemoryEmptyDoesNotPanic(t *testing.T) {
 	w := newTestWorker(1)
-	// With a nil DB the job will fail early (set_tenant_context) but must not
-	// panic before acquiring the semaphore.
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		// Just verify the semaphore accounting works without panicking at the
-		// goroutine boundary. We don't wait for DB calls.
 		w.sem <- struct{}{}
 		<-w.sem
 	}()

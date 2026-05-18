@@ -5,44 +5,49 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/sashabaranov/go-openai"
 )
 
-
 type DistillationWorker struct {
-	db        *pgxpool.Pool
-	openai    *openai.Client
-	modelName string
-	// sem is a buffered channel used as a semaphore to cap concurrent LLM jobs.
-	// Capacity = DISTILLATION_CONCURRENCY (default 4). Each goroutine sends a
-	// token before calling the LLM and receives it back when done, so at most
-	// cap(sem) jobs run simultaneously — preventing 429 bursts on OpenAI.
-	sem chan struct{}
+	db         *pgxpool.Pool
+	openai     *openai.Client
+	modelName  string
+	apiKey     string
+	batchSize  int
+	sem        chan struct{}
 }
 
-func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
-	apiKey := os.Getenv("OPENAI_API_KEY")
+func NewDistillationWorker(db *pgxpool.Pool, cfg *config.Config) *DistillationWorker {
+	apiKey := ""
+	model := "gpt-4o-mini"
+	batchSize := defaultDistillationBatchSize
+	concurrency := defaultDistillationConcurrency
+	if cfg != nil {
+		apiKey = cfg.OpenAIAPIKey
+		if strings.TrimSpace(cfg.DistillationModel) != "" {
+			model = strings.TrimSpace(cfg.DistillationModel)
+		}
+		batchSize = distillationBatchSizeFrom(cfg.DistillationBatchSize)
+		concurrency = distillationConcurrencyFrom(cfg.DistillationConcurrency)
+	}
 	if apiKey == "" {
 		log.Println("⚠️  OPENAI_API_KEY unset — distillation LLM calls will fail")
 	}
-	model := os.Getenv("DISTILLATION_MODEL")
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
-	concurrency := distillationConcurrency()
 	log.Printf("🔧 Distillation concurrency limit: %d parallel LLM jobs", concurrency)
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
 		modelName: model,
+		apiKey:    apiKey,
+		batchSize: batchSize,
 		sem:       make(chan struct{}, concurrency),
 	}
 }
@@ -50,18 +55,17 @@ func NewDistillationWorker(db *pgxpool.Pool) *DistillationWorker {
 func (w *DistillationWorker) TriggerForMemory(tenantID, path string) {
 	metrics.IncDistillationQueued()
 	go func() {
-		w.sem <- struct{}{}           // acquire slot (blocks if at capacity)
+		w.sem <- struct{}{}
 		metrics.DecDistillationQueued()
 		metrics.IncDistillationActive()
 		defer func() {
-			<-w.sem // release slot
+			<-w.sem
 			metrics.DecDistillationActive()
 		}()
 		w.runDistillationJob(tenantID, path)
 	}()
 }
 
-// TriggerForPrefix runs distillation using path_prefix exactly (refine API).
 func (w *DistillationWorker) TriggerForPrefix(tenantID, pathPrefix string) {
 	metrics.IncDistillationQueued()
 	go func() {
@@ -93,7 +97,7 @@ func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Printf("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", distillationBatchSize())
+	log.Printf("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", w.batchSize)
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -126,7 +130,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 		return
 	}
 
-	batchSize := distillationBatchSize()
+	batchSize := w.batchSize
 	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
 
 	rows, err := w.db.Query(ctx, `
@@ -174,7 +178,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 
 	metrics.ObserveDistillationSources(len(entries))
 
-	if os.Getenv("OPENAI_API_KEY") == "" {
+	if w.apiKey == "" {
 		log.Println("⚠️  Skipping LLM distillation (no OPENAI_API_KEY)")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return

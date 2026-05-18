@@ -13,10 +13,10 @@ import (
 )
 
 type SummarizeService struct {
-	repo *repository.MemoryRepository
+	repo repository.MemoryRepo
 }
 
-func NewSummarizeService(repo *repository.MemoryRepository) *SummarizeService {
+func NewSummarizeService(repo repository.MemoryRepo) *SummarizeService {
 	return &SummarizeService{repo: repo}
 }
 

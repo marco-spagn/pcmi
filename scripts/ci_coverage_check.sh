@@ -25,6 +25,8 @@
 #   COVERAGE_SUMMARY_OUT            optional path to write the plain-text summary
 #   COVERAGE_MD_OUT                 optional path to write a markdown summary
 #   COVERAGE_BADGE_OUT              optional path to write the shields.io URL
+#   COVERAGE_OMIT_PROTOBUF          "true" → exclude internal/grpc/pcmiv1/*.pb.go
+#                                   from stmt totals (generated protobuf only)
 #
 # Exit codes:
 #   0   all thresholds met
@@ -40,6 +42,7 @@ COVERAGE_FAIL_ON_MISSING_FILE="${COVERAGE_FAIL_ON_MISSING_FILE:-true}"
 COVERAGE_SUMMARY_OUT="${COVERAGE_SUMMARY_OUT:-}"
 COVERAGE_MD_OUT="${COVERAGE_MD_OUT:-}"
 COVERAGE_BADGE_OUT="${COVERAGE_BADGE_OUT:-}"
+COVERAGE_OMIT_PROTOBUF="${COVERAGE_OMIT_PROTOBUF:-false}"
 
 if [ ! -f "$COVERAGE_OUT" ]; then
   if [ "$COVERAGE_FAIL_ON_MISSING_FILE" = "true" ]; then
@@ -53,20 +56,22 @@ fi
 # Compute coverage with awk reading the profile directly:
 #   - each line is:  <file>:<startLine>.<startCol>,<endLine>.<endCol> <numStmt> <count>
 #   - pkg = first directory after "internal/" (or cmd-<bin> for cmd/*)
-SUMMARY="$(awk '
+SUMMARY="$(awk -v omit="$COVERAGE_OMIT_PROTOBUF" '
 NR == 1 { next } # skip the "mode: <m>" header
 {
   if (NF != 3) next
   stmts = $2 + 0
   count = $3 + 0
-  file  = $1
+  fp = $1
+  sub(/:[0-9]+\.[0-9]+,[0-9]+\.[0-9]+$/, "", fp)
+  if (omit == "true" && fp ~ /\/internal\/grpc\/pcmiv1\// && fp ~ /\.pb\.go$/) next
 
   pkg = "(other)"
-  if (match(file, /\/internal\/[^\/]+\//)) {
-    pkg = substr(file, RSTART + 10)
+  if (match(fp, /\/internal\/[^\/]+\//)) {
+    pkg = substr(fp, RSTART + 10)
     sub(/\/.*$/, "", pkg)
-  } else if (match(file, /\/cmd\/[^\/]+\//)) {
-    pkg = "cmd-" substr(file, RSTART + 5)
+  } else if (match(fp, /\/cmd\/[^\/]+\//)) {
+    pkg = "cmd-" substr(fp, RSTART + 5)
     sub(/\/.*$/, "", pkg)
   }
 

@@ -30,10 +30,16 @@ func TestShouldEncrypt(t *testing.T) {
 		t.Fatal("encrypt_content flag")
 	}
 	if !ShouldEncrypt(false, map[string]interface{}{"sensitive": true}) {
-		t.Fatal("metadata sensitive")
+		t.Fatal("metadata sensitive bool")
+	}
+	if !ShouldEncrypt(false, map[string]interface{}{"sensitive": "true"}) || !ShouldEncrypt(false, map[string]interface{}{"sensitive": "1"}) {
+		t.Fatal("metadata sensitive string")
 	}
 	if ShouldEncrypt(false, map[string]interface{}{"sensitive": "false"}) {
 		t.Fatal("expected false")
+	}
+	if ShouldEncrypt(false, map[string]interface{}{"sensitive": 42}) {
+		t.Fatal("unexpected type")
 	}
 }
 

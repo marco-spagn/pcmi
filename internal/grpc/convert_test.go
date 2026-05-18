@@ -241,6 +241,20 @@ func TestCompactProtoToModel(t *testing.T) {
 	if err != nil || m2.KeepSuperseded != 20 {
 		t.Fatalf("default keep: %#v", m2)
 	}
+	_, err = compactProtoToModel(nil)
+	if err == nil {
+		t.Fatal("expected error for nil request")
+	}
+	_, err = compactProtoToModel(&pcmiv1.CompactRequest{Path: "  "})
+	if err == nil {
+		t.Fatal("expected error for empty path")
+	}
+	pb := compactModelToProto(&model.CompactMemoryResponse{
+		Path: "p", DeletedCount: 3, KeepSuperseded: 7,
+	})
+	if pb.GetPath() != "p" || pb.GetDeletedCount() != 3 || pb.GetKeepSuperseded() != 7 {
+		t.Fatal(pb)
+	}
 }
 
 func TestBatchStoreModelToProto(t *testing.T) {

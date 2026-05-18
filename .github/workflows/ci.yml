@@ -1,5 +1,6 @@
 # PCMI CI: Go build/vet + integration smoke + optional OpenAI E2E
-# Versione pulita - no doppi trigger - concurrency - coverage enforcement
+# Coverage: sticky PR comment (pull_request + push with open PR), job summary,
+# artifacts. Emoji in summary matches enforcement thresholds (see ci_coverage_check.sh).
 
 name: CI
 
@@ -177,6 +178,8 @@ jobs:
           COVERAGE_MIN_TOTAL: "39"
           COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,repository:70,service:70,worker:19"
           COVERAGE_OMIT_PROTOBUF: "true"
+          COVERAGE_MD_OUT: coverage-summary.md
+          COVERAGE_BADGE_OUT: coverage-badge.txt
         run: |
           chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
@@ -185,11 +188,33 @@ jobs:
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
         run: cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Resolve PR for coverage comment
+        id: cov_pr
+        if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            let n = '';
+            if (context.eventName === 'pull_request') {
+              n = String(context.payload.pull_request.number);
+            } else if (context.eventName === 'push') {
+              const branch = context.ref.replace('refs/heads/', '');
+              const { data: prs } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${branch}`,
+                state: 'open',
+              });
+              if (prs.length) n = String(prs[0].number);
+            }
+            core.setOutput('number', n);
+
       - name: Comment coverage on PR
-        if: ${{ github.event_name == 'pull_request' && hashFiles('coverage-summary.md') != '' }}
+        if: ${{ always() && hashFiles('coverage-summary.md') != '' && steps.cov_pr.outputs.number != '' }}
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           header: pcmi-coverage
+          number: ${{ steps.cov_pr.outputs.number }}
           path: coverage-summary.md
 
       - name: Upload coverage artifacts

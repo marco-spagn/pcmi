@@ -13,6 +13,13 @@
 *.test
 *.out
 
+# Compiled service binaries (local `go build` / smoke scripts; CI builds fresh to bin/ or in Docker)
+bin/
+/api
+/worker
+/pcmi-api
+/pcmi-worker
+
 # Dependency directories
 vendor/
 
@@ -46,6 +53,9 @@ temp/
 # ====================== TEST & COVERAGE ======================
 coverage.out
 coverage.html
+coverage-summary.md
+coverage-summary.txt
+coverage-badge.txt
 
 # ====================== PCMI SPECIFIC ======================
 # Distillation e2e test artifacts (local only)

@@ -52,7 +52,40 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - `docs/local-ci.md`: documented the coverage gate and the matching make
   targets in the "Day-to-day commands" table and a new "Coverage gate" section.
 
+### Added — Dynamic coverage badge + extra tests (PR #1 follow-up)
+- **Fully dynamic coverage badge** on the README. `scripts/ci_coverage_check.sh`
+  now writes a shields.io endpoint JSON to `badges/coverage.json` (controlled
+  by the new `COVERAGE_ENDPOINT_OUT` env var). On every push to `main`, the
+  `go` CI job commits the regenerated file back to the branch with a
+  `[skip ci]` marker, so the badge displayed at the top of `README.md` always
+  reflects the latest measured coverage — no Codecov, Coveralls, gist or
+  external service required.
+- Workflow safeguards against badge-update infinite loops:
+  - `on.push.paths-ignore: ['badges/**']` so the auto-commit cannot re-trigger
+    the workflow;
+  - `[skip ci]` token in the commit message as belt-and-braces protection;
+  - `contents: write` granted only at the `go` job level (not workflow-wide).
+- Coverage scope widened: `crypto`, `embedding`, `model`, `telemetry` added
+  to `COVERAGE_PKGS` in `Makefile`. These packages already shipped tests but
+  were not contributing to the global denominator before; folding them in
+  gives the gate an honest signal.
+- Additional unit tests (deterministic, no DB/Redis/network):
+  - `internal/worker/distillation_env_extra_test.go` — boundary, whitespace,
+    non-numeric, and out-of-range cases for the `DISTILLATION_BATCH_SIZE` /
+    `DISTILLATION_CONCURRENCY` env parsers.
+  - `internal/metrics/worker_unknown_test.go` — empty-label branch of
+    `IncWorkerRedisEvent` (relabelled to `unknown`) and custom-label path.
+  - `internal/handler/events_handler_extra_test.go` — whitespace-only filters,
+    dedup, empty entries, non-string `tenant_id` payloads.
+  - `internal/middleware/public_extra2_test.go` — systematic method × path
+    matrix for `IsUnauthenticatedProbe`, plus negative cases.
+
 ### Notes
 - No production code paths were touched in this PR — additions are
   test-only, CI-only, and documentation. Zero risk of runtime behaviour
   change; no database migrations required.
+- The auto-commit step requires the workflow's default `GITHUB_TOKEN` to
+  have `contents: write` on `main`. If branch protection is enabled, add the
+  `pcmi-ci[bot]` author to the allowlist or use a separate deploy key —
+  otherwise the badge update step will fail soft (`git push` rejected) and
+  the badge will stay frozen at the last successful update.

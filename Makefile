@@ -12,18 +12,26 @@ COVERAGE_MIN_TOTAL  ?= 22
 COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70
 
 # Set of packages that the coverage gate considers. Integration-heavy packages
-# (cmd/* binaries, telemetry) are intentionally excluded because they cannot run
-# without a database/Redis/OpenAI key — they have their own e2e jobs.
+# (cmd/* binaries) are intentionally excluded because they cannot run without a
+# database/Redis/OpenAI key — they have their own e2e jobs.
+#
+# Pure-logic packages (crypto, embedding, model, telemetry) already ship unit
+# tests but were previously omitted from the gate; they are included here to
+# give the coverage signal a more honest denominator.
 COVERAGE_PKGS = \
 	./internal/config/... \
+	./internal/crypto/... \
 	./internal/deploy/... \
+	./internal/embedding/... \
 	./internal/event/... \
 	./internal/eventschema/... \
 	./internal/handler/... \
 	./internal/metrics/... \
 	./internal/middleware/... \
+	./internal/model/... \
 	./internal/repository/... \
 	./internal/service/... \
+	./internal/telemetry/... \
 	./internal/version/... \
 	./internal/webhook/... \
 	./internal/worker/...

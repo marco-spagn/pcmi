@@ -29,6 +29,9 @@
 #   COVERAGE_BADGE_OUT              optional path to write the shields.io URL
 #   COVERAGE_OMIT_PROTOBUF          "true" → exclude internal/grpc/pcmiv1/*.pb.go
 #                                   from stmt totals (generated protobuf only)
+#   COVERAGE_ENDPOINT_OUT           optional path to write a shields.io endpoint
+#                                   JSON file (committed back to main → renders
+#                                   a fully dynamic badge in the README)
 #
 # Exit codes:
 #   0   all thresholds met
@@ -48,6 +51,7 @@ COVERAGE_SUMMARY_OUT="${COVERAGE_SUMMARY_OUT:-}"
 COVERAGE_MD_OUT="${COVERAGE_MD_OUT:-}"
 COVERAGE_BADGE_OUT="${COVERAGE_BADGE_OUT:-}"
 COVERAGE_OMIT_PROTOBUF="${COVERAGE_OMIT_PROTOBUF:-false}"
+COVERAGE_ENDPOINT_OUT="${COVERAGE_ENDPOINT_OUT:-}"
 
 if [ ! -f "$COVERAGE_OUT" ]; then
   if [ "$COVERAGE_FAIL_ON_MISSING_FILE" = "true" ]; then
@@ -195,6 +199,38 @@ if [ -n "$COVERAGE_BADGE_OUT" ]; then
   BADGE_PCT="$(awk -v p="$GLOBAL_PCT" 'BEGIN { printf "%.1f", p+0 }')"
   BADGE_URL="https://img.shields.io/badge/coverage-${BADGE_PCT}%25-${BADGE_COLOR}.svg"
   printf '%s\n' "$BADGE_URL" > "$COVERAGE_BADGE_OUT"
+fi
+
+# ─── Dynamic badge (shields.io endpoint JSON) ────────────────────────────────
+#
+# When COVERAGE_ENDPOINT_OUT is set, write a JSON file in shields.io endpoint
+# format. The README points at this file via:
+#
+#   https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/<owner>/<repo>/main/badges/coverage.json
+#
+# CI commits the file back to main on every push, so the badge updates without
+# any external coverage service (Codecov, Coveralls, gists, etc.).
+if [ -n "$COVERAGE_ENDPOINT_OUT" ]; then
+  ENDPOINT_COLOR="$(awk -v p="$GLOBAL_PCT" 'BEGIN {
+    p += 0
+    if (p >= 90) print "brightgreen"
+    else if (p >= 75) print "green"
+    else if (p >= 60) print "yellowgreen"
+    else if (p >= 40) print "yellow"
+    else if (p >= 20) print "orange"
+    else print "red"
+  }')"
+  ENDPOINT_PCT="$(awk -v p="$GLOBAL_PCT" 'BEGIN { printf "%.1f", p+0 }')"
+  mkdir -p "$(dirname "$COVERAGE_ENDPOINT_OUT")"
+  cat > "$COVERAGE_ENDPOINT_OUT" <<JSON
+{
+  "schemaVersion": 1,
+  "label": "coverage",
+  "message": "${ENDPOINT_PCT}%",
+  "color": "${ENDPOINT_COLOR}",
+  "cacheSeconds": 300
+}
+JSON
 fi
 
 # ─── Threshold enforcement ────────────────────────────────────────────────────

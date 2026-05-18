@@ -38,6 +38,12 @@ func TestShouldEncrypt(t *testing.T) {
 	if ShouldEncrypt(false, map[string]interface{}{"sensitive": "false"}) {
 		t.Fatal("expected false")
 	}
+	if ShouldEncrypt(false, map[string]interface{}{"sensitive": "True"}) != true {
+		t.Fatal("EqualFold True")
+	}
+	if ShouldEncrypt(false, map[string]interface{}{"sensitive": "FALSE"}) {
+		t.Fatal("EqualFold false")
+	}
 	if ShouldEncrypt(false, map[string]interface{}{"sensitive": 42}) {
 		t.Fatal("unexpected type")
 	}

@@ -96,6 +96,17 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 	}
 }
 
+func TestMemoryEntryToProtoRetrieve_zeroTimesOmitted(t *testing.T) {
+	pb := memoryEntryToProtoRetrieve(&model.MemoryEntry{
+		ID: 1, TenantID: "t", Path: "p", Content: "c", Version: 1,
+		Metadata: map[string]interface{}{},
+	})
+	if pb.GetValidFromRfc3339() != "" || pb.GetCreatedAtRfc3339() != "" {
+		t.Fatalf("zero times should omit RFC3339 strings: valid=%q created=%q",
+			pb.GetValidFromRfc3339(), pb.GetCreatedAtRfc3339())
+	}
+}
+
 func TestMemoryEntryToProtoRetrieve_nil(t *testing.T) {
 	if memoryEntryToProtoRetrieve(nil) != nil {
 		t.Fatal("nil entry -> nil proto")
@@ -249,6 +260,29 @@ func TestGetMemoryProtoToParams(t *testing.T) {
 	})
 	if err != nil || path != "root.p" || ver == nil || *ver != 2 || asOf == nil {
 		t.Fatalf("path=%q ver=%v asOf=%v err=%v", path, ver, asOf, err)
+	}
+}
+
+func TestGetMemoryProtoToParams_nilRequest(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetMemoryProtoToParams_emptyPath(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(&pcmiv1.GetMemoryRequest{Path: "  "})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetMemoryProtoToParams_invalidAsOf(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(&pcmiv1.GetMemoryRequest{
+		Path: "p", AsOfRfc3339: "not-a-date",
+	})
+	if err == nil {
+		t.Fatal("expected error")
 	}
 }
 

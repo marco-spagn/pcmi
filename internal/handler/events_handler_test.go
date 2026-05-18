@@ -1,9 +1,14 @@
 package handler
 
 import (
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/gofiber/fiber/v2"
+
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
 func TestParseEventTypes(t *testing.T) {
@@ -73,5 +78,41 @@ func TestEventAllowedTenantFilter(t *testing.T) {
 	}
 	if eventAllowed(evt, map[string]struct{}{}, "aaa") {
 		t.Fatal("non-nil empty allow map should reject every type")
+	}
+}
+
+func TestEventsHandler_ListSchemas(t *testing.T) {
+	h := NewEventsHandler(nil)
+	app := fiber.New()
+	app.Get("/v1/events/schemas", h.ListSchemas)
+
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/events/schemas", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestEventsHandler_Ingest_invalidJSON(t *testing.T) {
+	h := NewEventsHandler(nil)
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.TenantContextKey, "00000000-0000-0000-0000-000000000000")
+		return c.Next()
+	})
+	app.Post("/v1/events", h.Ingest)
+
+	req := httptest.NewRequest("POST", "/v1/events", strings.NewReader("{not-json"))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
 	}
 }

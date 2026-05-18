@@ -7,6 +7,40 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+func TestAuditMiddlewareSkipsMetrics(t *testing.T) {
+	mw := NewAuditMiddleware(nil)
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app.Use(mw.Middleware())
+	app.Get("/metrics", func(c *fiber.Ctx) error {
+		return c.SendString("metrics")
+	})
+
+	resp, err := app.Test(httptest.NewRequest("GET", "/metrics", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
+func TestAuditMiddlewareSkipsHealth(t *testing.T) {
+	mw := NewAuditMiddleware(nil)
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app.Use(mw.Middleware())
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendStatus(200)
+	})
+
+	resp, err := app.Test(httptest.NewRequest("GET", "/health", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d", resp.StatusCode)
+	}
+}
+
 func TestAuditMiddlewareSkipsReadyProbe(t *testing.T) {
 	// Nil DB: must not run audit insert (skip path before Exec).
 	mw := NewAuditMiddleware(nil)

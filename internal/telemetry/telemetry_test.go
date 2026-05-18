@@ -17,6 +17,19 @@ func TestInitNoExporter(t *testing.T) {
 	}
 }
 
+func TestInit_prefersOTELServiceNameWithoutExporter(t *testing.T) {
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
+	t.Setenv("OTEL_SERVICE_NAME", "custom-svc")
+	shutdown, err := Init(context.Background(), "ignored-when-env-set")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := shutdown(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestInit_emptyServiceNameUsesDefault(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")

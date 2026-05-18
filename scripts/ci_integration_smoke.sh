@@ -5,10 +5,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+# PostgreSQL host for psql sub-commands (CI and act use 127.0.0.1 to avoid ::1 surprises).
+PGHOST="${PGHOST:-localhost}"
+
 API="${API:-http://localhost:8000}"
 KEY="${PCMI_API_KEY:-testkey123}"
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.33.0}"
-VER="${EXPECT_API_VERSION:-v1.33.0}"
+export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.31.0}"
+VER="${EXPECT_API_VERSION:-v1.31.0}"
 hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${KEY}")
 
 echo "== Readiness /v1/ready =="
@@ -61,7 +64,7 @@ PATH_E="root.ci.encrypt.${SUFFIX}"
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_E}\",\"content\":\"top-secret-${SUFFIX}\",\"metadata\":{\"sensitive\":true},\"embedding_model\":\"unspecified\"}" | jq -e '.id'
 CONTENT=$(curl -sf -X POST "${API}/v1/retrieve" "${hdr[@]}" -d "{\"path_prefix\":\"${PATH_E}\",\"limit\":5}" | jq -r '.entries[0].content')
 test "$CONTENT" = "top-secret-${SUFFIX}"
-STORED=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT content FROM memory_entries WHERE path='${PATH_E}'::ltree AND valid_to IS NULL LIMIT 1")
+STORED=$(PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT content FROM memory_entries WHERE path='${PATH_E}'::ltree AND valid_to IS NULL LIMIT 1")
 echo "$STORED" | grep -q '^enc:v1:' || {
   echo "expected encrypted at rest"
   exit 1
@@ -83,10 +86,10 @@ echo "== Embedding migrate =="
 PATH_P="root.ci.migrate.${SUFFIX}"
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_P}\",\"content\":\"migrate-me\",\"metadata\":{},\"embedding_model\":\"text-embedding-3-small\"}" | jq -e '.id'
 curl -sf -X POST "${API}/v1/embeddings/migrate" "${hdr[@]}" -d "{\"path_prefix\":\"${PATH_P}\",\"target_model\":\"text-embedding-3-large\"}" | jq -e '.marked_count >= 1'
-PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT embedding IS NULL AND embedding_model='text-embedding-3-large' FROM memory_entries WHERE path='${PATH_P}'::ltree AND valid_to IS NULL" | tr -d '[:space:]' | grep -qx 't'
+PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT embedding IS NULL AND embedding_model='text-embedding-3-large' FROM memory_entries WHERE path='${PATH_P}'::ltree AND valid_to IS NULL" | tr -d '[:space:]' | grep -qx 't'
 
 echo "== Distilled versioning (SQL seed) =="
-PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<SQL
+PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
 VALUES ('00000000-0000-0000-0000-000000000000', 'root.ci.distilled.version', 'v1 summary', '[]', 0.9, ARRAY[1]::bigint[], 1);
 INSERT INTO distilled_knowledge (tenant_id, path, summary, insights, confidence_score, source_entry_ids, version)
@@ -96,14 +99,14 @@ MAX_VER=$(curl -sf "${API}/v1/distilled?path_prefix=root.ci.distilled&limit=10" 
 test "$MAX_VER" -ge 2
 
 echo "== Pruning function =="
-PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<SQL
+PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -v ON_ERROR_STOP=1 <<SQL
 INSERT INTO memory_entries (tenant_id, path, content, metadata, embedding_model, version, valid_from, valid_to)
 VALUES ('00000000-0000-0000-0000-000000000000', 'root.ci.prune.old', 'stale', '{}', 'unspecified', 1,
         NOW() - interval '60 days', NOW() - interval '45 days');
 SQL
-PRUNED=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT prune_superseded_memories(30)")
+PRUNED=$(PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT prune_superseded_memories(30)")
 test "$PRUNED" -ge 1
-COUNT=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM memory_entries WHERE path='root.ci.prune.old'::ltree")
+COUNT=$(PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM memory_entries WHERE path='root.ci.prune.old'::ltree")
 test "$COUNT" -eq 0
 
 echo "== Event schemas + invalid payload + summarize + /v1/health version =="
@@ -154,8 +157,8 @@ PATH_TTL="root.ci.ttl.${SUFFIX}"
 EXPIRES=$(date -u -d '+3 seconds' '+%Y-%m-%dT%H:%M:%SZ')
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_TTL}\",\"content\":\"ttl\",\"metadata\":{},\"expires_at\":\"${EXPIRES}\"}"
 sleep 4
-PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT expire_memory_entries()" >/dev/null
-PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM memory_entries WHERE path='${PATH_TTL}'::ltree AND valid_to IS NULL" | tr -d '[:space:]' | grep -qx '0'
+PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT expire_memory_entries()" >/dev/null
+PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM memory_entries WHERE path='${PATH_TTL}'::ltree AND valid_to IS NULL" | tr -d '[:space:]' | grep -qx '0'
 
 echo "== Consolidation =="
 PREFIX2="root.ci.consolidate.${SUFFIX}"
@@ -163,7 +166,7 @@ for i in 1 2 3; do
   curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PREFIX2}.n${i}\",\"content\":\"part ${i}\",\"metadata\":{}}" >/dev/null
 done
 sleep 10
-RUNS=$(PGPASSWORD=pcmi psql -h localhost -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM consolidation_runs WHERE path_prefix='${PREFIX2}'" | tr -d '[:space:]')
+RUNS=$(PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT COUNT(*) FROM consolidation_runs WHERE path_prefix='${PREFIX2}'" | tr -d '[:space:]')
 test "${RUNS:-0}" -ge 1
 
 echo "== Webhook dead-letter =="

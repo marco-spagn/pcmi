@@ -1,5 +1,5 @@
 .PHONY: test test-race lint test-integration sdk-smoke distillation-e2e install-lint \
-        act-list act-all act-job act-lint act-test act-vuln act-trivy
+        act-list act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -61,16 +61,17 @@ distillation-e2e:
 act-list:
 	act --list
 
-# Run the full pipeline locally. `act` runs every job except `trivy-images`
-# (which `act` cannot execute — see act-trivy below); we then run the trivy
-# scan via direct docker for end-to-end equivalence with GitHub-hosted CI.
-# WARNING: ~15-20 minutes; downloads ~2 GB on first run.
+# Run the full pipeline locally. Inside act: `trivy-images` is a stub + `make act-trivy`;
+# `integration-smoke` is a stub + `make act-integration-smoke` (host-side compose + bins).
+# WARNING: ~15-25 minutes; downloads ~2 GB on first run.
 act-all:
 	act push
 	@echo ""
-	@echo "[act-all] act skipped trivy-images (composite action limitation)."
-	@echo "[act-all] running equivalent scan via direct docker…"
+	@echo "[act-all] running Trivy image scan on host (act cannot run aquasecurity/trivy-action)…"
 	@$(MAKE) act-trivy
+	@echo ""
+	@echo "[act-all] running integration smoke on host (act service networking ≠ GitHub runner)…"
+	@$(MAKE) act-integration-smoke
 
 # Run a single job by name. Example: make act-job JOB=integration-smoke
 act-job:
@@ -108,6 +109,12 @@ act-trivy:
 	    --severity HIGH,CRITICAL \
 	    --exit-code 1 \
 	    --ignore-unfixed \
-	    --vuln-type os,library \
+	    --pkg-types os,library \
+	    --scanners vuln \
 	    "$$img" || exit 1; \
 	done
+
+# Full integration smoke outside act — same scripts as CI, but Postgres/Redis via
+# docker compose on your machine (see scripts/act_integration_smoke_host.sh).
+act-integration-smoke:
+	bash scripts/act_integration_smoke_host.sh

@@ -199,31 +199,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # nektos/act runs the job container with --network host while service containers
+      # live on a bridge network. Postgres is often reachable via published ports, but
+      # background API/worker + curl probes are notoriously flaky. GitHub-hosted
+      # runners do not use this layout — the real CI job is unchanged when ACT is unset.
+      - name: Skip notice (act only)
+        if: ${{ env.ACT == 'true' }}
+        run: |
+          echo "::notice::integration-smoke skipped under act — service/job network differs from GitHub. Run \`make act-integration-smoke\` on the host for the same checks."
+
       - uses: actions/setup-go@v5
+        if: ${{ env.ACT != 'true' }}
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Install tooling
+        if: ${{ env.ACT != 'true' }}
         run: sudo apt-get update && sudo apt-get install -y postgresql-client jq curl
 
       - name: Apply migrations
+        if: ${{ env.ACT != 'true' }}
         env:
           PGPASSWORD: pcmi
         run: |
           for i in $(seq 1 30); do
-            psql -h localhost -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1 && break
+            psql -h 127.0.0.1 -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1 && break
             sleep 2
           done
           for f in migrations/*.sql; do
             echo "Applying $f"
-            psql -h localhost -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
+            psql -h 127.0.0.1 -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
           done
 
       - name: Build and start API + worker
+        if: ${{ env.ACT != 'true' }}
         env:
-          DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
-          REDIS_ADDR: localhost:6379
+          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
+          REDIS_ADDR: 127.0.0.1:6379
           API_PORT: "8000"
           GRPC_PORT: "50051"
           RATE_LIMIT_DISABLED: "true"
@@ -240,9 +253,10 @@ jobs:
           echo $! > worker.pid
 
       - name: Wait for API health
+        if: ${{ env.ACT != 'true' }}
         run: |
           for i in $(seq 1 45); do
-            if curl -sf http://localhost:8000/v1/health >/dev/null; then
+            if curl -sf http://127.0.0.1:8000/v1/health >/dev/null; then
               echo "API healthy"
               exit 0
             fi
@@ -254,36 +268,41 @@ jobs:
           exit 1
 
       - name: Integration smoke suite (bash)
+        if: ${{ env.ACT != 'true' }}
         env:
           PCMI_EXPECT_VERSION: v1.33.0
           EXPECT_API_VERSION: v1.33.0
+          PGHOST: "127.0.0.1"
+          API: "http://127.0.0.1:8000"
         run: |
           chmod +x scripts/ci_integration_smoke.sh
           ./scripts/ci_integration_smoke.sh
 
       - name: gRPC integration tests (Go)
+        if: ${{ env.ACT != 'true' }}
         env:
-          GRPC_HOST: localhost:50051
+          GRPC_HOST: 127.0.0.1:50051
           GRPC_TEST_API_KEY: testkey123
-          DATABASE_URL: postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
+          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
         run: go test -tags=integration -count=1 ./internal/grpc/...
 
       - name: SDK smoke (Python + TypeScript)
+        if: ${{ env.ACT != 'true' }}
         env:
-          PCMI_BASE_URL: http://localhost:8000
+          PCMI_BASE_URL: http://127.0.0.1:8000
           PCMI_API_KEY: testkey123
         run: |
           chmod +x scripts/ci_sdk_smoke.sh
           ./scripts/ci_sdk_smoke.sh
 
       - name: Show logs on failure
-        if: failure()
+        if: ${{ failure() && env.ACT != 'true' }}
         run: |
           cat api.log 2>/dev/null || true
           cat worker.log 2>/dev/null || true
 
       - name: Stop processes
-        if: always()
+        if: ${{ always() && env.ACT != 'true' }}
         run: |
           for f in api.pid worker.pid; do
             [ -f "$f" ] && kill "$(cat "$f")" 2>/dev/null || true

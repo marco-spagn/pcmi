@@ -33,11 +33,12 @@ No further configuration needed.
 | Goal | Command |
 |---|---|
 | See what jobs exist | `make act-list` |
-| Run **everything** (≈ 15–20 min) | `make act-all` |
+| Run **everything** (`act` + host `trivy` + host smoke, ≈ 20–30 min) | `make act-all` |
 | Run just the linter | `make act-lint` |
 | Run unit tests + race detector | `make act-test` |
 | Run `govulncheck` supply-chain scan | `make act-vuln` |
 | Run Trivy image scan (API + worker) | `make act-trivy` |
+| Run integration smoke (compose + **host** bins, same scripts as CI) | `make act-integration-smoke` |
 | Run a job by name | `make act-job JOB=integration-smoke` |
 
 Behind the scenes:
@@ -61,8 +62,8 @@ act -j trivy-images     # run trivy on both Docker images
 | `golangci-lint` | ✅ | Identical to GitHub run |
 | `go` (build, vet, race test, coverage) | ✅ | Identical |
 | `security` (govulncheck) | ✅ | Identical |
-| `trivy-images` | ✅ (via direct docker, not `act`) | `aquasecurity/trivy-action` is a composite action that act can't fully emulate (binary install via cache restore). `make act-trivy` runs `aquasec/trivy:latest` directly against the same images — identical scan, identical flags. |
-| `integration-smoke` | ✅ | Uses postgres+redis service containers, works in `act` |
+| `trivy-images` | ⚠️ stub in `act` + `make act-trivy` | `aquasecurity/trivy-action` + its `setup-trivy` pre-steps are not fully emulated; the workflow steps are skipped when `ACT=true`, then `make act-trivy` runs `aquasec/trivy:latest` with the same severity / exit-code policy. |
+| `integration-smoke` | ⚠️ stub in `act` + `make act-integration-smoke` | `act` runs the job container on `host` network while service containers stay on a bridge — background API + health checks flake. When `ACT=true`, only a notice step runs; `make act-integration-smoke` runs `scripts/act_integration_smoke_host.sh` (compose + local `go build` + same bash/Go/SDK scripts as CI). On **GitHub-hosted** runners nothing changes (`ACT` is unset). |
 | `integration-e2e` (OpenAI) | ⚠️ | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY` |
 
 ---

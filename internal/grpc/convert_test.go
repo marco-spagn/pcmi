@@ -96,6 +96,12 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 	}
 }
 
+func TestMemoryEntryToProtoRetrieve_nil(t *testing.T) {
+	if memoryEntryToProtoRetrieve(nil) != nil {
+		t.Fatal("nil entry -> nil proto")
+	}
+}
+
 func TestMemoryEntryToProtoRetrieve_full(t *testing.T) {
 	agent := "a1"
 	event := "e1"
@@ -197,6 +203,20 @@ func TestBatchStoreProtoToModel_embedding(t *testing.T) {
 func TestStoreItemProtoToModel_nil(t *testing.T) {
 	m, err := storeItemProtoToModel(nil)
 	if err != nil || m.Path != "" {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
+func TestStoreProtoToModel_nilRequest(t *testing.T) {
+	m, err := storeProtoToModel(nil)
+	if err != nil || m.Path != "" {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
+func TestRetrieveProtoToModel_nilRequest(t *testing.T) {
+	m, err := retrieveProtoToModel(nil)
+	if err != nil || m.Limit != 10 {
 		t.Fatalf("%#v err=%v", m, err)
 	}
 }

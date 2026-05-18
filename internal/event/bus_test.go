@@ -23,3 +23,12 @@ func TestBusPublishSubscribe(t *testing.T) {
 		t.Fatal("timed out waiting for event")
 	}
 }
+
+func TestBusPublishNonBlockingWhenChannelsFull(t *testing.T) {
+	bus := NewBus()
+	_ = bus.Subscribe(EventMemoryStored)
+	// Buffer is 10; extra publishes must not block the publisher.
+	for i := 0; i < 50; i++ {
+		bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"i": i}})
+	}
+}

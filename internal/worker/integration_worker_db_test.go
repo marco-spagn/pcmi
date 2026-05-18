@@ -34,5 +34,5 @@ func TestIntegration_PruningWorker_runOnce(t *testing.T) {
 func TestIntegration_ExpiryWorker_runOnce(t *testing.T) {
 	p := testWorkerPool(t)
 	w := &ExpiryWorker{db: p, interval: time.Hour}
-	w.runOnce(context.Background())
+	w.runOnce()
 }

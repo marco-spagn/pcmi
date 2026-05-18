@@ -96,9 +96,14 @@ func (h *EventsHandler) Stream(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("X-Accel-Buffering", "no")
 
+	// Subscribe with a long-lived ctx, but cancel when the fasthttp request ends.
+	// Capture .Done() here (still on the Fiber handler goroutine); the waiter only
+	// ever receives on that channel and never touches *fiber.Ctx after Stream returns,
+	// avoiding -race with Fiber releasing the context.
+	clientGone := c.Context().Done()
 	streamCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		<-c.Context().Done()
+		<-clientGone
 		cancel()
 	}()
 	events := event.SubscribeEventsContext(streamCtx)

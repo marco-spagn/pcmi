@@ -17,11 +17,18 @@ type OpenAIProvider struct {
 }
 
 func NewOpenAIProvider(apiKey, model string) Provider {
+	cfg := openai.DefaultConfig(apiKey)
+	return NewOpenAIProviderWithConfig(cfg, model)
+}
+
+// NewOpenAIProviderWithConfig returns a Provider using the given OpenAI client config.
+// Use in tests by setting cfg.BaseURL to an httptest server.
+func NewOpenAIProviderWithConfig(cfg openai.ClientConfig, model string) Provider {
 	if model == "" {
 		model = string(openai.SmallEmbedding3)
 	}
 	return &OpenAIProvider{
-		client: openai.NewClient(apiKey),
+		client: openai.NewClientWithConfig(cfg),
 		model:  model,
 	}
 }

@@ -20,6 +20,16 @@ import (
 
 const defaultMaxAttempts = 5
 
+func maxAttemptsFromEnv() int {
+	max := defaultMaxAttempts
+	if v := os.Getenv("WEBHOOK_MAX_ATTEMPTS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			max = n
+		}
+	}
+	return max
+}
+
 type Dispatcher struct {
 	db           *pgxpool.Pool
 	client       *http.Client
@@ -30,18 +40,12 @@ type Dispatcher struct {
 }
 
 func NewDispatcher(db *pgxpool.Pool) *Dispatcher {
-	max := defaultMaxAttempts
-	if v := os.Getenv("WEBHOOK_MAX_ATTEMPTS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			max = n
-		}
-	}
 	d := &Dispatcher{
 		db: db,
 		client: &http.Client{
 			Timeout: 8 * time.Second,
 		},
-		maxAttempts: max,
+		maxAttempts: maxAttemptsFromEnv(),
 		retryBase:   2 * time.Second,
 		stopCh:      make(chan struct{}),
 	}

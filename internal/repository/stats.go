@@ -3,12 +3,19 @@ package repository
 import (
 	"context"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
+// statsQueryRowDB is implemented by *pgxpool.Pool and pgxmock pools.
+type statsQueryRowDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type StatsRepository struct {
-	r *pgxpool.Pool
+	r statsQueryRowDB
 }
 
 func NewStatsRepository(writePool, readPool *pgxpool.Pool) *StatsRepository {

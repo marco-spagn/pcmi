@@ -13,10 +13,10 @@ import (
 )
 
 type SummarizeService struct {
-	repo *repository.MemoryRepository
+	repo repository.MemoryRepo
 }
 
-func NewSummarizeService(repo *repository.MemoryRepository) *SummarizeService {
+func NewSummarizeService(repo repository.MemoryRepo) *SummarizeService {
 	return &SummarizeService{repo: repo}
 }
 
@@ -110,7 +110,11 @@ func extractiveSummary(parts []string, style string) string {
 }
 
 func llmSummarize(ctx context.Context, apiKey string, parts []string, style string) (string, error) {
-	client := openai.NewClient(apiKey)
+	cfg := openai.DefaultConfig(apiKey)
+	if base := strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")); base != "" {
+		cfg.BaseURL = base
+	}
+	client := openai.NewClientWithConfig(cfg)
 	modelName := os.Getenv("DISTILLATION_MODEL")
 	if modelName == "" {
 		modelName = "gpt-4o-mini"

@@ -1,5 +1,22 @@
 # PCMI – Persistent Cognitive Memory Infrastructure
 
+[![CI](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
+[![Go Version](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](go.mod)
+[![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
+[![API](https://img.shields.io/badge/api-v1.33.0-success.svg)](internal/version/version.go)
+
+> **Coverage badge.** The badge above is **fully dynamic**: shields.io renders
+> it from `badges/coverage.json` on the `main` branch, which the `go` CI job
+> regenerates and commits back on every push (see `scripts/ci_coverage_check.sh`
+> and `.github/workflows/ci.yml` → step *Commit dynamic coverage badge*).
+> No external coverage service is required.
+>
+> CI fails when global drops below the threshold configured in
+> `.github/workflows/ci.yml` (`COVERAGE_MIN_TOTAL`, currently **39%**). The
+> full per-package table is attached to every PR as a sticky comment and to
+> each `go` job's Summary panel.
+
 La memoria vive **fuori** dagli agenti. Gli agenti sono effimeri; questo strato è persistente, indipendente dal runtime e raggiungibile via **HTTP** e **gRPC**.
 
 ```mermaid

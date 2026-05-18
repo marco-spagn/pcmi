@@ -96,6 +96,23 @@ func TestBatchRetrieveModelToProto(t *testing.T) {
 	}
 }
 
+func TestMemoryEntryToProtoRetrieve_zeroTimesOmitted(t *testing.T) {
+	pb := memoryEntryToProtoRetrieve(&model.MemoryEntry{
+		ID: 1, TenantID: "t", Path: "p", Content: "c", Version: 1,
+		Metadata: map[string]interface{}{},
+	})
+	if pb.GetValidFromRfc3339() != "" || pb.GetCreatedAtRfc3339() != "" {
+		t.Fatalf("zero times should omit RFC3339 strings: valid=%q created=%q",
+			pb.GetValidFromRfc3339(), pb.GetCreatedAtRfc3339())
+	}
+}
+
+func TestMemoryEntryToProtoRetrieve_nil(t *testing.T) {
+	if memoryEntryToProtoRetrieve(nil) != nil {
+		t.Fatal("nil entry -> nil proto")
+	}
+}
+
 func TestMemoryEntryToProtoRetrieve_full(t *testing.T) {
 	agent := "a1"
 	event := "e1"
@@ -201,6 +218,20 @@ func TestStoreItemProtoToModel_nil(t *testing.T) {
 	}
 }
 
+func TestStoreProtoToModel_nilRequest(t *testing.T) {
+	m, err := storeProtoToModel(nil)
+	if err != nil || m.Path != "" {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
+func TestRetrieveProtoToModel_nilRequest(t *testing.T) {
+	m, err := retrieveProtoToModel(nil)
+	if err != nil || m.Limit != 10 {
+		t.Fatalf("%#v err=%v", m, err)
+	}
+}
+
 func TestParseRFC3339Time_empty(t *testing.T) {
 	tm, err := parseRFC3339Time("", "field")
 	if err != nil || tm != nil {
@@ -232,6 +263,29 @@ func TestGetMemoryProtoToParams(t *testing.T) {
 	}
 }
 
+func TestGetMemoryProtoToParams_nilRequest(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(nil)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetMemoryProtoToParams_emptyPath(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(&pcmiv1.GetMemoryRequest{Path: "  "})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
+func TestGetMemoryProtoToParams_invalidAsOf(t *testing.T) {
+	_, _, _, err := getMemoryProtoToParams(&pcmiv1.GetMemoryRequest{
+		Path: "p", AsOfRfc3339: "not-a-date",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestCompactProtoToModel(t *testing.T) {
 	m, err := compactProtoToModel(&pcmiv1.CompactRequest{Path: "root.p", KeepSuperseded: 10})
 	if err != nil || m.Path != "root.p" || m.KeepSuperseded != 10 {
@@ -240,6 +294,20 @@ func TestCompactProtoToModel(t *testing.T) {
 	m2, err := compactProtoToModel(&pcmiv1.CompactRequest{Path: "x"})
 	if err != nil || m2.KeepSuperseded != 20 {
 		t.Fatalf("default keep: %#v", m2)
+	}
+	_, err = compactProtoToModel(nil)
+	if err == nil {
+		t.Fatal("expected error for nil request")
+	}
+	_, err = compactProtoToModel(&pcmiv1.CompactRequest{Path: "  "})
+	if err == nil {
+		t.Fatal("expected error for empty path")
+	}
+	pb := compactModelToProto(&model.CompactMemoryResponse{
+		Path: "p", DeletedCount: 3, KeepSuperseded: 7,
+	})
+	if pb.GetPath() != "p" || pb.GetDeletedCount() != 3 || pb.GetKeepSuperseded() != 7 {
+		t.Fatal(pb)
 	}
 }
 

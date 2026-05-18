@@ -1,6 +1,7 @@
 package event
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -80,5 +81,43 @@ func TestWebhookNotifierCalled(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	if !called {
 		t.Fatal("webhook notifier was not called after PublishEvent")
+	}
+}
+
+func TestSubscribeEventsContext_cancelledParent(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mr.Close()
+	InitRedis(mr.Addr())
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	ch := SubscribeEventsContext(ctx)
+	_, ok := <-ch
+	if ok {
+		t.Fatal("expected closed channel when parent ctx cancelled before subscribe completes")
+	}
+}
+
+func TestPublishEvent_noWebhookWithoutTenantID(t *testing.T) {
+	mr, err := miniredis.Run()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer mr.Close()
+	InitRedis(mr.Addr())
+
+	var webhookCalls int
+	SetWebhookNotifier(func(string, string, map[string]any) { webhookCalls++ })
+	defer SetWebhookNotifier(nil)
+
+	if err := PublishEvent(EventMemoryStored, map[string]any{"id": 1}); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(30 * time.Millisecond)
+	if webhookCalls != 0 {
+		t.Fatalf("webhook calls=%d want 0 without tenant_id", webhookCalls)
 	}
 }

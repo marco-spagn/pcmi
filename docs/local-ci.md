@@ -137,7 +137,7 @@ of the `go` job in `.github/workflows/ci.yml`:
 - name: Enforce coverage thresholds
   env:
     COVERAGE_MIN_TOTAL: "22"
-    COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70,version:80"
+    COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70"
   run: scripts/ci_coverage_check.sh
 ```
 

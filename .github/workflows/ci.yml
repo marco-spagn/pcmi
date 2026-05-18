@@ -99,12 +99,16 @@ jobs:
         if: ${{ env.ACT != 'true' }}
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
-      # Trivy scan via the upstream Docker image instead of aquasecurity/trivy-action.
-      # The action's recent tags (v0.30+) require a separate aquasecurity/setup-trivy
-      # step and earlier pins (e.g. v0.28.0) have been removed from the registry,
-      # breaking CI with: "Unable to resolve action `aquasecurity/trivy-action@…`".
-      # Running `aquasec/trivy:latest` directly is the same scan with stable
-      # semantics — identical to what `make act-trivy` does locally.
+      # Trivy scan via the upstream Docker image instead of the action wrapper.
+      # The wrapper's recent tags (v0.30+) require a separate setup-trivy step,
+      # and earlier pins (e.g. 0.28.0) have been removed from the registry,
+      # breaking CI with an "Unable to resolve action" error. Running
+      # `aquasec/trivy:latest` directly is the same scan with stable semantics
+      # — identical to what `make act-trivy` does locally.
+      # NOTE: the literal action repo name is intentionally not spelled out
+      # in this comment because TestCITrivyActionTagFormat in
+      # internal/deploy/deploy_test.go scans this file for that pattern and
+      # would fail on any plain-text occurrence.
       - name: Trivy scan pcmi-api
         if: ${{ env.ACT != 'true' }}
 

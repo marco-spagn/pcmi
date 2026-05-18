@@ -337,15 +337,22 @@ func TestDockerComposeUsesSeparateDockerfiles(t *testing.T) {
 	}
 }
 
-// TestCITrivyActionTagFormat guards against the pattern that broke the
-// trivy-images job: a tag without the `v` prefix (e.g. `0.28.0`) which does
-// not exist on the aquasecurity/trivy-action repo. The action publishes tags
-// in the form `vMAJOR.MINOR.PATCH`.
+// TestCITrivyActionTagFormat guards two things at once:
+//
+//  1. If the workflow uses the trivy-action wrapper (`uses: aquasecurity/...`),
+//     every pin must be either a v-prefixed tag (e.g. v0.28.0) or a full
+//     40-char commit SHA. A bare `0.28.0` was the original CI breakage.
+//  2. If the workflow no longer uses the wrapper (current setup: it runs
+//     `aquasec/trivy:latest` via `docker run`), the test makes sure the
+//     direct-docker form is still present, so nobody silently drops Trivy.
+//
+// To keep the scanner unambiguous, only `uses:` lines are considered for the
+// wrapper check — comments mentioning the wrapper as plain text are ignored.
 func TestCITrivyActionTagFormat(t *testing.T) {
 	path := filepath.Join(repoRoot(t), ".github", "workflows", "ci.yml")
 	body := string(readFile(t, path))
 
-	const marker = "aquasecurity/trivy-action@"
+	const marker = "uses: aquasecurity/trivy-action@"
 	idx := 0
 	found := 0
 	for {
@@ -371,7 +378,11 @@ func TestCITrivyActionTagFormat(t *testing.T) {
 		idx = end
 	}
 	if found == 0 {
-		t.Skip("no aquasecurity/trivy-action references in workflow — nothing to check")
+		// Workflow does not use the wrapper. Make sure the direct-docker
+		// equivalent is in place so Trivy scanning isn't quietly disabled.
+		if !strings.Contains(body, "aquasec/trivy:latest") {
+			t.Error("workflow has no aquasecurity/trivy-action `uses:` AND no `aquasec/trivy:latest` docker invocation — Trivy scanning seems disabled")
+		}
 	}
 }
 

@@ -1,15 +1,22 @@
 package handler
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
+type pathHistoryLister interface {
+	ListPathHistory(ctx context.Context, tenantID, path string, limit int) ([]model.MemoryEntry, error)
+}
+
 type HistoryHandler struct {
-	repo *repository.MemoryRepository
+	repo pathHistoryLister
 }
 
 func NewHistoryHandler(dbWrite, readReplica *pgxpool.Pool) *HistoryHandler {

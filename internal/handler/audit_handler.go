@@ -1,17 +1,23 @@
 package handler
 
 import (
+	"context"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
+type auditLister interface {
+	List(ctx context.Context, tenantID string, limit, offset int, since *time.Time) ([]model.AuditEntry, int, error)
+}
+
 type AuditHandler struct {
-	repo *repository.AuditRepository
+	repo auditLister
 }
 
 func NewAuditHandler(db *pgxpool.Pool) *AuditHandler {

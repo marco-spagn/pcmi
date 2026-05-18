@@ -2,6 +2,9 @@
 .env
 .env.local
 .env.*.local
+.env.pcmi-test-backup
+.env.pre-manual-tests
+.env.bak
 !.env.example
 
 # ====================== GO BUILD & RUNTIME ======================

@@ -1,0 +1,14 @@
+# act configuration — runs GitHub Actions workflows locally via Docker.
+# https://github.com/nektos/act
+#
+# Use the "medium" runner image (~1 GB): includes Go, Node, Python, Docker CLI,
+# enough for build/test/lint/govulncheck/trivy jobs without the 18 GB full image.
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P ubuntu-22.04=catthehacker/ubuntu:act-22.04
+
+# Reuse the same container across job invocations (faster re-runs).
+--reuse
+
+# Use host architecture (Apple Silicon: linux/arm64; Intel: linux/amd64).
+# Comment this out if you hit "exec format error" on Apple Silicon.
+--container-architecture linux/amd64

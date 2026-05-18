@@ -107,7 +107,23 @@ make test-integration  # gRPC integration (stack up)
 make sdk-smoke         # smoke Python + TypeScript
 ```
 
-Guida completa: **[docs/USAGE.md](docs/USAGE.md)**
+### 7. Distillation pipeline end-to-end
+
+PCMI include un test harness completo per il distillation pipeline
+(SOC incident generation -> ingest -> Redis refine -> LLM summarization).
+
+```bash
+# Setup una volta sola
+cp .env.example .env       # imposta OPENAI_API_KEY
+
+# Esegue lo scenario end-to-end (1000 incidenti, sharded distillation)
+make distillation-e2e
+```
+
+Documentazione dettagliata, scenari (smoke / full / dedup / cascade) e
+troubleshooting: **[docs/distillation-tests.md](docs/distillation-tests.md)**.
+
+Guida completa all'uso del prodotto: **[docs/USAGE.md](docs/USAGE.md)**
 
 ---
 

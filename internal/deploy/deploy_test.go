@@ -337,6 +337,55 @@ func TestDockerComposeUsesSeparateDockerfiles(t *testing.T) {
 	}
 }
 
+// TestCITrivyActionTagFormat guards two things at once:
+//
+//  1. If the workflow uses the trivy-action wrapper (`uses: aquasecurity/...`),
+//     every pin must be either a v-prefixed tag (e.g. v0.28.0) or a full
+//     40-char commit SHA. A bare `0.28.0` was the original CI breakage.
+//  2. If the workflow no longer uses the wrapper (current setup: it runs
+//     `aquasec/trivy:latest` via `docker run`), the test makes sure the
+//     direct-docker form is still present, so nobody silently drops Trivy.
+//
+// To keep the scanner unambiguous, only `uses:` lines are considered for the
+// wrapper check — comments mentioning the wrapper as plain text are ignored.
+func TestCITrivyActionTagFormat(t *testing.T) {
+	path := filepath.Join(repoRoot(t), ".github", "workflows", "ci.yml")
+	body := string(readFile(t, path))
+
+	const marker = "uses: aquasecurity/trivy-action@"
+	idx := 0
+	found := 0
+	for {
+		off := strings.Index(body[idx:], marker)
+		if off < 0 {
+			break
+		}
+		start := idx + off + len(marker)
+		// Read until newline or whitespace.
+		end := start
+		for end < len(body) && body[end] != '\n' && body[end] != ' ' && body[end] != '\r' {
+			end++
+		}
+		ref := strings.TrimSpace(body[start:end])
+		if ref == "" {
+			t.Errorf("empty trivy-action ref at offset %d", start)
+		}
+		// Must be either a v-prefixed tag or a full SHA (40 hex chars).
+		if !strings.HasPrefix(ref, "v") && len(ref) != 40 {
+			t.Errorf("trivy-action pinned to %q — expected v-prefixed tag (e.g. v0.28.0) or full commit SHA", ref)
+		}
+		found++
+		idx = end
+	}
+	if found == 0 {
+		// Workflow does not use the wrapper. Make sure the direct-docker
+		// equivalent is in place so Trivy scanning isn't quietly disabled.
+		if !strings.Contains(body, "aquasec/trivy:latest") {
+			t.Error("workflow has no aquasecurity/trivy-action `uses:` AND no `aquasec/trivy:latest` docker invocation — Trivy scanning seems disabled")
+		}
+	}
+}
+
 // itoa is a tiny strconv replacement to keep imports minimal.
 func itoa(i int) string {
 	if i == 0 {

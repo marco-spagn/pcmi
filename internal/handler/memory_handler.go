@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -9,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
@@ -18,12 +18,12 @@ import (
 	"github.com/marco-spagn/pcmi/internal/version"
 )
 
-func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
+func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *config.Config) {
 	repo := repository.NewMemoryRepository(dbWrite, readReplica)
 
 	var embed embedding.Provider
-	if k := os.Getenv("OPENAI_API_KEY"); k != "" {
-		embed = embedding.NewOpenAIProvider(k, os.Getenv("EMBEDDING_MODEL"))
+	if cfg != nil && cfg.OpenAIAPIKey != "" {
+		embed = embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
 	}
 	svc := service.NewMemoryService(repo, embed)
 
@@ -134,7 +134,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool) {
 	api.Get("/events", eh.Stream)
 	api.Post("/events", middleware.RequireWriteRole, eh.Ingest)
 
-	sh := NewSummarizeHandler(dbWrite, readReplica)
+	sh := NewSummarizeHandler(dbWrite, readReplica, cfg)
 	api.Post("/memories/summarize", sh.Post)
 
 	hh := NewHistoryHandler(dbWrite, readReplica)

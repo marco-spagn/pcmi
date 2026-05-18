@@ -26,6 +26,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/middleware"
@@ -97,11 +98,12 @@ func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(middleware.APIKeyMiddleware(pool))
-	app.Use(middleware.RateLimitMiddleware())
+	cfg := config.Load()
+	app.Use(middleware.RateLimitMiddleware(cfg))
 	app.Use(middleware.NewAuditMiddleware(pool).Middleware())
 
 	RegisterReadyRoutes(app, pool)
-	SetupMemoryRoutes(app, pool, pool)
+	SetupMemoryRoutes(app, pool, pool, cfg)
 	SetupAdminRoutes(app, pool)
 
 	cleanup := func() {

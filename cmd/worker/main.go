@@ -41,7 +41,7 @@ func main() {
 	log.Printf("✅ Config loaded (DB=%s, Redis=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr)
 
 	ctxTelemetry := context.Background()
-	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, "pcmi-worker")
+	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, cfg, "pcmi-worker")
 	if err != nil {
 		log.Fatalf("telemetry: %v", err)
 	}
@@ -93,16 +93,16 @@ func main() {
 		log.Println("⚠️ OPENAI_API_KEY unset — embedding worker disabled")
 	}
 
-	distWorker := worker.NewDistillationWorker(db)
+	distWorker := worker.NewDistillationWorker(db, cfg)
 	go distWorker.Start(ctx)
 
-	pruneWorker := worker.NewPruningWorker(db)
+	pruneWorker := worker.NewPruningWorker(db, cfg)
 	go pruneWorker.Start(ctx)
 
 	consolidationWorker := worker.NewConsolidationWorker(db)
 	go consolidationWorker.Start(ctx)
 
-	expiryWorker := worker.NewExpiryWorker(db)
+	expiryWorker := worker.NewExpiryWorker(db, cfg)
 	go expiryWorker.Start(ctx)
 
 	tr := otel.Tracer(workerTracerName)

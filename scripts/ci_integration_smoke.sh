@@ -154,7 +154,8 @@ curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_L}\",\"
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_L}\",\"content\":\"two\",\"metadata\":{}}"
 curl -sf "${API}/v1/lineage/memory?path=${PATH_L}" -H "X-API-Key: ${KEY}" | jq -e '(.versions | length) == 2'
 PATH_TTL="root.ci.ttl.${SUFFIX}"
-EXPIRES=$(date -u -d '+3 seconds' '+%Y-%m-%dT%H:%M:%SZ')
+# macOS (BSD) date: -v+3S — Linux (GNU) date: -d '+3 seconds'
+EXPIRES=$(date -u -v+3S '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u -d '+3 seconds' '+%Y-%m-%dT%H:%M:%SZ')
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"${PATH_TTL}\",\"content\":\"ttl\",\"metadata\":{},\"expires_at\":\"${EXPIRES}\"}"
 sleep 4
 PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -tA -c "SELECT expire_memory_entries()" >/dev/null

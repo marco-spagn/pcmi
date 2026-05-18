@@ -10,25 +10,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
-
-const defaultMaxAttempts = 5
-
-func maxAttemptsFromEnv() int {
-	max := defaultMaxAttempts
-	if v := os.Getenv("WEBHOOK_MAX_ATTEMPTS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			max = n
-		}
-	}
-	return max
-}
 
 type Dispatcher struct {
 	db           *pgxpool.Pool
@@ -39,13 +25,16 @@ type Dispatcher struct {
 	wg           sync.WaitGroup
 }
 
-func NewDispatcher(db *pgxpool.Pool) *Dispatcher {
+func NewDispatcher(db *pgxpool.Pool, maxAttempts int) *Dispatcher {
+	if maxAttempts < 1 {
+		maxAttempts = 5
+	}
 	d := &Dispatcher{
 		db: db,
 		client: &http.Client{
 			Timeout: 8 * time.Second,
 		},
-		maxAttempts: maxAttemptsFromEnv(),
+		maxAttempts: maxAttempts,
 		retryBase:   2 * time.Second,
 		stopCh:      make(chan struct{}),
 	}

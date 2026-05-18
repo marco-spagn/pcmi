@@ -3,8 +3,9 @@
 # but runs outside nektos/act (act's Docker network layout often breaks localhost bridges
 # between the runner container and service containers).
 #
-# Prerequisites: Docker daemon, Go toolchain, same tools as CI (curl, jq, python3, psql
-# optional if you only use compose-init migrations).
+# Prerequisites: Docker daemon, Go toolchain, curl, jq, python3, and **psql** on
+# the host (the smoke script runs several direct psql checks against localhost).
+#   brew install libpq && brew link --force libpq   # macOS
 #
 # Usage:
 #   bash scripts/act_integration_smoke_host.sh
@@ -16,8 +17,10 @@
 #   ACT_SMOKE_FRESH_DB — if 1 (default), runs `docker compose down -v` first (destructive).
 #   DOCKER_COMPOSE — override for the compose binary (default: "docker compose").
 #   PCMI_EXPECT_VERSION / EXPECT_API_VERSION — same as CI (default v1.33.0).
-#   Uses `docker compose up --wait` when available so Postgres initdb + migrations
-#   are finished before probing; falls back to a 180s poll.
+#   Do not use `docker compose up --wait` for first-time Postgres: Compose marks the
+#   service healthy while initdb's bootstrap instance still runs migrations; the
+#   published :5432 port is only reliable after the final restart. We wait using
+#   `docker compose exec … psql` (no host psql required for this step).
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,27 +40,22 @@ if [ "$FRESH" = "1" ]; then
 fi
 
 echo "[act-integration-smoke] starting postgres + redis"
-# First boot runs every migration under docker-entrypoint-initdb.d; that often
-# exceeds a naive 60s localhost poll. Prefer Compose's health-aware wait (v2.20+).
-if $DOCKER_COMPOSE up -d --help 2>&1 | grep -q -- '--wait'; then
-  $DOCKER_COMPOSE up -d --wait postgres redis
-else
-  $DOCKER_COMPOSE up -d postgres redis
-fi
+# Never use `up --wait` here: the Postgres image healthcheck can pass during the
+# temporary server used for docker-entrypoint-initdb.d, before the final server
+# binds the published port — host/API probes then race and fail.
+$DOCKER_COMPOSE up -d postgres redis
 
-wait_postgres() {
-  local max="${1:-180}"
+# Wait for Postgres inside the container. Do not use host `psql` here (often missing on macOS).
+# When we just wiped the volume (FRESH=1), wait for docker-entrypoint initdb to finish
+# — the official image logs "PostgreSQL init process complete" right before the final
+# restart. Otherwise (warm volume) poll until psql succeeds.
+wait_until_log() {
+  local needle="$1"
+  local max="${2:-360}"
   local i=0
-  # From the host: works once the port is published and initdb has finished.
   while [ "$i" -lt "$max" ]; do
-    if PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1; then
+    if $DOCKER_COMPOSE logs postgres 2>&1 | grep -Fq "$needle"; then
       return 0
-    fi
-    # Inside the container: sees restarts during init; cheap no-op when not ready.
-    if $DOCKER_COMPOSE exec -T postgres pg_isready -U pcmi -d pcmi >/dev/null 2>&1; then
-      if PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1; then
-        return 0
-      fi
     fi
     sleep 1
     i=$((i + 1))
@@ -65,12 +63,57 @@ wait_postgres() {
   return 1
 }
 
-echo "[act-integration-smoke] waiting for Postgres on ${PGHOST}:5432 (up to ~180s after first init)…"
-if ! wait_postgres 180; then
+compose_psql_ok() {
+  $DOCKER_COMPOSE exec -T postgres psql -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1
+}
+
+wait_postgres_ready() {
+  local max="${1:-360}"
+  local i=0
+
+  if [ "${FRESH:-0}" = "1" ]; then
+    echo "[act-integration-smoke] waiting for docker-entrypoint initdb to finish (log marker)…"
+    if ! wait_until_log "PostgreSQL init process complete" "$max"; then
+      return 1
+    fi
+    sleep 2
+  fi
+
+  echo "[act-integration-smoke] waiting for live Postgres inside container…"
+  while [ "$i" -lt "$max" ]; do
+    if compose_psql_ok; then
+      return 0
+    fi
+    sleep 1
+    i=$((i + 1))
+  done
+  return 1
+}
+
+echo "[act-integration-smoke] waiting for Postgres (up to ~360s)…"
+if ! wait_postgres_ready 360; then
   echo "Postgres did not become reachable — docker compose logs postgres: "
-  $DOCKER_COMPOSE logs --tail=80 postgres || true
+  $DOCKER_COMPOSE logs --tail=120 postgres || true
   exit 1
 fi
+
+if ! command -v psql >/dev/null 2>&1; then
+  echo "ERROR: psql is required on the host for scripts/ci_integration_smoke.sh (e.g. macOS: brew install libpq && brew link --force libpq)"
+  exit 1
+fi
+
+echo "[act-integration-smoke] confirming ${PGHOST}:5432 from host …"
+for i in $(seq 1 60); do
+  if PGPASSWORD=pcmi psql -h "$PGHOST" -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1; then
+    break
+  fi
+  if [ "$i" -eq 60 ]; then
+    echo "Postgres is stable inside Docker but ${PGHOST}:5432 is not reachable from the host (check Docker Desktop port publishing)."
+    $DOCKER_COMPOSE logs --tail=40 postgres || true
+    exit 1
+  fi
+  sleep 1
+done
 
 # Schema: docker-compose applies migrations/*.sql via docker-entrypoint-initdb.d on
 # first boot (same files as CI). Do not re-apply here — duplicate DDL would fail.

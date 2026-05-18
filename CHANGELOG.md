@@ -25,12 +25,24 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
     constants (these are part of the webhook + gRPC stream contract) and
     round-trips a `UniversalEvent` through `encoding/json`, including the
     `omitempty` behaviour for `agent_id` / `correlation_id`.
-- Coverage artifact uploaded by CI (`coverage.out` + `coverage-summary.txt`)
-  for 14 days.
+- Coverage artifact uploaded by CI (`coverage.out` + `coverage-summary.txt` +
+  `coverage-summary.md` + `coverage-badge.txt`) for 14 days.
+- Coverage report rendered **inside every PR**:
+  - written to `$GITHUB_STEP_SUMMARY` so reviewers see the per-package table
+    when they click into the `go` check;
+  - posted as a **sticky comment** on the PR via
+    `marocchino/sticky-pull-request-comment@v2` (header `pcmi-coverage`,
+    updated in-place on every push);
+  - shields.io badge URL emitted in `coverage-badge.txt` and surfaced in the
+    job summary, ready to be wired into the README on each release.
+- README badges row (CI / Coverage / Go version / License / API version) at
+  the top of `README.md`, plus an explanatory blurb that points reviewers at
+  the gate definition in CI.
 
 ### Changed — Quality & CI (PR #1)
-- `.github/workflows/ci.yml`: the `go` job now runs the coverage gate after
-  printing the per-function summary. Initial thresholds:
+- `.github/workflows/ci.yml`: the workflow now grants `pull-requests: write`
+  (needed for the sticky PR comment) and the `go` job runs the coverage gate
+  after the per-function summary. Initial thresholds:
   - Global ≥ **22 %**
   - `config` ≥ 70 %, `event` ≥ 70 %, `eventschema` ≥ 85 %, `metrics` ≥ 70 %,
     `version` ≥ 80 %

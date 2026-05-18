@@ -33,6 +33,9 @@ on:
 
 permissions:
   contents: read
+  # Required for the `go` job to post the coverage report as a sticky
+  # comment on pull requests via marocchino/sticky-pull-request-comment.
+  pull-requests: write
 
 jobs:
   golangci-lint:
@@ -186,14 +189,41 @@ jobs:
       # and can be overridden here without modifying the script. Whenever new
       # tests land that lift a package's coverage, bump the floor in the same PR
       # so regressions become a CI failure rather than silent drift.
+      #
+      # The script also writes:
+      #   coverage-summary.md   →  attached to $GITHUB_STEP_SUMMARY + PR comment
+      #   coverage-badge.txt    →  shields.io URL for the README badge
       - name: Enforce coverage thresholds
         env:
           COVERAGE_MIN_TOTAL: "22"
           COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70,version:80"
           COVERAGE_SUMMARY_OUT: coverage-summary.txt
+          COVERAGE_MD_OUT: coverage-summary.md
+          COVERAGE_BADGE_OUT: coverage-badge.txt
         run: |
           chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
+
+      # Render the coverage table into the GitHub Actions "Summary" panel of
+      # this job. This is what reviewers see when they click into the failing /
+      # passing check on the PR — no external service needed.
+      - name: Publish coverage to job summary
+        if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
+        run: |
+          {
+            cat coverage-summary.md
+            echo ""
+            echo "**Badge URL:** \`$(cat coverage-badge.txt 2>/dev/null || echo n/a)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Sticky PR comment with the same table — kept up-to-date on every push
+      # to the PR head. Skipped on pushes to main / release branches.
+      - name: Comment coverage on PR
+        if: ${{ github.event_name == 'pull_request' && hashFiles('coverage-summary.md') != '' }}
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: pcmi-coverage
+          path: coverage-summary.md
 
       - name: Upload coverage artifacts
         if: ${{ always() }}
@@ -203,6 +233,8 @@ jobs:
           path: |
             coverage.out
             coverage-summary.txt
+            coverage-summary.md
+            coverage-badge.txt
           if-no-files-found: warn
           retention-days: 14
 

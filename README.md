@@ -1,5 +1,18 @@
 # PCMI – Persistent Cognitive Memory Infrastructure
 
+[![CI](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-23.6%25-orange.svg)](.github/workflows/ci.yml)
+[![Go Version](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](go.mod)
+[![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
+[![API](https://img.shields.io/badge/api-v1.33.0-success.svg)](internal/version/version.go)
+
+> **Coverage badge.** The percentage above is regenerated on every CI run from
+> `coverage.out` and reflects the **global statement coverage** of the packages
+> listed in `Makefile:COVERAGE_PKGS`. CI fails when global drops below the
+> threshold configured in `.github/workflows/ci.yml`
+> (`COVERAGE_MIN_TOTAL`). The full per-package table is attached to every PR
+> as a sticky comment and to each `go` job's Summary panel.
+
 La memoria vive **fuori** dagli agenti. Gli agenti sono effimeri; questo strato è persistente, indipendente dal runtime e raggiungibile via **HTTP** e **gRPC**.
 
 ```mermaid

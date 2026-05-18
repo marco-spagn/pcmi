@@ -1,7 +1,7 @@
 .PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke up down
+        infra-wait infra-smoke up down verify-branch verify-branch-full
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -104,6 +104,15 @@ infra-smoke:
 # Shortcuts
 up: infra-up
 down: infra-down
+
+# Verify feat/configuration-env-cleanup (config centralization, gRPC port, CI gate logic).
+verify-branch:
+	@chmod +x scripts/verify_configuration_env_cleanup.sh
+	@./scripts/verify_configuration_env_cleanup.sh
+
+verify-branch-full:
+	@chmod +x scripts/verify_configuration_env_cleanup.sh
+	@./scripts/verify_configuration_env_cleanup.sh --full
 
 # Unit tests (default; integration tests use build tag "integration").
 test:

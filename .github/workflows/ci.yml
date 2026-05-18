@@ -85,27 +85,38 @@ jobs:
       - name: Build pcmi-worker image
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
+      # Trivy scan via the upstream Docker image instead of aquasecurity/trivy-action.
+      # The action's older pins (e.g. 0.28.0) have been removed from the registry,
+      # breaking CI with: "Unable to resolve action aquasecurity/trivy-action@0.28.0".
+      # Running aquasec/trivy:latest directly is the same scan with stable
+      # semantics — identical flags to what `make act-trivy` does locally.
+      # Fails the job on HIGH/CRITICAL vulnerabilities only; MEDIUM/LOW are
+      # reported but do not block the build (--ignore-unfixed).
       - name: Trivy scan pcmi-api
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: pcmi-api:ci
-          format: table
-          # Fail the job on HIGH/CRITICAL vulnerabilities only.
-          # MEDIUM and LOW are reported but do not block the build.
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --pkg-types os,library \
+            --scanners vuln \
+            --format table \
+            pcmi-api:ci
 
       - name: Trivy scan pcmi-worker
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: pcmi-worker:ci
-          format: table
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --pkg-types os,library \
+            --scanners vuln \
+            --format table \
+            pcmi-worker:ci
 
   go:
     name: Go build, vet & test

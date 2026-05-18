@@ -41,6 +41,9 @@ No further configuration needed.
 | Run Trivy image scan (API + worker) | `make act-trivy` |
 | Run integration smoke (compose + **host** bins, same scripts as CI) | `make act-integration-smoke` |
 | Run a job by name | `make act-job JOB=integration-smoke` |
+| Generate coverage profile only | `make test-cover` |
+| Enforce coverage thresholds (after `test-cover`) | `make cover-check` |
+| Print per-function coverage report | `make cover-report` |
 
 Behind the scenes:
 
@@ -122,3 +125,31 @@ stack first: `docker compose down` (or run `make act-all`, which calls
 `make act-preflight` to do that automatically). To keep Compose running, use
 `SKIP_ACT_PORT_CLEANUP=1 make act-all` — then you must free `5432`/`6379`
 yourself, or avoid running jobs that need those service ports.
+
+---
+
+## Coverage gate
+
+CI now blocks merges that regress test coverage. The gate runs as the last step
+of the `go` job in `.github/workflows/ci.yml`:
+
+```yaml
+- name: Enforce coverage thresholds
+  env:
+    COVERAGE_MIN_TOTAL: "22"
+    COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70,version:80"
+  run: scripts/ci_coverage_check.sh
+```
+
+Run the same check locally before pushing:
+
+```bash
+make test-cover     # writes coverage.out (race + atomic mode)
+make cover-check    # exits non-zero if any floor is missed
+make cover-report   # human-friendly per-function summary
+```
+
+`scripts/ci_coverage_check.sh` parses `coverage.out` itself — no `go tool cover`
+dependency — and supports the same `COVERAGE_MIN_TOTAL` / `COVERAGE_PKG_FLOORS`
+overrides as CI. When a PR lifts a package's coverage materially, **bump the
+floor in the same PR** so future regressions are caught.

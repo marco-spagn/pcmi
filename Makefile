@@ -1,4 +1,4 @@
-.PHONY: test test-race lint test-integration sdk-smoke distillation-e2e install-lint \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -6,25 +6,54 @@ GRPC_HOST ?= localhost:50051
 GRPC_TEST_API_KEY ?= testkey123
 DATABASE_URL ?= postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
 
+# Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
+# scripts/ci_coverage_check.sh. Tighten as new tests land.
+COVERAGE_MIN_TOTAL  ?= 22
+COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70,version:80
+
+# Set of packages that the coverage gate considers. Integration-heavy packages
+# (cmd/* binaries, telemetry) are intentionally excluded because they cannot run
+# without a database/Redis/OpenAI key — they have their own e2e jobs.
+COVERAGE_PKGS = \
+	./internal/config/... \
+	./internal/deploy/... \
+	./internal/event/... \
+	./internal/eventschema/... \
+	./internal/handler/... \
+	./internal/metrics/... \
+	./internal/middleware/... \
+	./internal/repository/... \
+	./internal/service/... \
+	./internal/version/... \
+	./internal/webhook/... \
+	./internal/worker/...
+
 # Unit tests (default; integration tests use build tag "integration").
 test:
 	go test ./...
 
 # Race detector + coverage across the packages CI also runs.
 test-race:
+	go test -race -count=1 $(COVERAGE_PKGS)
+
+# Race + coverage profile (writes coverage.out). Used by the coverage gate.
+test-cover:
 	go test -race -count=1 \
-	  ./internal/config/... \
-	  ./internal/deploy/... \
-	  ./internal/event/... \
-	  ./internal/eventschema/... \
-	  ./internal/handler/... \
-	  ./internal/metrics/... \
-	  ./internal/middleware/... \
-	  ./internal/repository/... \
-	  ./internal/service/... \
-	  ./internal/version/... \
-	  ./internal/webhook/... \
-	  ./internal/worker/...
+	  -coverprofile=coverage.out \
+	  -covermode=atomic \
+	  $(COVERAGE_PKGS)
+
+# Run the coverage threshold script against the existing coverage.out.
+# Override thresholds via env: COVERAGE_MIN_TOTAL=30 make cover-check
+cover-check:
+	COVERAGE_MIN_TOTAL=$(COVERAGE_MIN_TOTAL) \
+	COVERAGE_PKG_FLOORS=$(COVERAGE_PKG_FLOORS) \
+	  bash scripts/ci_coverage_check.sh
+
+# Render a human-readable per-function report on top of coverage.out.
+cover-report:
+	@test -f coverage.out || (echo "coverage.out missing — run 'make test-cover' first" && exit 1)
+	go tool cover -func=coverage.out | tail -n 30
 
 # Requires golangci-lint v2 (see install-lint). Config: .golangci.yml with version: "2".
 lint: install-lint

@@ -1,17 +1,24 @@
 package handler
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
+type lineageQuerier interface {
+	MemoryLineage(ctx context.Context, tenantID, path string) (*model.MemoryLineageResponse, error)
+	DistilledLineage(ctx context.Context, tenantID string, distilledID int64) (*model.DistilledLineageResponse, error)
+}
+
 type LineageHandler struct {
-	repo *repository.LineageRepository
+	repo lineageQuerier
 }
 
 func NewLineageHandler(dbWrite, readReplica *pgxpool.Pool) *LineageHandler {

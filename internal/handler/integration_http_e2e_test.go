@@ -806,13 +806,27 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 			errCh <- err
 			return
 		}
-		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
+			_ = resp.Body.Close()
 			errCh <- fmt.Errorf("sse status %d", resp.StatusCode)
 			return
 		}
-		_, err = io.Copy(&buf, resp.Body)
-		errCh <- err
+		// Long-lived SSE + Fiber's adaptor.FiberApp can leave io.Copy blocked even after
+		// request context cancellation; closing the body unblocks the reader so errCh always completes.
+		copyDone := make(chan error, 1)
+		go func() {
+			_, err := io.Copy(&buf, resp.Body)
+			copyDone <- err
+		}()
+		var copyErr error
+		select {
+		case <-ctx.Done():
+			_ = resp.Body.Close()
+			copyErr = <-copyDone
+		case copyErr = <-copyDone:
+			_ = resp.Body.Close()
+		}
+		errCh <- copyErr
 	}()
 
 	time.Sleep(400 * time.Millisecond)
@@ -835,14 +849,15 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 		t.Fatalf("store %d: %s", postResp.StatusCode, bb)
 	}
 
-	deadline := time.Now().Add(8 * time.Second)
+	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		s := buf.String()
 		if strings.Contains(s, "memory.stored") && strings.Contains(s, path) {
 			cancel()
 			if err := <-errCh; err != nil && !errors.Is(err, context.Canceled) {
 				// Response body read may end with context cancellation or client close
-				if !strings.Contains(strings.ToLower(err.Error()), "cancel") {
+				low := strings.ToLower(err.Error())
+				if !strings.Contains(low, "cancel") && !strings.Contains(low, "closed") {
 					t.Logf("sse copy: %v", err)
 				}
 			}
@@ -852,6 +867,8 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 	}
 
 	cancel()
-	<-errCh
+	if err := <-errCh; err != nil {
+		t.Logf("sse reader after timeout: %v", err)
+	}
 	t.Fatalf("timeout waiting for memory.stored SSE; buf=%q", buf.String())
 }

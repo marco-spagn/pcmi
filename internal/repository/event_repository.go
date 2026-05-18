@@ -7,14 +7,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 )
 
-type EventRepository struct {
-	db *pgxpool.Pool
+// eventDB is implemented by *pgxpool.Pool and pgxmock pools.
+type eventDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
-func NewEventRepository(db *pgxpool.Pool) *EventRepository {
+type EventRepository struct {
+	db eventDB
+}
+
+func NewEventRepository(db eventDB) *EventRepository {
 	return &EventRepository{db: db}
 }
 

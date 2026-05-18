@@ -9,13 +9,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"go.opentelemetry.io/otel"
 )
 
 func TestInitNoExporter(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
-	shutdown, err := Init(context.Background(), "pcmi-test")
+	shutdown, err := Init(context.Background(), config.Load(), "pcmi-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,7 +29,8 @@ func TestInit_prefersOTELServiceNameWithoutExporter(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
 	t.Setenv("OTEL_SERVICE_NAME", "custom-svc")
-	shutdown, err := Init(context.Background(), "ignored-when-env-set")
+	cfg := config.Load()
+	shutdown, err := Init(context.Background(), cfg, "ignored-when-env-set")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +44,7 @@ func TestInit_emptyServiceNameUsesDefault(t *testing.T) {
 	t.Setenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT", "")
 	t.Setenv("OTEL_SERVICE_NAME", "")
 	// No OTLP endpoint → noop provider; exercise default branch for service name resolution.
-	shutdown, err := Init(context.Background(), "")
+	shutdown, err := Init(context.Background(), config.Load(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +71,7 @@ func TestInit_OTLPHTTPExporterPostsTraces(t *testing.T) {
 	t.Setenv("OTEL_SERVICE_NAME", "otel-httptest")
 
 	ctx := context.Background()
-	shutdown, err := Init(ctx, "fallback-svc")
+	shutdown, err := Init(ctx, config.Load(), "fallback-svc")
 	if err != nil {
 		t.Fatal(err)
 	}

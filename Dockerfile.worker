@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PCMI Worker — minimal production image
+#
+# Builds ONLY the pcmi-worker binary. The API binary is intentionally NOT
+# included so the resulting image:
+#   - has a smaller attack surface
+#   - cannot be misused to expose API endpoints from a worker node
+#   - can be scanned independently for vulnerabilities specific to worker deps
+#
+# Build:
+#   docker build -f Dockerfile.worker -t pcmi-worker:local .
+# Run:
+#   docker run --env-file .env pcmi-worker:local
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -trimpath -ldflags="-s -w" -o /pcmi-worker ./cmd/worker
+
+# ─── runtime ─────────────────────────────────────────────────────────────────
+FROM alpine:3.21
+
+RUN apk --no-cache add ca-certificates tzdata \
+ && addgroup -S pcmi && adduser -S pcmi -G pcmi
+
+WORKDIR /home/pcmi
+COPY --from=builder /pcmi-worker /usr/local/bin/pcmi-worker
+
+USER pcmi
+
+ENTRYPOINT ["/usr/local/bin/pcmi-worker"]

@@ -29,7 +29,9 @@ services:
       retries: 5
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     container_name: pcmi-api
     depends_on:
       postgres:
@@ -50,13 +52,19 @@ services:
   worker:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.worker
+    container_name: pcmi-worker
     env_file:
       - .env
     environment:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       REDIS_ADDR: redis:6379
       EXPIRY_INTERVAL_SECS: "3"
+      # Numero max di raw memories per ogni distillation job.
+      # Override per scenario: docker compose run -e DISTILLATION_BATCH_SIZE=100 worker
+      DISTILLATION_BATCH_SIZE: "${DISTILLATION_BATCH_SIZE:-10}"
+      # Max parallel LLM distillation jobs (default 4, range 1-16).
+      DISTILLATION_CONCURRENCY: "${DISTILLATION_CONCURRENCY:-4}"
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +72,7 @@ services:
         condition: service_healthy
     ports:
       - "8081:8081"
-    command: ["./pcmi-worker"]   
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine

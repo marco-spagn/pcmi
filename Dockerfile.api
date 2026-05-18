@@ -1,0 +1,44 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PCMI API — minimal production image
+#
+# Builds ONLY the pcmi-api binary. The worker binary is intentionally NOT
+# included so the resulting image:
+#   - has a smaller attack surface (one entrypoint, one binary)
+#   - is more accurate to scan with trivy/govulncheck (no worker code paths)
+#   - cannot be misused to start a worker on an API node
+#
+# Build:
+#   docker build -f Dockerfile.api -t pcmi-api:local .
+# Run:
+#   docker run -p 8000:8000 --env-file .env pcmi-api:local
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM golang:1.25-alpine AS builder
+
+WORKDIR /app
+
+# Cache go.sum/go.mod first so subsequent code changes don't redownload deps.
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Static linking, no debug symbols, smaller binary.
+RUN CGO_ENABLED=0 GOOS=linux \
+    go build -trimpath -ldflags="-s -w" -o /pcmi-api ./cmd/api
+
+# ─── runtime ─────────────────────────────────────────────────────────────────
+FROM alpine:3.21
+
+# ca-certificates: required for outbound HTTPS to OpenAI / OTEL collectors.
+# tzdata: optional, useful for log timestamps in deployments outside UTC.
+RUN apk --no-cache add ca-certificates tzdata \
+ && addgroup -S pcmi && adduser -S pcmi -G pcmi
+
+WORKDIR /home/pcmi
+COPY --from=builder /pcmi-api /usr/local/bin/pcmi-api
+
+USER pcmi
+EXPOSE 8000 50051
+
+ENTRYPOINT ["/usr/local/bin/pcmi-api"]

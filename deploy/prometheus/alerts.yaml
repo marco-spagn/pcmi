@@ -1,0 +1,109 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PCMI — Prometheus alert rules
+#
+# Load with:
+#   docker run -v $(pwd)/deploy/prometheus/alerts.yaml:/etc/prometheus/alerts.yaml \
+#     ... prom/prometheus --config.file=/etc/prometheus/prometheus.yml
+#
+# Reference the file from prometheus.yml:
+#   rule_files:
+#     - /etc/prometheus/alerts.yaml
+#
+# All thresholds are conservative defaults — tune for your traffic profile.
+# ─────────────────────────────────────────────────────────────────────────────
+groups:
+  # ─── Distillation pipeline ─────────────────────────────────────────────────
+  - name: pcmi_distillation
+    interval: 30s
+    rules:
+      - alert: PCMIDistillationErrorsBurst
+        expr: sum(rate(pcmi_distillation_total{status="error"}[5m])) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Distillation jobs are failing"
+          description: |
+            More than 0 distillation jobs/sec have status=error for 5 minutes.
+            Check worker logs for OpenAI 429 / JSON parse errors.
+            Current rate: {{ $value | humanize }} errors/sec.
+
+      - alert: PCMIDistillationErrorsCritical
+        expr: sum(rate(pcmi_distillation_total{status="error"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: critical
+          service: pcmi-worker
+        annotations:
+          summary: "Distillation error rate is critically high"
+          description: |
+            Sustained >1 distillation error/sec for 5 minutes.
+            Pipeline is degraded — investigate immediately.
+
+      - alert: PCMIDistillationQueueBacklog
+        expr: pcmi_distillation_queued_jobs > 50
+        for: 10m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Distillation queue is backing up"
+          description: |
+            >50 distillation jobs queued for 10 minutes — DISTILLATION_CONCURRENCY
+            may be too low for current load, or OpenAI is slow.
+            Currently queued: {{ $value }}.
+
+      - alert: PCMIDistillationLatencyP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(pcmi_distillation_duration_seconds_bucket[5m]))
+          ) > 30
+        for: 10m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Distillation p95 latency > 30s"
+          description: |
+            p95 distillation job duration exceeded 30s for 10 minutes.
+            OpenAI may be throttling or the prompt has grown.
+
+  # ─── Worker liveness ───────────────────────────────────────────────────────
+  - name: pcmi_worker
+    interval: 30s
+    rules:
+      - alert: PCMIWorkerNoEvents
+        # No Redis events consumed at all for 15 minutes while the worker is up.
+        # Suggests the worker is alive but pub/sub is broken or no producers.
+        expr: sum(rate(pcmi_worker_redis_events_total[15m])) == 0
+        for: 15m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Worker consumed no Redis events for 15 minutes"
+          description: |
+            Worker process is exporting metrics but
+            sum(rate(pcmi_worker_redis_events_total[15m])) == 0.
+            Check that the API is publishing and that the worker is subscribed
+            to the memory_events channel.
+
+  # ─── API ────────────────────────────────────────────────────────────────────
+  - name: pcmi_api
+    interval: 30s
+    rules:
+      - alert: PCMIAPINoStores
+        # No memory stores for 30 minutes (during business hours this is unusual).
+        # Acts as a "is the API actually used?" liveness check.
+        expr: sum(rate(pcmi_memory_stores_total[30m])) == 0
+        for: 30m
+        labels:
+          severity: info
+          service: pcmi-api
+        annotations:
+          summary: "No memory store operations for 30 minutes"
+          description: |
+            pcmi_memory_stores_total has not increased for 30 minutes.
+            Could be normal at low-traffic hours, but worth checking.

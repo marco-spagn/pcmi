@@ -130,14 +130,22 @@ go build -o /dev/null ./... && ok "go build" || bad "go build"
 go vet ./... && ok "go vet" || bad "go vet"
 
 section "A4 — unit tests (-race)"
-PKGS="./internal/config/... ./internal/crypto/... ./internal/grpc/... \
-  ./internal/telemetry/... ./internal/webhook/... ./internal/middleware/... \
-  ./internal/service/... ./internal/worker/... ./cmd/..."
+# Run race tests against the entire internal/ tree so every package added in
+# PR #1 (handler, event, eventschema, metrics, model, embedding, repository,
+# version, deploy) is exercised. Matches the CI invocation:
+#   go test -race -count=1 ./internal/... ./cmd/...
+PKGS="./internal/... ./cmd/..."
 go test -race -count=1 $PKGS && ok "race tests" || bad "race tests"
 
 section "A5 — config / .env.example sync"
 go test -count=1 ./internal/config/... -run TestEnvExampleStaysInSyncWithConfig \
 	&& ok "env.example ↔ config.go" || bad "env drift"
+
+section "A5b — os.Getenv invariant (cmd/, internal/ outside config)"
+# Backstops the A1 grep above with a Go-level regression test that lives in
+# the repo and runs in CI. Locks in PR #2's single-source-of-truth contract.
+go test -count=1 ./internal/config/... -run TestNoOSGetenvOutsideConfig \
+	&& ok "no rogue os.Getenv in production code" || bad "rogue os.Getenv detected"
 
 section "A6 — gRPC ResolveGRPCPort"
 go test -count=1 ./internal/grpc/... -run 'TestPortResolutionFromConfig|TestEphemeralListenerWorks' \

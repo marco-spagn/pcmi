@@ -215,6 +215,14 @@ jobs:
             psql -h 127.0.0.1 -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
           done
 
+      # Fast structural invariant — runs before the heavy integration suite so
+      # a rogue os.Getenv lands as a 5-second failure, not a 5-minute one.
+      # Test source: internal/config/getenv_audit_test.go (PR #2).
+      - name: Audit — no os.Getenv outside internal/config
+        run: |
+          go test -count=1 ./internal/config/... \
+            -run 'TestNoOSGetenvOutsideConfig|TestEnvExampleStaysInSyncWithConfig'
+
       - name: Test (with race detector + coverage)
         env:
           DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable

@@ -1,10 +1,14 @@
 .PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
-        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
+        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
+        env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
+        infra-wait infra-smoke up down
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
 GRPC_TEST_API_KEY ?= testkey123
 DATABASE_URL ?= postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
+DOCKER_COMPOSE ?= docker compose
+API_URL ?= http://localhost:8000
 
 # Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
 # scripts/ci_coverage_check.sh. Tighten as new tests land.
@@ -35,6 +39,71 @@ COVERAGE_PKGS = \
 	./internal/version/... \
 	./internal/webhook/... \
 	./internal/worker/...
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Local infrastructure (Docker Compose)
+#
+# Quick start (API on :8000, gRPC on :50051, worker health on :8081):
+#   make infra-up      # postgres + redis + api + worker (build if needed)
+#   make infra-smoke   # curl /v1/ready and /health
+#   make infra-down    # stop containers
+#
+# Only DB + Redis (run API/worker with `go run` on the host):
+#   make infra-deps-up
+#   export DATABASE_URL REDIS_ADDR  # see .env.example
+#   go run ./cmd/api
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Create .env from .env.example when missing.
+env:
+	@test -f .env || (cp .env.example .env && echo "[infra] created .env from .env.example — set OPENAI_API_KEY if you need LLM features")
+
+# Postgres + Redis only.
+infra-deps-up: env
+	@echo "[infra] starting postgres + redis…"
+	$(DOCKER_COMPOSE) up -d postgres redis
+	@bash scripts/infra_wait.sh
+
+# Full stack: postgres, redis, API (:8000, :50051), worker (:8081).
+infra-up: env
+	@echo "[infra] starting postgres, redis, api, worker (build if needed)…"
+	$(DOCKER_COMPOSE) up -d --build --remove-orphans postgres redis api worker
+	@bash scripts/infra_wait.sh $(API_URL)/v1/ready
+
+infra-down:
+	@echo "[infra] stopping compose stack…"
+	$(DOCKER_COMPOSE) down --remove-orphans
+	@docker rm -f pcmi-api pcmi-worker 2>/dev/null || true
+
+# Stop stack and delete Postgres volume (destructive — fresh DB on next up).
+infra-down-v:
+	@echo "[infra] stopping compose and removing volumes…"
+	$(DOCKER_COMPOSE) down -v --remove-orphans
+
+infra-restart: infra-down infra-up
+
+infra-ps:
+	$(DOCKER_COMPOSE) ps
+
+infra-logs:
+	$(DOCKER_COMPOSE) logs -f --tail=100
+
+infra-wait-db:
+	@bash scripts/infra_wait.sh
+
+infra-wait:
+	@bash scripts/infra_wait.sh $(API_URL)/v1/ready
+
+# Manual smoke checks (requires API listening on :8000).
+infra-smoke:
+	@echo "=== GET $(API_URL)/v1/ready ==="
+	@curl -sS "$(API_URL)/v1/ready" | jq .
+	@echo "=== GET $(API_URL)/health ==="
+	@curl -sS "$(API_URL)/health" | jq .
+
+# Shortcuts
+up: infra-up
+down: infra-down
 
 # Unit tests (default; integration tests use build tag "integration").
 test:
@@ -84,6 +153,10 @@ sdk-smoke:
 # Full distillation pipeline e2e (Docker + OpenAI). Local only; artifacts in .pcmi_test_out/.
 distillation-e2e:
 	bash scripts/run_pcmi_distillation_test.sh
+
+# GitHub Actions: add CI_start to the commit message to run the remote pipeline
+# (e.g. git commit -m "fix: foo CI_start"). Without it, only the ci-gate job runs.
+# Manual run: gh workflow run CI
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Local GitHub Actions runner (act) — replaces GitHub-hosted runs.

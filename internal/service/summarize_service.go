@@ -3,21 +3,32 @@ package service
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/sashabaranov/go-openai"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
 type SummarizeService struct {
-	repo repository.MemoryRepo
+	repo          repository.MemoryRepo
+	openAIKey     string
+	openAIBaseURL string
+	model         string
 }
 
-func NewSummarizeService(repo repository.MemoryRepo) *SummarizeService {
-	return &SummarizeService{repo: repo}
+func NewSummarizeService(repo repository.MemoryRepo, cfg *config.Config) *SummarizeService {
+	s := &SummarizeService{repo: repo, model: "gpt-4o-mini"}
+	if cfg != nil {
+		s.openAIKey = cfg.OpenAIAPIKey
+		s.openAIBaseURL = cfg.OpenAIBaseURL
+		if strings.TrimSpace(cfg.DistillationModel) != "" {
+			s.model = strings.TrimSpace(cfg.DistillationModel)
+		}
+	}
+	return s
 }
 
 type SummarizeRequest struct {
@@ -27,11 +38,11 @@ type SummarizeRequest struct {
 }
 
 type SummarizeResponse struct {
-	PathPrefix string `json:"path_prefix"`
-	Summary    string `json:"summary"`
+	PathPrefix string  `json:"path_prefix"`
+	Summary    string  `json:"summary"`
 	SourceIDs  []int64 `json:"source_ids"`
-	Method     string `json:"method"`
-	Total      int    `json:"total"`
+	Method     string  `json:"method"`
+	Total      int     `json:"total"`
 }
 
 func (s *SummarizeService) Summarize(ctx context.Context, req *SummarizeRequest, tenantID string) (*SummarizeResponse, error) {
@@ -75,8 +86,8 @@ func (s *SummarizeService) Summarize(ctx context.Context, req *SummarizeRequest,
 		}
 	}
 
-	if key := os.Getenv("OPENAI_API_KEY"); key != "" {
-		summary, err := llmSummarize(ctx, key, parts, req.Style)
+	if s.openAIKey != "" {
+		summary, err := s.llmSummarize(ctx, parts, req.Style)
 		if err == nil && summary != "" {
 			return &SummarizeResponse{
 				PathPrefix: prefix,
@@ -109,13 +120,13 @@ func extractiveSummary(parts []string, style string) string {
 	return combined[:maxLen] + "…"
 }
 
-func llmSummarize(ctx context.Context, apiKey string, parts []string, style string) (string, error) {
-	cfg := openai.DefaultConfig(apiKey)
-	if base := strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")); base != "" {
+func (s *SummarizeService) llmSummarize(ctx context.Context, parts []string, style string) (string, error) {
+	cfg := openai.DefaultConfig(s.openAIKey)
+	if base := strings.TrimSpace(s.openAIBaseURL); base != "" {
 		cfg.BaseURL = base
 	}
 	client := openai.NewClientWithConfig(cfg)
-	modelName := os.Getenv("DISTILLATION_MODEL")
+	modelName := s.model
 	if modelName == "" {
 		modelName = "gpt-4o-mini"
 	}

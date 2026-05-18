@@ -6,10 +6,10 @@ import (
 	"encoding/hex"
 	"log"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/config"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -256,16 +256,22 @@ func (s *memoryServer) setTenant(ctx context.Context, tenantID string) error {
 	return err
 }
 
-// Start launches the gRPC server on GRPC_PORT (default 50051).
-func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService) {
+// ResolveGRPCPort returns the TCP port for the gRPC server from cfg (default 50051).
+func ResolveGRPCPort(cfg *config.Config) string {
+	port := "50051"
+	if cfg != nil && strings.TrimSpace(cfg.GRPCPort) != "" {
+		port = strings.TrimSpace(cfg.GRPCPort)
+	}
+	return port
+}
+
+// Start launches the gRPC server on cfg.GRPCPort (default 50051).
+func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *config.Config) {
 	if dbRead == nil {
 		dbRead = dbWrite
 	}
 	memRepo := repository.NewMemoryRepository(dbWrite, dbRead)
-	port := os.Getenv("GRPC_PORT")
-	if port == "" {
-		port = "50051"
-	}
+	port := ResolveGRPCPort(cfg)
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Printf("gRPC listen failed: %v", err)
@@ -281,7 +287,7 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService) {
 		statsRepo:   repository.NewStatsRepository(dbWrite, dbRead),
 		lineageRepo: repository.NewLineageRepository(dbWrite, dbRead),
 		auditRepo:   repository.NewAuditRepository(dbWrite),
-		summarize:   service.NewSummarizeService(memRepo),
+		summarize:   service.NewSummarizeService(memRepo, cfg),
 		memRepo:     memRepo,
 	})
 	go func() {

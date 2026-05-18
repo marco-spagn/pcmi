@@ -76,7 +76,7 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 		statsRepo:   repository.NewStatsRepository(pool, read),
 		lineageRepo: repository.NewLineageRepository(pool, read),
 		auditRepo:   repository.NewAuditRepository(pool),
-		summarize:   service.NewSummarizeService(memRepo),
+		summarize:   service.NewSummarizeService(memRepo, nil),
 		memRepo:     memRepo,
 	})
 

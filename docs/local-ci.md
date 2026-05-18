@@ -33,6 +33,7 @@ No further configuration needed.
 | Goal | Command |
 |---|---|
 | See what jobs exist | `make act-list` |
+| Free `:5432` / `:6379` before act (stops project `docker compose`) | `make act-preflight` |
 | Run **everything** (`act` + host `trivy` + host smoke, ≈ 20–30 min) | `make act-all` |
 | Run just the linter | `make act-lint` |
 | Run unit tests + race detector | `make act-test` |
@@ -113,5 +114,11 @@ container around so subsequent runs start in < 5 seconds.
 act -j go --rebuild
 ```
 
-**Trivy hits Docker Hub rate limits**
-Pass an auth token: `act -j trivy-images -s DOCKER_TOKEN=$DOCKER_TOKEN`.
+**`Bind for 0.0.0.0:5432 failed: port is already allocated`**
+`act` always starts the `integration-smoke` service containers (Postgres/Redis)
+on the host **before** any step runs, even when the job is a no-op under `ACT`.
+If you just ran `make act-integration-smoke` or `docker compose up`, stop the
+stack first: `docker compose down` (or run `make act-all`, which calls
+`make act-preflight` to do that automatically). To keep Compose running, use
+`SKIP_ACT_PORT_CLEANUP=1 make act-all` — then you must free `5432`/`6379`
+yourself, or avoid running jobs that need those service ports.

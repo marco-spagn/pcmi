@@ -1,5 +1,5 @@
 .PHONY: test test-race lint test-integration sdk-smoke distillation-e2e install-lint \
-        act-list act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
+        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -61,10 +61,24 @@ distillation-e2e:
 act-list:
 	act --list
 
+# Free host ports 5432 / 6379 before `act push`. GitHub Actions defines
+# integration-smoke service containers on those ports; nektos/act still
+# provisions them before running steps — even when ACT=true skips the real
+# work. A prior `make act-integration-smoke` (or `docker compose up`) leaves
+# pcmi-postgres/redis bound and act fails with "port is already allocated".
+# Opt out: SKIP_ACT_PORT_CLEANUP=1 make act-all
+act-preflight:
+	@if [ "$${SKIP_ACT_PORT_CLEANUP:-}" = "1" ]; then \
+	  echo "[act-preflight] SKIP_ACT_PORT_CLEANUP=1 — leaving compose as-is"; \
+	else \
+	  echo "[act-preflight] docker compose down — freeing :5432 / :6379 for act service containers"; \
+	  docker compose down --remove-orphans 2>/dev/null || true; \
+	fi
+
 # Run the full pipeline locally. Inside act: `trivy-images` is a stub + `make act-trivy`;
 # `integration-smoke` is a stub + `make act-integration-smoke` (host-side compose + bins).
 # WARNING: ~15-25 minutes; downloads ~2 GB on first run.
-act-all:
+act-all: act-preflight
 	act push
 	@echo ""
 	@echo "[act-all] running Trivy image scan on host (act cannot run aquasecurity/trivy-action)…"

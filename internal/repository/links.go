@@ -6,13 +6,21 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
+// linksReadQuerier is implemented by *pgxpool.Pool and pgxmock pools (List, Count).
+type linksReadQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type LinksRepository struct {
 	w *pgxpool.Pool
-	r *pgxpool.Pool
+	r linksReadQuerier
 }
 
 func NewLinksRepository(writePool, readPool *pgxpool.Pool) *LinksRepository {

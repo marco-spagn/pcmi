@@ -22,7 +22,13 @@ func NewStatsRepository(writePool, readPool *pgxpool.Pool) *StatsRepository {
 	if readPool == nil {
 		readPool = writePool
 	}
-	return &StatsRepository{r: readPool}
+	return NewStatsRepositoryFromRowDB(readPool)
+}
+
+// NewStatsRepositoryFromRowDB runs tenant stats queries against db (typically the read
+// pool, or a pgxmock in tests).
+func NewStatsRepositoryFromRowDB(db statsQueryRowDB) *StatsRepository {
+	return &StatsRepository{r: db}
 }
 
 func (r *StatsRepository) TenantStats(ctx context.Context, tenantID string) (*model.StatsResponse, error) {

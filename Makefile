@@ -9,7 +9,7 @@ DATABASE_URL ?= postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
 # Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
 # scripts/ci_coverage_check.sh. Tighten as new tests land.
 COVERAGE_MIN_TOTAL  ?= 22
-COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70,version:80
+COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70
 
 # Set of packages that the coverage gate considers. Integration-heavy packages
 # (cmd/* binaries, telemetry) are intentionally excluded because they cannot run

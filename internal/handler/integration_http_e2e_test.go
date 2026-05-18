@@ -783,7 +783,10 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 	defer cleanup()
 
 	srv := httptest.NewServer(adaptor.FiberApp(app))
-	defer srv.Close()
+	defer func() {
+		srv.CloseClientConnections()
+		srv.Close()
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

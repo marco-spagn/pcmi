@@ -96,14 +96,13 @@ func (h *EventsHandler) Stream(c *fiber.Ctx) error {
 	c.Set("Connection", "keep-alive")
 	c.Set("X-Accel-Buffering", "no")
 
-	streamCtx, cancel := context.WithCancel(context.Background())
-	go func() {
-		<-c.Context().Done()
-		cancel()
-	}()
+	// Tie the subscription to the request lifecycle without touching *fiber.Ctx
+	// from another goroutine (would race with Fiber releasing the context under -race).
+	streamCtx, cancel := context.WithCancel(c.UserContext())
 	events := event.SubscribeEventsContext(streamCtx)
 
 	c.Context().SetBodyStreamWriter(func(w *bufio.Writer) {
+		defer cancel()
 		ticker := time.NewTicker(20 * time.Second)
 		defer ticker.Stop()
 

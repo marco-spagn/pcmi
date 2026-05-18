@@ -1,41 +1,34 @@
-# PCMI CI: Go build/vet + integration smoke (no secrets) + optional OpenAI E2E.
-#
-# Optional repository secret (Settings → Secrets → Actions):
-#   OPENAI_API_KEY — enables the integration-e2e job (docker compose + embedding tests).
-# Without it, go + integration-smoke still run on every push/PR.
+# PCMI CI: Go build/vet + integration smoke + optional OpenAI E2E
+# Versione pulita - no doppi trigger - concurrency - coverage enforcement
 
 name: CI
 
+# ── Triggers ottimizzati (evita esecuzione doppia push + PR) ──
 on:
   push:
     branches:
       - main
-      - release/*
-      - feat/*
-      - feature/*
-      - develop/*
-      # legacy: open PRs still on pr/* until merged
-      - pr/v1.8.0
-      - pr/v1.9.0
-      - pr/v1.10.0
-      - pr/v1.11.0
+      - release/**
+      - develop
+
   pull_request:
     branches:
       - main
-      - release/*
-      - feat/*
-      - feature/*
-      - develop/*
-      - pr/v1.8.0
-      - pr/v1.9.0
-      - pr/v1.10.0
-      - pr/v1.11.0
+      - release/**
+      - develop
+      - feat/**
+      - feature/**
+
+  workflow_dispatch:
+
+# Cancella run precedenti sulla stessa PR/branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
-  # Required for the `go` job to post the coverage report as a sticky
-  # comment on pull requests via marocchino/sticky-pull-request-comment.
-  pull-requests: write
+  pull-requests: write   # per sticky coverage comment
 
 jobs:
   golangci-lint:
@@ -43,12 +36,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
-
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
@@ -59,15 +50,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
-
       - name: Install govulncheck
         run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
       - name: govulncheck
         run: govulncheck ./...
 
@@ -77,15 +65,9 @@ jobs:
     permissions:
       contents: read
     steps:
-      # All trivy-images steps short-circuit when running under nektos/act
-      # locally: the aquasecurity/trivy-action composite installs its binary
-      # via a cache-restore that act cannot fully emulate. Use `make act-trivy`
-      # to run the equivalent scan via the upstream trivy Docker image
-      # (identical severity/exit-code flags). The job itself reports success
-      # so dependents (`integration-smoke`) still run under act.
       - name: Skip notice (act only)
         if: ${{ env.ACT == 'true' }}
-        run: echo "::notice::trivy-images skipped under act; run 'make act-trivy' for the equivalent scan"
+        run: echo "::notice::trivy-images skipped under act; run 'make act-trivy' locally"
 
       - uses: actions/checkout@v4
         if: ${{ env.ACT != 'true' }}
@@ -102,19 +84,8 @@ jobs:
         if: ${{ env.ACT != 'true' }}
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
-      # Trivy scan via the upstream Docker image instead of the action wrapper.
-      # The wrapper's recent tags (v0.30+) require a separate setup-trivy step,
-      # and earlier pins (e.g. 0.28.0) have been removed from the registry,
-      # breaking CI with an "Unable to resolve action" error. Running
-      # `aquasec/trivy:latest` directly is the same scan with stable semantics
-      # — identical to what `make act-trivy` does locally.
-      # NOTE: the literal action repo name is intentionally not spelled out
-      # in this comment because TestCITrivyActionTagFormat in
-      # internal/deploy/deploy_test.go scans this file for that pattern and
-      # would fail on any plain-text occurrence.
       - name: Trivy scan pcmi-api
         if: ${{ env.ACT != 'true' }}
-
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -129,7 +100,6 @@ jobs:
 
       - name: Trivy scan pcmi-worker
         if: ${{ env.ACT != 'true' }}
-
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -143,11 +113,10 @@ jobs:
             pcmi-worker:ci
 
   go:
-    name: Go build, vet & test
+    name: Go build, vet & test + coverage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
@@ -164,60 +133,20 @@ jobs:
           go test -race -count=1 \
             -coverprofile=coverage.out \
             -covermode=atomic \
-            ./internal/config/... \
-            ./internal/deploy/... \
-            ./internal/event/... \
-            ./internal/eventschema/... \
-            ./internal/handler/... \
-            ./internal/metrics/... \
-            ./internal/middleware/... \
-            ./internal/repository/... \
-            ./internal/service/... \
-            ./internal/version/... \
-            ./internal/webhook/... \
-            ./internal/worker/...
+            ./internal/...
 
-      - name: Print coverage summary
-        run: |
-          echo "=== Total coverage ==="
-          go tool cover -func=coverage.out | tail -1
-          echo ""
-          echo "=== Top uncovered functions ==="
-          go tool cover -func=coverage.out | grep -v "100.0%" | sort -t$'\t' -k3 -n | tail -20 || true
-
-      # Coverage gate. Thresholds live in scripts/ci_coverage_check.sh (defaults)
-      # and can be overridden here without modifying the script. Whenever new
-      # tests land that lift a package's coverage, bump the floor in the same PR
-      # so regressions become a CI failure rather than silent drift.
-      #
-      # The script also writes:
-      #   coverage-summary.md   →  attached to $GITHUB_STEP_SUMMARY + PR comment
-      #   coverage-badge.txt    →  shields.io URL for the README badge
       - name: Enforce coverage thresholds
         env:
-          COVERAGE_MIN_TOTAL: "22"
-          COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70,version:80"
-          COVERAGE_SUMMARY_OUT: coverage-summary.txt
-          COVERAGE_MD_OUT: coverage-summary.md
-          COVERAGE_BADGE_OUT: coverage-badge.txt
+          COVERAGE_MIN_TOTAL: "75"
+          COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,repository:75,service:70,worker:65"
         run: |
           chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
 
-      # Render the coverage table into the GitHub Actions "Summary" panel of
-      # this job. This is what reviewers see when they click into the failing /
-      # passing check on the PR — no external service needed.
       - name: Publish coverage to job summary
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
-        run: |
-          {
-            cat coverage-summary.md
-            echo ""
-            echo "**Badge URL:** \`$(cat coverage-badge.txt 2>/dev/null || echo n/a)\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
 
-      # Sticky PR comment with the same table — kept up-to-date on every push
-      # to the PR head. Skipped on pushes to main / release branches.
       - name: Comment coverage on PR
         if: ${{ github.event_name == 'pull_request' && hashFiles('coverage-summary.md') != '' }}
         uses: marocchino/sticky-pull-request-comment@v2
@@ -232,10 +161,8 @@ jobs:
           name: coverage-${{ github.run_id }}
           path: |
             coverage.out
-            coverage-summary.txt
             coverage-summary.md
             coverage-badge.txt
-          if-no-files-found: warn
           retention-days: 14
 
   integration-smoke:
@@ -265,18 +192,12 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
 
-      # nektos/act runs the job container with --network host while service containers
-      # live on a bridge network. Postgres is often reachable via published ports, but
-      # background API/worker + curl probes are notoriously flaky. GitHub-hosted
-      # runners do not use this layout — the real CI job is unchanged when ACT is unset.
       - name: Skip notice (act only)
         if: ${{ env.ACT == 'true' }}
-        run: |
-          echo "::notice::integration-smoke skipped under act — service/job network differs from GitHub. Run \`make act-integration-smoke\` on the host for the same checks."
+        run: echo "::notice::integration-smoke skipped under act — run 'make act-integration-smoke' locally"
 
       - uses: actions/setup-go@v5
         if: ${{ env.ACT != 'true' }}

@@ -99,31 +99,39 @@ jobs:
         if: ${{ env.ACT != 'true' }}
         run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
 
-      # Pinned to v0.28.0 (last self-contained release; v0.30.0+ requires a
-      # separate aquasecurity/setup-trivy step which complicates local `act` runs).
+      # Trivy scan via the upstream Docker image instead of aquasecurity/trivy-action.
+      # The action's recent tags (v0.30+) require a separate aquasecurity/setup-trivy
+      # step and earlier pins (e.g. v0.28.0) have been removed from the registry,
+      # breaking CI with: "Unable to resolve action `aquasecurity/trivy-action@…`".
+      # Running `aquasec/trivy:latest` directly is the same scan with stable
+      # semantics — identical to what `make act-trivy` does locally.
       - name: Trivy scan pcmi-api
         if: ${{ env.ACT != 'true' }}
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: pcmi-api:ci
-          format: table
-          # Fail the job on HIGH/CRITICAL vulnerabilities only.
-          # MEDIUM and LOW are reported but do not block the build.
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --pkg-types os,library \
+            --scanners vuln \
+            --format table \
+            pcmi-api:ci
 
       - name: Trivy scan pcmi-worker
         if: ${{ env.ACT != 'true' }}
-        uses: aquasecurity/trivy-action@v0.28.0
-        with:
-          image-ref: pcmi-worker:ci
-          format: table
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          ignore-unfixed: true
-          vuln-type: "os,library"
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --pkg-types os,library \
+            --scanners vuln \
+            --format table \
+            pcmi-worker:ci
 
   go:
     name: Go build, vet & test

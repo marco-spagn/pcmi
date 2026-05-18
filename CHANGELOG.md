@@ -9,6 +9,63 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added — Security (PR #3)
+- **gRPC in-process TLS.** `internal/grpc/server.go` now exposes
+  `BuildServerOptions(*config.Config)`, which appends `grpc.Creds(...)` built
+  from `cfg.TLSCertFile` / `cfg.TLSKeyFile` when both are set and readable.
+  `Start(...)` uses it, so a single Config field now controls TLS on both
+  the Fiber HTTP plane and the gRPC plane — matching the
+  "gRPC senza TLS in-process" tech-debt entry.
+  Misconfigurations (only one of cert/key set, file unreadable, malformed
+  PEM) log a warning and fall back to plain TCP rather than deadlocking
+  the gRPC plane.
+- **CodeQL SAST workflow** (`.github/workflows/codeql.yml`) — matrix scan
+  over Go, Python, JavaScript/TypeScript with the `security-and-quality`
+  query pack, plus a weekly cron and PR/push triggers. Findings land in
+  `Security → Code scanning alerts`. Closes the "SAST oltre govulncheck"
+  tech-debt row.
+- New unit tests `internal/grpc/tls_test.go`:
+  - `TestBuildServerOptions_NoTLSWhenUnset` — default-path lock-in.
+  - `TestBuildServerOptions_TLSEnabled` — generates an ECDSA self-signed
+    cert+key in `t.TempDir()` and asserts the option list is length 2.
+  - `TestBuildServerOptions_PartialTLSFallsBack` — only-cert / only-key.
+  - `TestBuildServerOptions_BadCertFallsBack` — malformed PEM.
+  - `TestBuildServerOptions_ReturnTypeIsServerOption` — type-safety
+    paranoia for future grpc/v2 bumps.
+- README: new `CodeQL` badge alongside CI / Coverage / Go / License / API.
+
+### Notes — PR #3
+- No DB / API breaking changes. `PCMI_TLS_CERT` / `PCMI_TLS_KEY` were
+  already in Config and `.env.example` for the HTTP server; PR #3 simply
+  teaches the gRPC server to honour them too.
+- Self-signed certs in tests use `crypto/ecdsa` + `crypto/x509` only,
+  so no new modules join `go.sum`.
+
+### Added — Configuration & Env (PR #2)
+- `Config.OpenAIBaseURL` (env `OPENAI_BASE_URL`).
+- `internal/config/getenv_audit_test.go`: regression test that walks
+  `cmd/` and `internal/` (excluding `_test.go` and `internal/config/`)
+  and fails the build if a direct `os.Getenv` call lands in production.
+- `internal/config/config_pr2_test.go`: `.env.example` ↔ `config.go`
+  drift guard.
+- `internal/grpc/start_port_test.go`: `ResolveGRPCPort` table coverage.
+- CI: dedicated audit step runs before the integration suite so rogue
+  `os.Getenv` fails in 5 s instead of 5 min.
+- `scripts/test_all_local.sh`: A5b runs the audit; A4 widened to
+  `./internal/... ./cmd/...`.
+
+### Changed — Configuration & Env (PR #2)
+- `internal/grpc/server.go`: `Start(...)` reads `cfg.GRPCPort` via
+  `ResolveGRPCPort` — `os.Getenv("GRPC_PORT")` removed from production.
+- Default-value drift fixes in `config.Load()` so `.env.example`, Config,
+  and consuming middleware now agree:
+  - `REDIS_ADDR`: `redis:6379` → `localhost:6379`.
+  - `RATE_LIMIT_RPM`: `60` → `120` (aligned with the middleware default).
+  - `PRUNE_INTERVAL_SECS`: `3600` → `21600` (6 h).
+  - `DISTILLATION_BATCH_SIZE` Validate range: `1–1000` → `1–200` (matches
+    the runtime cap in `worker/distillation_helpers.go`).
+- `cmd/api/main.go`: passes `cfg` to `grpcserver.Start`.
+
 ### Added — Quality & CI (PR #1)
 - `scripts/ci_coverage_check.sh`: pure-bash/awk script that parses
   `coverage.out`, computes per-package + global statement coverage, and exits

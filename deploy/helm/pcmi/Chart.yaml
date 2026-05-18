@@ -1,0 +1,34 @@
+apiVersion: v2
+name: pcmi
+description: Persistent Cognitive Memory Infrastructure — Helm chart for the PCMI API + Worker.
+type: application
+
+# Chart version follows independent SemVer: bump on chart-structural changes
+# (template signatures, values.yaml keys), not on every PCMI release.
+version: 0.1.0
+
+# appVersion mirrors internal/version/version.go:Tag and is auto-checked by
+# deploy/deploy_test.go's TestHelmAppVersionMatchesGoTag.
+appVersion: v1.33.0
+
+kubeVersion: ">=1.27.0-0"
+
+home: https://github.com/marco-spagn/pcmi
+sources:
+  - https://github.com/marco-spagn/pcmi
+maintainers:
+  - name: PCMI team
+    email: pcmi-team@example.invalid
+
+keywords:
+  - memory
+  - llm
+  - agents
+  - postgres
+  - pgvector
+  - grpc
+
+annotations:
+  artifacthub.io/changes: |
+    - Initial Helm chart packaging the api + worker manifests previously
+      shipped under deploy/k8s/. Replaces the duplicate k8s/ tree.

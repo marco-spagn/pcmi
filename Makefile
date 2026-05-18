@@ -1,7 +1,8 @@
 .PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host
+        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host \
+        helm-lint helm-template helm-package
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -260,3 +261,25 @@ act-trivy:
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
 act-integration-smoke:
 	bash scripts/act_integration_smoke_host.sh
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Helm — single packaged Kubernetes deployment (PR #4).
+# Requires: helm v3.13+ on PATH. CI installs it via azure/setup-helm.
+# ───────────────────────────────────────────────────────────────────────────────
+
+HELM_CHART_DIR ?= deploy/helm/pcmi
+
+# `helm lint` exercises Chart.yaml validity, values.yaml schema (if present),
+# and template rendering against the default values. Fails on `--strict`
+# warnings (missing required keys, invalid label keys, etc.).
+helm-lint:
+	helm lint $(HELM_CHART_DIR) --strict
+
+# Render every template to stdout — useful to eyeball before committing.
+# Pipe to `| kubectl apply --dry-run=client -f -` for a server-side validation.
+helm-template:
+	helm template pcmi $(HELM_CHART_DIR)
+
+# Build a redistributable tarball (deploy/helm/pcmi-<version>.tgz).
+helm-package:
+	helm package $(HELM_CHART_DIR) --destination deploy/helm

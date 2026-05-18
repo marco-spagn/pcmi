@@ -1,0 +1,111 @@
+# PCMI — CodeQL SAST (PR #3, "Security" tech-debt row).
+#
+# Adds a second static-analysis layer on top of govulncheck (which is
+# dependency-focused). CodeQL scans the actual source for taint flows, RCE
+# patterns, SQLi, SSRF and the rest of GitHub's security-and-quality query
+# pack — across all three first-class PCMI surfaces (Go, Python, TS).
+#
+# Findings appear in the repository's "Security → Code scanning alerts" tab.
+#
+# Triggers:
+#   - push to main / release branches (full scan after merge)
+#   - pull_request to main (diff-aware scan on every PR)
+#   - weekly cron (catches drift in the query pack itself)
+#   - manual workflow_dispatch
+#
+# Paths-ignore: badge JSON + Markdown docs never affect SAST results, and
+# skipping them keeps the cron run from re-analysing identical code daily.
+
+name: CodeQL
+
+on:
+  push:
+    branches:
+      - main
+      - release/**
+    paths-ignore:
+      - 'badges/**'
+      - '**/*.md'
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+      - release/**
+    paths-ignore:
+      - 'badges/**'
+      - '**/*.md'
+      - 'docs/**'
+  schedule:
+    # Monday 04:23 UTC — off-peak relative to typical EU/US-east release flows
+    # so the weekly run doesn't compete with on-demand CI for runner capacity.
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  # Required by github/codeql-action/* to upload SARIF results to the
+  # Security tab. `actions: read` is needed because the action introspects
+  # the workflow run from inside the job.
+  actions: read
+  contents: read
+  security-events: write
+
+# Match the rest of the org's cancel-in-progress policy so PR rebases don't
+# pile up redundant CodeQL runs.
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # `javascript-typescript` analyses both .js and .ts in a single
+        # extractor pass — needed because sdk/typescript ships both .ts
+        # sources and compiled .js helpers.
+        language:
+          - go
+          - python
+          - javascript-typescript
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # security-and-quality = "security" pack + the additional code-quality
+          # queries. Strictly broader than the default "security-extended".
+          queries: security-and-quality
+
+      # autobuild handles Go module compile + Python/TS source extraction.
+      # When PCMI grows enough that autobuild fails (typically because of
+      # cgo or generated code), swap this for an explicit build step.
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+          # Upload the SARIF result even when the run fails — partial findings
+          # are better than nothing for debugging.
+          upload: always

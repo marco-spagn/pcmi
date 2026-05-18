@@ -1,6 +1,7 @@
 # PCMI – Persistent Cognitive Memory Infrastructure
 
 [![CI](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
 [![Go Version](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)

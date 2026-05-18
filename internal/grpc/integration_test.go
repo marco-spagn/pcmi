@@ -19,8 +19,13 @@ import (
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 )
 
-// Integration tests dial a running API with gRPC (see scripts/grpc_health_smoke.go).
-// Run: GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 go test -tags=integration ./internal/grpc/...
+// Integration tests against a real MemoryService:
+//
+//   - Live server: set GRPC_HOST (optional, default localhost:50051) and GRPC_TEST_API_KEY.
+//   - In-process (no listening port): package grpcserver — integration_bufconn_test.go uses DATABASE_URL + miniredis only.
+//
+// Run (live):   GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 go test -tags=integration ./internal/grpc/...
+// Run (all):    DATABASE_URL=... go test -tags=integration ./internal/grpc/...
 func TestGRPCStoreRetrieveTagsIntegration(t *testing.T) {
 	host := os.Getenv("GRPC_HOST")
 	if host == "" {

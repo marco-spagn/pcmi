@@ -209,7 +209,7 @@ jobs:
       - name: Resolve PR for coverage comment
         id: cov_pr
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             let n = '';

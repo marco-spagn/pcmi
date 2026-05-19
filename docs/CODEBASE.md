@@ -124,7 +124,7 @@ Client HTTP thin; vedere `sdk/README.md`, mapping API solo-HTTP in `sdk/HTTP-API
 
 ## `scripts/`
 
-Smoke/E2E per CI: un unico `scripts/ci_integration_smoke.sh` (job **integration-smoke**), più `test_pcmi.sh` / `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI (E2E compose). Locale: `scripts/local_smoke_orchestration.sh`.
+Smoke/E2E per CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**), `scripts/e2e/test_pcmi.sh` + `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI. Distillation: `scripts/pcmi_synth/`, `scripts/distill_e2e.sh`, `scripts/run_pcmi_distillation_test.sh`. Legacy manual scripts: `scripts/e2e/legacy/`.
 
 ## `examples/`
 

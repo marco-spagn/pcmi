@@ -60,18 +60,41 @@ rebuild when:
 
 ## 2. Quick start
 
-```bash
-# 1) Build images (first time only)
-make distill-build
+### Generate synthetic data only (no Docker)
 
-# 2) Smoke test (~1 min): 100 incidents → 10 distilled
+```bash
+# List presets: soc, finance, advertising, healthcare, custom
+make synth-list
+
+# 1000 deterministic finance records (seed 42) → JSONL
+make synth-generate PRESET=finance SYNTH_NUM=1000 SYNTH_SEED=42
+```
+
+See [`scripts/pcmi_synth/README.md`](../scripts/pcmi_synth/README.md).
+
+### Full distillation E2E (Docker + OpenAI)
+
+```bash
+# Default: 1000 SOC records, seed 42
+make distillation-e2e
+
+# Another use case
+make distillation-e2e PRESET=finance SYNTH_NUM=500 SYNTH_SEED=1
+
+# Or the shell wrapper
+./scripts/distill_e2e.sh --preset advertising --num 200 --seed 7
+```
+
+Quick smoke (~100 records → 10 distilled):
+
+```bash
 make distill-smoke
 ```
 
-If that passes you have a working pipeline. To run the full battery:
+If that passes, run the full scenario battery:
 
 ```bash
-make distill-all
+bash scripts/distillation_tests/run_all_scenarios.sh
 ```
 
 ---
@@ -106,12 +129,15 @@ targets:
 ### Single-shot, fully configurable
 
 ```bash
-# Defaults: NUM=1000, SEED=42, DISTILL_BATCH_SIZE=10, THROTTLE_MS=0
-make distill-e2e
+# Defaults: PRESET=soc, SYNTH_NUM=1000, SYNTH_SEED=42, DISTILLATION_BATCH_SIZE=10
+make distillation-e2e
 
-# Override at will:
-NUM=2000 DISTILL_BATCH_SIZE=50 make distill-e2e
-NUM=500  DISTILL_BATCH_SIZE=100 SEED=7  make distill-e2e
+# Override preset, size, and seed:
+make distillation-e2e PRESET=finance SYNTH_NUM=500 SYNTH_SEED=1
+./scripts/distill_e2e.sh --preset soc --num 2000 --seed 42 --distill-batch-size 50
+
+# Custom domain (LLM-authored content; needs OPENAI_API_KEY for generation + distillation)
+./scripts/distill_e2e.sh --preset custom --domain "EU retail fraud alerts" --num 80 --llm
 ```
 
 ---
@@ -120,7 +146,7 @@ NUM=500  DISTILL_BATCH_SIZE=100 SEED=7  make distill-e2e
 
 ### `01_full_coverage_1000_to_100.sh` — happy path
 
-- 1000 deterministic SOC incidents are generated (seed 42).
+- 1000 deterministic records are generated (`--preset soc`, seed 42 by default; any preset works).
 - Worker is **stopped during ingest** so `memory.stored` cascade does not fire.
 - 100 path-prefix shards (`shard_000..shard_099`) are created.
 - Worker is restarted, then exactly 100 `memory.refine.requested` events are
@@ -272,8 +298,10 @@ ALL SCENARIOS — SUMMARY
 
 | Path                                                | Purpose                                                  |
 | --------------------------------------------------- | -------------------------------------------------------- |
-| `scripts/generate_soc_incidents_enterprise_v2.py`   | Synthetic SOC incident generator (deterministic, sharded) |
-| `scripts/run_pcmi_distillation_test.sh`             | End-to-end orchestrator (the brain)                      |
+| `scripts/pcmi_synth/`                               | **Unified synthetic data CLI** (presets, seed, size, optional `--llm`) |
+| `scripts/generate_soc_incidents_enterprise_v2.py`   | Legacy SOC generator (used internally by preset `soc`) |
+| `scripts/distill_e2e.sh`                            | Simple wrapper → `run_pcmi_distillation_test.sh`         |
+| `scripts/run_pcmi_distillation_test.sh`             | End-to-end orchestrator (Docker + ingest + refine + asserts) |
 | `scripts/distillation_tests/0?_*.sh`                | Per-scenario thin wrappers                               |
 | `scripts/distillation_tests/run_all_scenarios.sh`   | Run-all with cooldown + PASS/FAIL summary                |
 | `internal/worker/distillation.go`                   | LIMIT configurable via `DISTILLATION_BATCH_SIZE`         |

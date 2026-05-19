@@ -30,7 +30,10 @@ Central map of repository documentation. **API version: v1.33.0** ([`internal/ve
 | [integration-testing.md](integration-testing.md) | `-tags=integration`, SSE httptest notes |
 | [local-ci.md](local-ci.md) | `make ci-like-github`, CI jobs |
 | [distillation-tests.md](distillation-tests.md) | E2E distillation harness (`make distillation-e2e`) |
-| [../scripts/run_pcmi_distillation_test.sh](../scripts/run_pcmi_distillation_test.sh) | SOC ingest + refine + verify |
+| [../scripts/pcmi_synth/README.md](../scripts/pcmi_synth/README.md) | Synthetic data CLI (presets, seed, size, optional LLM) |
+| [../scripts/distill_e2e.sh](../scripts/distill_e2e.sh) | Simple distillation E2E wrapper |
+| [../scripts/run_pcmi_distillation_test.sh](../scripts/run_pcmi_distillation_test.sh) | Full orchestrator (Docker + ingest + refine) |
+| [../scripts/e2e/README.md](../scripts/e2e/README.md) | Manual / CI E2E shell scripts |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributor setup and PR checklist |
 
 ## Pipeline and operations

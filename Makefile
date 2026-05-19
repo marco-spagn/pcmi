@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all sdk-smoke distillation-e2e install-lint ci-like-github \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -195,9 +195,29 @@ sdk-smoke:
 	PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
 		bash scripts/ci_sdk_smoke.sh
 
+# Synthetic data presets: soc | finance | advertising | healthcare | custom
+PRESET ?= soc
+SYNTH_NUM ?= 1000
+SYNTH_SEED ?= 42
+
+# Generate JSONL only (no Docker). Example: make synth-generate PRESET=finance SYNTH_NUM=200
+synth-list:
+	PYTHONPATH=scripts python -m pcmi_synth list
+
+synth-generate:
+	PYTHONPATH=scripts python -m pcmi_synth generate \
+		--preset $(PRESET) --num $(SYNTH_NUM) --seed $(SYNTH_SEED) \
+		--dry-run --output .pcmi_test_out/$(PRESET)_seed$(SYNTH_SEED)_n$(SYNTH_NUM).jsonl
+
 # Full distillation pipeline e2e (Docker + OpenAI). Local only; artifacts in .pcmi_test_out/.
 distillation-e2e:
-	bash scripts/run_pcmi_distillation_test.sh
+	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
+		--preset $(PRESET) --num $(SYNTH_NUM) --seed $(SYNTH_SEED)
+
+# Quick smoke: 100 records → 10 distilled (preset soc by default)
+distill-smoke:
+	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
+		--preset $(PRESET) --num 100 --seed $(SYNTH_SEED) --no-build
 
 # GitHub Actions: add CI_start to the commit message to run the remote pipeline
 # (e.g. git commit -m "fix: foo CI_start"). Without it, only the ci-gate job runs.

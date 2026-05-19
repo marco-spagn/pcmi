@@ -88,7 +88,7 @@ Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultService
 
 ## `internal/grpc`
 
-Server gRPC che riusa `MemoryService`; autenticazione via metadata `x-api-key` o campo richiesta proto. RPC core + operational (refine, links, stats, events stream, webhooks, …) — vedi `docs/grpc-vs-http.md`. **Admin** e **/metrics** restano HTTP-only. Scritture rifiutano ruolo `readonly` (`PermissionDenied`). Test integrazione: `go test -tags=integration ./internal/grpc/...` con API+gRPC in esecuzione.
+Server gRPC: `MemoryService`, `AdminService`, `MetricsService` (see `internal/grpc/server.go`). Auth via metadata `x-api-key` or proto request fields. RPC core + operational (refine, links, stats, events stream, webhooks, …) — see `docs/grpc-vs-http.md`. **HTTP-only:** embedded admin UI (`GET /v1/admin/ui`). Prometheus scrape: `GET /metrics` (HTTP) or `MetricsService.Scrape` (gRPC). Writes reject `readonly` role (`PermissionDenied`). Integration tests: `go test -tags=integration ./internal/grpc/...` with API+gRPC running.
 
 ## `internal/webhook`
 

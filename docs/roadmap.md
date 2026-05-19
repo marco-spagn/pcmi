@@ -1,6 +1,15 @@
 # PCMI evolution roadmap
 
-## v1.31.0 (current)
+## v1.33.0 (current)
+
+- **gRPC Admin + Metrics**: `AdminService` (tenant/API keys) and `MetricsService` (`Scrape`, `StreamScrape`) on the gRPC plane; HTTP `GET /metrics` and admin routes remain for Prometheus and browsers.
+- **Admin UI**: embedded dashboard at `GET /v1/admin/ui`.
+- **Cursor pagination**: keyset cursors on path-only retrieve (`cursor`, `next_cursor`, `has_more`).
+- **gRPC TLS**: shared cert/key config with HTTP when `PCMI_TLS_CERT` / `PCMI_TLS_KEY` are set.
+- **CodeQL** workflow and deploy structural tests expanded.
+- API version `v1.33.0`.
+
+## v1.31.0
 
 - **Distillation E2E**: `scripts/run_pcmi_distillation_test.sh` + `generate_soc_incidents_enterprise_v2.py`; report fix (`/v1/distilled` → `entries`); batch distill **LIMIT 100**; `.gitignore` per `.venv_e2e/` e `.pcmi_test_out/`.
 - Versione API `v1.31.0`.

@@ -81,10 +81,11 @@ sequenceDiagram
 | Surface | Port | Auth | Note |
 |---------|------|------|------|
 | HTTP REST | 8000 | `X-API-Key` | OpenAPI `docs/openapi.yaml` |
-| gRPC | 50051 | `api_key` / metadata | `proto/pcmi/v1/memory.proto` |
+| gRPC | 50051 | `api_key` / metadata | `MemoryService`, `AdminService`, `MetricsService` |
 | SSE events | 8000 | API key | `GET /v1/events` |
-| Admin | 8000 | `admin` role | HTTP only |
-| Prometheus | 8000 / 8081 | none / internal | API + worker metrics |
+| Admin API | 8000 / 50051 | `admin` role | HTTP routes + gRPC `AdminService` |
+| Admin UI | 8000 | `admin` role | `GET /v1/admin/ui` (browser, HTTP only) |
+| Prometheus | 8000 | none on `/metrics` | HTTP scrape or gRPC `MetricsService.Scrape` |
 
 Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 

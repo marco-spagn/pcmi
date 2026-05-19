@@ -1,6 +1,15 @@
 # gRPC vs HTTP API surface
 
-PCMI exposes a **dual transport** for memory and operational APIs. **Admin** tenant/API-key management and **Prometheus metrics** remain **HTTP-only**.
+PCMI exposes a **dual transport** for memory, operational, admin, and metrics APIs. Choose based on client capabilities and workload shape — not feature availability alone.
+
+| Transport | Best for |
+|-----------|----------|
+| **gRPC** | Agents, batch workloads, streaming retrieve/events, admin automation without browsers |
+| **HTTP** | OpenAPI/SDK ergonomics, SSE in browsers, Prometheus scrape at `GET /metrics`, embedded **admin UI** |
+
+Protos: [`proto/pcmi/v1/`](../proto/pcmi/v1/) · REST contract: [`openapi.yaml`](openapi.yaml)
+
+---
 
 ## gRPC (`pcmi.v1.MemoryService`)
 
@@ -36,7 +45,7 @@ PCMI exposes a **dual transport** for memory and operational APIs. **Admin** ten
 | `ExportMemories` | `POST /v1/memories/export` |
 | `ImportMemories` | `POST /v1/memories/import` |
 
-### Store parity (v1.25.0)
+### Store parity (v1.25.0+)
 
 gRPC `Store` / `BatchStore` accept the same store fields as REST JSON, including:
 
@@ -46,30 +55,63 @@ gRPC `Store` / `BatchStore` accept the same store fields as REST JSON, including
 
 Responses return `id`, `status`, `version`, optional `superseded_id` (embeddings are not echoed back, same as REST).
 
-### Retrieve parity (v1.26.0)
+### Retrieve parity (v1.26.0+)
 
 `Retrieve`, `BatchRetrieve`, and `RetrieveStream` return `RetrieveEntry` fields aligned with REST `MemoryEntry`: metadata, tags, model/space labels, temporal fields, agent/event IDs, `content_encrypted`, and optional `embedding` vector when stored.
 
-### Operational parity (v1.29.0)
+Path-only retrieve (no `query`, no vector search) supports opaque **keyset cursors** (`cursor`, `next_cursor`, `has_more`) on HTTP and gRPC.
+
+### Operational parity (v1.29.0+)
 
 Unary RPCs cover refine, links, stats, events ingest, webhooks, embedding migration, rollback, summarize, history, lineage, distilled list, audit, export/import. Complex JSON shapes use `JSONResponse.json` (UTF-8 JSON object) where noted in proto.
 
 `StreamEvents` streams `StreamEventMsg` messages (`type` + `payload_json`) — equivalent to SSE `data:` frames.
 
-## HTTP-only endpoints
+---
+
+## gRPC (`pcmi.v1.AdminService`)
+
+Mirrors HTTP `/v1/admin/*` (admin API key required). Registered alongside `MemoryService` in `internal/grpc/server.go`.
+
+| RPC | REST equivalent |
+|-----|-----------------|
+| `CreateTenant` | `POST /v1/admin/tenants` |
+| `ListTenants` | `GET /v1/admin/tenants` |
+| `CreateAPIKey` | `POST /v1/admin/api-keys` |
+| `RotateAPIKey` | `POST /v1/admin/api-keys/{id}/rotate` |
+| `ListAPIKeys` | `GET /v1/admin/api-keys` |
+
+Official Python/TypeScript SDKs still call these routes over **HTTP** — see [`sdk/HTTP-API.md`](../sdk/HTTP-API.md).
+
+---
+
+## gRPC (`pcmi.v1.MetricsService`)
+
+| RPC | REST / ops equivalent |
+|-----|------------------------|
+| `Scrape` | `GET /metrics` (Prometheus text) |
+| `StreamScrape` | chunked scrape stream |
+| `GetMetric` | *Unimplemented* — use `Scrape` or HTTP Prometheus |
+
+For standard Prometheus polling, **`GET /metrics`** on the HTTP port remains the usual choice.
+
+---
+
+## HTTP-only (no gRPC equivalent)
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/v1/admin/tenants` | Create tenant (admin) |
-| GET | `/v1/admin/tenants` | List tenants |
-| GET/POST | `/v1/admin/api-keys` (+ rotate) | API key management |
-| GET | `/metrics` | Prometheus (not under `/v1`) |
+| GET | `/v1/admin/ui` | Embedded HTML admin dashboard (browser) |
 
-**SDK coverage:** Python and TypeScript clients wrap HTTP routes in `sdk/HTTP-API.md` (including admin). gRPC clients use `proto/pcmi/v1/memory.proto` and generated stubs.
+All other admin and memory operations listed above are available on **both** transports unless noted.
 
-## When to use which
+---
 
-- **gRPC**: agents, batch workloads, streaming retrieve/events, full memory + ops surface without SSE/HTTP overhead.
-- **HTTP**: admin bootstrap, Prometheus scraping, OpenAPI/SDK ergonomics, browser SSE if preferred over gRPC stream.
+## SDK coverage
 
-See also: `docs/openapi.yaml`, `proto/pcmi/v1/memory.proto`, `docs/CODEBASE.md`.
+| Client | Transports |
+|--------|------------|
+| Python / TypeScript SDK | HTTP only — full route map in [`sdk/HTTP-API.md`](../sdk/HTTP-API.md) |
+| Generated gRPC stubs | `MemoryService`, `AdminService`, `MetricsService` |
+
+See also: [`docs/openapi.yaml`](openapi.yaml), [`docs/CODEBASE.md`](CODEBASE.md).

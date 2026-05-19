@@ -84,7 +84,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: ${{ env.ACT != 'true' }}
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Build pcmi-api image
         if: ${{ env.ACT != 'true' }}
@@ -424,7 +424,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: steps.openai.outputs.enabled == 'true'
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Create .env for compose
         if: steps.openai.outputs.enabled == 'true'

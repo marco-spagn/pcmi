@@ -229,7 +229,7 @@ jobs:
 
       - name: Comment coverage on PR
         if: ${{ always() && hashFiles('coverage-summary.md') != '' && steps.cov_pr.outputs.number != '' }}
-        uses: marocchino/sticky-pull-request-comment@v2
+        uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: pcmi-coverage
           number: ${{ steps.cov_pr.outputs.number }}

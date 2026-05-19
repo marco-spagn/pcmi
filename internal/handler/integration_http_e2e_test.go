@@ -466,8 +466,7 @@ func TestIntegrationHTTP_StoreWithoutOpenAIKey(t *testing.T) {
 	}
 }
 
-func TestIntegrationHTTP_RetrieveAcceptsCursorField(t *testing.T) {
-	// DTO supports cursor; repository wiring may follow — request must not 500.
+func TestIntegrationHTTP_RetrieveCursorSortKeyMismatch(t *testing.T) {
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()
 
@@ -497,9 +496,9 @@ func TestIntegrationHTTP_RetrieveAcceptsCursorField(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusBadRequest {
 		b, _ := io.ReadAll(resp.Body)
-		t.Fatalf("retrieve with cursor %d: %s", resp.StatusCode, b)
+		t.Fatalf("retrieve with wrong sort key %d: %s", resp.StatusCode, b)
 	}
 }
 

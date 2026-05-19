@@ -315,7 +315,7 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *co
 		return
 	}
 	srv := grpc.NewServer(BuildServerOptions(cfg)...)
-	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{
+	memSrv := &memoryServer{
 		svc:         memSvc,
 		db:          dbWrite,
 		readDB:      dbRead,
@@ -326,9 +326,12 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *co
 		auditRepo:   repository.NewAuditRepository(dbWrite),
 		summarize:   service.NewSummarizeService(memRepo, cfg),
 		memRepo:     memRepo,
-	})
+	}
+	pcmiv1.RegisterMemoryServiceServer(srv, memSrv)
+	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(dbWrite))
+	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(dbWrite))
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (full MemoryService RPC surface)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (MemoryService + AdminService + MetricsService)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

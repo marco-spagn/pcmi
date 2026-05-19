@@ -168,8 +168,7 @@ func TestIntegrationHTTP_MemoryRoutesAzureBaseURL(t *testing.T) {
 	}
 }
 
-func TestIntegrationHTTP_RetrieveMalformedCursorStillOK(t *testing.T) {
-	// Repository does not decode cursor yet; handler must not 500 on opaque garbage.
+func TestIntegrationHTTP_RetrieveMalformedCursorRejected(t *testing.T) {
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()
 
@@ -183,19 +182,19 @@ func TestIntegrationHTTP_RetrieveMalformedCursorStillOK(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusBadRequest {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("retrieve malformed cursor %d: %s", resp.StatusCode, b)
 	}
 }
 
-func TestIntegrationHTTP_RetrievePaginationDTOFields(t *testing.T) {
+func TestIntegrationHTTP_RetrieveCursorPagination(t *testing.T) {
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()
 
-	path := "root.http.pagedto." + time.Now().Format("150405")
-	for i := 0; i < 3; i++ {
-		storeBody := `{"path":"` + path + `","content":"row` + strconv.Itoa(i) + `","embedding_model":"unspecified"}`
+	path := "root.http.cursorpage." + time.Now().Format("150405")
+	for i := 0; i < 5; i++ {
+		storeBody := `{"path":"` + path + `.row` + strconv.Itoa(i) + `","content":"row` + strconv.Itoa(i) + `","embedding_model":"unspecified"}`
 		resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
 		if err != nil {
 			t.Fatal(err)
@@ -204,32 +203,75 @@ func TestIntegrationHTTP_RetrievePaginationDTOFields(t *testing.T) {
 		if resp.StatusCode != http.StatusOK {
 			t.Fatalf("store %d", resp.StatusCode)
 		}
+		time.Sleep(5 * time.Millisecond)
 	}
 
-	retBody, _ := json.Marshal(map[string]any{"path_prefix": path, "limit": 2})
-	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(retBody)))
+	page1Body, _ := json.Marshal(map[string]any{"path_prefix": path, "limit": 2})
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(page1Body)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(resp.Body)
-		t.Fatalf("retrieve %d: %s", resp.StatusCode, b)
+		t.Fatalf("page1 %d: %s", resp.StatusCode, b)
 	}
-	var out struct {
-		Entries    []json.RawMessage `json:"entries"`
-		Total      int               `json:"total"`
-		NextCursor string            `json:"next_cursor"`
-		HasMore    bool              `json:"has_more"`
+	var page1 struct {
+		Entries    []struct {
+			Content string `json:"content"`
+		} `json:"entries"`
+		NextCursor string `json:"next_cursor"`
+		HasMore    bool   `json:"has_more"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&page1); err != nil {
 		t.Fatal(err)
 	}
-	if out.Total < 1 || len(out.Entries) < 1 {
-		t.Fatalf("expected entries, got total=%d entries=%d", out.Total, len(out.Entries))
+	if len(page1.Entries) != 2 || !page1.HasMore || page1.NextCursor == "" {
+		t.Fatalf("page1: entries=%d has_more=%v cursor=%q", len(page1.Entries), page1.HasMore, page1.NextCursor)
 	}
-	// Until repository wires keyset pagination, continuation fields stay at zero values.
-	if out.NextCursor != "" || out.HasMore {
-		t.Logf("cursor pagination active: next_cursor=%q has_more=%v", out.NextCursor, out.HasMore)
+
+	page2Body, _ := json.Marshal(map[string]any{"path_prefix": path, "limit": 2, "cursor": page1.NextCursor})
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(page2Body)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("page2 %d: %s", resp.StatusCode, b)
+	}
+	var page2 struct {
+		Entries []struct {
+			Content string `json:"content"`
+		} `json:"entries"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&page2); err != nil {
+		t.Fatal(err)
+	}
+	if len(page2.Entries) != 2 {
+		t.Fatalf("page2 entries=%d", len(page2.Entries))
+	}
+	if page1.Entries[0].Content == page2.Entries[0].Content {
+		t.Fatalf("duplicate page boundary: %q", page1.Entries[0].Content)
+	}
+}
+
+func TestIntegrationHTTP_RetrieveCursorWithQueryRejected(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	retBody, _ := json.Marshal(map[string]any{
+		"path_prefix": "root",
+		"limit":       2,
+		"query":       "foo",
+		"cursor":      "ignored",
+	})
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(retBody)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("got %d, want 400", resp.StatusCode)
 	}
 }

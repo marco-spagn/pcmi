@@ -1,8 +1,8 @@
-# HTTP-only PCMI APIs (SDK guide)
+# HTTP API ↔ SDK method mapping
 
-Core memory **store/retrieve** is available on **gRPC** and **HTTP**. Everything in this document is **HTTP-only** — use the official SDKs or `docs/openapi.yaml`.
+Official **Python and TypeScript SDKs use HTTP only** (not gRPC). This table maps REST routes to SDK methods. The same operations are also available on gRPC — see [`../docs/grpc-vs-http.md`](../docs/grpc-vs-http.md).
 
-Transport overview: [`../docs/grpc-vs-http.md`](../docs/grpc-vs-http.md).
+OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 
 ## SDK method coverage
 

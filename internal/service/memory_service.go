@@ -86,21 +86,45 @@ func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest
 		}
 	}
 
+	pathOnly := strings.TrimSpace(req.Query) == ""
 	entries, err := s.repo.Retrieve(ctx, *req, tenantID, queryEmbedding)
 	if err != nil {
 		return nil, fmt.Errorf("retrieve failed: %w", err)
 	}
 	if len(queryEmbedding) > 0 && len(entries) == 0 {
+		pathOnly = false
 		entries, err = s.repo.Retrieve(ctx, *req, tenantID, nil)
 		if err != nil {
 			return nil, fmt.Errorf("retrieve fallback failed: %w", err)
 		}
+	} else if len(queryEmbedding) > 0 {
+		pathOnly = false
 	}
 
-	return &model.RetrieveResponse{
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	resp := &model.RetrieveResponse{
 		Entries: entries,
 		Total:   len(entries),
-	}, nil
+	}
+	if pathOnly && len(entries) > limit {
+		resp.HasMore = true
+		resp.Entries = entries[:limit]
+		resp.Total = len(resp.Entries)
+		last := resp.Entries[len(resp.Entries)-1]
+		page, pageErr := model.MakeNextCursor(model.SortKeyCreatedAtIDDesc, last.ID, last.CreatedAt, true)
+		if pageErr != nil {
+			return nil, pageErr
+		}
+		resp.NextCursor = page.NextCursor
+	}
+	return resp, nil
 }
 
 func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest, tenantID string) (*model.RollbackResponse, error) {

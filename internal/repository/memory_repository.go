@@ -198,6 +198,10 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	var q string
 	var args []any
 
+	if strings.TrimSpace(req.Cursor) != "" && (hasText || hasVec) {
+		return nil, fmt.Errorf("cursor pagination requires empty query and no embedding search")
+	}
+
 	switch {
 	case hasVec && hasText:
 		vec := pgvector.NewVector(queryEmbedding)
@@ -247,18 +251,33 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			LIMIT $9`
 		args = []any{tenantID, path, qText, req.AsOf, agentFilter, spaceFilter, tagList, tagMatch, limit}
 	default:
-		q = `
-			SELECT ` + selectCols + `,
+		cur, curErr := model.DecodeCursor(req.Cursor)
+		if curErr != nil {
+			return nil, fmt.Errorf("invalid cursor: %w", curErr)
+		}
+		if !cur.IsZero() && cur.SortKey != "" && cur.SortKey != model.SortKeyCreatedAtIDDesc {
+			return nil, fmt.Errorf("cursor sort key mismatch: got %q", cur.SortKey)
+		}
+		fetchLimit := limit + 1
+		args = []any{tenantID, path, req.AsOf, agentFilter, spaceFilter, tagList, tagMatch}
+		cursorClause := ""
+		if !cur.IsZero() {
+			cursorClause = fmt.Sprintf(" AND (created_at, id) < ($%d::timestamptz, $%d::bigint)", len(args)+1, len(args)+2)
+			args = append(args, cur.LastTimestamp, cur.LastID)
+		}
+		limitPos := len(args) + 1
+		args = append(args, fetchLimit)
+		q = fmt.Sprintf(`
+			SELECT %s,
 			       NULL::float8 AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
-			  AND ` + temporalClause("$3") + `
-			  AND ` + scopeFilters("4", "5") + `
-			  AND ` + tagFilters("6", "7") + `
-			ORDER BY created_at DESC
-			LIMIT $8`
-		args = []any{tenantID, path, req.AsOf, agentFilter, spaceFilter, tagList, tagMatch, limit}
+			  AND %s
+			  AND %s
+			  AND %s%s
+			ORDER BY created_at DESC, id DESC
+			LIMIT $%d`, selectCols, temporalClause("$3"), scopeFilters("4", "5"), tagFilters("6", "7"), cursorClause, limitPos)
 	}
 
 	rows, err := r.r.Query(ctx, q, args...)

@@ -42,7 +42,8 @@ flowchart LR
 | Browser, curl, OpenAPI | **HTTP** |
 | Throughput, batch, stream retrieve/eventi | **gRPC** |
 | SDK ufficiali Python/TS | **HTTP** (wrapper in `sdk/`) |
-| Bootstrap tenant / metriche Prometheus | **HTTP** (`/v1/admin/*`, `/metrics`) |
+| Bootstrap tenant / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) o **gRPC** `AdminService` |
+| Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` |
 
 Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
 

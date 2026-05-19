@@ -7,6 +7,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net"
 	"os"
 	"strconv"
@@ -20,6 +22,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -39,10 +42,8 @@ func testIntegrationAPIKey(t *testing.T) string {
 	return "testkey123"
 }
 
-// newBufconnMemoryClient starts an in-process gRPC server (same wiring as Start) over bufconn.
-// Requires DATABASE_URL; Redis via miniredis. Does not need GRPC_HOST.
-// The returned pool is the same handle used by the server (for direct SQL in tests).
-func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.Pool, func()) {
+// newBufconnConn starts an in-process gRPC server (same wiring as Start) over bufconn.
+func newBufconnConn(t *testing.T) (*grpc.ClientConn, *pgxpool.Pool, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -67,7 +68,7 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 
 	lis := bufconn.Listen(bufconnListenerSize)
 	srv := grpc.NewServer()
-	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{
+	memSrv := &memoryServer{
 		svc:         memSvc,
 		db:          pool,
 		readDB:      read,
@@ -78,7 +79,10 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 		auditRepo:   repository.NewAuditRepository(pool),
 		summarize:   service.NewSummarizeService(memRepo, nil),
 		memRepo:     memRepo,
-	})
+	}
+	pcmiv1.RegisterMemoryServiceServer(srv, memSrv)
+	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(pool))
+	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(pool))
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -102,7 +106,17 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 		pool.Close()
 	}
 
+	return conn, pool, cleanup
+}
+
+func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.Pool, func()) {
+	conn, pool, cleanup := newBufconnConn(t)
 	return pcmiv1.NewMemoryServiceClient(conn), pool, cleanup
+}
+
+func bufconnAuthedCtx(t *testing.T, parent context.Context) context.Context {
+	t.Helper()
+	return metadata.NewOutgoingContext(parent, metadata.Pairs("x-api-key", testIntegrationAPIKey(t)))
 }
 
 func TestIntegrationBufconn_HealthReady(t *testing.T) {
@@ -640,4 +654,197 @@ func TestIntegrationBufconn_StreamEventsMemoryStored(t *testing.T) {
 	}
 	cancel()
 	t.Fatalf("timeout waiting for gRPC StreamEvents %s (payload with path %q)", event.EventMemoryStored, path)
+}
+
+func TestIntegrationBufconn_AdminFullFlow(t *testing.T) {
+	conn, _, cleanup := newBufconnConn(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(bufconnAuthedCtx(t, t.Context()), 45*time.Second)
+	defer cancel()
+
+	admin := pcmiv1.NewAdminServiceClient(conn)
+	slug := fmt.Sprintf("bufconn-%d", time.Now().UnixNano())
+	tenant, err := admin.CreateTenant(ctx, &pcmiv1.CreateTenantRequest{
+		Slug:         slug,
+		Name:         "Bufconn Tenant",
+		SettingsJson: `{"suite":"bufconn"}`,
+	})
+	if err != nil {
+		t.Fatalf("CreateTenant: %v", err)
+	}
+	if tenant.GetId() == "" || tenant.GetSlug() != slug {
+		t.Fatalf("CreateTenant: %+v", tenant)
+	}
+
+	list, err := admin.ListTenants(ctx, &pcmiv1.ListTenantsRequest{Limit: 200})
+	if err != nil {
+		t.Fatalf("ListTenants: %v", err)
+	}
+	found := false
+	for _, te := range list.GetTenants() {
+		if te.GetId() == tenant.GetId() {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("created tenant %s not in list (%d tenants)", tenant.GetId(), len(list.GetTenants()))
+	}
+
+	keyResp, err := admin.CreateAPIKey(ctx, &pcmiv1.CreateAPIKeyRequest{
+		TenantId: tenant.GetId(),
+		Name:     "bufconn-grpc-key",
+		Role:     "user",
+	})
+	if err != nil {
+		t.Fatalf("CreateAPIKey: %v", err)
+	}
+	if keyResp.GetId() == "" || !strings.HasPrefix(keyResp.GetApiKey(), "pcmi_") {
+		t.Fatalf("CreateAPIKey: %+v", keyResp)
+	}
+
+	keys, err := admin.ListAPIKeys(ctx, &pcmiv1.ListAPIKeysRequest{
+		TenantId: tenant.GetId(),
+		Limit:    20,
+	})
+	if err != nil {
+		t.Fatalf("ListAPIKeys: %v", err)
+	}
+	if len(keys.GetKeys()) < 1 {
+		t.Fatalf("expected keys, got %+v", keys)
+	}
+	var listedID string
+	for _, k := range keys.GetKeys() {
+		if k.GetId() == keyResp.GetId() {
+			listedID = k.GetId()
+			if k.GetRole() != "user" || !k.GetIsActive() {
+				t.Fatalf("key summary: %+v", k)
+			}
+			break
+		}
+	}
+	if listedID == "" {
+		t.Fatalf("created key %s not listed", keyResp.GetId())
+	}
+
+	rotated, err := admin.RotateAPIKey(ctx, &pcmiv1.RotateAPIKeyRequest{
+		Id:   keyResp.GetId(),
+		Name: "bufconn-grpc-rotated",
+	})
+	if err != nil {
+		t.Fatalf("RotateAPIKey: %v", err)
+	}
+	if rotated.GetApiKey() == "" || rotated.GetApiKey() == keyResp.GetApiKey() {
+		t.Fatalf("RotateAPIKey: expected new plaintext key, got %+v", rotated)
+	}
+	if rotated.GetName() != "bufconn-grpc-rotated" {
+		t.Fatalf("RotateAPIKey name: %+v", rotated)
+	}
+}
+
+func TestIntegrationBufconn_AdminRequiresAdminRole(t *testing.T) {
+	conn, _, cleanup := newBufconnConn(t)
+	defer cleanup()
+
+	adminCtx, cancel := context.WithTimeout(bufconnAuthedCtx(t, t.Context()), 30*time.Second)
+	defer cancel()
+
+	admin := pcmiv1.NewAdminServiceClient(conn)
+	userKey, err := admin.CreateAPIKey(adminCtx, &pcmiv1.CreateAPIKeyRequest{
+		TenantId: "00000000-0000-0000-0000-000000000000",
+		Name:     fmt.Sprintf("bufconn-nonadmin-%d", time.Now().UnixNano()),
+		Role:     "user",
+	})
+	if err != nil {
+		t.Fatalf("CreateAPIKey for user role: %v", err)
+	}
+
+	userCtx := metadata.NewOutgoingContext(adminCtx, metadata.Pairs("x-api-key", userKey.GetApiKey()))
+	_, err = admin.ListTenants(userCtx, &pcmiv1.ListTenantsRequest{Limit: 5})
+	if err == nil {
+		t.Fatal("expected PermissionDenied for non-admin key")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.PermissionDenied {
+		t.Fatalf("ListTenants with user key: err=%v code=%v", err, status.Code(err))
+	}
+}
+
+func TestIntegrationBufconn_MetricsScrapeAndStream(t *testing.T) {
+	conn, _, cleanup := newBufconnConn(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(bufconnAuthedCtx(t, t.Context()), 30*time.Second)
+	defer cancel()
+
+	metricsClient := pcmiv1.NewMetricsServiceClient(conn)
+
+	scrape, err := metricsClient.Scrape(ctx, &pcmiv1.ScrapeRequest{})
+	if err != nil {
+		t.Fatalf("Scrape: %v", err)
+	}
+	if len(scrape.GetBody()) == 0 {
+		t.Fatal("expected non-empty metrics body from Scrape")
+	}
+	if scrape.GetContentType() == "" {
+		t.Fatal("expected Content-Type on Scrape response")
+	}
+
+	stream, err := metricsClient.StreamScrape(ctx, &pcmiv1.ScrapeRequest{})
+	if err != nil {
+		t.Fatalf("StreamScrape: %v", err)
+	}
+	var streamed []byte
+	var sawLast bool
+	for {
+		chunk, recvErr := stream.Recv()
+		if recvErr == io.EOF {
+			break
+		}
+		if recvErr != nil {
+			t.Fatalf("StreamScrape recv: %v", recvErr)
+		}
+		streamed = append(streamed, chunk.GetBody()...)
+		if chunk.GetLast() {
+			sawLast = true
+			break
+		}
+	}
+	if !sawLast {
+		t.Fatal("StreamScrape: never received chunk with last=true")
+	}
+	if len(streamed) == 0 {
+		t.Fatal("StreamScrape: empty body")
+	}
+	// Registry may observe new samples between Scrape and StreamScrape; compare shape, not exact bytes.
+	if !strings.Contains(string(streamed), "pcmi_") {
+		t.Fatalf("StreamScrape body missing pcmi_ metrics: %q", streamed[:min(120, len(streamed))])
+	}
+	if len(streamed) < len(scrape.GetBody())/2 {
+		t.Fatalf("StreamScrape too small (%d) vs Scrape (%d)", len(streamed), len(scrape.GetBody()))
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func TestIntegrationBufconn_MetricsGetMetricUnimplemented(t *testing.T) {
+	conn, _, cleanup := newBufconnConn(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(bufconnAuthedCtx(t, t.Context()), 15*time.Second)
+	defer cancel()
+
+	metricsClient := pcmiv1.NewMetricsServiceClient(conn)
+	_, err := metricsClient.GetMetric(ctx, &pcmiv1.GetMetricRequest{Name: "pcmi_memory_stores_total"})
+	if err == nil {
+		t.Fatal("expected Unimplemented for GetMetric")
+	}
+	if st, ok := status.FromError(err); !ok || st.Code() != codes.Unimplemented {
+		t.Fatalf("GetMetric: err=%v code=%v", err, status.Code(err))
+	}
 }

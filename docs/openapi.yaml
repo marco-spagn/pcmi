@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.31.0
+  version: 1.33.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -188,6 +188,19 @@ paths:
                 $ref: "#/components/schemas/MemoryEntry"
         "404":
           description: Not found
+  /v1/admin/ui:
+    get:
+      summary: Embedded admin dashboard (HTML)
+      description: Requires admin API key. Serves the bundled admin UI for tenants, API keys, and health links.
+      responses:
+        "200":
+          description: HTML dashboard
+          content:
+            text/html:
+              schema:
+                type: string
+        "403":
+          description: Non-admin API key
   /v1/admin/tenants:
     get:
       summary: List tenants (admin role)

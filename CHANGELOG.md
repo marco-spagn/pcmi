@@ -105,13 +105,19 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
     the runtime cap in `worker/distillation_helpers.go`).
 - `cmd/api/main.go`: passes `cfg` to `grpcserver.Start`.
 
-### Added — Admin UI, embedding providers, cursor contracts (PR #60)
+### Added — Admin UI, embedding providers, cursor contracts (PR #61)
 
 - **`GET /v1/admin/ui`**: embedded HTML admin dashboard (`internal/handler/adminui/`) — health, tenants, API keys, observability pointers; requires admin API key.
 - **`embedding.NewFromConfig`**: selects OpenAI vs Azure OpenAI vs OpenAI-compatible HTTP endpoints from `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `EMBEDDING_MODEL` (`internal/embedding/factory.go` + tests).
-- **Cursor pagination helpers** (`internal/model/cursor.go`): opaque keyset cursor encode/decode for upcoming repository wiring; optional `cursor` / `next_cursor` / `has_more` fields on memory retrieve DTOs (`internal/model/memory.go`).
-- **gRPC API contracts** (stubs to be generated separately): `proto/pcmi/v1/admin.proto` (`AdminService`), `proto/pcmi/v1/metrics.proto` (`MetricsService`).
+- **Cursor pagination helpers** (`internal/model/cursor.go`): opaque keyset cursor encode/decode; optional `cursor` / `next_cursor` / `has_more` fields on memory retrieve DTOs (`internal/model/memory.go`).
 - **`deploy/helm/IDE_NOTES.md`**: notes on Helm + YAML extension diagnostics.
+
+### Added — Cursor pagination wiring + gRPC admin/metrics (follow-up)
+
+- **Memory retrieve keyset pagination**: path-only `POST /v1/retrieve` (no `query`, no vector search) uses `(created_at, id)` ordering with opaque `next_cursor` / `has_more` (`internal/repository/memory_repository.go`, `internal/service/memory_service.go`).
+- **Generated gRPC stubs**: `internal/grpc/pcmiv1/admin.pb.go`, `admin_grpc.pb.go`, `metrics.pb.go`, `metrics_grpc.pb.go`.
+- **`AdminService` gRPC server** (`internal/grpc/admin_server.go`): mirrors HTTP `/v1/admin/*` tenant and API-key operations; requires admin API key.
+- **`MetricsService` gRPC server** (`internal/grpc/metrics_server.go`): `Scrape` and `StreamScrape` over the Prometheus registry; `GetMetric` returns `Unimplemented` for now.
 
 ### Added — Quality & CI (PR #1)
 - `scripts/ci_coverage_check.sh`: pure-bash/awk script that parses

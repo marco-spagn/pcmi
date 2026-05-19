@@ -30,6 +30,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 const httpE2EAPIKey = "testkey123"
@@ -370,6 +371,45 @@ func TestIntegrationHTTP_MemoryCRUDAndRoutes(t *testing.T) {
 	}
 }
 
+func TestIntegrationHTTP_AdminUI(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	resp, err := app.Test(reqAuthed(t, http.MethodGet, "/v1/admin/ui", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("admin ui %d: %s", resp.StatusCode, b)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "text/html") {
+		t.Fatalf("content-type %q, want text/html", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, needle := range []string{"PCMI Admin", "/v1/admin/tenants", "/v1/ready"} {
+		if !strings.Contains(html, needle) {
+			t.Fatalf("admin UI HTML missing %q", needle)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/ui", nil)
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated admin ui: got %d, want 401", resp.StatusCode)
+	}
+}
+
 func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()
@@ -392,6 +432,62 @@ func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 	if resp.StatusCode != 201 {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("create tenant %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_StoreWithoutOpenAIKey(t *testing.T) {
+	// newIntegrationHTTPApp clears OPENAI_API_KEY; SetupMemoryRoutes must still register
+	// and store with embedding_model=unspecified (embedding worker disabled, not fatal).
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.noopenai." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"no-embed","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("store %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_RetrieveAcceptsCursorField(t *testing.T) {
+	// DTO supports cursor; repository wiring may follow — request must not 500.
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.cursor." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"c1","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+
+	cursor, err := model.EncodeCursor(model.Cursor{
+		Version: 1,
+		SortKey: "id_desc",
+		LastID:  1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	retBody, _ := json.Marshal(map[string]any{
+		"path_prefix": path,
+		"limit":       5,
+		"cursor":      cursor,
+	})
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(retBody)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("retrieve with cursor %d: %s", resp.StatusCode, b)
 	}
 }
 

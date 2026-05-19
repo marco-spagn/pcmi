@@ -1,7 +1,9 @@
 package deploy_test
 
 import (
+	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -97,6 +99,21 @@ func TestHelmValuesYAMLValid(t *testing.T) {
 	}
 }
 
+// TestHelmValuesSchemaJSONValid ensures values.schema.json stays valid JSON —
+// `helm lint --strict` relies on it and broken JSON fails CI before install time.
+func TestHelmValuesSchemaJSONValid(t *testing.T) {
+	repo := repoRoot(t)
+	path := filepath.Join(repo, chartDir, "values.schema.json")
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read schema: %v", err)
+	}
+	var doc interface{}
+	if err := json.Unmarshal(raw, &doc); err != nil {
+		t.Fatalf("values.schema.json is not valid JSON: %v", err)
+	}
+}
+
 // TestHelmTemplatesPresent lists the templates the chart promises in
 // README.md and asserts each file exists + starts with a recognisable
 // Helm guard or apiVersion. Doesn't render — that's `helm-lint`'s job in CI.
@@ -161,5 +178,42 @@ func TestLegacyK8sTreeIsDeprecated(t *testing.T) {
 		if (hasAPIVersion || hasKind) && !hasDeprecated {
 			t.Errorf("%s still contains live k8s manifest — use deploy/helm/pcmi or deploy/k8s/", rel)
 		}
+	}
+}
+
+// TestHelmLintStrictWhenHelmAvailable runs `helm lint --strict` when the helm
+// binary is on PATH (CI installs it). Catches values.schema.json drift such as
+// empty-string otel.endpoint rejecting format "uri".
+func TestHelmLintStrictWhenHelmAvailable(t *testing.T) {
+	repo := repoRoot(t)
+	helmBin, err := exec.LookPath("helm")
+	if err != nil {
+		t.Skip("helm not on PATH; azure/setup-helm runs this in CI")
+	}
+	chartPath := filepath.Join(repo, chartDir)
+	cmd := exec.Command(helmBin, "lint", chartPath, "--strict")
+	cmd.Dir = repo
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("helm lint --strict failed:\n%s", out)
+	}
+}
+
+// TestHelmTemplateWhenHelmAvailable ensures default values render to non-empty YAML.
+func TestHelmTemplateWhenHelmAvailable(t *testing.T) {
+	repo := repoRoot(t)
+	helmBin, err := exec.LookPath("helm")
+	if err != nil {
+		t.Skip("helm not on PATH; CI runs helm template")
+	}
+	chartPath := filepath.Join(repo, chartDir)
+	cmd := exec.Command(helmBin, "template", "pcmi", chartPath)
+	cmd.Dir = repo
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("helm template failed:\n%s", out)
+	}
+	if len(strings.TrimSpace(string(out))) < 100 {
+		t.Fatalf("helm template produced suspiciously short output (%d bytes)", len(out))
 	}
 }

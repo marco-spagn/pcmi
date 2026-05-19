@@ -32,7 +32,40 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
   - `TestBuildServerOptions_BadCertFallsBack` — malformed PEM.
   - `TestBuildServerOptions_ReturnTypeIsServerOption` — type-safety
     paranoia for future grpc/v2 bumps.
+- **TLS handshake + RPC:** `TestTLSHandshakeEndToEnd_HealthRPC` in
+  `internal/grpc/tls_handshake_test.go` registers the standard gRPC health
+  service and issues `Health.Check` after the channel reaches `READY`, so TLS
+  misconfiguration cannot hide behind a handshake-only test.
 - README: new `CodeQL` badge alongside CI / Coverage / Go / License / API.
+
+### Fixed — Helm (`deploy/helm/pcmi`)
+- **`values.schema.json`:** `otel.endpoint` must allow `""` (tracing off) or a
+  non-empty URI. Requiring `format: uri` for the empty default broke
+  `helm lint deploy/helm/pcmi --strict`.
+
+### Added — Deploy / CI artifact tests
+- **`TestCIWorkflowYAMLValid`** — `.github/workflows/ci.yml` parses; core jobs
+  (`ci-gate`, `golangci-lint`, `security`, `helm-lint`, `go`) + PR permissions.
+- **`TestAllGitHubWorkflowYAMLFilesParse`** — every `.github/workflows/*.yml`.
+- **`TestDockerComposeYAMLValid`** — compose services `postgres`, `redis`, `api`, `worker`.
+- **`TestComposeReferencesExistingMigrations`** — migration bind-mount paths exist.
+- **`TestOpenAPIYAMLValid`** — `docs/openapi.yaml` is valid YAML + OpenAPI 3.x paths.
+- **`TestCriticalShellScriptsSyntaxOK`** — `bash -n` on key `scripts/*.sh`.
+- **`TestProtoMemoryServiceProtoExists`** — `proto/pcmi/v1/memory.proto` markers.
+- `internal/deploy/codeql_workflow_test.go` — CodeQL workflow structure + SARIF permissions.
+- `internal/deploy/helm_test.go` — Chart/values/schema + optional `helm` on PATH.
+- **`scripts/test_all_local.sh`** — quick path adds golangci-lint, govulncheck,
+  `./internal/deploy/...`, gRPC TLS subset, Helm/kubeconform, **`go mod verify`**,
+  **`./internal/version/...`**.
+
+### Fixed — Docs / OpenAPI
+- **`docs/openapi.yaml`** — SSE route description no longer uses an unquoted `{ ... }`
+  fragment (broke strict YAML parsers such as `yaml.v3`).
+
+### Fixed — CodeQL pack config
+- `.github/codeql/codeql-config.yml` no longer duplicates `queries:` — query
+  packs stay on the workflow `init` step only, avoiding CLI conflicts on some
+  runners.
 
 ### Notes — PR #3
 - No DB / API breaking changes. `PCMI_TLS_CERT` / `PCMI_TLS_KEY` were

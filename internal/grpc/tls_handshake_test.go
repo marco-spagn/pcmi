@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"net"
 	"os"
 	"testing"
@@ -12,6 +13,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/health"
+	grpc_health_v1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	"github.com/marco-spagn/pcmi/internal/config"
 )
@@ -19,12 +22,13 @@ import (
 // TestTLSHandshakeEndToEnd asserts the actual TLS path works — not just that
 // BuildServerOptions returns the right number of options. We spin up a real
 // grpc.Server with TLS enabled, listen on an ephemeral port, dial it with a
-// TLS client that trusts the self-signed CA, and verify the connection
+// TLS-aware grpc.NewClient (the v1.63+ replacement for the deprecated
+// grpc.DialContext + grpc.WithBlock pair), and wait until the connection
 // transitions to READY.
 //
 // This is the regression test that catches "we built the option but never
 // wired it into grpc.NewServer" / "the listener accepts plain TCP because
-// Serve was called on the wrong listener" kinds of bugs.
+// Serve was called on the wrong listener" bugs.
 func TestTLSHandshakeEndToEnd(t *testing.T) {
 	certFile, keyFile := writeSelfSignedCert(t)
 
@@ -45,8 +49,9 @@ func TestTLSHandshakeEndToEnd(t *testing.T) {
 		srv.GracefulStop()
 		select {
 		case err := <-serveErr:
-			// grpc.Server.Serve returns nil after GracefulStop.
-			if err != nil && err != grpc.ErrServerStopped {
+			// grpc.Server.Serve returns nil after GracefulStop. ErrServerStopped
+			// can surface depending on the race between Serve and Stop.
+			if err != nil && !errors.Is(err, grpc.ErrServerStopped) {
 				t.Logf("Serve returned: %v", err)
 			}
 		case <-time.After(3 * time.Second):
@@ -71,21 +76,106 @@ func TestTLSHandshakeEndToEnd(t *testing.T) {
 		MinVersion: tls.VersionTLS12,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	//nolint:staticcheck // grpc.DialContext is the stable API in v1.81; WaitForReady is needed for the handshake assertion below.
-	conn, err := grpc.DialContext(ctx, addr,
+	// grpc.NewClient is the v1.63+ API. It does not block; we then call
+	// Connect() and poll for READY via WaitForStateChange — this drives the
+	// TLS handshake to completion deterministically.
+	conn, err := grpc.NewClient(addr,
 		grpc.WithTransportCredentials(credentials.NewTLS(clientTLS)),
-		grpc.WithBlock(),
 	)
 	if err != nil {
-		t.Fatalf("DialContext: %v", err)
+		t.Fatalf("grpc.NewClient: %v", err)
 	}
 	defer func() { _ = conn.Close() }()
 
-	if state := conn.GetState(); state != connectivity.Ready {
-		t.Fatalf("expected READY after blocking dial, got %v", state)
+	conn.Connect()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for {
+		state := conn.GetState()
+		if state == connectivity.Ready {
+			return
+		}
+		if !conn.WaitForStateChange(ctx, state) {
+			t.Fatalf("connection did not reach READY (last state: %v): %v", state, ctx.Err())
+		}
+	}
+}
+
+// TestTLSHandshakeEndToEnd_HealthRPC exercises one RPC after TLS comes up so we
+// catch regressions where creds allow handshake but ServeOptions break handlers.
+func TestTLSHandshakeEndToEnd_HealthRPC(t *testing.T) {
+	certFile, keyFile := writeSelfSignedCert(t)
+
+	cfg := &config.Config{TLSCertFile: certFile, TLSKeyFile: keyFile}
+	srv := grpc.NewServer(BuildServerOptions(cfg)...)
+	grpc_health_v1.RegisterHealthServer(srv, health.NewServer())
+
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	addr := lis.Addr().String()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		serveErr <- srv.Serve(lis)
+	}()
+	t.Cleanup(func() {
+		srv.GracefulStop()
+		select {
+		case err := <-serveErr:
+			if err != nil && !errors.Is(err, grpc.ErrServerStopped) {
+				t.Logf("Serve returned: %v", err)
+			}
+		case <-time.After(3 * time.Second):
+			srv.Stop()
+		}
+	})
+
+	certPEM, err := os.ReadFile(certFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pool := x509.NewCertPool()
+	if !pool.AppendCertsFromPEM(certPEM) {
+		t.Fatal("failed to seed CertPool from self-signed cert")
+	}
+	clientTLS := &tls.Config{
+		RootCAs:    pool,
+		ServerName: "localhost",
+		MinVersion: tls.VersionTLS12,
+	}
+
+	conn, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(credentials.NewTLS(clientTLS)),
+	)
+	if err != nil {
+		t.Fatalf("grpc.NewClient: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	conn.Connect()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	for {
+		state := conn.GetState()
+		if state == connectivity.Ready {
+			break
+		}
+		if !conn.WaitForStateChange(ctx, state) {
+			t.Fatalf("connection did not reach READY (last state: %v): %v", state, ctx.Err())
+		}
+	}
+
+	hc := grpc_health_v1.NewHealthClient(conn)
+	resp, err := hc.Check(ctx, &grpc_health_v1.HealthCheckRequest{})
+	if err != nil {
+		t.Fatalf("Health.Check: %v", err)
+	}
+	if resp.GetStatus() != grpc_health_v1.HealthCheckResponse_SERVING {
+		t.Fatalf("unexpected health status: %v", resp.GetStatus())
 	}
 }
 

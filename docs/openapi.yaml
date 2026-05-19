@@ -357,7 +357,8 @@ paths:
           description: Comma-separated event types; omit for all types visible to the tenant
       responses:
         "200":
-          description: text/event-stream of JSON events `{ "type": "...", "payload": { ... } }`
+          description: >-
+            text/event-stream of JSON events (objects with type + payload fields).
           content:
             text/event-stream:
               schema:

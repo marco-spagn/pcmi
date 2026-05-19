@@ -110,7 +110,14 @@
     "otel": {
       "type": "object",
       "properties": {
-        "endpoint":    { "type": "string", "format": "uri" },
+        "endpoint": {
+          "type": "string",
+          "description": "OTLP HTTP/gRPC base URL; empty string disables OTEL env injection in the chart.",
+          "anyOf": [
+            { "type": "string", "maxLength": 0 },
+            { "type": "string", "minLength": 1, "format": "uri" }
+          ]
+        },
         "serviceName": { "type": "string" }
       }
     }

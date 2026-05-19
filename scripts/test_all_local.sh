@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 # PCMI — complete local test suite (config-env-cleanup branch and main).
 #
-# Runs EVERY check: static audit, unit/race tests, Docker stack, HTTP/gRPC smoke,
+# Runs EVERY check: static audit, unit/race tests, CI-parity linters (golangci,
+# govulncheck, Helm/kubeconform), go mod verify, version tests, Docker stack, HTTP/gRPC smoke,
 # store/retrieve, summarize, webhook, encryption, rate limit, worker OpenAI on/off,
 # gRPC port from config, optional host `go run`, optional coverage.
 #
 # Usage:
 #   ./scripts/test_all_local.sh              # full (~15–25 min first Docker build)
-#   ./scripts/test_all_local.sh --quick      # unit/static only (~3 min, no Docker)
+#   ./scripts/test_all_local.sh --quick      # static/unit + CI parity (~5–8 min)
 #   ./scripts/test_all_local.sh --with-host  # full + API via `go run` on host
 #   RUN_COVERAGE=1 ./scripts/test_all_local.sh
 #   KEEP_STACK=1 ./scripts/test_all_local.sh # leave compose running at end
+#   SKIP_HELM_KUBECONFORM=1 ...              # skip Helm/kubeconform (no Docker)
+#   SKIP_GOVULNCHECK=1 ...                   # skip govulncheck entirely
+#   REQUIRE_GOVULNCHECK=1 ...                # fail if govulncheck fails (CI-like)
 #
-# Prerequisites: go, git, curl, jq, docker. API key: testkey123 (migrations/003).
+# Prerequisites: go, git, curl, jq, docker (full stack). Quick mode also runs
+# golangci-lint + govulncheck; Helm lint/kubeconform use `helm`/`kubeconform`
+# on PATH or Docker (alpine/helm + ghcr.io/yannh/kubeconform).
 #
 # .env: backed up to .env.pcmi-test-backup and restored when the script exits.
 
@@ -28,7 +34,7 @@ for arg in "$@"; do
 	--quick) MODE="quick" ;;
 	--with-host) WITH_HOST=1 ;;
 	-h|--help)
-		sed -n '2,18p' "$0"
+		sed -n '2,22p' "$0"
 		exit 0
 		;;
 	*) echo "Unknown: $arg (use --quick, --with-host, --help)" >&2; exit 2 ;;
@@ -58,6 +64,35 @@ section() {
 ok() { echo "  ✓ $1"; PASS=$((PASS + 1)); }
 bad() { echo "  ✗ $1" >&2; FAIL=$((FAIL + 1)); }
 skip() { echo "  ⊘ $1"; SKIP=$((SKIP + 1)); }
+
+HELM_IMAGE="${HELM_IMAGE:-alpine/helm:3.14.4}"
+KUBECONFORM_IMAGE="${KUBECONFORM_IMAGE:-ghcr.io/yannh/kubeconform:v0.6.7}"
+GOLANGCI_IMAGE="${GOLANGCI_IMAGE:-golangci/golangci-lint:v2.12.2}"
+
+run_helm_ci() {
+	if command -v helm >/dev/null 2>&1; then
+		helm "$@"
+		return $?
+	fi
+	docker run --rm -v "$ROOT:/work" -w /work "$HELM_IMAGE" "$@"
+}
+
+run_kubeconform_ci() {
+	local manifest="$1"
+	if command -v kubeconform >/dev/null 2>&1; then
+		kubeconform -summary -strict -schema-location default "$manifest"
+		return $?
+	fi
+	docker run --rm -v /tmp:/tmp:ro "$KUBECONFORM_IMAGE" -summary -strict -schema-location default "$manifest"
+}
+
+run_golangci_ci() {
+	if command -v golangci-lint >/dev/null 2>&1; then
+		golangci-lint run ./...
+		return $?
+	fi
+	docker run --rm -v "$ROOT:/app" -w /app "$GOLANGCI_IMAGE" golangci-lint run ./...
+}
 
 need_cmd() {
 	command -v "$1" >/dev/null 2>&1 || { bad "missing command: $1"; exit 1; }
@@ -130,12 +165,8 @@ go build -o /dev/null ./... && ok "go build" || bad "go build"
 go vet ./... && ok "go vet" || bad "go vet"
 
 section "A4 — unit tests (-race)"
-# Run race tests against the entire internal/ tree so every package added in
-# PR #1 (handler, event, eventschema, metrics, model, embedding, repository,
-# version, deploy) is exercised. Matches the CI invocation:
-#   go test -race -count=1 ./internal/... ./cmd/...
-PKGS="./internal/... ./cmd/..."
-go test -race -count=1 $PKGS && ok "race tests" || bad "race tests"
+# Entire internal/ + cmd/ tree (matches CI coverage scope).
+go test -race -count=1 ./internal/... ./cmd/... && ok "race tests" || bad "race tests"
 
 section "A5 — config / .env.example sync"
 go test -count=1 ./internal/config/... -run TestEnvExampleStaysInSyncWithConfig \
@@ -154,8 +185,77 @@ go test -count=1 ./internal/grpc/... -run 'TestPortResolutionFromConfig|TestEphe
 section "A7 — telemetry unit tests"
 go test -count=1 ./internal/telemetry/... && ok "telemetry package tests" || bad "telemetry tests"
 
+section "A8 — golangci-lint (CI job golangci-lint)"
+if docker info >/dev/null 2>&1 || command -v golangci-lint >/dev/null 2>&1; then
+	if run_golangci_ci; then ok "golangci-lint"; else bad "golangci-lint"; fi
+else
+	bad "golangci-lint: install golangci-lint or start Docker (image $GOLANGCI_IMAGE)"
+fi
+
+section "A9 — govulncheck (CI job security)"
+if [ "${SKIP_GOVULNCHECK:-}" = "1" ]; then
+	skip "govulncheck (SKIP_GOVULNCHECK=1)"
+else
+	GOV_TMP="$(mktemp)"
+	set +e
+	if curl -sf --max-time 15 https://vuln.go.dev/ >/dev/null 2>&1; then
+		go run golang.org/x/vuln/cmd/govulncheck@latest ./... 2>"$GOV_TMP"
+		GOV_EC=$?
+	else
+		GOV_EC=125
+	fi
+	set -e
+	if [ "$GOV_EC" -eq 0 ]; then
+		ok "govulncheck"
+	elif [ "$GOV_EC" -eq 125 ]; then
+		skip "govulncheck (offline / vuln.go.dev blocked — CI runs with network)"
+	else
+		if [ "${REQUIRE_GOVULNCHECK:-}" = "1" ]; then
+			bad "govulncheck"
+			sed 's/^/  | /' "$GOV_TMP" >&2 || true
+		else
+			skip "govulncheck failed locally (set REQUIRE_GOVULNCHECK=1 to fail; CI has network)"
+			sed 's/^/  | /' "$GOV_TMP" >&2 || true
+		fi
+	fi
+	rm -f "$GOV_TMP"
+fi
+
+section "A10 — deploy / Helm / CodeQL artifact tests (go test ./internal/deploy/...)"
+go test -race -count=1 ./internal/deploy/... && ok "internal/deploy tests" || bad "internal/deploy tests"
+
+section "A11 — gRPC TLS tests (PR #3)"
+go test -race -count=1 ./internal/grpc/... -run 'TLS|Handshake|BuildServer' && ok "gRPC TLS tests" || bad "gRPC TLS tests"
+
+section "A12 — Helm lint + template + kubeconform (CI job helm-lint)"
+if [ "${SKIP_HELM_KUBECONFORM:-}" = "1" ]; then
+	skip "Helm/kubeconform (SKIP_HELM_KUBECONFORM=1)"
+elif docker info >/dev/null 2>&1 || command -v helm >/dev/null 2>&1; then
+	RENDERED="/tmp/pcmi-ci-rendered-$$-$RANDOM.yaml"
+	if run_helm_ci lint deploy/helm/pcmi --strict; then ok "helm lint --strict"; else bad "helm lint --strict"; fi
+	if run_helm_ci template pcmi deploy/helm/pcmi >"$RENDERED" && [ -s "$RENDERED" ]; then
+		ok "helm template (default values)"
+	else
+		bad "helm template"
+	fi
+	if command -v kubeconform >/dev/null 2>&1 || docker info >/dev/null 2>&1; then
+		if run_kubeconform_ci "$RENDERED"; then ok "kubeconform (-strict)"; else bad "kubeconform"; fi
+	else
+		bad "kubeconform: install kubeconform or start Docker ($KUBECONFORM_IMAGE)"
+	fi
+	rm -f "$RENDERED"
+else
+	bad "Helm: install helm v3 or start Docker ($HELM_IMAGE)"
+fi
+
+section "A13 — go mod verify"
+go mod verify && ok "go mod verify" || bad "go mod verify"
+
+section "A14 — version constants"
+go test -race -count=1 ./internal/version/... && ok "internal/version tests" || bad "version tests"
+
 if [ "${RUN_COVERAGE:-}" = "1" ]; then
-	section "A8 — coverage gate (optional)"
+	section "Coverage gate (optional RUN_COVERAGE=1)"
 	make test-cover && make cover-check && ok "coverage" || bad "coverage"
 fi
 

@@ -36,9 +36,8 @@ func TestBuildServerOptions_NoTLSWhenUnset(t *testing.T) {
 
 // TestBuildServerOptions_TLSEnabled writes a self-signed cert+key to tempdir
 // and verifies BuildServerOptions returns a 2-element slice (stats handler +
-// grpc.Creds(tls)). We can't easily reflect into grpc.ServerOption internals,
-// so the structural assertion (len=2) plus a happy-path TLS handshake in
-// TestStart_TLSAcceptsTLSClient gives full coverage.
+// grpc.Creds(tls)). End-to-end TLS handshake is covered by
+// TestTLSHandshakeEndToEnd in tls_handshake_test.go.
 func TestBuildServerOptions_TLSEnabled(t *testing.T) {
 	certFile, keyFile := writeSelfSignedCert(t)
 

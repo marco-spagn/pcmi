@@ -60,16 +60,17 @@ Chiave di sviluppo (migration `003`): **`testkey123`** (ruolo `admin`).
 
 ### Test locale completo
 
-Un solo script copre audit `os.Getenv`, unit test con `-race`, stack Docker, smoke HTTP/gRPC, summarize, webhook, cifratura, rate limit, porta gRPC da config, worker senza OpenAI e (opzionale) distillation/OTLP:
+Un solo script replica anche i job CI rilevanti (**golangci-lint**, **govulncheck**, **helm lint --strict**, **kubeconform**, test `internal/deploy` per workflow CodeQL / chart) oltre ad audit `os.Getenv`, `go test -race` su tutto `internal/` + `cmd/`, stack Docker, smoke HTTP/gRPC, summarize, webhook, cifratura, rate limit, porta gRPC da config, worker senza OpenAI e (opzionale) distillation/OTLP:
 
 ```bash
 make test-all-local          # suite completa (~15–25 min al primo build)
-make test-all-local-quick    # solo controlli statici/unit (~3 min)
+make test-all-local-quick    # static + unit + CI parity (~5–10 min; govulncheck può essere ⊘ se offline)
 make test-all-local-host     # completa + API avviata con go run su host
 ```
 
 Equivalente: `./scripts/test_all_local.sh` (`--quick`, `--with-host`, `--help`).  
-Opzioni: `KEEP_STACK=1` (lascia i container attivi), `RUN_COVERAGE=1`, `SKIP_DOCKER=1`.  
+Controlli solo artefatti (workflow GitHub, compose, OpenAPI, Helm, script shell, proto): `make deploy-structural-test`.  
+Opzioni utili: `KEEP_STACK=1`, `RUN_COVERAGE=1`, `SKIP_DOCKER=1`, `SKIP_HELM_KUBECONFORM=1`, `SKIP_GOVULNCHECK=1`, `REQUIRE_GOVULNCHECK=1` (fallisce se govulncheck non è ok, come in CI). Helm/kubeconform usano il binario sul PATH oppure Docker (`alpine/helm`, `ghcr.io/yannh/kubeconform`).  
 Il file `.env` viene salvato in `.env.pcmi-test-backup` e ripristinato a fine script.
 
 CI su GitHub: includi `CI_start` nel messaggio di commit oppure `gh workflow run CI`.

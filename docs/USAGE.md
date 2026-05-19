@@ -177,6 +177,21 @@ Usa `smoke.mts` / `npm run smoke` — **non** heredoc `tsx` su Node 23 (vedi [sd
 
 ---
 
+## Test di integrazione Go (`-tags=integration`)
+
+Richiedono Postgres (`DATABASE_URL`). I test HTTP in `internal/handler` usano miniredis in-process.
+
+**Attenzione — SSE:** `TestIntegrationHTTP_EventStreamMemoryStored` (httptest + Fiber SSE) può **bloccare ~10 minuti** e far fallire tutto il pacchetto `handler` per timeout. `newIntegrationHTTPApp` imposta di default `PCMI_SKIP_SSE_HTTPTEST=1`; la copertura SSE reale è in `scripts/ci_integration_smoke.sh`.
+
+```bash
+export DATABASE_URL='postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable'
+PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
+```
+
+Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md)**.
+
+---
+
 ## Makefile (repo root)
 
 | Target | Descrizione |
@@ -186,6 +201,7 @@ Usa `smoke.mts` / `npm run smoke` — **non** heredoc `tsx` su Node 23 (vedi [sd
 | `make test-integration` | Bufconn (DB migrato) + test TCP su API già avviata |
 | `make test-integration-bufconn` | Solo test in-process (Postgres + migrazioni) |
 | `make test-integration-live` | Solo dial `GRPC_HOST` (serve `pcmi-api`) |
+| `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
 | `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |

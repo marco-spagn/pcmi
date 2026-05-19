@@ -77,7 +77,10 @@ func drainIntegrationHTTPSSECopy(t *testing.T, srv *httptest.Server, copyDone <-
 	}
 }
 
-func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
+// integrationHTTPOpt mutates process env before config.Load inside newIntegrationHTTPApp.
+type integrationHTTPOpt func(t *testing.T)
+
+func newIntegrationHTTPApp(t *testing.T, opts ...integrationHTTPOpt) (*fiber.App, *pgxpool.Pool, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -85,6 +88,15 @@ func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
 	}
 	t.Setenv("RATE_LIMIT_DISABLED", "true")
 	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("OPENAI_BASE_URL", "")
+	// SSE via httptest+Fiber adaptor can block until Go's ~10m package timeout (see docs/integration-testing.md).
+	// Real SSE is exercised in scripts/ci_integration_smoke.sh. Set PCMI_FORCE_SSE_HTTPTEST=1 to run it here.
+	if os.Getenv("PCMI_FORCE_SSE_HTTPTEST") != "1" {
+		t.Setenv("PCMI_SKIP_SSE_HTTPTEST", "1")
+	}
+	for _, opt := range opts {
+		opt(t)
+	}
 
 	pool, err := pgxpool.New(t.Context(), dbURL)
 	if err != nil {
@@ -922,16 +934,16 @@ func TestIntegrationHTTP_ValidationErrors(t *testing.T) {
 }
 
 func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
-	// gofiber's adaptor.FiberApp copies streamed bodies through fasthttp in a way that
-	// can wedge httptest clients under -race on GitHub runners; integration-smoke and
-	// E2E jobs exercise the same /v1/events + memory.stored path on a listening server.
+	// Known issue: adaptor.FiberApp + httptest + long-lived SSE often never completes the
+	// GET handshake under -race (30s+ stall) and can wedge httptest.Server.Close until the
+	// package timeout (~10m). See docs/integration-testing.md.
+	//
+	// Coverage: scripts/ci_integration_smoke.sh (curl on a real listening server) and E2E.
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("SSE via adaptor+httptest is unreliable on GHA; covered by integration-smoke / E2E")
 	}
-	// Same failure mode locally with -race (headers stall, httptest.Close wedges). Scripts/ci_like_github.sh
-	// sets PCMI_SKIP_SSE_HTTPTEST=1 by default so Phase G bash smoke still covers SSE.
 	if os.Getenv("PCMI_SKIP_SSE_HTTPTEST") == "1" {
-		t.Skip("SSE httptest skipped (PCMI_SKIP_SSE_HTTPTEST=1); covered by scripts/ci_integration_smoke.sh")
+		t.Skip("SSE httptest skipped (PCMI_SKIP_SSE_HTTPTEST=1); see docs/integration-testing.md")
 	}
 
 	app, _, cleanup := newIntegrationHTTPApp(t)

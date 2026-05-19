@@ -2,27 +2,13 @@ package grpcserver
 
 import (
 	"net"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/config"
 )
 
-// PR #2 — verify that Start() respects cfg.GRPCPort and never reaches for
-// os.Getenv("GRPC_PORT") any more.
-//
-// We pick an ephemeral port (:0 → kernel chooses one), then probe a fixed
-// port choice by passing it through *config.Config. Real DB / Redis are not
-// touched: Start sets up the listener and the RPC handlers, but the test
-// closes the listener immediately to avoid leaking goroutines.
-//
-// The test cannot call grpcserver.Start directly because it needs a
-// pgxpool.Pool. Instead, it verifies the port-resolution helper inline by
-// duplicating the same logic shape — see TestStartReadsPortFromConfig for
-// the integration-level behavioural check, gated behind the integration
-// build tag in the future.
-
+// Verify ResolveGRPCPort honours cfg.GRPCPort and never reads GRPC_PORT from the environment.
 func TestPortResolutionFromConfig(t *testing.T) {
 	cases := []struct {
 		name string
@@ -37,29 +23,16 @@ func TestPortResolutionFromConfig(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := resolveGRPCPort(tc.cfg)
+			got := ResolveGRPCPort(tc.cfg)
 			if got != tc.want {
-				t.Fatalf("resolveGRPCPort(%+v): got %q want %q", tc.cfg, got, tc.want)
+				t.Fatalf("ResolveGRPCPort(%+v): got %q want %q", tc.cfg, got, tc.want)
 			}
 		})
 	}
 }
 
-// resolveGRPCPort mirrors the logic embedded in Start(). It exists as a
-// test-only helper so the behavioural contract can be locked down without
-// taking the cost of a full TCP listener spin-up.
-func resolveGRPCPort(cfg *config.Config) string {
-	port := "50051"
-	if cfg != nil && strings.TrimSpace(cfg.GRPCPort) != "" {
-		port = strings.TrimSpace(cfg.GRPCPort)
-	}
-	return port
-}
-
 // TestEphemeralListenerWorks is a smoke that "the listener creation path
-// used by Start works at all" — independent of database wiring. If this ever
-// fails on a runner, something is wrong at the network layer, not in our
-// code.
+// used by Start works at all" — independent of database wiring.
 func TestEphemeralListenerWorks(t *testing.T) {
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -67,7 +40,6 @@ func TestEphemeralListenerWorks(t *testing.T) {
 	}
 	defer func() { _ = lis.Close() }()
 
-	// Tiny sanity: a follow-up Dial on the bound address must succeed.
 	conn, err := net.DialTimeout("tcp", lis.Addr().String(), time.Second)
 	if err != nil {
 		t.Fatalf("dial bound port: %v", err)

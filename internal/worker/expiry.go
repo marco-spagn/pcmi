@@ -3,11 +3,10 @@ package worker
 import (
 	"context"
 	"log"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 // ExpiryWorker periodically soft-closes memories whose TTL has passed.
@@ -16,14 +15,12 @@ type ExpiryWorker struct {
 	interval time.Duration
 }
 
-func NewExpiryWorker(db *pgxpool.Pool) *ExpiryWorker {
-	secs := 300
-	if v := os.Getenv("EXPIRY_INTERVAL_SECS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			secs = n
-		}
+func NewExpiryWorker(db *pgxpool.Pool, cfg *config.Config) *ExpiryWorker {
+	interval := time.Hour
+	if cfg != nil && cfg.ExpiryIntervalSecs > 0 {
+		interval = time.Duration(cfg.ExpiryIntervalSecs) * time.Second
 	}
-	return &ExpiryWorker{db: db, interval: time.Duration(secs) * time.Second}
+	return &ExpiryWorker{db: db, interval: interval}
 }
 
 func (w *ExpiryWorker) Start(ctx context.Context) {
@@ -36,19 +33,24 @@ func (w *ExpiryWorker) Start(ctx context.Context) {
 			log.Println("🛑 Expiry worker stopped")
 			return
 		case <-ticker.C:
-			w.runOnce(ctx)
+			w.runOnce()
 		}
 	}
 }
 
-func (w *ExpiryWorker) runOnce(ctx context.Context) {
-	var n int
-	err := w.db.QueryRow(ctx, `SELECT expire_memory_entries()`).Scan(&n)
+func (w *ExpiryWorker) runOnce() {
+	ctx := context.Background()
+	tag, err := w.db.Exec(ctx, `
+		UPDATE memory_entries
+		SET valid_to = NOW()
+		WHERE valid_to IS NULL
+		  AND metadata ? 'ttl_seconds'
+		  AND created_at + (metadata->>'ttl_seconds')::int * interval '1 second' < NOW()`)
 	if err != nil {
-		log.Printf("❌ expiry job: %v", err)
+		log.Printf("❌ expiry error: %v", err)
 		return
 	}
-	if n > 0 {
-		log.Printf("⏰ Expired %d memories (TTL)", n)
+	if tag.RowsAffected() > 0 {
+		log.Printf("🕐 Expired %d memories", tag.RowsAffected())
 	}
 }

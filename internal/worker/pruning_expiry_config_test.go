@@ -3,24 +3,24 @@ package worker
 import (
 	"testing"
 	"time"
+
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
-func TestNewPruningWorker_envOverride(t *testing.T) {
-	t.Setenv("PRUNE_RETENTION_DAYS", "42")
-	t.Setenv("PRUNE_INTERVAL_SECS", "120")
-	w := NewPruningWorker(nil)
-	if w.retentionDays != 42 {
-		t.Fatalf("retention %d", w.retentionDays)
+func TestNewPruningWorker_configOverride(t *testing.T) {
+	cfg := &config.Config{PruneRetentionDays: 7, PruneIntervalSecs: 60}
+	w := NewPruningWorker(nil, cfg)
+	if w.retentionDays != 7 {
+		t.Fatalf("retention=%d", w.retentionDays)
 	}
-	if w.interval != 120*time.Second {
-		t.Fatalf("interval %s", w.interval)
+	if w.interval != time.Minute {
+		t.Fatalf("interval=%v", w.interval)
 	}
 }
 
-func TestNewExpiryWorker_envOverride(t *testing.T) {
-	t.Setenv("EXPIRY_INTERVAL_SECS", "99")
-	w := NewExpiryWorker(nil)
-	if w.interval != 99*time.Second {
-		t.Fatalf("interval %s", w.interval)
+func TestNewExpiryWorker_configOverride(t *testing.T) {
+	w := NewExpiryWorker(nil, &config.Config{ExpiryIntervalSecs: 90})
+	if w.interval != 90*time.Second {
+		t.Fatalf("interval=%v", w.interval)
 	}
 }

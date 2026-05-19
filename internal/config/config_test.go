@@ -26,7 +26,7 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.DistillationBatchSize != 10 {
 		t.Errorf("DistillationBatchSize default: got %d", cfg.DistillationBatchSize)
 	}
-	if cfg.RateLimitRPM != 60 {
+	if cfg.RateLimitRPM != 120 {
 		t.Errorf("RateLimitRPM default: got %d", cfg.RateLimitRPM)
 	}
 }

@@ -19,8 +19,12 @@ import (
 	"github.com/marco-spagn/pcmi/internal/service"
 )
 
+type eventIngester interface {
+	Ingest(ctx context.Context, req *model.IngestEventRequest, tenantID string) (*model.IngestEventResponse, error)
+}
+
 type EventsHandler struct {
-	ingest *service.EventService
+	ingest eventIngester
 }
 
 func NewEventsHandler(db *pgxpool.Pool) *EventsHandler {

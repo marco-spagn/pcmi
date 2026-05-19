@@ -6,13 +6,27 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
+// LinksReadDB is implemented by *pgxpool.Pool and pgxmock pools (List, Count).
+type LinksReadDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type LinksRepository struct {
 	w *pgxpool.Pool
-	r *pgxpool.Pool
+	r LinksReadDB
+}
+
+// NewLinksRepositoryReadOnly returns a LinksRepository backed only by read queries (List, Count).
+// The write pool is nil; Create must not be called.
+func NewLinksRepositoryReadOnly(read LinksReadDB) *LinksRepository {
+	return &LinksRepository{w: nil, r: read}
 }
 
 func NewLinksRepository(writePool, readPool *pgxpool.Pool) *LinksRepository {

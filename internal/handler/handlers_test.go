@@ -168,7 +168,7 @@ func TestEventsIngestHandlerBadJSON(t *testing.T) {
 
 func TestSummarizeHandlerBadJSON(t *testing.T) {
 	app := newTestApp("tid", "admin")
-	sh := NewSummarizeHandler(nil, nil)
+	sh := NewSummarizeHandler(nil, nil, nil)
 	app.Post("/v1/memories/summarize", sh.Post)
 
 	req := httptest.NewRequest("POST", "/v1/memories/summarize", strings.NewReader(`{bad`))

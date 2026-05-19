@@ -8,16 +8,20 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
-type DistilledHandler struct {
-	db *pgxpool.Pool
+type distilledQuerier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
-func NewDistilledHandler(db *pgxpool.Pool) *DistilledHandler {
+type DistilledHandler struct {
+	db distilledQuerier
+}
+
+func NewDistilledHandler(db distilledQuerier) *DistilledHandler {
 	return &DistilledHandler{db: db}
 }
 
@@ -58,14 +62,14 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	results := make([]map[string]any, 0)
 	for rows.Next() {
 		var (
-			id           int64
-			path         string
-			summary      string
-			insightsRaw  []byte
-			confidence   sql.NullFloat64
-			distilledAt  time.Time
-			sourceIDs    []int64
-			version      int
+			id          int64
+			path        string
+			summary     string
+			insightsRaw []byte
+			confidence  sql.NullFloat64
+			distilledAt time.Time
+			sourceIDs   []int64
+			version     int
 		)
 		if err := rows.Scan(&id, &path, &summary, &insightsRaw, &confidence, &distilledAt, &sourceIDs, &version); err != nil {
 			log.Printf("❌ [DISTILLED] scan: %v", err)

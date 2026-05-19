@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
@@ -41,7 +42,10 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000000"
 	setTenant(t, ctx, pool, tenantID)
 
-	t.Setenv("PCMI_ENCRYPTION_KEY", "01234567890123456789012345678901")
+	t.Cleanup(pcmicrypto.ResetKey)
+	if err := pcmicrypto.InitKey("01234567890123456789012345678901"); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("root.integration.%d", time.Now().UnixNano())
 	repo := NewMemoryRepository(pool, pool)

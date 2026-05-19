@@ -63,8 +63,7 @@ func TestSummarizeMethod_extractiveFallback(t *testing.T) {
 	repo := &summarizeMemRepoStub{
 		entries: []model.MemoryEntry{{ID: 1, Content: "hello world"}},
 	}
-	t.Setenv("OPENAI_API_KEY", "")
-	svc := NewSummarizeService(repo)
+	svc := NewSummarizeService(repo, nil)
 	res, err := svc.Summarize(context.Background(), &SummarizeRequest{PathPrefix: "root.x", Limit: 5}, "tid")
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +75,7 @@ func TestSummarizeMethod_extractiveFallback(t *testing.T) {
 
 func TestSummarizeMethod_emptyRetrieve(t *testing.T) {
 	repo := &summarizeMemRepoStub{entries: []model.MemoryEntry{}}
-	svc := NewSummarizeService(repo)
+	svc := NewSummarizeService(repo, nil)
 	res, err := svc.Summarize(context.Background(), &SummarizeRequest{}, "tid")
 	if err != nil || res.Method != "none" || res.Total != 0 {
 		t.Fatalf("%+v err=%v", res, err)
@@ -85,7 +84,7 @@ func TestSummarizeMethod_emptyRetrieve(t *testing.T) {
 
 func TestSummarizeMethod_retrieveErr(t *testing.T) {
 	repo := &summarizeMemRepoStub{err: errors.New("boom")}
-	svc := NewSummarizeService(repo)
+	svc := NewSummarizeService(repo, nil)
 	_, err := svc.Summarize(context.Background(), &SummarizeRequest{PathPrefix: "p"}, "tid")
 	if err == nil {
 		t.Fatal("expected error")
@@ -93,7 +92,7 @@ func TestSummarizeMethod_retrieveErr(t *testing.T) {
 }
 
 func TestNewSummarizeService(t *testing.T) {
-	if NewSummarizeService(&summarizeMemRepoStub{}) == nil {
+	if NewSummarizeService(&summarizeMemRepoStub{}, nil) == nil {
 		t.Fatal("nil svc")
 	}
 }
@@ -113,10 +112,13 @@ func TestLLMSummarize_httptest(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	t.Setenv("OPENAI_BASE_URL", srv.URL+"/v1")
-	t.Setenv("DISTILLATION_MODEL", "gpt-4o-mini")
+	svc := &SummarizeService{
+		openAIKey:     "sk-test",
+		openAIBaseURL: srv.URL + "/v1",
+		model:         "gpt-4o-mini",
+	}
 
-	got, err := llmSummarize(context.Background(), "sk-test", []string{"chunk-a", "chunk-b"}, "")
+	got, err := svc.llmSummarize(context.Background(), []string{"chunk-a", "chunk-b"}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +126,7 @@ func TestLLMSummarize_httptest(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 
-	got2, err := llmSummarize(context.Background(), "sk-test", []string{"x"}, "detailed")
+	got2, err := svc.llmSummarize(context.Background(), []string{"x"}, "detailed")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,10 +144,13 @@ func TestLLMSummarize_emptyChoices(t *testing.T) {
 	}))
 	t.Cleanup(srv.Close)
 
-	t.Setenv("OPENAI_BASE_URL", srv.URL+"/v1")
-	t.Setenv("DISTILLATION_MODEL", "gpt-4o-mini")
+	svc := &SummarizeService{
+		openAIKey:     "k",
+		openAIBaseURL: srv.URL + "/v1",
+		model:         "gpt-4o-mini",
+	}
 
-	if _, err := llmSummarize(context.Background(), "k", []string{"a"}, ""); err == nil {
+	if _, err := svc.llmSummarize(context.Background(), []string{"a"}, ""); err == nil {
 		t.Fatal("expected error for empty choices")
 	}
 }

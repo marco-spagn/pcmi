@@ -6,18 +6,20 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 func TestRateLimitMiddlewareBlocksBurst(t *testing.T) {
 	t.Setenv("RATE_LIMIT_DISABLED", "")
 	t.Setenv("RATE_LIMIT_RPM", "2")
+	cfg := config.Load()
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals(APIKeyIDContextKey, "test-key-id")
 		return c.Next()
 	})
-	app.Use(RateLimitMiddleware())
+	app.Use(RateLimitMiddleware(cfg))
 	app.Get("/ping", func(c *fiber.Ctx) error {
 		return c.SendString("ok")
 	})
@@ -48,13 +50,14 @@ func TestRateLimitMiddlewareBlocksBurst(t *testing.T) {
 
 func TestRateLimitDisabled(t *testing.T) {
 	t.Setenv("RATE_LIMIT_DISABLED", "true")
+	cfg := config.Load()
 
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals(APIKeyIDContextKey, "k")
 		return c.Next()
 	})
-	app.Use(RateLimitMiddleware())
+	app.Use(RateLimitMiddleware(cfg))
 	app.Get("/ping", func(c *fiber.Ctx) error { return c.SendString("ok") })
 
 	for i := 0; i < 5; i++ {

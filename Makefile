@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-all sdk-smoke distillation-e2e install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -163,9 +163,26 @@ lint: install-lint
 install-lint:
 	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-# Live gRPC + DB tests. Start API/worker and Postgres/Redis first (see scripts/ci_integration_smoke.sh).
+# gRPC integration (-tags=integration), split like CI:
+#
+#   bufconn — in-process server + miniredis; needs Postgres with migrations only (no TCP gRPC).
+#   live    — dials GRPC_HOST; needs pcmi-api running (docker compose or ./bin/pcmi-api).
+#
+# Full suite: make test-integration (bufconn first, then live + resolve-tenant).
+test-integration-bufconn:
+	DATABASE_URL=$(DATABASE_URL) go test -tags=integration -count=1 ./internal/grpc -run '^TestIntegrationBufconn_'
+
+test-integration-live:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
+		go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
+
 test-integration:
-	GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) DATABASE_URL=$(DATABASE_URL) \
+	@$(MAKE) test-integration-bufconn
+	@$(MAKE) test-integration-live
+
+# Historical alias: single go test line (same as bufconn + live + pcmiv1 empty).
+test-integration-all:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
 		go test -tags=integration -count=1 ./internal/grpc/...
 
 # HTTP SDK smoke (Python + TypeScript). Requires API on :8000 (see scripts/ci_integration_smoke.sh).
@@ -265,6 +282,17 @@ act-trivy:
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
 act-integration-smoke:
 	bash scripts/act_integration_smoke_host.sh
+
+# Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
+# go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
+# Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
+# Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github
+#             CI_LIKE_NO_RACE=1 — Phase F senza race (più veloce; CI GitHub usa ancora -race)
+#                             oppure CI_LIKE_GO_VERBOSE=1 per log dei singoli test
+# Solo smoke HTTP/gRPC/SDK: `make act-integration-smoke` oppure `./scripts/ci_like_github.sh --integration-smoke`
+ci-like-github:
+	@chmod +x scripts/ci_like_github.sh
+	bash scripts/ci_like_github.sh
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Helm — single packaged Kubernetes deployment (PR #4).

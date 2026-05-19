@@ -830,6 +830,11 @@ func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("SSE via adaptor+httptest is unreliable on GHA; covered by integration-smoke / E2E")
 	}
+	// Same failure mode locally with -race (headers stall, httptest.Close wedges). Scripts/ci_like_github.sh
+	// sets PCMI_SKIP_SSE_HTTPTEST=1 by default so Phase G bash smoke still covers SSE.
+	if os.Getenv("PCMI_SKIP_SSE_HTTPTEST") == "1" {
+		t.Skip("SSE httptest skipped (PCMI_SKIP_SSE_HTTPTEST=1); covered by scripts/ci_integration_smoke.sh")
+	}
 
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()

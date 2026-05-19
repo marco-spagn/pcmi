@@ -22,6 +22,9 @@ func SetWebhookNotifier(fn func(tenantID, eventType string, payload map[string]a
 
 // InitRedis initializes Redis connection
 func InitRedis(addr string) {
+	if RedisClient != nil {
+		_ = RedisClient.Close()
+	}
 	RedisClient = redis.NewClient(&redis.Options{
 		Addr:     addr,
 		Password: "",

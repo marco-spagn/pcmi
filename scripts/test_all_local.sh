@@ -166,7 +166,17 @@ go vet ./... && ok "go vet" || bad "go vet"
 
 section "A4 — unit tests (-race)"
 # Entire internal/ + cmd/ tree (matches CI coverage scope).
-go test -race -count=1 ./internal/... ./cmd/... && ok "race tests" || bad "race tests"
+# Race multiplies RAM: parallel package runs can swap/thrash on laptops and hit the
+# default per-package timeout (looks like internal/service "hangs" for ~10m). Fixes:
+#   PCMI_GO_TEST_P=1   — serialize packages (slower wall clock, stable memory)
+#   PCMI_GO_TEST_TIMEOUT=30m — raise Go's test timeout if needed
+GT_P=""
+if [ -n "${PCMI_GO_TEST_P:-}" ]; then
+	GT_P="-p ${PCMI_GO_TEST_P}"
+fi
+GT_TIMEOUT="${PCMI_GO_TEST_TIMEOUT:-30m}"
+go test -race -count=1 $GT_P -timeout "$GT_TIMEOUT" ./internal/... ./cmd/... \
+	&& ok "race tests" || bad "race tests"
 
 section "A5 — config / .env.example sync"
 go test -count=1 ./internal/config/... -run TestEnvExampleStaysInSyncWithConfig \

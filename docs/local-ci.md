@@ -40,6 +40,7 @@ No further configuration needed.
 | Run `govulncheck` supply-chain scan | `make act-vuln` |
 | Run Trivy image scan (API + worker) | `make act-trivy` |
 | Run integration smoke (compose + **host** bins, same scripts as CI) | `make act-integration-smoke` |
+| **Full CI parity on host** (lint/vuln/helm opt., `go test -race -tags=integration`, coverage gate, then smoke) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
 | Run a job by name | `make act-job JOB=integration-smoke` |
 | Generate coverage profile only | `make test-cover` |
 | Enforce coverage thresholds (after `test-cover`) | `make cover-check` |

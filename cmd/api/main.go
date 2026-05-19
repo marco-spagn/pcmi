@@ -16,8 +16,8 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/config"
+	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -80,9 +80,9 @@ func main() {
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
 	repo := repository.NewMemoryRepository(db, pools.Read)
-	var embed embedding.Provider
-	if cfg.OpenAIAPIKey != "" {
-		embed = embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
+	embed, err := embedding.NewFromConfig(cfg)
+	if err != nil {
+		log.Fatalf("❌ FATAL embedding provider: %v", err)
 	}
 	memSvc := service.NewMemoryService(repo, embed)
 
@@ -102,7 +102,9 @@ func main() {
 	)))
 
 	handler.RegisterReadyRoutes(app, db)
-	handler.SetupMemoryRoutes(app, db, pools.Read, cfg)
+	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
+		log.Fatalf("❌ FATAL memory routes: %v", err)
+	}
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {

@@ -156,6 +156,7 @@ make test-integration-live    # gRPC su TCP (API già avviata)
 make test-integration           # bufconn + live
 make sdk-smoke         # smoke Python + TypeScript
 make ci-like-github    # come la CI (job go + integration-smoke); vedi anche docs/local-ci.md
+make test-integration-handler  # handler -tags=integration (vedi docs/integration-testing.md per SSE)
 ```
 
 ### 7. Distillation pipeline end-to-end

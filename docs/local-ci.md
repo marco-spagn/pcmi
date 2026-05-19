@@ -118,6 +118,19 @@ container around so subsequent runs start in < 5 seconds.
 act -j go --rebuild
 ```
 
+**`go test -tags=integration ./internal/handler/...` hangs ~10 minutes then FAIL**
+
+The package times out on `TestIntegrationHTTP_EventStreamMemoryStored` (SSE over
+`httptest` + Fiber `adaptor`). Use:
+
+```bash
+PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
+```
+
+`make ci-like-github` sets this in Phase F; `newIntegrationHTTPApp` sets it by
+default unless `PCMI_FORCE_SSE_HTTPTEST=1`. Full write-up:
+[integration-testing.md](integration-testing.md).
+
 **`Bind for 0.0.0.0:5432 failed: port is already allocated`**
 `act` always starts the `integration-smoke` service containers (Postgres/Redis)
 on the host **before** any step runs, even when the job is a no-op under `ACT`.

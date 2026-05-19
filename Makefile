@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-all sdk-smoke distillation-e2e install-lint ci-like-github \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all sdk-smoke distillation-e2e install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -175,6 +175,11 @@ test-integration-bufconn:
 test-integration-live:
 	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
 		go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
+
+# HTTP handler integration tests (Postgres + miniredis). Skips flaky SSE httptest by default — see docs/integration-testing.md.
+test-integration-handler:
+	PCMI_SKIP_SSE_HTTPTEST=1 DATABASE_URL=$(DATABASE_URL) \
+		go test -tags=integration -count=1 ./internal/handler/...
 
 test-integration:
 	@$(MAKE) test-integration-bufconn

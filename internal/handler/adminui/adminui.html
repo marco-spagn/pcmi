@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PCMI Admin</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0f1419;
+      color: #d4d7dc;
+    }
+    header {
+      background: #1a1f24;
+      border-bottom: 1px solid #2a2f34;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header h1 { margin: 0; font-size: 18px; color: #fff; }
+    header .badge {
+      background: #2a8c47;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    main {
+      max-width: 1100px;
+      margin: 24px auto;
+      padding: 0 32px;
+    }
+    section { margin-bottom: 32px; }
+    h2 { margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a93a0; }
+    .card {
+      background: #1a1f24;
+      border: 1px solid #2a2f34;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .stat { background: #0f1419; padding: 16px; border-radius: 6px; border: 1px solid #2a2f34; }
+    .stat .label { font-size: 11px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat .value { font-size: 26px; color: #fff; font-weight: 600; margin-top: 4px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #2a2f34; }
+    th { font-size: 11px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
+    button {
+      background: #2a8c47;
+      color: #fff;
+      border: 0;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background: #36a85b; }
+    input, select {
+      background: #0f1419;
+      border: 1px solid #2a2f34;
+      color: #d4d7dc;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .error { background: #5a2a2a; color: #fff; padding: 12px; border-radius: 4px; margin-bottom: 16px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .pill-admin { background: #5a3a8c; color: #fff; }
+    .pill-write { background: #2a6a8c; color: #fff; }
+    .pill-readonly { background: #4a5a6a; color: #fff; }
+    code { background: #0f1419; padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; }
+    .note { color: #8a93a0; font-size: 12px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PCMI Admin</h1>
+    <span class="badge" id="version">v?.?.?</span>
+    <span style="margin-left:auto" class="note">Authenticated as <code id="role">…</code></span>
+  </header>
+
+  <main>
+    <div id="error" class="error" style="display:none"></div>
+
+    <section>
+      <h2>Health</h2>
+      <div class="card">
+        <div class="grid">
+          <div class="stat"><div class="label">API</div><div class="value" id="api-status">…</div></div>
+          <div class="stat"><div class="label">PostgreSQL</div><div class="value" id="pg-status">…</div></div>
+          <div class="stat"><div class="label">Redis</div><div class="value" id="redis-status">…</div></div>
+          <div class="stat"><div class="label">Version</div><div class="value" id="version-large">…</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Tenants</h2>
+      <div class="card">
+        <div class="row">
+          <input id="tenant-slug" placeholder="slug">
+          <input id="tenant-name" placeholder="name">
+          <button id="create-tenant">Create</button>
+        </div>
+        <table>
+          <thead><tr><th>id</th><th>slug</th><th>name</th><th>created_at</th></tr></thead>
+          <tbody id="tenants-tbody"><tr><td colspan="4" class="note">loading…</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>API keys</h2>
+      <div class="card">
+        <div class="row">
+          <select id="key-tenant"></select>
+          <input id="key-name" placeholder="key label">
+          <select id="key-role">
+            <option value="readonly">readonly</option>
+            <option value="write">write</option>
+            <option value="admin">admin</option>
+          </select>
+          <button id="create-key">Mint</button>
+        </div>
+        <table>
+          <thead><tr><th>id</th><th>tenant</th><th>name</th><th>role</th><th>created</th></tr></thead>
+          <tbody id="keys-tbody"><tr><td colspan="5" class="note">select a tenant above</td></tr></tbody>
+        </table>
+        <p class="note">⚠️ Newly minted keys are shown ONCE in an alert; copy them immediately. PCMI stores only the sha256 hash.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Observability</h2>
+      <div class="card">
+        <p class="note">Grafana dashboard JSON: <code>deploy/grafana/pcmi-dashboard.json</code></p>
+        <p class="note">Prometheus alerts: <code>deploy/prometheus/alerts.yaml</code></p>
+        <p class="note">Prometheus scrape URL: <code>/metrics</code> (unauthenticated)</p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // PCMI Admin UI — vanilla JS, no build step.
+    // Talks to /v1/admin/* through the same X-API-Key that authenticated
+    // this page load. The cookie/header-pinning is handled by the Fiber
+    // handler at /v1/admin/ui (see internal/handler/adminui/adminui.go).
+
+    const apiKey = document.cookie.split(";").map(s => s.trim()).find(s => s.startsWith("X-API-Key="))?.split("=")[1]
+      || new URLSearchParams(location.search).get("key")
+      || prompt("X-API-Key:");
+
+    const headers = { "X-API-Key": apiKey, "Content-Type": "application/json" };
+
+    function showError(msg) {
+      const el = document.getElementById("error");
+      el.textContent = msg;
+      el.style.display = "block";
+      setTimeout(() => { el.style.display = "none"; }, 5000);
+    }
+
+    async function api(path, opts = {}) {
+      const res = await fetch(path, { ...opts, headers });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = (await res.json()).error || ""; } catch (_) {}
+        throw new Error(`${path}: ${res.status} ${detail}`);
+      }
+      return res.json();
+    }
+
+    async function refreshHealth() {
+      try {
+        const r = await api("/v1/ready");
+        document.getElementById("api-status").textContent = r.status === "ready" ? "✓ ready" : "✗ " + r.status;
+        document.getElementById("pg-status").textContent = r.database_ok ? "✓ ok" : "✗ down";
+        document.getElementById("redis-status").textContent = r.redis_ok ? "✓ ok" : "✗ down";
+        document.getElementById("version").textContent = r.version;
+        document.getElementById("version-large").textContent = r.version;
+      } catch (e) { showError(e.message); }
+    }
+
+    async function refreshTenants() {
+      try {
+        const r = await api("/v1/admin/tenants");
+        const tbody = document.getElementById("tenants-tbody");
+        const sel = document.getElementById("key-tenant");
+        tbody.innerHTML = "";
+        sel.innerHTML = "";
+        for (const t of r.tenants || r) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td><code>${t.id}</code></td><td>${t.slug}</td><td>${t.name}</td><td class="note">${t.created_at || ""}</td>`;
+          tbody.appendChild(tr);
+          const opt = document.createElement("option");
+          opt.value = t.id; opt.textContent = `${t.slug} (${t.id.slice(0, 8)})`;
+          sel.appendChild(opt);
+        }
+      } catch (e) { showError(e.message); }
+    }
+
+    async function refreshKeys() {
+      const tenantID = document.getElementById("key-tenant").value;
+      if (!tenantID) return;
+      try {
+        const r = await api(`/v1/admin/api-keys?tenant_id=${encodeURIComponent(tenantID)}`);
+        const tbody = document.getElementById("keys-tbody");
+        tbody.innerHTML = "";
+        for (const k of (r.api_keys || r.keys || r)) {
+          const tr = document.createElement("tr");
+          const role = k.role || "readonly";
+          tr.innerHTML = `<td><code>${k.id.slice(0,8)}…</code></td><td>${k.tenant_id?.slice(0,8) || ""}…</td><td>${k.name || ""}</td><td><span class="pill pill-${role}">${role}</span></td><td class="note">${k.created_at || ""}</td>`;
+          tbody.appendChild(tr);
+        }
+      } catch (e) { showError(e.message); }
+    }
+
+    document.getElementById("create-tenant").addEventListener("click", async () => {
+      const slug = document.getElementById("tenant-slug").value.trim();
+      const name = document.getElementById("tenant-name").value.trim();
+      if (!slug || !name) { showError("slug and name are required"); return; }
+      try {
+        await api("/v1/admin/tenants", { method: "POST", body: JSON.stringify({ slug, name }) });
+        document.getElementById("tenant-slug").value = "";
+        document.getElementById("tenant-name").value = "";
+        await refreshTenants();
+      } catch (e) { showError(e.message); }
+    });
+
+    document.getElementById("create-key").addEventListener("click", async () => {
+      const tenant_id = document.getElementById("key-tenant").value;
+      const name = document.getElementById("key-name").value.trim();
+      const role = document.getElementById("key-role").value;
+      if (!tenant_id) { showError("pick a tenant first"); return; }
+      try {
+        const r = await api("/v1/admin/api-keys", { method: "POST", body: JSON.stringify({ tenant_id, name, role }) });
+        alert(`API key minted ONCE — copy now:\n\n${r.api_key}\n\n(server only stores the hash; you cannot retrieve it again.)`);
+        document.getElementById("key-name").value = "";
+        await refreshKeys();
+      } catch (e) { showError(e.message); }
+    });
+
+    document.getElementById("key-tenant").addEventListener("change", refreshKeys);
+
+    document.getElementById("role").textContent = "admin (UI requires admin role)";
+    refreshHealth();
+    refreshTenants();
+  </script>
+</body>
+</html>

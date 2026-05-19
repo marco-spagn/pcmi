@@ -1,6 +1,7 @@
 # PCMI – Persistent Cognitive Memory Infrastructure
 
 [![CI](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
 [![Go Version](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
@@ -16,6 +17,12 @@
 > `.github/workflows/ci.yml` (`COVERAGE_MIN_TOTAL`, currently **39%**). The
 > full per-package table is attached to every PR as a sticky comment and to
 > each `go` job's Summary panel.
+>
+> **CodeQL.** The workflow runs queries on every trigger; uploading SARIF to
+> *Security → Code scanning* is **off by default** so forks/private repos
+> without GHAS do not fail on HTTP 403. After enabling Code scanning in repo
+> settings, add Actions variable `CODEQL_UPLOAD_SARIF` = `true` (see comment in
+> `.github/workflows/codeql.yml`) to push findings to GitHub.
 
 La memoria vive **fuori** dagli agenti. Gli agenti sono effimeri; questo strato è persistente, indipendente dal runtime e raggiungibile via **HTTP** e **gRPC**.
 
@@ -59,16 +66,17 @@ Chiave di sviluppo (migration `003`): **`testkey123`** (ruolo `admin`).
 
 ### Test locale completo
 
-Un solo script copre audit `os.Getenv`, unit test con `-race`, stack Docker, smoke HTTP/gRPC, summarize, webhook, cifratura, rate limit, porta gRPC da config, worker senza OpenAI e (opzionale) distillation/OTLP:
+Un solo script replica anche i job CI rilevanti (**golangci-lint**, **govulncheck**, **helm lint --strict**, **kubeconform**, test `internal/deploy` per workflow CodeQL / chart) oltre ad audit `os.Getenv`, `go test -race` su tutto `internal/` + `cmd/`, stack Docker, smoke HTTP/gRPC, summarize, webhook, cifratura, rate limit, porta gRPC da config, worker senza OpenAI e (opzionale) distillation/OTLP:
 
 ```bash
 make test-all-local          # suite completa (~15–25 min al primo build)
-make test-all-local-quick    # solo controlli statici/unit (~3 min)
+make test-all-local-quick    # static + unit + CI parity (~5–10 min; govulncheck può essere ⊘ se offline)
 make test-all-local-host     # completa + API avviata con go run su host
 ```
 
 Equivalente: `./scripts/test_all_local.sh` (`--quick`, `--with-host`, `--help`).  
-Opzioni: `KEEP_STACK=1` (lascia i container attivi), `RUN_COVERAGE=1`, `SKIP_DOCKER=1`.  
+Controlli solo artefatti (workflow GitHub, compose, OpenAPI, Helm, script shell, proto): `make deploy-structural-test`.  
+Opzioni utili: `KEEP_STACK=1`, `RUN_COVERAGE=1`, `SKIP_DOCKER=1`, `SKIP_HELM_KUBECONFORM=1`, `SKIP_GOVULNCHECK=1`, `REQUIRE_GOVULNCHECK=1` (fallisce se govulncheck non è ok, come in CI). Se **A4** (test `-race` su tutto `./internal/...`) va in timeout o sembra bloccarsi per molti minuti su un laptop, prova `PCMI_GO_TEST_P=1` (serializza i package e riduce picchi di RAM) oppure alza `PCMI_GO_TEST_TIMEOUT` (default nello script **30m**). Helm/kubeconform usano il binario sul PATH oppure Docker (`alpine/helm`, `ghcr.io/yannh/kubeconform`).  
 Il file `.env` viene salvato in `.env.pcmi-test-backup` e ripristinato a fine script.
 
 CI su GitHub: includi `CI_start` nel messaggio di commit oppure `gh workflow run CI`.
@@ -117,7 +125,14 @@ asyncio.run(main())
 - Tabella RPC ↔ REST: [docs/grpc-vs-http.md](docs/grpc-vs-http.md)
 
 ```bash
-make test-integration   # API+gRPC+Postgres attivi
+# Bufconn: solo Postgres con migrazioni (nessun server TCP)
+make test-integration-bufconn
+
+# Live: serve pcmi-api in ascolto su GRPC_HOST (compose o binario)
+make test-integration-live
+
+# Entrambi
+make test-integration
 ```
 
 ### 5. Eventi in tempo reale
@@ -136,8 +151,11 @@ curl -sN http://localhost:8000/v1/events -H "X-API-Key: testkey123" -H "Accept: 
 ```bash
 make test              # unit test Go
 make lint              # golangci-lint
-make test-integration  # gRPC integration (stack up)
+make test-integration-bufconn   # gRPC bufconn (solo DB migrato)
+make test-integration-live    # gRPC su TCP (API già avviata)
+make test-integration           # bufconn + live
 make sdk-smoke         # smoke Python + TypeScript
+make ci-like-github    # come la CI (job go + integration-smoke); vedi anche docs/local-ci.md
 ```
 
 ### 7. Distillation pipeline end-to-end

@@ -106,6 +106,41 @@ jobs:
       - name: govulncheck
         run: govulncheck ./...
 
+  helm-lint:
+    name: Helm chart lint
+    needs: ci-gate
+    if: needs.ci-gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: helm lint --strict
+        run: helm lint deploy/helm/pcmi --strict
+
+      - name: helm template (renders default values)
+        run: helm template pcmi deploy/helm/pcmi > /tmp/pcmi-rendered.yaml
+
+      # Catch malformed manifests before they reach a cluster. kubeval
+      # vendors Kubernetes OpenAPI schemas so we can validate offline.
+      - name: Install kubeconform
+        run: |
+          curl -sSLo kubeconform.tar.gz \
+            "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz"
+          tar -xzf kubeconform.tar.gz kubeconform
+          sudo mv kubeconform /usr/local/bin/
+
+      - name: kubeconform validate
+        run: |
+          kubeconform -summary -strict -schema-location default \
+            /tmp/pcmi-rendered.yaml
+
   trivy-images:
     name: Trivy image scan (API + Worker)
     needs: ci-gate

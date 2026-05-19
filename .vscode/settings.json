@@ -1,0 +1,17 @@
+{
+  // Smoke venvs include Temporal SDK protos without full transitive tree → ignore for Buf/protobuf LS.
+  "files.exclude": {
+    "**/.venv_smoke": true,
+    "**/.venv_e2e": true
+  },
+  "files.watcherExclude": {
+    "**/.venv_smoke/**": true,
+    "**/.venv_e2e/**": true,
+    "**/site-packages/**": true
+  },
+  "search.exclude": {
+    "**/.venv_smoke/**": true,
+    "**/.venv_e2e/**": true,
+    "**/site-packages/**": true
+  }
+}

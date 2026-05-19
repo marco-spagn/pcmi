@@ -1,0 +1,114 @@
+# PCMI Helm values — defaults.
+#
+# Every key documented below maps onto a field in internal/config/config.go.
+# Override per-environment via values-prod.yaml / values-staging.yaml and pass
+# with `helm install pcmi ./deploy/helm/pcmi -f values-prod.yaml`.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  api:
+    repository: pcmi-api
+    tag: ""              # defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+  worker:
+    repository: pcmi-worker
+    tag: ""
+    pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+api:
+  enabled: true
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    httpPort: 80
+    grpcPort: 50051
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+
+worker:
+  enabled: true
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
+    prometheus.io/path: "/metrics"
+
+# Horizontal Pod Autoscaler for the API. Worker autoscaling is opinionated
+# (LLM-bound, not CPU-bound) and intentionally not exposed here.
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# PodDisruptionBudget — protects rolling-update / node-drain availability.
+pdb:
+  enabled: true
+  minAvailable: 1
+
+# ConfigMap-driven runtime knobs. Every key here lands in internal/config/Load().
+# Secrets (OPENAI_API_KEY, PCMI_ENCRYPTION_KEY, ADMIN_API_KEY, DATABASE_URL with
+# password) MUST go in the Secret, not here.
+config:
+  API_PORT: "8000"
+  GRPC_PORT: "50051"
+  REDIS_ADDR: "redis:6379"
+  EMBEDDING_MODEL: "text-embedding-3-small"
+  DISTILLATION_MODEL: "gpt-4o-mini"
+  DISTILLATION_BATCH_SIZE: "10"
+  DISTILLATION_CONCURRENCY: "4"
+  PRUNE_RETENTION_DAYS: "30"
+  PRUNE_INTERVAL_SECS: "21600"
+  EXPIRY_INTERVAL_SECS: "3600"
+  WEBHOOK_MAX_ATTEMPTS: "5"
+  RATE_LIMIT_DISABLED: "false"
+  RATE_LIMIT_RPM: "120"
+  RATE_LIMIT_RPM_READONLY: "200"
+  RATE_LIMIT_RPM_WRITE: "100"
+  RATE_LIMIT_RPM_ADMIN: "30"
+
+# Secret values — `helm install` will create the Secret object, but rendering
+# is opt-in: pass them via `--set-string secrets.OPENAI_API_KEY=$KEY` or via
+# a sealed-secrets / external-secrets operator. Leaving them empty produces
+# an empty Secret (the API will surface "ADMIN_API_KEY is required" /
+# "DATABASE_URL is required" via config.Validate, which is the desired
+# fail-fast behaviour).
+secrets:
+  DATABASE_URL: ""
+  DATABASE_READ_URL: ""
+  ADMIN_API_KEY: ""
+  OPENAI_API_KEY: ""
+  PCMI_ENCRYPTION_KEY: ""
+
+# TLS for both Fiber HTTP and gRPC (PR #3). When enabled, the chart mounts
+# tlsSecretName into /etc/pcmi/tls and sets PCMI_TLS_CERT / PCMI_TLS_KEY in
+# the Secret. Disabled by default — typical PCMI deploys terminate TLS at
+# the load balancer / ingress.
+tls:
+  enabled: false
+  secretName: pcmi-tls
+
+# OpenTelemetry — leave endpoint empty to disable tracing.
+otel:
+  endpoint: ""
+  serviceName: pcmi-api

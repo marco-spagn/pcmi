@@ -1,7 +1,8 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-all sdk-smoke distillation-e2e install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host
+        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        helm-lint helm-template helm-package
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -123,6 +124,10 @@ verify-branch: test-all-local-quick
 verify-branch-full: test-all-local
 test-branch-manual: test-all-local
 
+# Workflows, compose, openapi, Helm chart YAML/JSON, scripts bash -n, proto markers (no cluster).
+deploy-structural-test:
+	go test -race -count=1 ./internal/deploy/...
+
 # Unit tests (default; integration tests use build tag "integration").
 test:
 	go test ./...
@@ -158,9 +163,26 @@ lint: install-lint
 install-lint:
 	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-# Live gRPC + DB tests. Start API/worker and Postgres/Redis first (see scripts/ci_integration_smoke.sh).
+# gRPC integration (-tags=integration), split like CI:
+#
+#   bufconn — in-process server + miniredis; needs Postgres with migrations only (no TCP gRPC).
+#   live    — dials GRPC_HOST; needs pcmi-api running (docker compose or ./bin/pcmi-api).
+#
+# Full suite: make test-integration (bufconn first, then live + resolve-tenant).
+test-integration-bufconn:
+	DATABASE_URL=$(DATABASE_URL) go test -tags=integration -count=1 ./internal/grpc -run '^TestIntegrationBufconn_'
+
+test-integration-live:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
+		go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
+
 test-integration:
-	GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) DATABASE_URL=$(DATABASE_URL) \
+	@$(MAKE) test-integration-bufconn
+	@$(MAKE) test-integration-live
+
+# Historical alias: single go test line (same as bufconn + live + pcmiv1 empty).
+test-integration-all:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
 		go test -tags=integration -count=1 ./internal/grpc/...
 
 # HTTP SDK smoke (Python + TypeScript). Requires API on :8000 (see scripts/ci_integration_smoke.sh).
@@ -260,3 +282,36 @@ act-trivy:
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
 act-integration-smoke:
 	bash scripts/act_integration_smoke_host.sh
+
+# Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
+# go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
+# Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
+# Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github
+#             CI_LIKE_NO_RACE=1 — Phase F senza race (più veloce; CI GitHub usa ancora -race)
+#                             oppure CI_LIKE_GO_VERBOSE=1 per log dei singoli test
+# Solo smoke HTTP/gRPC/SDK: `make act-integration-smoke` oppure `./scripts/ci_like_github.sh --integration-smoke`
+ci-like-github:
+	@chmod +x scripts/ci_like_github.sh
+	bash scripts/ci_like_github.sh
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Helm — single packaged Kubernetes deployment (PR #4).
+# Requires: helm v3.13+ on PATH. CI installs it via azure/setup-helm.
+# ───────────────────────────────────────────────────────────────────────────────
+
+HELM_CHART_DIR ?= deploy/helm/pcmi
+
+# `helm lint` exercises Chart.yaml validity, values.yaml schema (if present),
+# and template rendering against the default values. Fails on `--strict`
+# warnings (missing required keys, invalid label keys, etc.).
+helm-lint:
+	helm lint $(HELM_CHART_DIR) --strict
+
+# Render every template to stdout — useful to eyeball before committing.
+# Pipe to `| kubectl apply --dry-run=client -f -` for a server-side validation.
+helm-template:
+	helm template pcmi $(HELM_CHART_DIR)
+
+# Build a redistributable tarball (deploy/helm/pcmi-<version>.tgz).
+helm-package:
+	helm package $(HELM_CHART_DIR) --destination deploy/helm

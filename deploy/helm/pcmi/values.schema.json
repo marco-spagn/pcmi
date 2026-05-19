@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/marco-spagn/pcmi/deploy/helm/pcmi/values.schema.json",
+  "title": "PCMI Helm chart values",
+  "description": "Helm v3.14+ validates values.yaml against this schema before rendering. Blocks misconfigurations (typos, wrong types, missing required keys) at `helm install` time, not at first 503 from the API.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["image", "api", "worker", "config", "secrets", "tls"],
+  "properties": {
+    "nameOverride": { "type": "string" },
+    "fullnameOverride": { "type": "string" },
+
+    "image": {
+      "type": "object",
+      "required": ["api", "worker"],
+      "properties": {
+        "api":    { "$ref": "#/$defs/imageSpec" },
+        "worker": { "$ref": "#/$defs/imageSpec" }
+      }
+    },
+
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": { "name": { "type": "string" } }
+      }
+    },
+
+    "api": {
+      "type": "object",
+      "required": ["enabled", "replicaCount", "service"],
+      "properties": {
+        "enabled":       { "type": "boolean" },
+        "replicaCount":  { "type": "integer", "minimum": 0 },
+        "service": {
+          "type": "object",
+          "required": ["type", "httpPort", "grpcPort"],
+          "properties": {
+            "type":     { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] },
+            "httpPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+            "grpcPort": { "type": "integer", "minimum": 1, "maximum": 65535 }
+          }
+        },
+        "resources":      { "$ref": "#/$defs/resources" },
+        "podAnnotations": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+
+    "worker": {
+      "type": "object",
+      "required": ["enabled", "replicaCount"],
+      "properties": {
+        "enabled":      { "type": "boolean" },
+        "replicaCount": { "type": "integer", "minimum": 0 },
+        "resources":      { "$ref": "#/$defs/resources" },
+        "podAnnotations": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    },
+
+    "autoscaling": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled":        { "type": "boolean" },
+        "minReplicas":    { "type": "integer", "minimum": 1 },
+        "maxReplicas":    { "type": "integer", "minimum": 1 },
+        "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+
+    "pdb": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled":      { "type": "boolean" },
+        "minAvailable": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "string", "pattern": "^[0-9]+%$" }
+          ]
+        }
+      }
+    },
+
+    "config": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Non-secret PCMI runtime knobs. Every key here lands in internal/config/config.go:Load(). String type only — k8s ConfigMap data is always string."
+    },
+
+    "secrets": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Secret values rendered into a k8s Secret. Use ExternalSecrets / SealedSecrets in real deployments; do NOT commit values here."
+    },
+
+    "tls": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled":    { "type": "boolean" },
+        "secretName": { "type": "string" }
+      },
+      "if":   { "properties": { "enabled": { "const": true } } },
+      "then": { "required": ["secretName"] }
+    },
+
+    "otel": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "OTLP HTTP/gRPC base URL; empty string disables OTEL env injection in the chart.",
+          "anyOf": [
+            { "type": "string", "maxLength": 0 },
+            { "type": "string", "minLength": 1, "format": "uri" }
+          ]
+        },
+        "serviceName": { "type": "string" }
+      }
+    }
+  },
+
+  "$defs": {
+    "imageSpec": {
+      "type": "object",
+      "required": ["repository", "pullPolicy"],
+      "properties": {
+        "repository": { "type": "string", "minLength": 1 },
+        "tag":        { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "resources": {
+      "type": "object",
+      "properties": {
+        "requests": {
+          "type": "object",
+          "properties": {
+            "cpu":    { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "cpu":    { "type": "string" },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

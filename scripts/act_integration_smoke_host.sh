@@ -29,6 +29,9 @@ cd "$ROOT"
 DOCKER_COMPOSE="${DOCKER_COMPOSE:-docker compose}"
 FRESH="${ACT_SMOKE_FRESH_DB:-1}"
 
+# shellcheck source=compose_postgres_wait.inc.sh
+source "$ROOT/scripts/compose_postgres_wait.inc.sh"
+
 export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.33.0}"
 export EXPECT_API_VERSION="${EXPECT_API_VERSION:-v1.33.0}"
 export PGHOST="${PGHOST:-127.0.0.1}"
@@ -45,53 +48,9 @@ echo "[act-integration-smoke] starting postgres + redis"
 # binds the published port — host/API probes then race and fail.
 $DOCKER_COMPOSE up -d postgres redis
 
-# Wait for Postgres inside the container. Do not use host `psql` here (often missing on macOS).
-# When we just wiped the volume (FRESH=1), wait for docker-entrypoint initdb to finish
-# — the official image logs "PostgreSQL init process complete" right before the final
-# restart. Otherwise (warm volume) poll until psql succeeds.
-wait_until_log() {
-  local needle="$1"
-  local max="${2:-360}"
-  local i=0
-  while [ "$i" -lt "$max" ]; do
-    if $DOCKER_COMPOSE logs postgres 2>&1 | grep -Fq "$needle"; then
-      return 0
-    fi
-    sleep 1
-    i=$((i + 1))
-  done
-  return 1
-}
-
-compose_psql_ok() {
-  $DOCKER_COMPOSE exec -T postgres psql -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1
-}
-
-wait_postgres_ready() {
-  local max="${1:-360}"
-  local i=0
-
-  if [ "${FRESH:-0}" = "1" ]; then
-    echo "[act-integration-smoke] waiting for docker-entrypoint initdb to finish (log marker)…"
-    if ! wait_until_log "PostgreSQL init process complete" "$max"; then
-      return 1
-    fi
-    sleep 2
-  fi
-
-  echo "[act-integration-smoke] waiting for live Postgres inside container…"
-  while [ "$i" -lt "$max" ]; do
-    if compose_psql_ok; then
-      return 0
-    fi
-    sleep 1
-    i=$((i + 1))
-  done
-  return 1
-}
-
+COMPOSE_POSTGRES_WAIT_LABEL="[act-integration-smoke]"
 echo "[act-integration-smoke] waiting for Postgres (up to ~360s)…"
-if ! wait_postgres_ready 360; then
+if ! compose_wait_postgres_ready 360; then
   echo "Postgres did not become reachable — docker compose logs postgres: "
   $DOCKER_COMPOSE logs --tail=120 postgres || true
   exit 1

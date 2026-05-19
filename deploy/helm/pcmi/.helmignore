@@ -1,0 +1,15 @@
+# helm package: skip developer/system noise
+.DS_Store
+.git/
+.gitignore
+.idea/
+.vscode/
+*.swp
+*.bak
+*.tmp
+*.orig
+*~
+.project
+.idea/
+# Don't ship example-environment values
+values-*.yaml.example

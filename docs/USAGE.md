@@ -111,9 +111,15 @@ Host: `localhost:50051` (env `GRPC_PORT`). API key nel messaggio o metadata `x-a
 # Health (senza chiave)
 grpcurl -plaintext localhost:50051 pcmi.v1.MemoryService/Health
 
-# Con go install e codegen locale, oppure test integrazione:
+# Test integrazione (vedi Makefile): bufconn = solo DB; live = API su GRPC_HOST
+make test-integration-bufconn
+make test-integration-live   # richiede API avviata
+
+# Oppure equivalente manuale:
+DATABASE_URL=postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable \
+  make test-integration-bufconn
 GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
-  go test -tags=integration -count=1 ./internal/grpc/...
+  go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC'
 ```
 
 Esempio concettuale (Go):
@@ -177,7 +183,11 @@ Usa `smoke.mts` / `npm run smoke` — **non** heredoc `tsx` su Node 23 (vedi [sd
 |--------|-------------|
 | `make test` | Unit test Go |
 | `make lint` | golangci-lint v2 |
-| `make test-integration` | Test gRPC live (API+Postgres) |
+| `make test-integration` | Bufconn (DB migrato) + test TCP su API già avviata |
+| `make test-integration-bufconn` | Solo test in-process (Postgres + migrazioni) |
+| `make test-integration-live` | Solo dial `GRPC_HOST` (serve `pcmi-api`) |
+| `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
+| `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |
 
 ---

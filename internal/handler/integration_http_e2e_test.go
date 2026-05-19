@@ -103,7 +103,9 @@ func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
 	app.Use(middleware.NewAuditMiddleware(pool).Middleware())
 
 	RegisterReadyRoutes(app, pool)
-	SetupMemoryRoutes(app, pool, pool, cfg)
+	if err := SetupMemoryRoutes(app, pool, pool, cfg); err != nil {
+		t.Fatal(err)
+	}
 	SetupAdminRoutes(app, pool)
 
 	cleanup := func() {

@@ -84,8 +84,11 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	if cfg.OpenAIAPIKey != "" {
-		prov := embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
+	prov, err := embedding.NewFromConfig(cfg)
+	if err != nil {
+		log.Fatalf("❌ FATAL embedding provider: %v", err)
+	}
+	if prov != nil {
 		ew := worker.NewEmbeddingWorker(db, prov)
 		go ew.Start(ctx)
 		log.Println("✅ Embedding worker started")

@@ -105,6 +105,14 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
     the runtime cap in `worker/distillation_helpers.go`).
 - `cmd/api/main.go`: passes `cfg` to `grpcserver.Start`.
 
+### Added — Admin UI, embedding providers, cursor contracts (PR #60)
+
+- **`GET /v1/admin/ui`**: embedded HTML admin dashboard (`internal/handler/adminui/`) — health, tenants, API keys, observability pointers; requires admin API key.
+- **`embedding.NewFromConfig`**: selects OpenAI vs Azure OpenAI vs OpenAI-compatible HTTP endpoints from `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `EMBEDDING_MODEL` (`internal/embedding/factory.go` + tests).
+- **Cursor pagination helpers** (`internal/model/cursor.go`): opaque keyset cursor encode/decode for upcoming repository wiring; optional `cursor` / `next_cursor` / `has_more` fields on memory retrieve DTOs (`internal/model/memory.go`).
+- **gRPC API contracts** (stubs to be generated separately): `proto/pcmi/v1/admin.proto` (`AdminService`), `proto/pcmi/v1/metrics.proto` (`MetricsService`).
+- **`deploy/helm/IDE_NOTES.md`**: notes on Helm + YAML extension diagnostics.
+
 ### Added — Quality & CI (PR #1)
 - `scripts/ci_coverage_check.sh`: pure-bash/awk script that parses
   `coverage.out`, computes per-package + global statement coverage, and exits

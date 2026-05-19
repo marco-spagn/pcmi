@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -18,12 +19,12 @@ import (
 	"github.com/marco-spagn/pcmi/internal/version"
 )
 
-func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *config.Config) {
+func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *config.Config) error {
 	repo := repository.NewMemoryRepository(dbWrite, readReplica)
 
-	var embed embedding.Provider
-	if cfg != nil && cfg.OpenAIAPIKey != "" {
-		embed = embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
+	embed, err := embedding.NewFromConfig(cfg)
+	if err != nil {
+		return fmt.Errorf("embedding provider: %w", err)
 	}
 	svc := service.NewMemoryService(repo, embed)
 
@@ -200,4 +201,5 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 			},
 		})
 	})
+	return nil
 }

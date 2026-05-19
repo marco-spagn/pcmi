@@ -6,6 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/handler/adminui"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
@@ -16,6 +17,8 @@ func SetupAdminRoutes(app *fiber.App, db *pgxpool.Pool) {
 	repo := repository.NewAdminRepository(db)
 	svc := service.NewAdminService(repo)
 	admin := app.Group("/v1/admin", middleware.RequireAdminRole)
+
+	adminui.Register(admin)
 
 	admin.Post("/tenants", func(c *fiber.Ctx) error {
 		var req model.TenantCreateRequest

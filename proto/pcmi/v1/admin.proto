@@ -1,0 +1,125 @@
+// PCMI Admin gRPC API (PR #5 — Admin + /metrics gRPC parity).
+//
+// Mirrors the operations that today are HTTP-only:
+//
+//   POST   /v1/admin/tenants             → AdminService.CreateTenant
+//   GET    /v1/admin/tenants             → AdminService.ListTenants
+//   POST   /v1/admin/api-keys            → AdminService.CreateAPIKey
+//   POST   /v1/admin/api-keys/{id}/rotate → AdminService.RotateAPIKey
+//   GET    /v1/admin/api-keys?tenant=…   → AdminService.ListAPIKeys
+//
+// All RPCs require role=admin (enforced by the same RBAC middleware that
+// guards the HTTP routes — see internal/middleware/admin.go). The proto
+// pairs use server-streamed pagination via opaque cursor tokens
+// (model.Cursor), matching the new keyset pagination contract.
+
+syntax = "proto3";
+
+package pcmi.v1;
+
+option go_package = "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1";
+
+import "google/protobuf/timestamp.proto";
+
+service AdminService {
+  // CreateTenant provisions a new tenant. Requires admin role.
+  rpc CreateTenant(CreateTenantRequest) returns (TenantResponse);
+
+  // ListTenants returns all tenants, cursor-paginated.
+  rpc ListTenants(ListTenantsRequest) returns (ListTenantsResponse);
+
+  // CreateAPIKey mints a fresh API key for the given tenant. The plaintext
+  // value is returned ONCE in the response; never persisted in cleartext.
+  rpc CreateAPIKey(CreateAPIKeyRequest) returns (APIKeyResponse);
+
+  // RotateAPIKey rotates an existing key by id; the old hash is deactivated
+  // atomically with the new one being inserted.
+  rpc RotateAPIKey(RotateAPIKeyRequest) returns (APIKeyResponse);
+
+  // ListAPIKeys enumerates keys for a tenant (hashes only, never raw).
+  rpc ListAPIKeys(ListAPIKeysRequest) returns (ListAPIKeysResponse);
+}
+
+// ─── Tenant ──────────────────────────────────────────────────────────────────
+
+message CreateTenantRequest {
+  string slug = 1;
+  string name = 2;
+  // Settings is a JSON blob (object) of tenant-scoped configuration.
+  // Empty string defaults to "{}". Schema is up to the caller — PCMI
+  // treats it as opaque pass-through.
+  string settings_json = 3;
+}
+
+message TenantResponse {
+  string id = 1;
+  string slug = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message ListTenantsRequest {
+  // Cursor (opaque, base64url JSON) — see model.Cursor.
+  // Empty means "first page".
+  string cursor = 1;
+  // Limit clamped server-side (default 50, max 200).
+  int32 limit = 2;
+}
+
+message ListTenantsResponse {
+  repeated TenantResponse tenants = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}
+
+// ─── API key ─────────────────────────────────────────────────────────────────
+
+message CreateAPIKeyRequest {
+  string tenant_id = 1;
+  // Human-readable label ("ci-bot", "alice's laptop").
+  string name = 2;
+  // Role: "admin" | "write" | "user" | "readonly". Validated server-side.
+  string role = 3;
+  // Optional RFC3339 expiry. Empty = never expires.
+  string expires_at = 4;
+}
+
+message RotateAPIKeyRequest {
+  string id = 1;
+  // Optional new label; empty preserves the existing one.
+  string name = 2;
+}
+
+message APIKeyResponse {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string role = 4;
+  // The cleartext API key — returned ONCE on create/rotate; never readable
+  // again (the server stores only sha256(key)).
+  string api_key = 5;
+  google.protobuf.Timestamp created_at = 6;
+  string expires_at = 7;
+}
+
+message ListAPIKeysRequest {
+  string tenant_id = 1;
+  string cursor = 2;
+  int32 limit = 3;
+}
+
+message APIKeySummary {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  string role = 4;
+  bool   is_active = 5;
+  google.protobuf.Timestamp created_at = 6;
+  string expires_at = 7;
+}
+
+message ListAPIKeysResponse {
+  repeated APIKeySummary keys = 1;
+  string next_cursor = 2;
+  bool has_more = 3;
+}

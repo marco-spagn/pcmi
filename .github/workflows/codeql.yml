@@ -3,9 +3,15 @@ name: CodeQL
 # PCMI — CodeQL SAST (PR #3, "Security" tech-debt row).
 # Second static-analysis layer on top of govulncheck (dependency-focused).
 # Scans Go, Python, and TypeScript with the security-and-quality query pack.
-# Findings: Security → Code scanning alerts.
+# Findings (when SARIF upload is on): Security → Code scanning alerts.
 # Triggers: push/PR to main and release/**, weekly cron, workflow_dispatch.
 # paths-ignore on docs/badges keeps cron runs from re-analysing unchanged prose.
+#
+# SARIF upload: GitHub rejects uploads until Code scanning is enabled under
+# Settings → Security → Code scanning (and GHAS where required). Without that,
+# upload: always fails the whole job with HTTP 403. We default to analysing
+# locally only (upload never) and opt into uploads via repo variable:
+#   Settings → Secrets and variables → Actions → Variables → CODEQL_UPLOAD_SARIF = true
 
 on:
   push:
@@ -84,4 +90,6 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: /language:${{ matrix.language }}
-          upload: always
+          # Upload only when explicitly enabled — avoids PR failures on repos
+          # where Code scanning / Advanced Security is not turned on yet.
+          upload: ${{ vars.CODEQL_UPLOAD_SARIF == 'true' && 'always' || 'never' }}

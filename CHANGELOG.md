@@ -67,6 +67,12 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
   packs stay on the workflow `init` step only, avoiding CLI conflicts on some
   runners.
 
+### Fixed — CodeQL SARIF upload on repos without Code scanning
+- `.github/workflows/codeql.yml`: SARIF `upload` defaults to `never` unless
+  repository Actions variable `CODEQL_UPLOAD_SARIF` is set to `true`, so PR
+  workflows no longer fail with “Code scanning is not enabled” before the
+  feature is turned on in GitHub settings.
+
 ### Notes — PR #3
 - No DB / API breaking changes. `PCMI_TLS_CERT` / `PCMI_TLS_KEY` were
   already in Config and `.env.example` for the HTTP server; PR #3 simply

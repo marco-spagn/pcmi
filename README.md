@@ -17,6 +17,12 @@
 > `.github/workflows/ci.yml` (`COVERAGE_MIN_TOTAL`, currently **39%**). The
 > full per-package table is attached to every PR as a sticky comment and to
 > each `go` job's Summary panel.
+>
+> **CodeQL.** The workflow runs queries on every trigger; uploading SARIF to
+> *Security → Code scanning* is **off by default** so forks/private repos
+> without GHAS do not fail on HTTP 403. After enabling Code scanning in repo
+> settings, add Actions variable `CODEQL_UPLOAD_SARIF` = `true` (see comment in
+> `.github/workflows/codeql.yml`) to push findings to GitHub.
 
 La memoria vive **fuori** dagli agenti. Gli agenti sono effimeri; questo strato è persistente, indipendente dal runtime e raggiungibile via **HTTP** e **gRPC**.
 

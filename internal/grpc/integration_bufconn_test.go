@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -39,10 +40,8 @@ func testIntegrationAPIKey(t *testing.T) string {
 	return "testkey123"
 }
 
-// newBufconnMemoryClient starts an in-process gRPC server (same wiring as Start) over bufconn.
-// Requires DATABASE_URL; Redis via miniredis. Does not need GRPC_HOST.
-// The returned pool is the same handle used by the server (for direct SQL in tests).
-func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.Pool, func()) {
+// newBufconnConn starts an in-process gRPC server (same wiring as Start) over bufconn.
+func newBufconnConn(t *testing.T) (*grpc.ClientConn, *pgxpool.Pool, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -67,7 +66,7 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 
 	lis := bufconn.Listen(bufconnListenerSize)
 	srv := grpc.NewServer()
-	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{
+	memSrv := &memoryServer{
 		svc:         memSvc,
 		db:          pool,
 		readDB:      read,
@@ -78,7 +77,10 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 		auditRepo:   repository.NewAuditRepository(pool),
 		summarize:   service.NewSummarizeService(memRepo, nil),
 		memRepo:     memRepo,
-	})
+	}
+	pcmiv1.RegisterMemoryServiceServer(srv, memSrv)
+	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(pool))
+	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(pool))
 
 	go func() { _ = srv.Serve(lis) }()
 
@@ -102,7 +104,17 @@ func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.
 		pool.Close()
 	}
 
+	return conn, pool, cleanup
+}
+
+func newBufconnMemoryClient(t *testing.T) (pcmiv1.MemoryServiceClient, *pgxpool.Pool, func()) {
+	conn, pool, cleanup := newBufconnConn(t)
 	return pcmiv1.NewMemoryServiceClient(conn), pool, cleanup
+}
+
+func bufconnAuthedCtx(t *testing.T, parent context.Context) context.Context {
+	t.Helper()
+	return metadata.NewOutgoingContext(parent, metadata.Pairs("x-api-key", testIntegrationAPIKey(t)))
 }
 
 func TestIntegrationBufconn_HealthReady(t *testing.T) {
@@ -640,4 +652,30 @@ func TestIntegrationBufconn_StreamEventsMemoryStored(t *testing.T) {
 	}
 	cancel()
 	t.Fatalf("timeout waiting for gRPC StreamEvents %s (payload with path %q)", event.EventMemoryStored, path)
+}
+
+func TestIntegrationBufconn_AdminAndMetrics(t *testing.T) {
+	conn, _, cleanup := newBufconnConn(t)
+	defer cleanup()
+
+	ctx, cancel := context.WithTimeout(bufconnAuthedCtx(t, t.Context()), 30*time.Second)
+	defer cancel()
+
+	admin := pcmiv1.NewAdminServiceClient(conn)
+	list, err := admin.ListTenants(ctx, &pcmiv1.ListTenantsRequest{Limit: 5})
+	if err != nil {
+		t.Fatalf("ListTenants: %v", err)
+	}
+	if len(list.GetTenants()) < 1 {
+		t.Fatalf("expected tenants, got %+v", list)
+	}
+
+	metricsClient := pcmiv1.NewMetricsServiceClient(conn)
+	scrape, err := metricsClient.Scrape(ctx, &pcmiv1.ScrapeRequest{})
+	if err != nil {
+		t.Fatalf("Scrape: %v", err)
+	}
+	if len(scrape.GetBody()) == 0 {
+		t.Fatal("expected non-empty metrics body")
+	}
 }

@@ -104,7 +104,11 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 
 		result, err := svc.Retrieve(c.Context(), &req, tenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			msg := err.Error()
+			if strings.Contains(msg, "invalid cursor") || strings.Contains(msg, "cursor pagination") || strings.Contains(msg, "cursor sort") {
+				return c.Status(400).JSON(fiber.Map{"error": msg})
+			}
+			return c.Status(500).JSON(fiber.Map{"error": msg})
 		}
 		metrics.IncRetrieve()
 

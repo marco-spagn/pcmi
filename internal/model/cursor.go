@@ -36,6 +36,9 @@ import (
 // breaking change to Cursor (additional sort keys, type changes, etc.).
 const cursorVersion = 1
 
+// SortKeyCreatedAtIDDesc is used for path-only memory retrieve (no query / ranking).
+const SortKeyCreatedAtIDDesc = "created_at_id_desc"
+
 // Cursor represents the opaque continuation point for keyset pagination.
 // Marshal it with EncodeCursor; the client passes the result back verbatim
 // as `next_cursor` on the following request and DecodeCursor restores the

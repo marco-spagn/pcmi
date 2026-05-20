@@ -9,13 +9,10 @@ and handled out-of-band.
 
 **Please do NOT open a public GitHub issue for security bugs.**
 
-Use one of these private channels instead:
+Use this private channel:
 
-1. **GitHub Private Vulnerability Reporting** (preferred):
-   https://github.com/marco-spagn/pcmi/security/advisories/new
-2. Email: `security@pcmi.example.invalid` (replace with the maintainer's
-   address once the team mailbox is provisioned). PGP key fingerprint
-   will be published here when available.
+**GitHub Private Vulnerability Reporting**:
+https://github.com/marco-spagn/pcmi/security/advisories/new
 
 Include in your report, when possible:
 
@@ -37,9 +34,6 @@ Include in your report, when possible:
 If a reproducible exploit is already public, we accelerate the patch
 release and skip the embargo window.
 
-We use the GitHub Security Advisory workflow for CVE assignment
-(GitHub is a CVE Numbering Authority). The reporter is credited in the
-advisory unless they request otherwise.
 
 ## Scope
 
@@ -54,14 +48,7 @@ In scope (we welcome reports):
   webhook helpers, TLS bypasses, secret logging.
 - Build / supply chain — typosquats, malicious deps, lockfile tampering.
 
-Out of scope (or low priority):
 
-- Self-XSS in admin tooling that already requires admin auth.
-- Issues that only reproduce with `RATE_LIMIT_DISABLED=true` (a dev knob).
-- Findings against the dev seed key (`testkey123`) — that key is
-  intentionally insecure for local testing and never appears in shipped
-  images.
-- Reports from automated scanners without a manual repro.
 
 ## Existing security signals in CI
 
@@ -78,12 +65,4 @@ Findings land in the repository's
 `Security → Code scanning alerts` and `Security → Dependabot alerts`
 tabs. Maintainers triage on a weekly cadence.
 
-## Disclosure timeline policy
 
-For embargoed reports we coordinate on a private branch and squash-merge
-on the public release day. Reporters who want to publish their own
-write-up should coordinate the timing so the advisory and the patch are
-visible on the same day.
-
-We do not pay bounties at this time. Recognition in release notes and
-the GitHub advisory is automatic for any non-trivial valid report.

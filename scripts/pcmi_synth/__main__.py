@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI: python -m pcmi_synth (from repo root: PYTHONPATH=scripts python -m pcmi_synth)."""
+"""CLI: python3 -m pcmi_synth (from repo root: PYTHONPATH=scripts python3 -m pcmi_synth)."""
 
 from __future__ import annotations
 

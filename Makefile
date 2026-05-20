@@ -199,13 +199,14 @@ sdk-smoke:
 PRESET ?= soc
 SYNTH_NUM ?= 1000
 SYNTH_SEED ?= 42
+PYTHON ?= python3
 
 # Generate JSONL only (no Docker). Example: make synth-generate PRESET=finance SYNTH_NUM=200
 synth-list:
-	PYTHONPATH=scripts python -m pcmi_synth list
+	PYTHONPATH=scripts $(PYTHON) -m pcmi_synth list
 
 synth-generate:
-	PYTHONPATH=scripts python -m pcmi_synth generate \
+	PYTHONPATH=scripts $(PYTHON) -m pcmi_synth generate \
 		--preset $(PRESET) --num $(SYNTH_NUM) --seed $(SYNTH_SEED) \
 		--dry-run --output .pcmi_test_out/$(PRESET)_seed$(SYNTH_SEED)_n$(SYNTH_NUM).jsonl
 

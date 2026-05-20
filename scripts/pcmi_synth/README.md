@@ -15,25 +15,25 @@ Generate deterministic (or LLM-authored) synthetic memories for **distillation E
 List presets:
 
 ```bash
-PYTHONPATH=scripts python -m pcmi_synth list
+PYTHONPATH=scripts python3 -m pcmi_synth list
 ```
 
 ## Quick examples
 
 ```bash
 # From repo root — 1000 deterministic SOC incidents (seed 42), JSONL only
-PYTHONPATH=scripts python -m pcmi_synth generate \
+PYTHONPATH=scripts python3 -m pcmi_synth generate \
   --preset soc --num 1000 --seed 42 --dry-run \
   --output .pcmi_test_out/soc_seed42_n1000.jsonl
 
 # Finance — ingest into running API
 export PCMI_API_KEY=testkey123
-PYTHONPATH=scripts python -m pcmi_synth generate \
+PYTHONPATH=scripts python3 -m pcmi_synth generate \
   --preset finance --num 200 --seed 1 \
   --output .pcmi_test_out/finance.jsonl
 
 # Custom domain via LLM (needs OPENAI_API_KEY)
-PYTHONPATH=scripts python -m pcmi_synth generate \
+PYTHONPATH=scripts python3 -m pcmi_synth generate \
   --preset custom --domain "EU retail loyalty program anomalies" \
   --num 50 --seed 7 --llm --dry-run
 ```

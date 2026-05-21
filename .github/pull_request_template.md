@@ -1,6 +1,11 @@
 ## Summary
 
-<!-- What changed and why (1–3 sentences). Link issues: Fixes # -->
+<!-- What changed **and why** (scope, problem → approach). Mention related PRs/branches when picking up stalled work.
+     Link issues: Fixes # -->
+
+## Context / motivation (optional)
+
+<!-- Why this belongs in PCMI now: user-visible impact, risk, rollout. Link design notes/RFC/issue threads. -->
 
 ## Type of change
 

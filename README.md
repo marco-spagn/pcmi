@@ -256,8 +256,13 @@ make sdk-smoke
 make test-all-local
 # Faster: make test-all-local-quick
 
+# Synthetic data (JSONL only, any preset)
+make synth-list
+make synth-generate PRESET=finance SYNTH_NUM=500 SYNTH_SEED=42
+
 # Distillation end-to-end (requires OPENAI_API_KEY in .env)
 make distillation-e2e
+make distillation-e2e PRESET=advertising SYNTH_NUM=200 SYNTH_SEED=1
 ```
 
 **CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).

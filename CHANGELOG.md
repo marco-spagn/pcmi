@@ -9,6 +9,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added — Synthetic data CLI & E2E cleanup
+
+- **`scripts/pcmi_synth/`** — unified synthetic memory generator: presets
+  (`soc`, `finance`, `advertising`, `healthcare`, `custom`), `--num`, `--seed`,
+  sharding aligned with `DISTILLATION_BATCH_SIZE`, optional `--llm` + `--domain`.
+- **`scripts/distill_e2e.sh`** — simple wrapper for distillation E2E.
+- **Makefile:** `synth-list`, `synth-generate`, `distill-smoke`; `distillation-e2e`
+  accepts `PRESET`, `SYNTH_NUM`, `SYNTH_SEED`.
+- **Moved** root `test_*.sh` → `scripts/e2e/` (compat stub `test_pcmi.sh` at repo root).
+- **`run_pcmi_distillation_test.sh`** — `--preset`, `--llm`, `--domain`; uses `pcmi_synth`.
+
 ### Added — Security (PR #3)
 - **gRPC in-process TLS.** `internal/grpc/server.go` now exposes
   `BuildServerOptions(*config.Config)`, which appends `grpc.Creds(...)` built

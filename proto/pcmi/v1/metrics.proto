@@ -1,0 +1,83 @@
+// PCMI Metrics gRPC API (PR #5 — Admin + /metrics gRPC parity).
+//
+// Mirrors the Prometheus scrape endpoint that today is HTTP-only at
+// GET /metrics. The gRPC service does NOT replace Prometheus — it gives
+// programmatic, fine-grained access for SDK clients that already speak
+// gRPC and would otherwise have to spin up a separate HTTP client just
+// to poll metrics.
+//
+//   GET    /metrics                      → MetricsService.Scrape
+//   <new>                                → MetricsService.StreamScrape (server-stream)
+//   <new>                                → MetricsService.GetMetric (single counter/gauge by name)
+//
+// Auth: same X-API-Key / role-based middleware as the rest of gRPC.
+// Scrape is rate-limited per the RATE_LIMIT_RPM_READONLY bucket since
+// it's a high-volume read operation typical of dashboards.
+
+syntax = "proto3";
+
+package pcmi.v1;
+
+option go_package = "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1;pcmiv1";
+
+service MetricsService {
+  // Scrape returns the full Prometheus text-format snapshot in one shot.
+  // Equivalent to `curl /metrics`. The body field carries the raw text.
+  rpc Scrape(ScrapeRequest) returns (ScrapeResponse);
+
+  // StreamScrape pushes the same text-format payload as a stream of
+  // chunks — useful for very large metric registries (10k+ series) where
+  // a single response would exceed the 4 MiB gRPC default message size.
+  rpc StreamScrape(ScrapeRequest) returns (stream ScrapeChunk);
+
+  // GetMetric returns the current value(s) of a named metric. For a
+  // gauge this is a single number; for a histogram, multiple
+  // (count, sum, buckets). Useful for ad-hoc UI dashboards that don't
+  // want to parse the full text format.
+  rpc GetMetric(GetMetricRequest) returns (GetMetricResponse);
+}
+
+message ScrapeRequest {
+  // OpenMetrics output format. Default = false (Prometheus text format).
+  bool open_metrics = 1;
+}
+
+message ScrapeResponse {
+  // The complete metrics body, UTF-8 encoded text. May be empty if the
+  // registry has not yet received any observations.
+  bytes body = 1;
+  string content_type = 2;
+}
+
+message ScrapeChunk {
+  bytes body = 1;
+  bool last = 2;
+}
+
+message GetMetricRequest {
+  // Fully-qualified metric name, e.g. "pcmi_memory_stores_total".
+  string name = 1;
+  // Optional label filter — entries are AND-matched. Empty map = all
+  // series for the metric.
+  map<string, string> labels = 2;
+}
+
+message MetricSample {
+  // Label set for this sample.
+  map<string, string> labels = 1;
+
+  // value carries the sample value.  For counters/gauges this is the
+  // current value; for histograms one MetricSample is emitted per
+  // bucket plus an aggregate count/sum (encoded as separate samples
+  // with label "__pcmi_kind__" ∈ {bucket,count,sum}).
+  double value = 2;
+}
+
+message GetMetricResponse {
+  string name = 1;
+  // Help text from the metric definition (Prometheus HELP line).
+  string help = 2;
+  // Metric type: counter | gauge | histogram | summary.
+  string type = 3;
+  repeated MetricSample samples = 4;
+}

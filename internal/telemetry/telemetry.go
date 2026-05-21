@@ -6,10 +6,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -20,22 +20,25 @@ import (
 )
 
 // Init configures W3C propagators (tracecontext + baggage) and an optional OTLP/HTTP trace exporter.
-// If neither OTEL_EXPORTER_OTLP_TRACES_ENDPOINT nor OTEL_EXPORTER_OTLP_ENDPOINT is set,
-// a noop tracer provider is installed (no network I/O).
-// OTEL_SERVICE_NAME overrides defaultServiceName when set.
-// defaultServiceName is used in OTLP resource attributes (e.g. "pcmi-api", "pcmi-worker").
+// OTLP settings are read from cfg (loaded via config.Load at the process entrypoint).
+// If neither traces nor generic OTLP endpoint is set, a noop tracer provider is installed.
+// cfg.OTELServiceName overrides defaultServiceName when set.
 // The returned shutdown function should be called on exit (with a timeout context).
-func Init(ctx context.Context, defaultServiceName string) (shutdown func(context.Context) error, err error) {
+func Init(ctx context.Context, cfg *config.Config, defaultServiceName string) (shutdown func(context.Context) error, err error) {
 	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 		propagation.TraceContext{},
 		propagation.Baggage{},
 	))
 
-	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"))
-	if endpoint == "" {
-		endpoint = strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
+	endpoint := ""
+	serviceName := ""
+	if cfg != nil {
+		endpoint = strings.TrimSpace(cfg.OTELTracesEndpoint)
+		if endpoint == "" {
+			endpoint = strings.TrimSpace(cfg.OTELEndpoint)
+		}
+		serviceName = strings.TrimSpace(cfg.OTELServiceName)
 	}
-	serviceName := strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME"))
 	if serviceName == "" {
 		serviceName = strings.TrimSpace(defaultServiceName)
 	}

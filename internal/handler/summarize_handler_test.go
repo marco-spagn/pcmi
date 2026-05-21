@@ -50,7 +50,7 @@ func (s *summarizeMemStub) CompactPathHistory(context.Context, string, string, i
 func TestSummarizeHandler_invalidJSON(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
 
-	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{})}
+	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{}, nil)}
 	app := newTestApp(uuid.New().String(), "admin")
 	app.Post("/summarize", h.Post)
 
@@ -69,7 +69,7 @@ func TestSummarizeHandler_invalidJSON(t *testing.T) {
 func TestSummarizeHandler_retrieveError(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
 
-	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{retrieveErr: errors.New("boom")})}
+	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{retrieveErr: errors.New("boom")}, nil)}
 	app := newTestApp(uuid.New().String(), "admin")
 	app.Post("/summarize", h.Post)
 
@@ -89,7 +89,7 @@ func TestSummarizeHandler_retrieveError(t *testing.T) {
 func TestSummarizeHandler_noMemories(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
 
-	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{entries: nil})}
+	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{entries: nil}, nil)}
 	app := newTestApp(uuid.New().String(), "admin")
 	app.Post("/summarize", h.Post)
 
@@ -123,7 +123,7 @@ func TestSummarizeHandler_extractiveWithoutLLM(t *testing.T) {
 		{ID: 1, Content: "first note"},
 		{ID: 2, Content: "second note"},
 	}
-	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{entries: entries})}
+	h := &SummarizeHandler{svc: service.NewSummarizeService(&summarizeMemStub{entries: entries}, nil)}
 	app := newTestApp(uuid.New().String(), "admin")
 	app.Post("/summarize", h.Post)
 

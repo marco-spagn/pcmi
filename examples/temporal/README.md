@@ -44,3 +44,7 @@ python starter.py root.temporal.demo "stored via Temporal"
 - Point workers at your Temporal Cloud or self-hosted frontend service.
 - Use secrets for `PCMI_API_KEY`; retry policies for transient HTTP errors.
 - Read scaling: configure `DATABASE_READ_URL` on PCMI API pods when using Postgres replicas ([docs/federation-read-replicas.md](../../docs/federation-read-replicas.md)).
+
+## Editor / Buf / protobuf noise
+
+If you use a **`.venv_smoke`** (or any venv under `examples/temporal`) and open `.proto` files from **`site-packages/temporalio/...`**, the Protobuf and Buf language servers report missing imports. That is expected: the packaged SDK does not ship the full Temporal Cloud protos tree. It does not affect PCMI `proto/pcmi/`. The repo root [`.vscode/settings.json`](../../.vscode/settings.json) hides those venvs from search/watchers; reload the editor after pulling.

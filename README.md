@@ -1,35 +1,56 @@
-# PCMI – Persistent Cognitive Memory Infrastructure
+# PCMI — Persistent Cognitive Memory Infrastructure
 
 [![CI](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/marco-spagn/pcmi/actions/workflows/codeql.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
-[![Go Version](https://img.shields.io/badge/go-1.25-00ADD8.svg?logo=go)](go.mod)
-[![License](https://img.shields.io/badge/license-Proprietary-blue.svg)](LICENSE)
-[![API](https://img.shields.io/badge/api-v1.33.0-success.svg)](internal/version/version.go)
+[![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![API](https://img.shields.io/badge/API-v1.33.0-22c55e)](internal/version/version.go)
 
-> **Coverage badge.** The badge above is **fully dynamic**: shields.io renders
-> it from `badges/coverage.json` on the `main` branch, which the `go` CI job
-> regenerates and commits back on every push (see `scripts/ci_coverage_check.sh`
-> and `.github/workflows/ci.yml` → step *Commit dynamic coverage badge*).
-> No external coverage service is required.
->
-> CI fails when global drops below the threshold configured in
-> `.github/workflows/ci.yml` (`COVERAGE_MIN_TOTAL`, currently **39%**). The
-> full per-package table is attached to every PR as a sticky comment and to
-> each `go` job's Summary panel.
+**Durable, multi-tenant memory for AI agents** — outside the agent runtime, with HTTP and gRPC APIs, hybrid retrieval, background workers, and enterprise controls (RLS, RBAC, audit, observability).
 
-La memoria vive **fuori** dagli agenti. Gli agenti sono effimeri; questo strato è persistente, indipendente dal runtime e raggiungibile via **HTTP** e **gRPC**.
+Agents are ephemeral. Organizational memory should not be.
+
+---
+
+## Table of contents
+
+- [Why PCMI](#why-pcmi)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Usage examples](#usage-examples)
+- [Architecture](#architecture)
+- [APIs and clients](#apis-and-clients)
+- [Documentation](#documentation)
+- [Repository layout](#repository-layout)
+- [Development](#development)
+- [Contributing](#contributing)
+- [Security](#security)
+- [License](#license)
+
+---
+
+## Why PCMI
+
+Production agents are replaced, upgraded, and sharded across teams. Without a shared memory layer:
+
+- Knowledge stays trapped in prompts, vector indexes, or vendor-specific chat history.
+- Deployments and model swaps force expensive re-ingestion.
+- Auditors cannot answer *what the system knew at decision time*.
+
+PCMI centralizes **versioned, path-scoped memories** in PostgreSQL, with optional embeddings, distillation, events, and webhooks — consumable from any agent framework or LLM provider.
 
 ```mermaid
 flowchart LR
-  subgraph you [Tu]
-    Agent[Agente / App]
+  subgraph clients [Clients]
+    Agent[Agents / Apps]
   end
   subgraph pcmi [PCMI]
-    API[API :8000]
+    API[HTTP API :8000]
     GRPC[gRPC :50051]
     W[Worker]
   end
-  DB[(PostgreSQL)]
+  DB[(PostgreSQL + pgvector)]
   Redis[(Redis)]
   Agent --> API
   Agent --> GRPC
@@ -42,22 +63,50 @@ flowchart LR
 
 ---
 
-## Come usare PCMI
+## Features
 
-### 1. Avvio rapido (Docker)
+| Area | Capabilities |
+|------|----------------|
+| **Memory** | Hierarchical `ltree` paths, append-only versioning, tags, TTL, optional field encryption |
+| **Retrieve** | Path scope, BM25 full-text, optional semantic search, `as_of` temporal reads, keyset cursors |
+| **Workers** | Embedding backfill, knowledge distillation, consolidation, pruning, compaction, expiry |
+| **Integration** | Redis events, SSE, gRPC streams, webhooks + dead-letter queue |
+| **Graph** | Memory links, lineage (raw + distilled knowledge) |
+| **Security** | API-key RBAC, PostgreSQL RLS per tenant, audit log |
+| **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
+| **Admin** | Tenant/API-key management (HTTP + gRPC), embedded UI at `GET /v1/admin/ui` |
+
+Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (source of truth: [`internal/version/version.go`](internal/version/version.go)).
+
+---
+
+## Quick start
+
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose (recommended). For local Go development: **Go 1.25+**.
 
 ```bash
-git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
+git clone https://github.com/marco-spagn/pcmi.git
+cd pcmi
 cp .env.example .env
 docker compose up -d --build
 
-# Verifica
-curl -s http://localhost:8000/v1/health
+curl -s http://localhost:8000/v1/health | jq .
 ```
 
-Chiave di sviluppo (migration `003`): **`testkey123`** (ruolo `admin`).
+After migrations, the dev seed API key is **`testkey123`** (admin role). See [`.env.example`](.env.example) for all configuration options.
 
-### 2. Scrivere e leggere memorie (HTTP)
+| Service | Port | Purpose |
+|---------|------|---------|
+| HTTP API | `8000` | REST + SSE + admin UI |
+| gRPC | `50051` | High-throughput memory + ops |
+| PostgreSQL | `5432` | Primary store |
+| Redis | `6379` | Events + worker coordination |
+
+---
+
+## Usage examples
+
+### HTTP (curl)
 
 ```bash
 export PCMI_BASE_URL=http://localhost:8000
@@ -74,144 +123,38 @@ curl -s -X POST "$PCMI_BASE_URL/v1/retrieve" \
   -d '{"path_prefix":"root.demo","query":"","limit":10}'
 ```
 
-### 3. SDK (consigliato per agenti)
+### Python SDK
 
-| Linguaggio | Setup | Smoke test |
-|------------|-------|------------|
-| **Python** | `pip install -e sdk/python` | `python sdk/python/smoke.py` |
-| **TypeScript** | `cd sdk/typescript && npm ci && npm run smoke` | vedi [sdk/README.md](sdk/README.md) |
+```bash
+pip install -e sdk/python
+```
 
 ```python
-# Python — esempio minimo
 from pcmi import PCMIClient
 import asyncio
 
 async def main():
-    async with PCMIClient("http://localhost:8000", "testkey123") as c:
-        await c.store("root.agent.task", "fatto X", tags=["task"])
-        print((await c.retrieve("root.agent", limit=5))["total"])
+    async with PCMIClient("http://localhost:8000", "testkey123") as client:
+        await client.store("root.agent.task", "completed step X", tags=["task"])
+        result = await client.retrieve("root.agent", limit=5)
+        print(result["total"])
 
 asyncio.run(main())
 ```
 
-### 4. gRPC (alto throughput / streaming)
-
-- Porta **50051** (`GRPC_PORT`)
-- Proto: [`proto/pcmi/v1/memory.proto`](proto/pcmi/v1/memory.proto)
-- Tabella RPC ↔ REST: [docs/grpc-vs-http.md](docs/grpc-vs-http.md)
+### Real-time events (SSE)
 
 ```bash
-make test-integration   # API+gRPC+Postgres attivi
+curl -sN "$PCMI_BASE_URL/v1/events" \
+  -H "X-API-Key: $PCMI_API_KEY" \
+  -H "Accept: text/event-stream"
 ```
 
-### 5. Eventi in tempo reale
-
-| Trasporto | Endpoint / RPC |
-|-----------|----------------|
-| HTTP SSE | `GET /v1/events` |
-| gRPC stream | `StreamEvents` |
-
-```bash
-curl -sN http://localhost:8000/v1/events -H "X-API-Key: testkey123" -H "Accept: text/event-stream"
-```
-
-### 6. Comandi Makefile
-
-```bash
-make test              # unit test Go
-make lint              # golangci-lint
-make test-integration  # gRPC integration (stack up)
-make sdk-smoke         # smoke Python + TypeScript
-```
-
-### 7. Distillation pipeline end-to-end
-
-PCMI include un test harness completo per il distillation pipeline
-(SOC incident generation -> ingest -> Redis refine -> LLM summarization).
-
-```bash
-# Setup una volta sola
-cp .env.example .env       # imposta OPENAI_API_KEY
-
-# Esegue lo scenario end-to-end (1000 incidenti, sharded distillation)
-make distillation-e2e
-```
-
-Documentazione dettagliata, scenari (smoke / full / dedup / cascade) e
-troubleshooting: **[docs/distillation-tests.md](docs/distillation-tests.md)**.
-
-Guida completa all'uso del prodotto: **[docs/USAGE.md](docs/USAGE.md)**
+Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[sdk/README.md](sdk/README.md)**
 
 ---
 
-## Cosa fa PCMI
-
-```mermaid
-mindmap
-  root((PCMI))
-    Memoria
-      Path ltree
-      Versioning append-only
-      Tag e metadata
-      Embedding pgvector
-    Retrieve
-      Prefix scope
-      BM25 full-text
-      Semantic opzionale
-    Worker
-      Embedding backfill
-      Distillazione
-      Prune e compact
-      TTL expiry
-    Integrazione
-      Redis events
-      Webhook
-      SSE e gRPC stream
-    Ops
-      Multi-tenant RLS
-      Audit
-      Prometheus
-      OpenTelemetry
-```
-
-### Funzionalità principali
-
-| Area | Capacità |
-|------|----------|
-| **Core** | Store/retrieve, batch, export/import, get by path, history, rollback |
-| **Retrieve** | `tags`, `tags_match`, `as_of`, `source_agent_id`, `embedding_space`, hybrid BM25 + vector |
-| **gRPC** | Parità con REST su memory + operational (refine, links, stats, webhooks, eventi, …) |
-| **Worker** | Embedding, distillation, consolidation, pruning, expiry |
-| **Eventi** | Ingest universale, schema registry, SSE, webhook + dead-letter |
-| **Grafo** | Links tra path, lineage memoria/distillata |
-| **Sicurezza** | API key RBAC, RLS tenant, cifratura opzionale, audit log |
-| **Solo HTTP** | Admin tenants/keys, `GET /metrics` Prometheus |
-
-Versione API corrente: risposta `version` su `/v1/health` (es. `v1.30.0`).
-
----
-
-## Documentazione
-
-**Indice completo:** [docs/INDEX.md](docs/INDEX.md)
-
-| Documento | Contenuto |
-|-----------|-----------|
-| [docs/USAGE.md](docs/USAGE.md) | **Guida operativa** — HTTP, gRPC, SDK, env, path |
-| [docs/architecture.md](docs/architecture.md) | Architettura e diagrammi |
-| [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | Schema, versioning, RLS |
-| [docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md) | Worker, Redis, webhook |
-| [docs/grpc-vs-http.md](docs/grpc-vs-http.md) | Matrice gRPC ↔ HTTP |
-| [docs/openapi.yaml](docs/openapi.yaml) | OpenAPI REST |
-| [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) | Pipeline di retrieve |
-| [docs/CODEBASE.md](docs/CODEBASE.md) | Mappa codice Go |
-| [sdk/README.md](sdk/README.md) | Client Python/TypeScript |
-
-Diagrammi SVG storici: `docs/*.svg` (architettura, distillazione, versioning).
-
----
-
-## Architettura logica
+## Architecture
 
 ```mermaid
 sequenceDiagram
@@ -230,28 +173,116 @@ sequenceDiagram
   W->>R: knowledge.distilled (optional)
 ```
 
+Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: **[docs/DATA-MODEL.md](docs/DATA-MODEL.md)** · Workers & events: **[docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md)**
+
 ---
 
-## Layout repository
+## APIs and clients
 
-| Path | Descrizione |
+| Surface | When to use |
+|---------|-------------|
+| **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus scrape at `GET /metrics`, admin UI |
+| **gRPC** | Agents, batch workloads, streaming retrieve/events; `MemoryService`, `AdminService`, `MetricsService` |
+| **SDKs** | Python & TypeScript thin HTTP clients — see [sdk/HTTP-API.md](sdk/HTTP-API.md) |
+
+| Resource | Location |
+|----------|----------|
+| OpenAPI 3 | [docs/openapi.yaml](docs/openapi.yaml) |
+| gRPC protos | [proto/pcmi/v1/](proto/pcmi/v1/) |
+| gRPC ↔ HTTP matrix | [docs/grpc-vs-http.md](docs/grpc-vs-http.md) |
+
+**Note:** Official SDKs speak HTTP only. Use gRPC stubs for maximum throughput or streaming.
+
+---
+
+## Documentation
+
+**Full index:** [docs/INDEX.md](docs/INDEX.md)
+
+| Document | Description |
+|----------|-------------|
+| [docs/USAGE.md](docs/USAGE.md) | End-to-end usage (HTTP, gRPC, env, paths) |
+| [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | Schema, versioning, RLS |
+| [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) | Hybrid retrieve pipeline |
+| [docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md) | Background jobs, Redis, webhooks |
+| [docs/CODEBASE.md](docs/CODEBASE.md) | Go package map for contributors |
+| [docs/integration-testing.md](docs/integration-testing.md) | Integration test tags and SSE notes |
+| [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
+| [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
+| [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
+
+Optional technical report (PDF build): [docs/papers/](docs/papers/).
+
+---
+
+## Repository layout
+
+| Path | Description |
 |------|-------------|
-| `cmd/api` | Server HTTP + gRPC + `/metrics` |
-| `cmd/worker` | Processi background |
-| `internal/` | Dominio Go (handler, service, repository) |
-| `proto/` | Protobuf gRPC |
-| `migrations/` | Schema SQL |
-| `sdk/` | Client HTTP |
-| `examples/` | Celery, Temporal |
-| `deploy/k8s/` | Manifest Kubernetes |
-| `scripts/` | Smoke CI |
+| [`cmd/api`](cmd/api) | HTTP + gRPC server, `/metrics`, admin UI |
+| [`cmd/worker`](cmd/worker) | Embedding, distillation, pruning, expiry |
+| [`internal/`](internal/) | Domain logic (handler, service, repository, worker, grpc) |
+| [`proto/`](proto/) | Protobuf definitions |
+| [`migrations/`](migrations/) | SQL schema (`001`–`012`) |
+| [`sdk/`](sdk/) | Python & TypeScript HTTP clients |
+| [`examples/`](examples/) | Celery & Temporal integration samples |
+| [`deploy/helm/`](deploy/helm/) | Primary Kubernetes packaging |
+| [`deploy/k8s/`](deploy/k8s/) | Static manifests (non-Helm) |
+| [`k8s/`](k8s/) | **Deprecated** — use `deploy/helm/` |
+| [`scripts/`](scripts/) | CI smoke, distillation E2E, coverage |
+| [`.github/workflows/`](.github/workflows/) | CI, CodeQL |
+
+Container images: `Dockerfile.api`, `Dockerfile.worker` (root `Dockerfile` is legacy).
 
 ---
 
-## Requisiti e licenza
+## Development
 
-- Go 1.22+ per build da sorgente
-- Docker per stack completo
-- Opzionale: `OPENAI_API_KEY` per embedding/semantic/LLM summarize
+```bash
+# Unit tests
+make test
 
-Vedi [LICENSE](LICENSE).
+# Lint (golangci-lint v2)
+make lint
+
+# gRPC integration (bufconn + optional live TCP)
+make test-integration
+
+# SDK smoke (Python + TypeScript)
+make sdk-smoke
+
+# Near-full CI parity locally (~15–25 min first run)
+make test-all-local
+# Faster: make test-all-local-quick
+
+# Synthetic data (JSONL only, any preset)
+make synth-list
+make synth-generate PRESET=finance SYNTH_NUM=500 SYNTH_SEED=42
+
+# Distillation end-to-end (requires OPENAI_API_KEY in .env)
+make distillation-e2e
+make distillation-e2e PRESET=advertising SYNTH_NUM=200 SYNTH_SEED=1
+```
+
+**CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
+
+**Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main`. CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
+
+---
+
+## Contributing
+
+We welcome issues and pull requests. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before opening a PR (setup, tests, versioning, migrations, proto conventions).
+
+---
+
+## Security
+
+Report vulnerabilities **privately** — do not open public issues for security bugs. See **[SECURITY.md](SECURITY.md)** for disclosure process and SLAs.
+
+---
+
+## License
+
+[Apache License 2.0](LICENSE) — Copyright 2026 Marco Spagnuolo & PCMI Team.

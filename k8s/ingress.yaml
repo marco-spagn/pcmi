@@ -1,16 +1,6 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: pcmi-ingress
-spec:
-  rules:
-  - host: pcmi.yourdomain.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: pcmi-api
-            port:
-              number: 8000
+# DEPRECATED — see k8s/README.md.
+# Ingress is intentionally not shipped by the chart: ingress controllers
+# (nginx, traefik, cilium, gateway-api) vary too much between clusters to
+# template safely. Add your own Ingress / HTTPRoute pointing at the
+# {{ release-name }}-pcmi-api Service on port 80 (HTTP) and 50051 (gRPC).
+---

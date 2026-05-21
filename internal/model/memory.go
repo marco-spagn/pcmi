@@ -46,9 +46,22 @@ type RetrieveRequest struct {
 	EmbeddingSpace  string     `json:"embedding_space"`
 	Tags            []string   `json:"tags,omitempty"`
 	TagsMatch       string     `json:"tags_match"` // "any" (default) or "all"
+
+	// Cursor (opaque, PR #5) — when set, the repository continues from the
+	// keyset position encoded in the cursor and ignores any implicit "offset
+	// 0". Empty cursor means "first page". Decode via model.DecodeCursor at
+	// the handler boundary.
+	Cursor string `json:"cursor,omitempty"`
 }
 
 type RetrieveResponse struct {
 	Entries []MemoryEntry `json:"entries"`
 	Total   int           `json:"total"`
+
+	// NextCursor (PR #5) — opaque continuation token. Empty when the client
+	// has reached the last page. Clients keep paginating while this is
+	// non-empty; the wire format is intentionally stable across PCMI
+	// versions (see model.Cursor.Version).
+	NextCursor string `json:"next_cursor,omitempty"`
+	HasMore    bool   `json:"has_more,omitempty"`
 }

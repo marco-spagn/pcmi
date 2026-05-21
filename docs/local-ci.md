@@ -40,6 +40,7 @@ No further configuration needed.
 | Run `govulncheck` supply-chain scan | `make act-vuln` |
 | Run Trivy image scan (API + worker) | `make act-trivy` |
 | Run integration smoke (compose + **host** bins, same scripts as CI) | `make act-integration-smoke` |
+| **Full CI parity on host** (lint/vuln/helm opt., `go test -race -tags=integration`, coverage gate, then smoke) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
 | Run a job by name | `make act-job JOB=integration-smoke` |
 | Generate coverage profile only | `make test-cover` |
 | Enforce coverage thresholds (after `test-cover`) | `make cover-check` |
@@ -116,6 +117,19 @@ container around so subsequent runs start in < 5 seconds.
 ```bash
 act -j go --rebuild
 ```
+
+**`go test -tags=integration ./internal/handler/...` hangs ~10 minutes then FAIL**
+
+The package times out on `TestIntegrationHTTP_EventStreamMemoryStored` (SSE over
+`httptest` + Fiber `adaptor`). Use:
+
+```bash
+PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
+```
+
+`make ci-like-github` sets this in Phase F; `newIntegrationHTTPApp` sets it by
+default unless `PCMI_FORCE_SSE_HTTPTEST=1`. Full write-up:
+[integration-testing.md](integration-testing.md).
 
 **`Bind for 0.0.0.0:5432 failed: port is already allocated`**
 `act` always starts the `integration-smoke` service containers (Postgres/Redis)

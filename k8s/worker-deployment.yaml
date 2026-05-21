@@ -1,11 +1,3 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pcmi-worker
-spec:
-  replicas: 2
-  template:
-    spec:
-      containers:
-      - name: worker
-        image: ghcr.io/marco-spagn/pcmi-worker:latest
+# DEPRECATED — see k8s/README.md and deploy/helm/pcmi/.
+# `git rm k8s/worker-deployment.yaml` once you've migrated.
+---

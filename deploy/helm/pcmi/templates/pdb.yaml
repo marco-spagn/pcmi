@@ -1,0 +1,13 @@
+{{- if and .Values.api.enabled .Values.pdb.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pcmi.fullname" . }}-api
+  labels:
+    {{- include "pcmi.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "pcmi.api.selectorLabels" . | nindent 6 }}
+{{- end }}

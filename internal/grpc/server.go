@@ -6,13 +6,14 @@ import (
 	"encoding/hex"
 	"log"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/config"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
@@ -256,23 +257,65 @@ func (s *memoryServer) setTenant(ctx context.Context, tenantID string) error {
 	return err
 }
 
-// Start launches the gRPC server on GRPC_PORT (default 50051).
-func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService) {
+// ResolveGRPCPort returns the TCP port for the gRPC server from cfg (default 50051).
+func ResolveGRPCPort(cfg *config.Config) string {
+	port := "50051"
+	if cfg != nil && strings.TrimSpace(cfg.GRPCPort) != "" {
+		port = strings.TrimSpace(cfg.GRPCPort)
+	}
+	return port
+}
+
+// BuildServerOptions assembles the grpc.ServerOption list for the PCMI gRPC
+// server. When cfg.TLSCertFile and cfg.TLSKeyFile are both set and readable,
+// grpc.Creds(tls) is appended → the listener serves TLS in-process, matching
+// the existing optional TLS behaviour of the Fiber HTTP server.
+//
+// If only one of the two is set, or either file is unreadable, the function
+// logs a warning and falls back to plain TCP so a misconfigured deployment
+// doesn't deadlock the gRPC plane. Operators should validate cert+key paths
+// at deploy time.
+//
+// PR #3 — closes the "gRPC in-process TLS" tech-debt item.
+func BuildServerOptions(cfg *config.Config) []grpc.ServerOption {
+	opts := []grpc.ServerOption{
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
+	}
+	if cfg == nil {
+		return opts
+	}
+	cert := strings.TrimSpace(cfg.TLSCertFile)
+	key := strings.TrimSpace(cfg.TLSKeyFile)
+	if cert == "" && key == "" {
+		return opts
+	}
+	if cert == "" || key == "" {
+		log.Printf("⚠️  gRPC TLS partially configured (cert=%q, key=%q) — falling back to plain TCP", cert, key)
+		return opts
+	}
+	creds, err := credentials.NewServerTLSFromFile(cert, key)
+	if err != nil {
+		log.Printf("⚠️  gRPC TLS load failed (%v) — falling back to plain TCP", err)
+		return opts
+	}
+	log.Printf("🔒 gRPC TLS enabled (cert=%s)", cert)
+	return append(opts, grpc.Creds(creds))
+}
+
+// Start launches the gRPC server on cfg.GRPCPort (default 50051).
+func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *config.Config) {
 	if dbRead == nil {
 		dbRead = dbWrite
 	}
 	memRepo := repository.NewMemoryRepository(dbWrite, dbRead)
-	port := os.Getenv("GRPC_PORT")
-	if port == "" {
-		port = "50051"
-	}
+	port := ResolveGRPCPort(cfg)
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Printf("gRPC listen failed: %v", err)
 		return
 	}
-	srv := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
-	pcmiv1.RegisterMemoryServiceServer(srv, &memoryServer{
+	srv := grpc.NewServer(BuildServerOptions(cfg)...)
+	memSrv := &memoryServer{
 		svc:         memSvc,
 		db:          dbWrite,
 		readDB:      dbRead,
@@ -281,11 +324,14 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService) {
 		statsRepo:   repository.NewStatsRepository(dbWrite, dbRead),
 		lineageRepo: repository.NewLineageRepository(dbWrite, dbRead),
 		auditRepo:   repository.NewAuditRepository(dbWrite),
-		summarize:   service.NewSummarizeService(memRepo),
+		summarize:   service.NewSummarizeService(memRepo, cfg),
 		memRepo:     memRepo,
-	})
+	}
+	pcmiv1.RegisterMemoryServiceServer(srv, memSrv)
+	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(dbWrite))
+	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(dbWrite))
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (full MemoryService RPC surface)", port)
+		log.Printf("✅ PCMI gRPC server on :%s (MemoryService + AdminService + MetricsService)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

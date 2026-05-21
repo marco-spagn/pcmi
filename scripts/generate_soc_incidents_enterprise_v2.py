@@ -21,13 +21,13 @@ Features
 
 Usage
 -----
-    python generate_soc_incidents_enterprise_v2.py \
-        --num-incidents 1000 \
-        --tenant-id a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
-        --api-url http://localhost:8080 \
-        --api-key sk_test_xxx \
-        --seed 42 \
-        --output ./soc_incidents_backup.jsonl
+    Prefer the unified CLI (all presets + parameters):
+
+        PYTHONPATH=scripts python -m pcmi_synth generate --preset soc --num 1000 --seed 42
+
+    Legacy direct invocation:
+
+        python generate_soc_incidents_enterprise_v2.py --num-incidents 1000 --seed 42 ...
 
 Author : PCMI Data Engineering
 Version: 2.0.0

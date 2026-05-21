@@ -1,19 +1,8 @@
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: pcmi-postgres
-spec:
-  serviceName: postgres
-  replicas: 1
-  template:
-    spec:
-      containers:
-      - name: postgres
-        image: ankane/pgvector:16
-        env:
-        - name: POSTGRES_DB
-          value: pcmi
-        - name: POSTGRES_USER
-          value: pcmi
-        - name: POSTGRES_PASSWORD
-          value: pcmi
+# DEPRECATED — see k8s/README.md.
+#
+# PCMI no longer ships an in-cluster Postgres manifest. Production deployments
+# should use a managed Postgres (RDS, Cloud SQL, AlloyDB, Crunchy, etc.) and
+# point DATABASE_URL at it via the Helm chart's secrets.DATABASE_URL value.
+#
+# For local dev, use docker-compose.yml.
+---

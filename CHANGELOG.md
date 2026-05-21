@@ -9,6 +9,127 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added — Synthetic data CLI & E2E cleanup
+
+- **`scripts/pcmi_synth/`** — unified synthetic memory generator: presets
+  (`soc`, `finance`, `advertising`, `healthcare`, `custom`), `--num`, `--seed`,
+  sharding aligned with `DISTILLATION_BATCH_SIZE`, optional `--llm` + `--domain`.
+- **`scripts/distill_e2e.sh`** — simple wrapper for distillation E2E.
+- **Makefile:** `synth-list`, `synth-generate`, `distill-smoke`; `distillation-e2e`
+  accepts `PRESET`, `SYNTH_NUM`, `SYNTH_SEED`.
+- **Moved** root `test_*.sh` → `scripts/e2e/` (compat stub `test_pcmi.sh` at repo root).
+- **`run_pcmi_distillation_test.sh`** — `--preset`, `--llm`, `--domain`; uses `pcmi_synth`.
+
+### Added — Security (PR #3)
+- **gRPC in-process TLS.** `internal/grpc/server.go` now exposes
+  `BuildServerOptions(*config.Config)`, which appends `grpc.Creds(...)` built
+  from `cfg.TLSCertFile` / `cfg.TLSKeyFile` when both are set and readable.
+  `Start(...)` uses it, so a single Config field now controls TLS on both
+  the Fiber HTTP plane and the gRPC plane — matching the
+  "gRPC senza TLS in-process" tech-debt entry.
+  Misconfigurations (only one of cert/key set, file unreadable, malformed
+  PEM) log a warning and fall back to plain TCP rather than deadlocking
+  the gRPC plane.
+- **CodeQL SAST workflow** (`.github/workflows/codeql.yml`) — matrix scan
+  over Go, Python, JavaScript/TypeScript with the `security-and-quality`
+  query pack, plus a weekly cron and PR/push triggers. Findings land in
+  `Security → Code scanning alerts`. Closes the "SAST oltre govulncheck"
+  tech-debt row.
+- New unit tests `internal/grpc/tls_test.go`:
+  - `TestBuildServerOptions_NoTLSWhenUnset` — default-path lock-in.
+  - `TestBuildServerOptions_TLSEnabled` — generates an ECDSA self-signed
+    cert+key in `t.TempDir()` and asserts the option list is length 2.
+  - `TestBuildServerOptions_PartialTLSFallsBack` — only-cert / only-key.
+  - `TestBuildServerOptions_BadCertFallsBack` — malformed PEM.
+  - `TestBuildServerOptions_ReturnTypeIsServerOption` — type-safety
+    paranoia for future grpc/v2 bumps.
+- **TLS handshake + RPC:** `TestTLSHandshakeEndToEnd_HealthRPC` in
+  `internal/grpc/tls_handshake_test.go` registers the standard gRPC health
+  service and issues `Health.Check` after the channel reaches `READY`, so TLS
+  misconfiguration cannot hide behind a handshake-only test.
+- README: new `CodeQL` badge alongside CI / Coverage / Go / License / API.
+
+### Fixed — Helm (`deploy/helm/pcmi`)
+- **`values.schema.json`:** `otel.endpoint` must allow `""` (tracing off) or a
+  non-empty URI. Requiring `format: uri` for the empty default broke
+  `helm lint deploy/helm/pcmi --strict`.
+
+### Added — Deploy / CI artifact tests
+- **`TestCIWorkflowYAMLValid`** — `.github/workflows/ci.yml` parses; core jobs
+  (`ci-gate`, `golangci-lint`, `security`, `helm-lint`, `go`) + PR permissions.
+- **`TestAllGitHubWorkflowYAMLFilesParse`** — every `.github/workflows/*.yml`.
+- **`TestDockerComposeYAMLValid`** — compose services `postgres`, `redis`, `api`, `worker`.
+- **`TestComposeReferencesExistingMigrations`** — migration bind-mount paths exist.
+- **`TestOpenAPIYAMLValid`** — `docs/openapi.yaml` is valid YAML + OpenAPI 3.x paths.
+- **`TestCriticalShellScriptsSyntaxOK`** — `bash -n` on key `scripts/*.sh`.
+- **`TestProtoMemoryServiceProtoExists`** — `proto/pcmi/v1/memory.proto` markers.
+- `internal/deploy/codeql_workflow_test.go` — CodeQL workflow structure + SARIF permissions.
+- `internal/deploy/helm_test.go` — Chart/values/schema + optional `helm` on PATH.
+- **`scripts/test_all_local.sh`** — quick path adds golangci-lint, govulncheck,
+  `./internal/deploy/...`, gRPC TLS subset, Helm/kubeconform, **`go mod verify`**,
+  **`./internal/version/...`**.
+
+### Fixed — Docs / OpenAPI
+- **`docs/openapi.yaml`** — SSE route description no longer uses an unquoted `{ ... }`
+  fragment (broke strict YAML parsers such as `yaml.v3`).
+
+### Fixed — CodeQL pack config
+- `.github/codeql/codeql-config.yml` no longer duplicates `queries:` — query
+  packs stay on the workflow `init` step only, avoiding CLI conflicts on some
+  runners.
+
+### Fixed — CodeQL SARIF upload on repos without Code scanning
+- `.github/workflows/codeql.yml`: SARIF `upload` defaults to `never` unless
+  repository Actions variable `CODEQL_UPLOAD_SARIF` is set to `true`, so PR
+  workflows no longer fail with “Code scanning is not enabled” before the
+  feature is turned on in GitHub settings.
+
+### Notes — PR #3
+- No DB / API breaking changes. `PCMI_TLS_CERT` / `PCMI_TLS_KEY` were
+  already in Config and `.env.example` for the HTTP server; PR #3 simply
+  teaches the gRPC server to honour them too.
+- Self-signed certs in tests use `crypto/ecdsa` + `crypto/x509` only,
+  so no new modules join `go.sum`.
+
+### Added — Configuration & Env (PR #2)
+- `Config.OpenAIBaseURL` (env `OPENAI_BASE_URL`).
+- `internal/config/getenv_audit_test.go`: regression test that walks
+  `cmd/` and `internal/` (excluding `_test.go` and `internal/config/`)
+  and fails the build if a direct `os.Getenv` call lands in production.
+- `internal/config/config_pr2_test.go`: `.env.example` ↔ `config.go`
+  drift guard.
+- `internal/grpc/start_port_test.go`: `ResolveGRPCPort` table coverage.
+- CI: dedicated audit step runs before the integration suite so rogue
+  `os.Getenv` fails in 5 s instead of 5 min.
+- `scripts/test_all_local.sh`: A5b runs the audit; A4 widened to
+  `./internal/... ./cmd/...`.
+
+### Changed — Configuration & Env (PR #2)
+- `internal/grpc/server.go`: `Start(...)` reads `cfg.GRPCPort` via
+  `ResolveGRPCPort` — `os.Getenv("GRPC_PORT")` removed from production.
+- Default-value drift fixes in `config.Load()` so `.env.example`, Config,
+  and consuming middleware now agree:
+  - `REDIS_ADDR`: `redis:6379` → `localhost:6379`.
+  - `RATE_LIMIT_RPM`: `60` → `120` (aligned with the middleware default).
+  - `PRUNE_INTERVAL_SECS`: `3600` → `21600` (6 h).
+  - `DISTILLATION_BATCH_SIZE` Validate range: `1–1000` → `1–200` (matches
+    the runtime cap in `worker/distillation_helpers.go`).
+- `cmd/api/main.go`: passes `cfg` to `grpcserver.Start`.
+
+### Added — Admin UI, embedding providers, cursor contracts (PR #61)
+
+- **`GET /v1/admin/ui`**: embedded HTML admin dashboard (`internal/handler/adminui/`) — health, tenants, API keys, observability pointers; requires admin API key.
+- **`embedding.NewFromConfig`**: selects OpenAI vs Azure OpenAI vs OpenAI-compatible HTTP endpoints from `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `EMBEDDING_MODEL` (`internal/embedding/factory.go` + tests).
+- **Cursor pagination helpers** (`internal/model/cursor.go`): opaque keyset cursor encode/decode; optional `cursor` / `next_cursor` / `has_more` fields on memory retrieve DTOs (`internal/model/memory.go`).
+- **`deploy/helm/IDE_NOTES.md`**: notes on Helm + YAML extension diagnostics.
+
+### Added — Cursor pagination wiring + gRPC admin/metrics (follow-up)
+
+- **Memory retrieve keyset pagination**: path-only `POST /v1/retrieve` (no `query`, no vector search) uses `(created_at, id)` ordering with opaque `next_cursor` / `has_more` (`internal/repository/memory_repository.go`, `internal/service/memory_service.go`).
+- **Generated gRPC stubs**: `internal/grpc/pcmiv1/admin.pb.go`, `admin_grpc.pb.go`, `metrics.pb.go`, `metrics_grpc.pb.go`.
+- **`AdminService` gRPC server** (`internal/grpc/admin_server.go`): mirrors HTTP `/v1/admin/*` tenant and API-key operations; requires admin API key.
+- **`MetricsService` gRPC server** (`internal/grpc/metrics_server.go`): `Scrape` and `StreamScrape` over the Prometheus registry; `GetMetric` returns `Unimplemented` for now.
+
 ### Added — Quality & CI (PR #1)
 - `scripts/ci_coverage_check.sh`: pure-bash/awk script that parses
   `coverage.out`, computes per-package + global statement coverage, and exits

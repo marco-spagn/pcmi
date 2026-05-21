@@ -3,36 +3,36 @@ package worker
 import (
 	"testing"
 	"time"
+
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 func TestNewExpiryWorker_defaultInterval(t *testing.T) {
-	t.Setenv("EXPIRY_INTERVAL_SECS", "")
-	w := NewExpiryWorker(nil)
-	if w.interval != 300*time.Second {
-		t.Fatalf("default interval = %v", w.interval)
+	cfg := config.Load()
+	w := NewExpiryWorker(nil, cfg)
+	want := time.Duration(cfg.ExpiryIntervalSecs) * time.Second
+	if w.interval != want {
+		t.Fatalf("interval = %v want %v", w.interval, want)
 	}
 }
 
-func TestNewExpiryWorker_intervalFromEnv(t *testing.T) {
-	t.Setenv("EXPIRY_INTERVAL_SECS", "42")
-	w := NewExpiryWorker(nil)
+func TestNewExpiryWorker_intervalFromConfig(t *testing.T) {
+	w := NewExpiryWorker(nil, &config.Config{ExpiryIntervalSecs: 42})
 	if w.interval != 42*time.Second {
 		t.Fatalf("interval = %v", w.interval)
 	}
 }
 
-func TestNewExpiryWorker_invalidEnvFallsBackToDefault(t *testing.T) {
-	t.Setenv("EXPIRY_INTERVAL_SECS", "not-a-number")
-	w := NewExpiryWorker(nil)
-	if w.interval != 300*time.Second {
-		t.Fatalf("expected 300s default, got %v", w.interval)
+func TestNewExpiryWorker_nilConfigUsesDefault(t *testing.T) {
+	w := NewExpiryWorker(nil, nil)
+	if w.interval != time.Hour {
+		t.Fatalf("expected 1h default, got %v", w.interval)
 	}
 }
 
-func TestNewExpiryWorker_nonPositiveEnvFallsBack(t *testing.T) {
-	t.Setenv("EXPIRY_INTERVAL_SECS", "0")
-	w := NewExpiryWorker(nil)
-	if w.interval != 300*time.Second {
-		t.Fatalf("expected 300s default, got %v", w.interval)
+func TestNewExpiryWorker_nonPositiveFallsBack(t *testing.T) {
+	w := NewExpiryWorker(nil, &config.Config{ExpiryIntervalSecs: 0})
+	if w.interval != time.Hour {
+		t.Fatalf("expected 1h default, got %v", w.interval)
 	}
 }

@@ -1,0 +1,31 @@
+name: pcmi-codeql
+
+# Path scope for CodeQL (see .github/workflows/codeql.yml).
+# Skips generated protobufs, SDK build artefacts, tests, and docs.
+#
+# Query packs are selected in the workflow (init step: queries:
+# security-and-quality). Listing them here too duplicates work and can confuse
+# the CodeQL CLI on some runner versions.
+
+paths:
+  - cmd
+  - internal
+  - sdk/python/pcmi
+  - sdk/typescript/src
+  - scripts
+
+paths-ignore:
+  - '**/*_test.go'
+  - 'internal/grpc/pcmiv1/**'
+  - 'sdk/typescript/dist/**'
+  - 'sdk/typescript/node_modules/**'
+  - 'sdk/python/build/**'
+  - 'sdk/python/dist/**'
+  - 'sdk/python/**/*.egg-info/**'
+  - 'docs/**'
+  - 'examples/**'
+  - 'badges/**'
+  - 'deploy/grafana/**'
+  - '**/*.md'
+
+disable-default-queries: false

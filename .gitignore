@@ -2,6 +2,9 @@
 .env
 .env.local
 .env.*.local
+.env.pcmi-test-backup
+.env.pre-manual-tests
+.env.bak
 !.env.example
 
 # ====================== GO BUILD & RUNTIME ======================
@@ -37,7 +40,10 @@ postgres_data/
 pcmi_postgres_data/
 
 # ====================== IDE & EDITOR ======================
-.vscode/
+# VS Code: commit shared workspace defaults; keep personal/debug configs local.
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -71,3 +77,4 @@ sdk/typescript/node_modules/
 sdk/typescript/dist/
 __pycache__/
 *.py[cod]
+.cursorignore

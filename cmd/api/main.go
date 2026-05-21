@@ -17,6 +17,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/marco-spagn/pcmi/internal/config"
+	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
@@ -50,10 +51,15 @@ func main() {
 	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
 		log.Fatalf("❌ FATAL: %v", err)
 	}
+	if cfg.EncryptionKey != "" {
+		if err := pcmicrypto.InitKey(cfg.EncryptionKey); err != nil {
+			log.Fatalf("❌ FATAL encryption key: %v", err)
+		}
+	}
 	log.Printf("✅ Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
 
 	ctx := context.Background()
-	shutdownTelemetry, err := telemetry.Init(ctx, "pcmi-api")
+	shutdownTelemetry, err := telemetry.Init(ctx, cfg, "pcmi-api")
 	if err != nil {
 		log.Fatalf("telemetry: %v", err)
 	}
@@ -70,13 +76,13 @@ func main() {
 	db := pools.Primary
 
 	event.InitRedis(cfg.RedisAddr)
-	webhookDispatch := webhook.NewDispatcher(db)
+	webhookDispatch := webhook.NewDispatcher(db, cfg.WebhookMaxAttempts)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
 	repo := repository.NewMemoryRepository(db, pools.Read)
-	var embed embedding.Provider
-	if cfg.OpenAIAPIKey != "" {
-		embed = embedding.NewOpenAIProvider(cfg.OpenAIAPIKey, cfg.EmbeddingModel)
+	embed, err := embedding.NewFromConfig(cfg)
+	if err != nil {
+		log.Fatalf("❌ FATAL embedding provider: %v", err)
 	}
 	memSvc := service.NewMemoryService(repo, embed)
 
@@ -87,7 +93,7 @@ func main() {
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(skipTracePath)))
 	app.Use(metrics.Middleware())
 	app.Use(middleware.APIKeyMiddleware(db))
-	app.Use(middleware.RateLimitMiddleware())
+	app.Use(middleware.RateLimitMiddleware(cfg))
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
 	app.Get("/metrics", adaptor.HTTPHandler(promhttp.HandlerFor(
@@ -96,14 +102,16 @@ func main() {
 	)))
 
 	handler.RegisterReadyRoutes(app, db)
-	handler.SetupMemoryRoutes(app, db, pools.Read)
+	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
+		log.Fatalf("❌ FATAL memory routes: %v", err)
+	}
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": version.Tag})
 	})
 
-	grpcserver.Start(db, pools.Read, memSvc)
+	grpcserver.Start(db, pools.Read, memSvc, cfg)
 
 	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
 	if pools.Read != nil {

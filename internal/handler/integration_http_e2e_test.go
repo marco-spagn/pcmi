@@ -26,9 +26,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/adaptor"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 const httpE2EAPIKey = "testkey123"
@@ -75,7 +77,10 @@ func drainIntegrationHTTPSSECopy(t *testing.T, srv *httptest.Server, copyDone <-
 	}
 }
 
-func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
+// integrationHTTPOpt mutates process env before config.Load inside newIntegrationHTTPApp.
+type integrationHTTPOpt func(t *testing.T)
+
+func newIntegrationHTTPApp(t *testing.T, opts ...integrationHTTPOpt) (*fiber.App, *pgxpool.Pool, func()) {
 	t.Helper()
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
@@ -83,6 +88,15 @@ func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
 	}
 	t.Setenv("RATE_LIMIT_DISABLED", "true")
 	t.Setenv("OPENAI_API_KEY", "")
+	t.Setenv("OPENAI_BASE_URL", "")
+	// SSE via httptest+Fiber adaptor can block until Go's ~10m package timeout (see docs/integration-testing.md).
+	// Real SSE is exercised in scripts/ci_integration_smoke.sh. Set PCMI_FORCE_SSE_HTTPTEST=1 to run it here.
+	if os.Getenv("PCMI_FORCE_SSE_HTTPTEST") != "1" {
+		t.Setenv("PCMI_SKIP_SSE_HTTPTEST", "1")
+	}
+	for _, opt := range opts {
+		opt(t)
+	}
 
 	pool, err := pgxpool.New(t.Context(), dbURL)
 	if err != nil {
@@ -97,11 +111,14 @@ func newIntegrationHTTPApp(t *testing.T) (*fiber.App, *pgxpool.Pool, func()) {
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(middleware.APIKeyMiddleware(pool))
-	app.Use(middleware.RateLimitMiddleware())
+	cfg := config.Load()
+	app.Use(middleware.RateLimitMiddleware(cfg))
 	app.Use(middleware.NewAuditMiddleware(pool).Middleware())
 
 	RegisterReadyRoutes(app, pool)
-	SetupMemoryRoutes(app, pool, pool)
+	if err := SetupMemoryRoutes(app, pool, pool, cfg); err != nil {
+		t.Fatal(err)
+	}
 	SetupAdminRoutes(app, pool)
 
 	cleanup := func() {
@@ -366,6 +383,45 @@ func TestIntegrationHTTP_MemoryCRUDAndRoutes(t *testing.T) {
 	}
 }
 
+func TestIntegrationHTTP_AdminUI(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	resp, err := app.Test(reqAuthed(t, http.MethodGet, "/v1/admin/ui", ""))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("admin ui %d: %s", resp.StatusCode, b)
+	}
+	ct := resp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "text/html") {
+		t.Fatalf("content-type %q, want text/html", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, needle := range []string{"PCMI Admin", "/v1/admin/tenants", "/v1/ready"} {
+		if !strings.Contains(html, needle) {
+			t.Fatalf("admin UI HTML missing %q", needle)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/ui", nil)
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("unauthenticated admin ui: got %d, want 401", resp.StatusCode)
+	}
+}
+
 func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 	app, _, cleanup := newIntegrationHTTPApp(t)
 	defer cleanup()
@@ -388,6 +444,61 @@ func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 	if resp.StatusCode != 201 {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("create tenant %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_StoreWithoutOpenAIKey(t *testing.T) {
+	// newIntegrationHTTPApp clears OPENAI_API_KEY; SetupMemoryRoutes must still register
+	// and store with embedding_model=unspecified (embedding worker disabled, not fatal).
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.noopenai." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"no-embed","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("store %d: %s", resp.StatusCode, b)
+	}
+}
+
+func TestIntegrationHTTP_RetrieveCursorSortKeyMismatch(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	path := "root.http.cursor." + time.Now().Format("150405")
+	storeBody := `{"path":"` + path + `","content":"c1","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+
+	cursor, err := model.EncodeCursor(model.Cursor{
+		Version: 1,
+		SortKey: "id_desc",
+		LastID:  1,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	retBody, _ := json.Marshal(map[string]any{
+		"path_prefix": path,
+		"limit":       5,
+		"cursor":      cursor,
+	})
+	resp, err = app.Test(reqAuthed(t, http.MethodPost, "/v1/retrieve", string(retBody)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("retrieve with wrong sort key %d: %s", resp.StatusCode, b)
 	}
 }
 
@@ -822,11 +933,16 @@ func TestIntegrationHTTP_ValidationErrors(t *testing.T) {
 }
 
 func TestIntegrationHTTP_EventStreamMemoryStored(t *testing.T) {
-	// gofiber's adaptor.FiberApp copies streamed bodies through fasthttp in a way that
-	// can wedge httptest clients under -race on GitHub runners; integration-smoke and
-	// E2E jobs exercise the same /v1/events + memory.stored path on a listening server.
+	// Known issue: adaptor.FiberApp + httptest + long-lived SSE often never completes the
+	// GET handshake under -race (30s+ stall) and can wedge httptest.Server.Close until the
+	// package timeout (~10m). See docs/integration-testing.md.
+	//
+	// Coverage: scripts/ci_integration_smoke.sh (curl on a real listening server) and E2E.
 	if os.Getenv("GITHUB_ACTIONS") == "true" {
 		t.Skip("SSE via adaptor+httptest is unreliable on GHA; covered by integration-smoke / E2E")
+	}
+	if os.Getenv("PCMI_SKIP_SSE_HTTPTEST") == "1" {
+		t.Skip("SSE httptest skipped (PCMI_SKIP_SSE_HTTPTEST=1); see docs/integration-testing.md")
 	}
 
 	app, _, cleanup := newIntegrationHTTPApp(t)

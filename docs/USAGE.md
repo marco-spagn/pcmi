@@ -42,7 +42,8 @@ flowchart LR
 | Browser, curl, OpenAPI | **HTTP** |
 | Throughput, batch, stream retrieve/eventi | **gRPC** |
 | SDK ufficiali Python/TS | **HTTP** (wrapper in `sdk/`) |
-| Bootstrap tenant / metriche Prometheus | **HTTP** (`/v1/admin/*`, `/metrics`) |
+| Bootstrap tenant / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) o **gRPC** `AdminService` |
+| Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` |
 
 Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
 
@@ -111,9 +112,15 @@ Host: `localhost:50051` (env `GRPC_PORT`). API key nel messaggio o metadata `x-a
 # Health (senza chiave)
 grpcurl -plaintext localhost:50051 pcmi.v1.MemoryService/Health
 
-# Con go install e codegen locale, oppure test integrazione:
+# Test integrazione (vedi Makefile): bufconn = solo DB; live = API su GRPC_HOST
+make test-integration-bufconn
+make test-integration-live   # richiede API avviata
+
+# Oppure equivalente manuale:
+DATABASE_URL=postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable \
+  make test-integration-bufconn
 GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
-  go test -tags=integration -count=1 ./internal/grpc/...
+  go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC'
 ```
 
 Esempio concettuale (Go):
@@ -171,13 +178,33 @@ Usa `smoke.mts` / `npm run smoke` — **non** heredoc `tsx` su Node 23 (vedi [sd
 
 ---
 
+## Test di integrazione Go (`-tags=integration`)
+
+Richiedono Postgres (`DATABASE_URL`). I test HTTP in `internal/handler` usano miniredis in-process.
+
+**Attenzione — SSE:** `TestIntegrationHTTP_EventStreamMemoryStored` (httptest + Fiber SSE) può **bloccare ~10 minuti** e far fallire tutto il pacchetto `handler` per timeout. `newIntegrationHTTPApp` imposta di default `PCMI_SKIP_SSE_HTTPTEST=1`; la copertura SSE reale è in `scripts/ci_integration_smoke.sh`.
+
+```bash
+export DATABASE_URL='postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable'
+PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
+```
+
+Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md)**.
+
+---
+
 ## Makefile (repo root)
 
 | Target | Descrizione |
 |--------|-------------|
 | `make test` | Unit test Go |
 | `make lint` | golangci-lint v2 |
-| `make test-integration` | Test gRPC live (API+Postgres) |
+| `make test-integration` | Bufconn (DB migrato) + test TCP su API già avviata |
+| `make test-integration-bufconn` | Solo test in-process (Postgres + migrazioni) |
+| `make test-integration-live` | Solo dial `GRPC_HOST` (serve `pcmi-api`) |
+| `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
+| `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
+| `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |
 
 ---

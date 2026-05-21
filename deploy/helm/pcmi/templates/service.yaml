@@ -1,0 +1,22 @@
+{{- if .Values.api.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "pcmi.fullname" . }}-api
+  labels:
+    {{- include "pcmi.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    {{- include "pcmi.api.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.service.httpPort }}
+      targetPort: 8000
+      protocol: TCP
+    - name: grpc
+      port: {{ .Values.api.service.grpcPort }}
+      targetPort: 50051
+      protocol: TCP
+{{- end }}

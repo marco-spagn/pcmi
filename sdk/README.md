@@ -16,7 +16,7 @@ Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput stor
 | Store / retrieve / batch | Yes | Yes |
 | Compact, refine, links, stats | Yes (gRPC v1.28+) | Yes |
 | SSE events, webhooks, migrate, export | Yes (gRPC v1.29+) | Yes |
-| Admin tenants/keys | No | Yes (HTTP/OpenAPI only) |
+| Admin tenants/keys | Yes (`AdminService`) | Yes (HTTP — SDK uses REST) |
 
 Details: [`../docs/grpc-vs-http.md`](../docs/grpc-vs-http.md), [`../docs/USAGE.md`](../docs/USAGE.md), and [`HTTP-API.md`](HTTP-API.md).
 

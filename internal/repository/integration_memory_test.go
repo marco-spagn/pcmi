@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
@@ -41,7 +43,10 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-000000000000"
 	setTenant(t, ctx, pool, tenantID)
 
-	t.Setenv("PCMI_ENCRYPTION_KEY", "01234567890123456789012345678901")
+	t.Cleanup(pcmicrypto.ResetKey)
+	if err := pcmicrypto.InitKey("01234567890123456789012345678901"); err != nil {
+		t.Fatal(err)
+	}
 
 	path := fmt.Sprintf("root.integration.%d", time.Now().UnixNano())
 	repo := NewMemoryRepository(pool, pool)
@@ -207,5 +212,77 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 
 	if _, err := repo.ListPathHistory(ctx, tenantID, path, 0); err != nil {
 		t.Fatalf("history limit norm: %v", err)
+	}
+}
+
+func TestIntegration_MemoryRepository_cursorPagination(t *testing.T) {
+	ctx := context.Background()
+	pool := testDBPool(t)
+	tenantID := "00000000-0000-0000-0000-000000000000"
+	setTenant(t, ctx, pool, tenantID)
+
+	base := fmt.Sprintf("root.cursor.%d", time.Now().UnixNano())
+	repo := NewMemoryRepository(pool, pool)
+
+	for i := 0; i < 5; i++ {
+		p := fmt.Sprintf("%s.row%d", base, i)
+		if _, _, _, err := repo.Store(ctx, model.StoreRequest{
+			Path: p, Content: fmt.Sprintf("content-%d", i),
+		}, tenantID); err != nil {
+			t.Fatalf("store %s: %v", p, err)
+		}
+		time.Sleep(3 * time.Millisecond)
+	}
+
+	page1, err := repo.Retrieve(ctx, model.RetrieveRequest{PathPrefix: base, Limit: 2}, tenantID, nil)
+	if err != nil {
+		t.Fatalf("page1: %v", err)
+	}
+	if len(page1) != 3 {
+		t.Fatalf("page1: want limit+1=3 rows, got %d", len(page1))
+	}
+
+	cursor, err := model.EncodeCursor(model.Cursor{
+		Version:       1,
+		SortKey:       model.SortKeyCreatedAtIDDesc,
+		LastID:        page1[1].ID,
+		LastTimestamp: page1[1].CreatedAt,
+	})
+	if err != nil {
+		t.Fatalf("encode cursor: %v", err)
+	}
+
+	page2, err := repo.Retrieve(ctx, model.RetrieveRequest{
+		PathPrefix: base,
+		Limit:      2,
+		Cursor:     cursor,
+	}, tenantID, nil)
+	if err != nil {
+		t.Fatalf("page2: %v", err)
+	}
+	if len(page2) < 1 {
+		t.Fatal("page2: expected at least one row")
+	}
+	if page2[0].ID == page1[0].ID {
+		t.Fatalf("page2 overlaps page1: same id %d", page2[0].ID)
+	}
+
+	_, err = repo.Retrieve(ctx, model.RetrieveRequest{
+		PathPrefix: base,
+		Limit:      2,
+		Cursor:     "not-valid-cursor",
+	}, tenantID, nil)
+	if err == nil || !strings.Contains(err.Error(), "invalid cursor") {
+		t.Fatalf("malformed cursor: err=%v", err)
+	}
+
+	_, err = repo.Retrieve(ctx, model.RetrieveRequest{
+		PathPrefix: base,
+		Limit:      2,
+		Query:      "content",
+		Cursor:     cursor,
+	}, tenantID, nil)
+	if err == nil || !strings.Contains(err.Error(), "cursor pagination requires") {
+		t.Fatalf("cursor+query: err=%v", err)
 	}
 }

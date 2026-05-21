@@ -3,11 +3,10 @@ package worker
 import (
 	"context"
 	"log"
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 // PruningWorker periodically deletes superseded memory rows past retention.
@@ -17,17 +16,15 @@ type PruningWorker struct {
 	interval      time.Duration
 }
 
-func NewPruningWorker(db *pgxpool.Pool) *PruningWorker {
+func NewPruningWorker(db *pgxpool.Pool, cfg *config.Config) *PruningWorker {
 	days := 30
-	if v := os.Getenv("PRUNE_RETENTION_DAYS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			days = n
-		}
-	}
 	interval := 6 * time.Hour
-	if v := os.Getenv("PRUNE_INTERVAL_SECS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			interval = time.Duration(n) * time.Second
+	if cfg != nil {
+		if cfg.PruneRetentionDays > 0 {
+			days = cfg.PruneRetentionDays
+		}
+		if cfg.PruneIntervalSecs > 0 {
+			interval = time.Duration(cfg.PruneIntervalSecs) * time.Second
 		}
 	}
 	return &PruningWorker{db: db, retentionDays: days, interval: interval}

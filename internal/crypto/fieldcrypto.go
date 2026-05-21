@@ -8,11 +8,35 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"strings"
+	"sync"
 )
 
 const encPrefix = "enc:v1:"
+
+var (
+	keyMu      sync.RWMutex
+	configured []byte
+)
+
+// InitKey sets the AES-256-GCM key from config (32 raw bytes or base64). Call once at process startup.
+func InitKey(raw string) error {
+	key, err := parseKey(raw)
+	if err != nil {
+		return err
+	}
+	keyMu.Lock()
+	configured = key
+	keyMu.Unlock()
+	return nil
+}
+
+// ResetKey clears the configured key (tests only).
+func ResetKey() {
+	keyMu.Lock()
+	configured = nil
+	keyMu.Unlock()
+}
 
 // EncryptContent encrypts plaintext with AES-256-GCM using PCMI_ENCRYPTION_KEY (32-byte raw or base64).
 func EncryptContent(plaintext string) (string, error) {
@@ -90,7 +114,19 @@ func ShouldEncrypt(reqEncrypt bool, metadata map[string]interface{}) bool {
 }
 
 func loadKey() ([]byte, error) {
-	raw := strings.TrimSpace(os.Getenv("PCMI_ENCRYPTION_KEY"))
+	keyMu.RLock()
+	key := configured
+	keyMu.RUnlock()
+	if len(key) == 0 {
+		return nil, errors.New("encryption key is not configured (call crypto.InitKey at startup)")
+	}
+	out := make([]byte, len(key))
+	copy(out, key)
+	return out, nil
+}
+
+func parseKey(raw string) ([]byte, error) {
+	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil, errors.New("PCMI_ENCRYPTION_KEY is not set")
 	}

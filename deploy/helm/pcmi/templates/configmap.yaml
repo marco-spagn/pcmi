@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "pcmi.fullname" . }}-config
+  labels:
+    {{- include "pcmi.labels" . | nindent 4 }}
+data:
+{{- range $k, $v := .Values.config }}
+  {{ $k }}: {{ $v | quote }}
+{{- end }}
+{{- if .Values.otel.endpoint }}
+  OTEL_EXPORTER_OTLP_ENDPOINT: {{ .Values.otel.endpoint | quote }}
+  OTEL_SERVICE_NAME: {{ .Values.otel.serviceName | quote }}
+{{- end }}

@@ -1,34 +1,33 @@
 package middleware
 
 import (
-	"os"
-	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
+	"github.com/marco-spagn/pcmi/internal/config"
 )
 
-// RateLimitMiddleware applies per-role, per-API-key rate limiting.
+// RateLimitMiddleware applies per-role, per-API-key rate limiting using cfg.
 //
 // A separate Fiber limiter instance is created for each role so each bucket
 // has its own independent Max value:
 //
-//   - RATE_LIMIT_RPM_READONLY  (default 200) — read-only API keys
-//   - RATE_LIMIT_RPM_WRITE     (default 100) — standard write API keys
-//   - RATE_LIMIT_RPM_ADMIN     (default  30) — admin API keys (heavy ops)
-//   - RATE_LIMIT_RPM           (default 120) — legacy / unrecognised roles
+//   - RateLimitRPMReadonly  (default 200) — read-only API keys
+//   - RateLimitRPMWrite     (default 100) — standard write API keys
+//   - RateLimitRPMAdmin     (default  30) — admin API keys (heavy ops)
+//   - RateLimitRPM          (default 120) — legacy / unrecognised roles
 //
-// Set RATE_LIMIT_DISABLED=true to bypass all limits (useful in CI / smoke tests).
-func RateLimitMiddleware() fiber.Handler {
-	if os.Getenv("RATE_LIMIT_DISABLED") == "true" || os.Getenv("RATE_LIMIT_DISABLED") == "1" {
+// Set RateLimitDisabled=true to bypass all limits (useful in CI / smoke tests).
+func RateLimitMiddleware(cfg *config.Config) fiber.Handler {
+	if cfg != nil && cfg.RateLimitDisabled {
 		return func(c *fiber.Ctx) error { return c.Next() }
 	}
 
-	readonlyH := newRoleLimiter(envRPM("RATE_LIMIT_RPM_READONLY", 200))
-	writeH := newRoleLimiter(envRPM("RATE_LIMIT_RPM_WRITE", 100))
-	adminH := newRoleLimiter(envRPM("RATE_LIMIT_RPM_ADMIN", 30))
-	fallbackH := newRoleLimiter(envRPM("RATE_LIMIT_RPM", 120))
+	readonlyH := newRoleLimiter(roleRPM(cfg, "readonly"))
+	writeH := newRoleLimiter(roleRPM(cfg, "write"))
+	adminH := newRoleLimiter(roleRPM(cfg, "admin"))
+	fallbackH := newRoleLimiter(roleRPM(cfg, ""))
 
 	return func(c *fiber.Ctx) error {
 		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
@@ -66,25 +65,43 @@ func newRoleLimiter(rpm int) fiber.Handler {
 }
 
 // RoleLimitFor returns the configured RPM for a given role string.
-// Useful for health/admin endpoints that want to expose effective limits.
-func RoleLimitFor(role string) int {
-	switch role {
-	case "readonly":
-		return envRPM("RATE_LIMIT_RPM_READONLY", 200)
-	case "admin":
-		return envRPM("RATE_LIMIT_RPM_ADMIN", 30)
-	case "write", "user":
-		return envRPM("RATE_LIMIT_RPM_WRITE", 100)
-	default:
-		return envRPM("RATE_LIMIT_RPM", 120)
-	}
+func RoleLimitFor(role string, cfg *config.Config) int {
+	return roleRPM(cfg, role)
 }
 
-func envRPM(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			return n
+func roleRPM(cfg *config.Config, role string) int {
+	if cfg == nil {
+		switch role {
+		case "readonly":
+			return 200
+		case "admin":
+			return 30
+		case "write", "user":
+			return 100
+		default:
+			return 120
 		}
 	}
-	return def
+	switch role {
+	case "readonly":
+		if cfg.RateLimitRPMReadonly > 0 {
+			return cfg.RateLimitRPMReadonly
+		}
+		return 200
+	case "admin":
+		if cfg.RateLimitRPMAdmin > 0 {
+			return cfg.RateLimitRPMAdmin
+		}
+		return 30
+	case "write", "user":
+		if cfg.RateLimitRPMWrite > 0 {
+			return cfg.RateLimitRPMWrite
+		}
+		return 100
+	default:
+		if cfg.RateLimitRPM > 0 {
+			return cfg.RateLimitRPM
+		}
+		return 120
+	}
 }

@@ -1,10 +1,15 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration sdk-smoke distillation-e2e install-lint \
-        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
+        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
+        env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
+        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        helm-lint helm-template helm-package
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
 GRPC_TEST_API_KEY ?= testkey123
 DATABASE_URL ?= postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
+DOCKER_COMPOSE ?= docker compose
+API_URL ?= http://localhost:8000
 
 # Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
 # scripts/ci_coverage_check.sh. Tighten as new tests land.
@@ -35,6 +40,93 @@ COVERAGE_PKGS = \
 	./internal/version/... \
 	./internal/webhook/... \
 	./internal/worker/...
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Local infrastructure (Docker Compose)
+#
+# Quick start (API on :8000, gRPC on :50051, worker health on :8081):
+#   make infra-up      # postgres + redis + api + worker (build if needed)
+#   make infra-smoke   # curl /v1/ready and /health
+#   make infra-down    # stop containers
+#
+# Only DB + Redis (run API/worker with `go run` on the host):
+#   make infra-deps-up
+#   export DATABASE_URL REDIS_ADDR  # see .env.example
+#   go run ./cmd/api
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Create .env from .env.example when missing.
+env:
+	@test -f .env || (cp .env.example .env && echo "[infra] created .env from .env.example — set OPENAI_API_KEY if you need LLM features")
+
+# Postgres + Redis only.
+infra-deps-up: env
+	@echo "[infra] starting postgres + redis…"
+	$(DOCKER_COMPOSE) up -d postgres redis
+	@bash scripts/infra_wait.sh
+
+# Full stack: postgres, redis, API (:8000, :50051), worker (:8081).
+infra-up: env
+	@echo "[infra] starting postgres, redis, api, worker (build if needed)…"
+	$(DOCKER_COMPOSE) up -d --build --remove-orphans postgres redis api worker
+	@bash scripts/infra_wait.sh $(API_URL)/v1/ready
+
+infra-down:
+	@echo "[infra] stopping compose stack…"
+	$(DOCKER_COMPOSE) down --remove-orphans
+	@docker rm -f pcmi-api pcmi-worker 2>/dev/null || true
+
+# Stop stack and delete Postgres volume (destructive — fresh DB on next up).
+infra-down-v:
+	@echo "[infra] stopping compose and removing volumes…"
+	$(DOCKER_COMPOSE) down -v --remove-orphans
+
+infra-restart: infra-down infra-up
+
+infra-ps:
+	$(DOCKER_COMPOSE) ps
+
+infra-logs:
+	$(DOCKER_COMPOSE) logs -f --tail=100
+
+infra-wait-db:
+	@bash scripts/infra_wait.sh
+
+infra-wait:
+	@bash scripts/infra_wait.sh $(API_URL)/v1/ready
+
+# Manual smoke checks (requires API listening on :8000).
+infra-smoke:
+	@echo "=== GET $(API_URL)/v1/ready ==="
+	@curl -sS "$(API_URL)/v1/ready" | jq .
+	@echo "=== GET $(API_URL)/health ==="
+	@curl -sS "$(API_URL)/health" | jq .
+
+# Shortcuts
+up: infra-up
+down: infra-down
+
+# Complete local test suite (see scripts/test_all_local.sh --help).
+test-all-local:
+	@chmod +x scripts/test_all_local.sh scripts/infra_wait.sh
+	@./scripts/test_all_local.sh
+
+test-all-local-quick:
+	@chmod +x scripts/test_all_local.sh
+	@./scripts/test_all_local.sh --quick
+
+test-all-local-host:
+	@chmod +x scripts/test_all_local.sh scripts/infra_wait.sh
+	@./scripts/test_all_local.sh --with-host
+
+# Aliases (wrappers → test_all_local.sh)
+verify-branch: test-all-local-quick
+verify-branch-full: test-all-local
+test-branch-manual: test-all-local
+
+# Workflows, compose, openapi, Helm chart YAML/JSON, scripts bash -n, proto markers (no cluster).
+deploy-structural-test:
+	go test -race -count=1 ./internal/deploy/...
 
 # Unit tests (default; integration tests use build tag "integration").
 test:
@@ -71,9 +163,31 @@ lint: install-lint
 install-lint:
 	@command -v golangci-lint >/dev/null 2>&1 || go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
 
-# Live gRPC + DB tests. Start API/worker and Postgres/Redis first (see scripts/ci_integration_smoke.sh).
+# gRPC integration (-tags=integration), split like CI:
+#
+#   bufconn — in-process server + miniredis; needs Postgres with migrations only (no TCP gRPC).
+#   live    — dials GRPC_HOST; needs pcmi-api running (docker compose or ./bin/pcmi-api).
+#
+# Full suite: make test-integration (bufconn first, then live + resolve-tenant).
+test-integration-bufconn:
+	DATABASE_URL=$(DATABASE_URL) go test -tags=integration -count=1 ./internal/grpc -run '^TestIntegrationBufconn_'
+
+test-integration-live:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
+		go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
+
+# HTTP handler integration tests (Postgres + miniredis). Skips flaky SSE httptest by default — see docs/integration-testing.md.
+test-integration-handler:
+	PCMI_SKIP_SSE_HTTPTEST=1 DATABASE_URL=$(DATABASE_URL) \
+		go test -tags=integration -count=1 ./internal/handler/...
+
 test-integration:
-	GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) DATABASE_URL=$(DATABASE_URL) \
+	@$(MAKE) test-integration-bufconn
+	@$(MAKE) test-integration-live
+
+# Historical alias: single go test line (same as bufconn + live + pcmiv1 empty).
+test-integration-all:
+	DATABASE_URL=$(DATABASE_URL) GRPC_HOST=$(GRPC_HOST) GRPC_TEST_API_KEY=$(GRPC_TEST_API_KEY) \
 		go test -tags=integration -count=1 ./internal/grpc/...
 
 # HTTP SDK smoke (Python + TypeScript). Requires API on :8000 (see scripts/ci_integration_smoke.sh).
@@ -81,9 +195,34 @@ sdk-smoke:
 	PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
 		bash scripts/ci_sdk_smoke.sh
 
+# Synthetic data presets: soc | finance | advertising | healthcare | custom
+PRESET ?= soc
+SYNTH_NUM ?= 1000
+SYNTH_SEED ?= 42
+PYTHON ?= python3
+
+# Generate JSONL only (no Docker). Example: make synth-generate PRESET=finance SYNTH_NUM=200
+synth-list:
+	PYTHONPATH=scripts $(PYTHON) -m pcmi_synth list
+
+synth-generate:
+	PYTHONPATH=scripts $(PYTHON) -m pcmi_synth generate \
+		--preset $(PRESET) --num $(SYNTH_NUM) --seed $(SYNTH_SEED) \
+		--dry-run --output .pcmi_test_out/$(PRESET)_seed$(SYNTH_SEED)_n$(SYNTH_NUM).jsonl
+
 # Full distillation pipeline e2e (Docker + OpenAI). Local only; artifacts in .pcmi_test_out/.
 distillation-e2e:
-	bash scripts/run_pcmi_distillation_test.sh
+	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
+		--preset $(PRESET) --num $(SYNTH_NUM) --seed $(SYNTH_SEED)
+
+# Quick smoke: 100 records → 10 distilled (preset soc by default)
+distill-smoke:
+	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
+		--preset $(PRESET) --num 100 --seed $(SYNTH_SEED) --no-build
+
+# GitHub Actions: add CI_start to the commit message to run the remote pipeline
+# (e.g. git commit -m "fix: foo CI_start"). Without it, only the ci-gate job runs.
+# Manual run: gh workflow run CI
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Local GitHub Actions runner (act) — replaces GitHub-hosted runs.
@@ -169,3 +308,36 @@ act-trivy:
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
 act-integration-smoke:
 	bash scripts/act_integration_smoke_host.sh
+
+# Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
+# go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
+# Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
+# Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github
+#             CI_LIKE_NO_RACE=1 — Phase F senza race (più veloce; CI GitHub usa ancora -race)
+#                             oppure CI_LIKE_GO_VERBOSE=1 per log dei singoli test
+# Solo smoke HTTP/gRPC/SDK: `make act-integration-smoke` oppure `./scripts/ci_like_github.sh --integration-smoke`
+ci-like-github:
+	@chmod +x scripts/ci_like_github.sh
+	bash scripts/ci_like_github.sh
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Helm — single packaged Kubernetes deployment (PR #4).
+# Requires: helm v3.13+ on PATH. CI installs it via azure/setup-helm.
+# ───────────────────────────────────────────────────────────────────────────────
+
+HELM_CHART_DIR ?= deploy/helm/pcmi
+
+# `helm lint` exercises Chart.yaml validity, values.yaml schema (if present),
+# and template rendering against the default values. Fails on `--strict`
+# warnings (missing required keys, invalid label keys, etc.).
+helm-lint:
+	helm lint $(HELM_CHART_DIR) --strict
+
+# Render every template to stdout — useful to eyeball before committing.
+# Pipe to `| kubectl apply --dry-run=client -f -` for a server-side validation.
+helm-template:
+	helm template pcmi $(HELM_CHART_DIR)
+
+# Build a redistributable tarball (deploy/helm/pcmi-<version>.tgz).
+helm-package:
+	helm package $(HELM_CHART_DIR) --destination deploy/helm

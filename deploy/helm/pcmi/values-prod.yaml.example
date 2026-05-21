@@ -1,0 +1,43 @@
+# Example production override. Copy and edit:
+#   cp deploy/helm/pcmi/values-prod.yaml.example deploy/helm/pcmi/values-prod.yaml
+#   helm upgrade --install pcmi ./deploy/helm/pcmi -f deploy/helm/pcmi/values-prod.yaml
+#
+# Secrets in this file are placeholders — real values should come from a
+# Sealed Secrets / External Secrets / Vault operator, never plain-text.
+
+image:
+  api:
+    repository: registry.example.com/pcmi-api
+    tag: v1.33.0
+  worker:
+    repository: registry.example.com/pcmi-worker
+    tag: v1.33.0
+
+api:
+  replicaCount: 4
+
+worker:
+  replicaCount: 2
+
+autoscaling:
+  enabled: true
+  minReplicas: 4
+  maxReplicas: 24
+
+config:
+  REDIS_ADDR: "pcmi-redis.pcmi.svc.cluster.local:6379"
+  RATE_LIMIT_DISABLED: "false"
+
+secrets:
+  DATABASE_URL: "postgres://pcmi:CHANGEME@pcmi-postgres.pcmi.svc.cluster.local:5432/pcmi?sslmode=require"
+  ADMIN_API_KEY: "REPLACE_ME"
+  OPENAI_API_KEY: "REPLACE_ME"
+  PCMI_ENCRYPTION_KEY: "REPLACE_WITH_32_BYTE_RAW_OR_BASE64"
+
+tls:
+  enabled: true
+  secretName: pcmi-tls
+
+otel:
+  endpoint: "http://otel-collector.observability.svc.cluster.local:4318"
+  serviceName: pcmi-api-prod

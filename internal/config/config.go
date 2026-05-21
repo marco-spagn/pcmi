@@ -30,6 +30,7 @@ type Config struct {
 
 	// OpenAI / Embedding
 	OpenAIAPIKey   string
+	OpenAIBaseURL  string // optional: proxy or Azure OpenAI endpoint base
 	EmbeddingModel string
 
 	// Distillation / Worker
@@ -80,7 +81,8 @@ func Load() *Config {
 		GRPCPort:  envOr("GRPC_PORT", "50051"),
 
 		AdminAPIKey: os.Getenv("ADMIN_API_KEY"),
-		OpenAIAPIKey: os.Getenv("OPENAI_API_KEY"),
+		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
 
@@ -92,7 +94,7 @@ func Load() *Config {
 		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
-		RateLimitRPM:         envInt("RATE_LIMIT_RPM", 60),
+		RateLimitRPM:         envInt("RATE_LIMIT_RPM", 120),
 		RateLimitRPMAdmin:    envInt("RATE_LIMIT_RPM_ADMIN", 30),
 		RateLimitRPMWrite:    envInt("RATE_LIMIT_RPM_WRITE", 100),
 		RateLimitRPMReadonly: envInt("RATE_LIMIT_RPM_READONLY", 200),

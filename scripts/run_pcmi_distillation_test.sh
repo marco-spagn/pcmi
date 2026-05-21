@@ -23,7 +23,9 @@
 #   ./scripts/run_pcmi_distillation_test.sh                 # full e2e
 #   ./scripts/run_pcmi_distillation_test.sh --no-build      # salta `docker compose build`
 #   ./scripts/run_pcmi_distillation_test.sh --no-teardown   # lascia i container su
-#   ./scripts/run_pcmi_distillation_test.sh --num 200       # genera meno incidenti
+#   ./scripts/run_pcmi_distillation_test.sh --preset finance --num 500 --seed 1
+#   ./scripts/run_pcmi_distillation_test.sh --num 200       # meno record (default preset soc)
+#   ./scripts/run_pcmi_distillation_test.sh --llm --domain "retail fraud cases"
 #   ./scripts/run_pcmi_distillation_test.sh --skip-distill  # salta il check finale
 #
 # Env utili:
@@ -48,11 +50,14 @@ PCMI_REDIS_URL="${PCMI_REDIS_URL:-redis://localhost:6379/0}"
 
 # Tenant dedicato per il test SOC: lo creiamo con UUID forzato via SQL,
 # poi generiamo una API key admin per lui via /v1/admin/api-keys.
+PRESET="${PRESET:-soc}"
 TENANT_ID="${TENANT_ID:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}"
-TENANT_SLUG="${TENANT_SLUG:-soc-test}"
+TENANT_SLUG="${TENANT_SLUG:-}"
 
 NUM_INCIDENTS=1000
 SEED=42
+USE_LLM=0
+CUSTOM_DOMAIN=""
 SKIP_BUILD=0
 SKIP_TEARDOWN=0
 SKIP_DISTILL=0
@@ -66,13 +71,13 @@ DISTILL_BATCH_SIZE="${DISTILLATION_BATCH_SIZE:-10}"
 # non è persistente). Lo manteniamo basso giusto per non rompere il pool DB.
 THROTTLE_MS=0
 BATCH_SIZE=50
-PATH_PREFIX="root.security.incidents.soc"
+PATH_PREFIX=""
 # Strategia "no LLM cascade": stop worker durante l'ingest, riparte solo per
 # il singolo refine event manuale → 1 sola chiamata LLM totale.
 STOP_WORKER_DURING_INGEST=1
 
 OUTPUT_DIR="${ROOT}/.pcmi_test_out"
-JSONL_OUT="${OUTPUT_DIR}/soc_incidents_backup.jsonl"
+JSONL_OUT=""
 WORKER_LOG="${OUTPUT_DIR}/worker.log"
 API_LOG="${OUTPUT_DIR}/api.log"
 
@@ -152,7 +157,7 @@ print_test_plan() {
   printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Memorie raw (active_memories)" "$x_active" "$z_active"
   printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Record distillati (distilled_count)" "$x_distilled" "$z_distilled"
   printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Eventi Redis refine pubblicati" "0" "$NUM_REFINE_EVENTS"
-  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Incidenti SOC generati/ingest" "0" "$NUM_INCIDENTS"
+  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Record sintetici generati" "0" "$NUM_INCIDENTS"
   if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
     printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Eventi memory.stored consumati" "0" "0"
     echo "      (worker fermo in ingest: gli store non triggerano distillazione automatica)"
@@ -180,6 +185,10 @@ while [[ $# -gt 0 ]]; do
                     SHARD_SIZE="$DISTILL_BATCH_SIZE"
                     NUM_REFINE_EVENTS=$(( (NUM_INCIDENTS + SHARD_SIZE - 1) / SHARD_SIZE ))
                     shift 2 ;;
+    --preset)       PRESET="${2:?missing preset}"; shift 2 ;;
+    --llm)          USE_LLM=1; shift ;;
+    --domain)       CUSTOM_DOMAIN="${2:?missing domain}"; shift 2 ;;
+    --path-prefix)  PATH_PREFIX="${2:?missing prefix}"; shift 2 ;;
     --fast)         THROTTLE_MS=0; shift ;;
     --keep-worker)  STOP_WORKER_DURING_INGEST=0; shift ;;
     --help|-h)
@@ -189,6 +198,44 @@ while [[ $# -gt 0 ]]; do
 done
 
 mkdir -p "$OUTPUT_DIR"
+
+# --- Preset defaults (path + tenant slug) ------------------------------------
+_apply_preset_defaults() {
+  case "$PRESET" in
+    soc)
+      PATH_PREFIX="${PATH_PREFIX:-root.security.incidents.soc}"
+      TENANT_SLUG="${TENANT_SLUG:-soc-test}"
+      ;;
+    finance)
+      PATH_PREFIX="${PATH_PREFIX:-root.finance.events}"
+      TENANT_SLUG="${TENANT_SLUG:-finance-test}"
+      ;;
+    advertising)
+      PATH_PREFIX="${PATH_PREFIX:-root.marketing.ads}"
+      TENANT_SLUG="${TENANT_SLUG:-ads-test}"
+      ;;
+    healthcare)
+      PATH_PREFIX="${PATH_PREFIX:-root.healthcare.ops}"
+      TENANT_SLUG="${TENANT_SLUG:-health-test}"
+      ;;
+    custom)
+      PATH_PREFIX="${PATH_PREFIX:-root.custom.synthetic}"
+      TENANT_SLUG="${TENANT_SLUG:-custom-test}"
+      USE_LLM=1
+      ;;
+    *)
+      err "Unknown --preset ${PRESET} (soc|finance|advertising|healthcare|custom)"
+      exit 2
+      ;;
+  esac
+  JSONL_OUT="${JSONL_OUT:-${OUTPUT_DIR}/${PRESET}_seed${SEED}_n${NUM_INCIDENTS}.jsonl}"
+}
+_apply_preset_defaults
+
+if [[ "$PRESET" == "custom" && -z "$CUSTOM_DOMAIN" ]]; then
+  err "preset=custom requires --domain \"...\" (used with --llm)"
+  exit 2
+fi
 
 # --- Preflight ---------------------------------------------------------------
 need() { command -v "$1" >/dev/null 2>&1 || { err "Missing tool: $1"; exit 1; }; }
@@ -350,7 +397,7 @@ print_test_plan "$X_ACTIVE" "$X_DISTILLED"
 # =============================================================================
 # 5) Genera + ingest + trigger refine
 # =============================================================================
-log "Step 5/6 — Ingest ${NUM_INCIDENTS} incidenti (atteso active_memories: x=${X_ACTIVE} → z=${EXPECT_ACTIVE})"
+log "Step 5/6 — Ingest ${NUM_INCIDENTS} record (preset=${PRESET}, seed=${SEED}; atteso active_memories: x=${X_ACTIVE} → z=${EXPECT_ACTIVE})"
 
 # --- 5a) Stop worker per evitare la cascata di distillation per ogni store ---
 if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
@@ -359,19 +406,25 @@ if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
 fi
 
 # --- 5b) Ingest puro (no redis publish lato Python) -------------------------
-python "${ROOT}/scripts/generate_soc_incidents_enterprise_v2.py" \
-  --num-incidents "$NUM_INCIDENTS" \
-  --tenant-id     "$TENANT_ID" \
-  --api-url       "$PCMI_BASE_URL" \
-  --api-key       "$PCMI_API_KEY" \
-  --seed          "$SEED" \
-  --output        "$JSONL_OUT" \
-  --redis-url     "$PCMI_REDIS_URL" \
-  --refine-path-prefix "$PATH_PREFIX" \
-  --batch-size    "$BATCH_SIZE" \
-  --throttle-ms   "$THROTTLE_MS" \
-  --shard-size    "$SHARD_SIZE" \
-  --skip-publish
+SYNTH_ARGS=(
+  generate
+  --preset "$PRESET"
+  --num "$NUM_INCIDENTS"
+  --seed "$SEED"
+  --tenant-id "$TENANT_ID"
+  --api-url "$PCMI_BASE_URL"
+  --api-key "$PCMI_API_KEY"
+  --output "$JSONL_OUT"
+  --path-prefix "$PATH_PREFIX"
+  --batch-size "$BATCH_SIZE"
+  --throttle-ms "$THROTTLE_MS"
+  --shard-size "$SHARD_SIZE"
+)
+if [[ "$USE_LLM" -eq 1 ]]; then
+  SYNTH_ARGS+=(--llm)
+  [[ -n "$CUSTOM_DOMAIN" ]] && SYNTH_ARGS+=(--domain "$CUSTOM_DOMAIN")
+fi
+PYTHONPATH="${ROOT}/scripts" python3 -m pcmi_synth "${SYNTH_ARGS[@]}"
 
 ok "Generatore completato — JSONL backup: $JSONL_OUT"
 

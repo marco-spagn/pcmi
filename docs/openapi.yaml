@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.33.0
+  version: 1.38.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -223,6 +223,14 @@ paths:
   /v1/memories:
     post:
       summary: Store a memory entry (append-only; supersedes same path)
+      parameters:
+        - in: header
+          name: X-Idempotency-Key
+          required: false
+          schema:
+            type: string
+            format: uuid
+          description: Optional UUID; duplicate requests within 24h return the cached 200 body with X-Idempotency-Replayed true
       requestBody:
         required: true
         content:
@@ -232,6 +240,11 @@ paths:
       responses:
         "200":
           description: Stored
+          headers:
+            X-Idempotency-Replayed:
+              schema:
+                type: string
+              description: "true when the response was served from the idempotency cache"
           content:
             application/json:
               schema:

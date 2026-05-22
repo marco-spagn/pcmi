@@ -30,7 +30,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 
 	api := app.Group("/v1")
 
-	api.Post("/memories", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
+	api.Post("/memories", middleware.RequireWriteRole, middleware.Idempotency(dbWrite), func(c *fiber.Ctx) error {
 		var req model.StoreRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})

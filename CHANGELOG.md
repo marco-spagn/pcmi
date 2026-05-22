@@ -9,6 +9,16 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.35.0] — 2026-05-22
+
+### Added — Circuit breaker for OpenAI embedding (PCMI-002)
+
+- **`internal/embedding`**: `CircuitBreakerProvider` wraps all providers from
+  `NewFromConfig` with `github.com/sony/gobreaker/v2` and `golang.org/x/time/rate`.
+- **Worker metrics**: `pcmi_embedding_circuit_state`, `pcmi_embedding_requests_total`,
+  `pcmi_embedding_latency_seconds` on `metrics.WorkerRegistry`.
+- **Makefile** target `test-circuit-breaker`; embedding worker logs via `slog`.
+
 ## [1.34.0] — 2026-05-22
 
 ### Added — Redis Streams durable event bus (PCMI-001)

@@ -1,16 +1,20 @@
 package middleware
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/event"
+	pcmiratelimit "github.com/marco-spagn/pcmi/internal/ratelimit"
+	"github.com/redis/go-redis/v9"
 )
 
 // RateLimitMiddleware applies per-role, per-API-key rate limiting using cfg.
 //
-// A separate Fiber limiter instance is created for each role so each bucket
+// A separate limiter bucket is created for each role so each bucket
 // has its own independent Max value:
 //
 //   - RateLimitRPMReadonly  (default 200) — read-only API keys
@@ -19,9 +23,15 @@ import (
 //   - RateLimitRPM          (default 120) — legacy / unrecognised roles
 //
 // Set RateLimitDisabled=true to bypass all limits (useful in CI / smoke tests).
+// Set RateLimitBackend=redis to share counters across API replicas via Redis
+// (sliding window with ZADD/ZCARD); memory uses the in-process Fiber limiter.
 func RateLimitMiddleware(cfg *config.Config) fiber.Handler {
 	if cfg != nil && cfg.RateLimitDisabled {
 		return func(c *fiber.Ctx) error { return c.Next() }
+	}
+
+	if cfg != nil && strings.EqualFold(strings.TrimSpace(cfg.RateLimitBackend), "redis") {
+		return redisRateLimitMiddleware(cfg)
 	}
 
 	readonlyH := newRoleLimiter(roleRPM(cfg, "readonly"))
@@ -44,6 +54,43 @@ func RateLimitMiddleware(cfg *config.Config) fiber.Handler {
 		default:
 			return fallbackH(c)
 		}
+	}
+}
+
+func redisRateLimitMiddleware(cfg *config.Config) fiber.Handler {
+	window := pcmiratelimit.ParseWindowSecs(cfg.RateLimitWindowSecs)
+	var client *redis.Client
+	if event.RedisClient != nil {
+		client = event.RedisClient
+	}
+	lim := pcmiratelimit.NewRedisRateLimiter(client, window)
+
+	roleLimit := func(role string) int {
+		rpm := roleRPM(cfg, role)
+		cap := pcmiratelimit.LimitFromRPM(rpm, cfg.RateLimitWindowSecs)
+		if cfg.RateLimitMaxRequests > 0 && cap > cfg.RateLimitMaxRequests {
+			cap = cfg.RateLimitMaxRequests
+		}
+		return cap
+	}
+
+	return func(c *fiber.Ctx) error {
+		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
+			return c.Next()
+		}
+		role, _ := c.Locals(RoleContextKey).(string)
+		keyID, _ := c.Locals(APIKeyIDContextKey).(string)
+		if keyID == "" {
+			keyID = c.IP()
+		}
+		allowed, err := lim.Allow(c.Context(), pcmiratelimit.Key(role, keyID), roleLimit(role))
+		if err != nil {
+			return c.Next()
+		}
+		if !allowed {
+			return c.Status(429).JSON(fiber.Map{"error": "rate limit exceeded"})
+		}
+		return c.Next()
 	}
 }
 

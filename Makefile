@@ -1,8 +1,8 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
-        helm-lint helm-template helm-package
+        helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -37,6 +37,7 @@ COVERAGE_PKGS = \
 	./internal/repository/... \
 	./internal/service/... \
 	./internal/telemetry/... \
+	./internal/ratelimit/... \
 	./internal/version/... \
 	./internal/webhook/... \
 	./internal/worker/...
@@ -101,6 +102,10 @@ infra-smoke:
 	@curl -sS "$(API_URL)/v1/ready" | jq .
 	@echo "=== GET $(API_URL)/health ==="
 	@curl -sS "$(API_URL)/health" | jq .
+
+# List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
+admin-list-keys:
+	DATABASE_URL=$(DATABASE_URL) go run ./cmd/pcmi-admin list
 
 # Shortcuts
 up: infra-up
@@ -191,6 +196,10 @@ test-streams-integration:
 
 test-circuit-breaker:
 	go test -race -count=1 -run 'TestCircuitBreaker|TestOpenAIProvider_Wrapped|TestEmbeddingWorker_' ./internal/embedding/... ./internal/worker/...
+
+# Distributed Redis rate limiter (miniredis) + middleware probes/roles.
+test-ratelimit-integration:
+	go test -race -count=1 -run 'TestRedisRateLimiter|TestRateLimitMiddleware_' ./internal/ratelimit/... ./internal/middleware/...
 
 # Historical alias: single go test line (same as bufconn + live + pcmiv1 empty).
 test-integration-all:

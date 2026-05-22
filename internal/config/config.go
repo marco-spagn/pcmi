@@ -44,10 +44,13 @@ type Config struct {
 	WebhookMaxAttempts   int
 
 	// Rate limiting
-	RateLimitDisabled   bool
-	RateLimitRPM        int
-	RateLimitRPMAdmin   int
-	RateLimitRPMWrite   int
+	RateLimitDisabled    bool
+	RateLimitBackend     string // memory (default) or redis
+	RateLimitWindowSecs  int
+	RateLimitMaxRequests int
+	RateLimitRPM         int
+	RateLimitRPMAdmin    int
+	RateLimitRPMWrite    int
 	RateLimitRPMReadonly int
 
 	// TLS (optional — leave empty for plain HTTP)
@@ -96,6 +99,9 @@ func Load() *Config {
 		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
+		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),
+		RateLimitWindowSecs:  envInt("RATE_LIMIT_WINDOW_SECS", 60),
+		RateLimitMaxRequests: envInt("RATE_LIMIT_MAX_REQUESTS", 100),
 		RateLimitRPM:         envInt("RATE_LIMIT_RPM", 120),
 		RateLimitRPMAdmin:    envInt("RATE_LIMIT_RPM_ADMIN", 30),
 		RateLimitRPMWrite:    envInt("RATE_LIMIT_RPM_WRITE", 100),
@@ -156,6 +162,19 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 	}
 	if c.RateLimitRPM < 1 {
 		errs = append(errs, fmt.Sprintf("RATE_LIMIT_RPM must be ≥ 1 (got %d)", c.RateLimitRPM))
+	}
+	backend := strings.ToLower(strings.TrimSpace(c.RateLimitBackend))
+	if backend == "" {
+		backend = "memory"
+	}
+	if backend != "memory" && backend != "redis" {
+		errs = append(errs, fmt.Sprintf("RATE_LIMIT_BACKEND must be memory or redis (got %q)", c.RateLimitBackend))
+	}
+	if c.RateLimitWindowSecs < 0 {
+		errs = append(errs, fmt.Sprintf("RATE_LIMIT_WINDOW_SECS must be ≥ 1 (got %d)", c.RateLimitWindowSecs))
+	}
+	if c.RateLimitMaxRequests < 0 {
+		errs = append(errs, fmt.Sprintf("RATE_LIMIT_MAX_REQUESTS must be ≥ 1 (got %d)", c.RateLimitMaxRequests))
 	}
 
 	if len(errs) == 0 {

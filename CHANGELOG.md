@@ -9,6 +9,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.36.0] — 2026-05-22
+
+### Added — Distributed rate limiting via Redis (PCMI-003)
+
+- **`internal/ratelimit`**: sliding-window limiter using Redis `ZADD`/`ZCARD` with an
+  atomic Lua script; shared counters across API replicas.
+- **`RATE_LIMIT_BACKEND`**: `memory` (default, in-process Fiber limiter) or `redis`;
+  `RATE_LIMIT_WINDOW_SECS` and `RATE_LIMIT_MAX_REQUESTS` tune the Redis window.
+- **Fail-open**: Redis errors allow the request so availability is not tied to Redis health.
+- **Makefile** target `test-ratelimit-integration`.
+
 ## [1.35.0] — 2026-05-22
 
 ### Added — Circuit breaker for OpenAI embedding (PCMI-002)

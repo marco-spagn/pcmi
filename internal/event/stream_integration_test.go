@@ -27,10 +27,16 @@ func TestStreamIntegration_PublishAndConsume_EndToEnd(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	var mu sync.Mutex
 	var got Event
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		_ = consumer.Consume(ctx, func(_ context.Context, evt Event, _ string) error {
+			mu.Lock()
 			got = evt
+			mu.Unlock()
 			cancel()
 			return nil
 		})
@@ -44,7 +50,13 @@ func TestStreamIntegration_PublishAndConsume_EndToEnd(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	waitUntil(t, 5*time.Second, func() bool { return got.Type == EventMemoryStored })
+	waitUntil(t, 5*time.Second, func() bool {
+		mu.Lock()
+		defer mu.Unlock()
+		return got.Type == EventMemoryStored
+	})
+	cancel()
+	wg.Wait()
 }
 
 func TestStreamIntegration_WorkerCrash_MessagesRecoveredAfterRestart(t *testing.T) {

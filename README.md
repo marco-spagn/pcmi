@@ -246,8 +246,10 @@ make test
 # Lint (golangci-lint v2)
 make lint
 
-# gRPC integration (bufconn + optional live TCP)
-make test-integration
+# gRPC integration: in-process (bufconn) or live TCP on :50051
+make test-integration-bufconn   # Postgres only
+make infra-up && make test-integration-live   # full stack + dial :50051
+make test-integration           # both
 
 # SDK smoke (Python + TypeScript)
 make sdk-smoke
@@ -265,7 +267,7 @@ make distillation-e2e
 make distillation-e2e PRESET=advertising SYNTH_NUM=200 SYNTH_SEED=1
 ```
 
-**CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
+**CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
 
 **Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main`. CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
 

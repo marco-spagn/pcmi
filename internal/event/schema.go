@@ -1,6 +1,9 @@
 package event
 
 const (
+	// PayloadKeyStreamID is set on published payloads when using Redis Streams (XADD entry ID).
+	PayloadKeyStreamID = "stream_id"
+
 	EventAgentStepCompleted = "agent.step.completed"
 	EventToolCallExecuted   = "tool.call.executed"
 	EventWorkflowFinished   = "workflow.finished"

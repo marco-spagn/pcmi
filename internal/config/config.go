@@ -17,7 +17,8 @@ type Config struct {
 	DatabaseReadURL string // opzionale: replica di lettura
 
 	// Redis
-	RedisAddr string
+	RedisAddr     string
+	EventBackend  string // streams (default) or pubsub — see EVENT_BACKEND
 
 	// API Server
 	APIPort string
@@ -76,7 +77,8 @@ func Load() *Config {
 		DatabaseURL:     envOr("DATABASE_URL", ""),
 		DatabaseReadURL: os.Getenv("DATABASE_READ_URL"),
 
-		RedisAddr: envOr("REDIS_ADDR", "redis:6379"),
+		RedisAddr:    envOr("REDIS_ADDR", "redis:6379"),
+		EventBackend: envOr("EVENT_BACKEND", "streams"),
 		APIPort:   envOr("API_PORT", "8000"),
 		GRPCPort:  envOr("GRPC_PORT", "50051"),
 

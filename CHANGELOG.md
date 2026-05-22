@@ -9,6 +9,21 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.34.0] — 2026-05-22
+
+### Added — Redis Streams durable event bus (PCMI-001)
+
+- **Redis Streams** (`pcmi:events`) with `XADD` / `XREADGROUP` / `XACK` as the default
+  event transport (`EVENT_BACKEND=streams`); legacy pub/sub on `memory_events` remains
+  available via `EVENT_BACKEND=pubsub`.
+- **`internal/event/stream.go`** — `StreamPublisher`, `StreamConsumer`, SSE/gRPC tail via
+  non-grouped `XREAD`; **`stream_consumer.go`** — pending reclaim (`XCLAIM`) and DLQ
+  (`pcmi:events:dlq`) after max deliveries.
+- **Worker** consumes group `pcmi-workers` with pending recovery; **metrics**:
+  `pcmi_stream_pending_total`, `pcmi_stream_ack_total`, `pcmi_stream_dlq_total`.
+- **Makefile** target `test-streams-integration`; unit + integration tests for publish,
+  consume, ACK, pending recovery, and load-balanced consumers.
+
 ### Added — Synthetic data CLI & E2E cleanup
 
 - **`scripts/pcmi_synth/`** — unified synthetic memory generator: presets

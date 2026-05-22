@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"os"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -38,8 +39,30 @@ func InitRedis(addr string) {
 	log.Println("✅ Connected to Redis")
 }
 
-// PublishEvent publishes an event to Redis
+// PublishEvent publishes an event to Redis (streams by default, pub/sub when EVENT_BACKEND=pubsub).
 func PublishEvent(eventType string, payload map[string]any) error {
+	if useStreams() {
+		return publishStream(eventType, payload)
+	}
+	return publishPubSub(eventType, payload)
+}
+
+func publishStream(eventType string, payload map[string]any) error {
+	if payload == nil {
+		payload = make(map[string]any)
+	}
+	pub := NewStreamPublisher(RedisClient, StreamKey)
+	streamID, err := pub.Publish(ctx, eventType, payload)
+	if err != nil {
+		log.Printf("❌ Failed to XADD event: %v", err)
+		return err
+	}
+	log.Printf("📣 [REDIS STREAM] Published event: %s id=%s", eventType, streamID)
+	notifyWebhook(eventType, payload)
+	return nil
+}
+
+func publishPubSub(eventType string, payload map[string]any) error {
 	event := Event{
 		Type:    eventType,
 		Payload: payload,
@@ -57,27 +80,32 @@ func PublishEvent(eventType string, payload map[string]any) error {
 	}
 
 	log.Printf("📣 [REDIS] Published event: %s", eventType)
+	notifyWebhook(eventType, payload)
+	return nil
+}
+
+func notifyWebhook(eventType string, payload map[string]any) {
 	if webhookNotify != nil {
 		if tenantID, ok := payload["tenant_id"].(string); ok && tenantID != "" {
 			webhookNotify(tenantID, eventType, payload)
 		}
 	}
-	return nil
 }
 
-// SubscribeEvents subscribes to Redis channel until the pubsub channel closes.
+// SubscribeEvents subscribes to PCMI events until the channel closes.
 func SubscribeEvents() <-chan Event {
 	return SubscribeEventsContext(ctx)
 }
 
-// SubscribeEventsContext subscribes to Redis and stops when ctx is cancelled.
-//
-// We synchronously wait for the SUBSCRIBE confirmation via pubsub.Receive
-// before returning, so callers can publish immediately without racing the
-// subscription setup. go-redis sends the SUBSCRIBE command asynchronously
-// otherwise — without this priming the first publish can be lost on slower
-// machines (CI, docker-in-docker).
+// SubscribeEventsContext subscribes and stops when ctx is cancelled.
 func SubscribeEventsContext(parent context.Context) <-chan Event {
+	if useStreams() {
+		return streamSubscribe(parent)
+	}
+	return pubsubSubscribe(parent)
+}
+
+func pubsubSubscribe(parent context.Context) <-chan Event {
 	pubsub := RedisClient.Subscribe(parent, "memory_events")
 	ch := make(chan Event, 16)
 
@@ -114,4 +142,17 @@ func SubscribeEventsContext(parent context.Context) <-chan Event {
 	}()
 
 	return ch
+}
+
+// WorkerConsumerName returns a unique consumer name for this worker process.
+func WorkerConsumerName() string {
+	if host, err := os.Hostname(); err == nil && host != "" {
+		return "pcmi-worker-" + host
+	}
+	return "pcmi-worker"
+}
+
+// NewWorkerStreamConsumer builds the default worker group consumer.
+func NewWorkerStreamConsumer() *StreamConsumer {
+	return NewStreamConsumer(RedisClient, StreamKey, WorkerConsumerGroup, WorkerConsumerName())
 }

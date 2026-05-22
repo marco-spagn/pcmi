@@ -112,16 +112,25 @@ Host: `localhost:50051` (env `GRPC_PORT`). API key nel messaggio o metadata `x-a
 # Health (senza chiave)
 grpcurl -plaintext localhost:50051 pcmi.v1.MemoryService/Health
 
-# Test integrazione (vedi Makefile): bufconn = solo DB; live = API su GRPC_HOST
+# Test integrazione Go (tag integration):
+#   bufconn — solo Postgres migrato (:5432), server in-process, nessun :50051
+#   live    — dial TCP su GRPC_HOST (:50051); serve pcmi-api in ascolto
+make infra-up                  # postgres :5432, redis :6379, api :8000 + :50051
+make infra-wait                # opzionale se infra-up ha già atteso /v1/ready
 make test-integration-bufconn
-make test-integration-live   # richiede API avviata
+make test-integration-live     # fallisce se :50051 non risponde (Makefile imposta GRPC_TEST_API_KEY)
+
+# Streams Redis (miniredis in-process, senza Docker):
+make test-streams-integration
 
 # Oppure equivalente manuale:
 DATABASE_URL=postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable \
   make test-integration-bufconn
 GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
-  go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC'
+  go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
 ```
+
+Su **GitHub** (messaggio commit con `CI_start`), i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
 
 Esempio concettuale (Go):
 
@@ -201,8 +210,10 @@ Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md
 | `make lint` | golangci-lint v2 |
 | `make test-integration` | Bufconn (DB migrato) + test TCP su API già avviata |
 | `make test-integration-bufconn` | Solo test in-process (Postgres + migrazioni) |
-| `make test-integration-live` | Solo dial `GRPC_HOST` (serve `pcmi-api`) |
+| `make test-integration-live` | gRPC TCP su `GRPC_HOST` (:50051); dopo `make infra-up` o API su host |
+| `make test-streams-integration` | Bus Redis Streams in `internal/event` (miniredis, senza stack) |
 | `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
+| `make infra-up` / `make infra-wait` | Stack Compose + attesa `/v1/ready` (:8000) |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
 | `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |

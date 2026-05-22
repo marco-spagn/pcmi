@@ -1,2 +1,4 @@
 from .client import PCMIClient
-__all__ = ["PCMIClient"]
+from .webhook import verify_signature
+
+__all__ = ["PCMIClient", "verify_signature"]

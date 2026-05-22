@@ -1,13 +1,8 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -206,7 +201,8 @@ func (d *Dispatcher) processPending() {
 }
 
 func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
-	err := d.post(ctx, pd.URL, pd.Secret, pd.Body)
+	del := NewDelivery(pd.ID, pd.URL, pd.Secret, pd.Body, 0)
+	err := del.Post(ctx, d.client)
 	attempts := pd.Attempts + 1
 	if err == nil {
 		_, _ = d.db.Exec(ctx, `
@@ -234,25 +230,7 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 		WHERE id = $1::uuid`, pd.ID, attempts, errMsg, backoff.String())
 }
 
+// post delivers a webhook; kept for tests that exercise HTTP behavior without a delivery id.
 func (d *Dispatcher) post(ctx context.Context, url, secret string, body []byte) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-PCMI-Event-Delivery", "1")
-	if secret != "" {
-		mac := hmac.New(sha256.New, []byte(secret))
-		_, _ = mac.Write(body)
-		req.Header.Set("X-PCMI-Signature", "sha256="+hex.EncodeToString(mac.Sum(nil)))
-	}
-	resp, err := d.client.Do(req)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("status %d", resp.StatusCode)
-	}
-	return nil
+	return NewDelivery("test-delivery", url, secret, body, 0).Post(ctx, d.client)
 }

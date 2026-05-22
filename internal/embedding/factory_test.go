@@ -43,9 +43,13 @@ func TestNewFromConfig_DefaultOpenAI(t *testing.T) {
 	if p == nil {
 		t.Fatal("upstream OpenAI must yield a non-nil Provider when key is set")
 	}
-	op, ok := p.(*OpenAIProvider)
+	cb, ok := p.(*CircuitBreakerProvider)
 	if !ok {
-		t.Fatalf("expected *OpenAIProvider, got %T", p)
+		t.Fatalf("expected *CircuitBreakerProvider, got %T", p)
+	}
+	op, ok := cb.inner.(*OpenAIProvider)
+	if !ok {
+		t.Fatalf("expected OpenAI inner, got %T", cb.inner)
 	}
 	if op.model != "text-embedding-3-small" {
 		t.Errorf("model: got %q, want text-embedding-3-small", op.model)

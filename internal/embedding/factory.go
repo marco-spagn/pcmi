@@ -50,14 +50,22 @@ func NewFromConfig(cfg *config.Config) (Provider, error) {
 		return nil, nil
 	}
 
+	var (
+		prov Provider
+		err  error
+	)
 	switch {
 	case isAzureEndpoint(baseURL):
-		return newAzureProvider(apiKey, baseURL, model)
+		prov, err = newAzureProvider(apiKey, baseURL, model)
 	case baseURL != "":
-		return newCompatibleProvider(apiKey, baseURL, model), nil
+		prov = newCompatibleProvider(apiKey, baseURL, model)
 	default:
-		return NewOpenAIProvider(apiKey, model), nil
+		prov = NewOpenAIProvider(apiKey, model)
 	}
+	if err != nil {
+		return nil, err
+	}
+	return WrapWithCircuitBreaker(prov, DefaultCircuitBreakerConfig()), nil
 }
 
 // isAzureEndpoint guards the Azure detection: the BaseURL must end with

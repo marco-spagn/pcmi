@@ -101,3 +101,67 @@ func IncDistillationQueued() { distillationQueuedJobs.Inc() }
 
 // DecDistillationQueued decrements the queued-jobs gauge.
 func DecDistillationQueued() { distillationQueuedJobs.Dec() }
+
+// ── Embedding circuit breaker metrics ───────────────────────────────────────────
+
+const (
+	EmbeddingCircuitClosed   = "closed"
+	EmbeddingCircuitOpen     = "open"
+	EmbeddingCircuitHalfOpen = "half_open"
+
+	EmbeddingResultSuccess      = "success"
+	EmbeddingResultError        = "error"
+	EmbeddingResultCircuitOpen  = "circuit_open"
+	EmbeddingResultRateLimited  = "rate_limited"
+)
+
+var (
+	embeddingCircuitState = promauto.With(WorkerRegistry).NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pcmi_embedding_circuit_state",
+			Help: "Embedding circuit breaker state (1 = active state)",
+		},
+		[]string{"state"},
+	)
+	embeddingRequestsTotal = promauto.With(WorkerRegistry).NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "pcmi_embedding_requests_total",
+			Help: "Embedding provider requests by result",
+		},
+		[]string{"result"},
+	)
+	embeddingLatency = promauto.With(WorkerRegistry).NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "pcmi_embedding_latency_seconds",
+			Help:    "Embedding provider request latency in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+	)
+)
+
+func init() {
+	for _, s := range []string{EmbeddingCircuitClosed, EmbeddingCircuitOpen, EmbeddingCircuitHalfOpen} {
+		embeddingCircuitState.WithLabelValues(s).Set(0)
+	}
+}
+
+// SetEmbeddingCircuitState marks exactly one circuit state gauge as 1.
+func SetEmbeddingCircuitState(state string) {
+	for _, s := range []string{EmbeddingCircuitClosed, EmbeddingCircuitOpen, EmbeddingCircuitHalfOpen} {
+		v := 0.0
+		if s == state {
+			v = 1
+		}
+		embeddingCircuitState.WithLabelValues(s).Set(v)
+	}
+}
+
+// IncEmbeddingRequest increments the embedding request counter for one result label.
+func IncEmbeddingRequest(result string) {
+	embeddingRequestsTotal.WithLabelValues(result).Inc()
+}
+
+// ObserveEmbeddingLatency records one embedding call duration.
+func ObserveEmbeddingLatency(seconds float64) {
+	embeddingLatency.Observe(seconds)
+}

@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -188,6 +188,9 @@ test-integration:
 # Redis Streams durable bus (//go:build integration).
 test-streams-integration:
 	go test -tags=integration -run TestStream ./internal/event/...
+
+test-circuit-breaker:
+	go test -race -count=1 -run 'TestCircuitBreaker|TestOpenAIProvider_Wrapped|TestEmbeddingWorker_' ./internal/embedding/... ./internal/worker/...
 
 # Historical alias: single go test line (same as bufconn + live + pcmiv1 empty).
 test-integration-all:

@@ -9,6 +9,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.38.0] — 2026-05-22
+
+### Added — Idempotency keys on store (PCMI-005)
+
+- **`X-Idempotency-Key`** (UUID) on `POST /v1/memories`: successful responses are cached
+  per tenant for 24h; duplicates return the cached body with
+  **`X-Idempotency-Replayed: true`**.
+- Table **`idempotency_cache`** (`migrations/013_idempotency.sql`), middleware
+  **`internal/middleware/idempotency.go`**, and expiry-worker purge of stale rows.
+- Makefile target **`test-idempotency`**.
+
 ## [1.37.0] — 2026-05-22
 
 ### Added — Prometheus /metrics authentication (PCMI-004)

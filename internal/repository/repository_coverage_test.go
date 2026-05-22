@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -65,5 +66,24 @@ func TestLinksRepository_List_toPathAndLinkTypeFilters(t *testing.T) {
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLinksRepository_Count_queryError(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM memory_links`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnError(errors.New("db down"))
+
+	repo := NewLinksRepositoryReadOnly(mock)
+	if _, err := repo.Count(context.Background(), uuid.New().String()); err == nil {
+		t.Fatal("expected error")
 	}
 }

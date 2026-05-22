@@ -3,11 +3,15 @@ package event
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 
 	"github.com/redis/go-redis/v9"
 )
+
+// ErrRedisNotInitialized is returned when RedisClient was never set (InitRedis).
+var ErrRedisNotInitialized = errors.New("redis client not initialized")
 
 var (
 	RedisClient *redis.Client
@@ -41,6 +45,9 @@ func InitRedis(addr string) {
 
 // PublishEvent publishes an event to Redis (streams by default, pub/sub when EVENT_BACKEND=pubsub).
 func PublishEvent(eventType string, payload map[string]any) error {
+	if RedisClient == nil {
+		return ErrRedisNotInitialized
+	}
 	if useStreams() {
 		return publishStream(eventType, payload)
 	}
@@ -106,8 +113,12 @@ func SubscribeEventsContext(parent context.Context) <-chan Event {
 }
 
 func pubsubSubscribe(parent context.Context) <-chan Event {
-	pubsub := RedisClient.Subscribe(parent, "memory_events")
 	ch := make(chan Event, 16)
+	if RedisClient == nil {
+		close(ch)
+		return ch
+	}
+	pubsub := RedisClient.Subscribe(parent, "memory_events")
 
 	if _, err := pubsub.Receive(parent); err != nil {
 		log.Printf("❌ Failed to confirm Redis SUBSCRIBE: %v", err)

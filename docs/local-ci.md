@@ -194,6 +194,7 @@ stack first: `docker compose down` (or run `make act-all`, which calls
 `make act-preflight` to do that automatically). To keep Compose running, use
 `SKIP_ACT_PORT_CLEANUP=1 make act-all` — then you must free `5432`/`6379`
 yourself, or avoid running jobs that need those service ports.
+A leftover **act** service container can hold `:5432` after `make act-test` / `act push` — `docker ps --filter publish=5432` then `docker stop <name>` (or `make infra-down` in pcmi first).
 
 ---
 

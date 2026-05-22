@@ -195,6 +195,10 @@ func decodeStreamMessage(msg redis.XMessage) (Event, error) {
 // streamSubscribe tails pcmi:events for SSE/gRPC fan-out (non-grouped XREAD).
 func streamSubscribe(parent context.Context) <-chan Event {
 	ch := make(chan Event, 16)
+	if RedisClient == nil {
+		close(ch)
+		return ch
+	}
 	go func() {
 		defer close(ch)
 		lastID := "$"

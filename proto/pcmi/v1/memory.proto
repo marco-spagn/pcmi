@@ -68,6 +68,8 @@ message StoreRequest {
   string expires_at_rfc3339 = 10;
   // Optional client-supplied embedding vector (same as REST JSON "embedding"); dimension must match DB (1536).
   repeated float embedding = 11;
+  // Optional idempotency key (same semantics as REST X-Idempotency-Key); gRPC Store does not cache yet.
+  string idempotency_key = 12;
 }
 
 message StoreResponse {

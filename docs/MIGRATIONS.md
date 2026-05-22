@@ -20,6 +20,7 @@ Deve coincidere con l’ordine in `docker-compose.yml` (lista volumi postgres) e
 | `010_v1_14_consolidation_bm25_admin.sql` | Consolidation runs, BM25 helper, estensioni admin.
 | `011_v1_15_links_expiry_tags.sql` | `memory_links`, `expires_at`, indice GIN su `tags`, `expire_memory_entries()`. |
 | `012_v1_19_memory_compaction.sql` | `compact_memory_path_history` — rimuove versioni chiuse in eccesso per un singolo path. |
+| `013_idempotency.sql` | Tabella `idempotency_cache` per `X-Idempotency-Key` su `POST /v1/memories` (TTL 24h). |
 
 ## Aggiungere una nuova migrazione
 

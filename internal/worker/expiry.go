@@ -53,4 +53,13 @@ func (w *ExpiryWorker) runOnce() {
 	if tag.RowsAffected() > 0 {
 		log.Printf("🕐 Expired %d memories", tag.RowsAffected())
 	}
+
+	idemTag, err := w.db.Exec(ctx, `DELETE FROM idempotency_cache WHERE expires_at <= NOW()`)
+	if err != nil {
+		log.Printf("❌ idempotency cache cleanup: %v", err)
+		return
+	}
+	if idemTag.RowsAffected() > 0 {
+		log.Printf("🕐 Purged %d expired idempotency cache rows", idemTag.RowsAffected())
+	}
 }

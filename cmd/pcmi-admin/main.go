@@ -11,6 +11,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
@@ -41,7 +42,7 @@ func runList(args []string) error {
 	keyLimit := fs.Int("key-limit", 50, "max API keys per tenant")
 	_ = fs.Parse(args)
 
-	dbURL := strings.TrimSpace(os.Getenv("DATABASE_URL"))
+	dbURL := strings.TrimSpace(config.Load().DatabaseURL)
 	if dbURL == "" {
 		return fmt.Errorf("DATABASE_URL is required (e.g. postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable)")
 	}

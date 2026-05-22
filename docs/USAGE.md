@@ -44,7 +44,7 @@ flowchart LR
 | SDK ufficiali Python/TS | **HTTP** (wrapper in `sdk/`) |
 | Bootstrap tenant / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) o **gRPC** `AdminService` |
 | Elenco tenant/chiavi in dev (senza curl) | **`make admin-list-keys`** (CLI `cmd/pcmi-admin`) |
-| Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` |
+| Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` (vedi autenticazione sotto) |
 
 Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
 
@@ -62,6 +62,23 @@ Content-Type: application/json
 ```
 
 Ruoli: `readonly` (solo lettura), `write`, `admin` (gestione tenant/chiavi).
+
+### Metriche Prometheus (`GET /metrics`)
+
+L’endpoint non usa `X-API-Key`. In produzione imposta **`METRICS_SCRAPE_TOKEN`** sull’API e configura Prometheus con lo stesso segreto:
+
+| `METRICS_SCRAPE_TOKEN` | Comportamento |
+|------------------------|---------------|
+| non impostato | `GET /metrics` aperto; all’avvio l’API logga un **WARNING** |
+| impostato | richiede `Authorization: Bearer <token>` |
+
+```bash
+# Esempio scrape con token
+export METRICS_SCRAPE_TOKEN="$(openssl rand -hex 32)"
+curl -s -H "Authorization: Bearer ${METRICS_SCRAPE_TOKEN}" http://localhost:8000/metrics
+```
+
+Esempio `deploy/prometheus/prometheus.yml`: `authorization.credentials` o `bearer_token` allineati al token dell’API.
 
 ### Store e retrieve
 

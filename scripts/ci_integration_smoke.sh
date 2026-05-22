@@ -10,7 +10,7 @@ PGHOST="${PGHOST:-localhost}"
 
 API="${API:-http://localhost:8000}"
 KEY="${PCMI_API_KEY:-testkey123}"
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.36.0}"
+export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.37.0}"
 VER="${EXPECT_API_VERSION:-v1.31.0}"
 hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${KEY}")
 

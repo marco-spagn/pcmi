@@ -79,7 +79,8 @@ func main() {
 		}
 	}()
 
-	log.Println("✅ Redis connected, subscribing to memory_events…")
+	backend := event.EventBackend()
+	log.Printf("✅ Redis connected, event backend=%s", backend)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -109,33 +110,58 @@ func main() {
 	go expiryWorker.Start(ctx)
 
 	tr := otel.Tracer(workerTracerName)
-	redisEvents := event.SubscribeEvents()
-	go func() {
-		for evt := range redisEvents {
-			metrics.IncWorkerRedisEvent(evt.Type)
-			_, span := tr.Start(context.Background(), "redis.memory_event",
-				trace.WithSpanKind(trace.SpanKindConsumer),
-				trace.WithAttributes(
-					attribute.String("pcmi.event.type", evt.Type),
-				))
-			tenantID, _ := evt.Payload["tenant_id"].(string)
-			if tenantID != "" {
-				span.SetAttributes(attribute.String("pcmi.tenant_id", tenantID))
-			}
-			switch evt.Type {
-			case event.EventMemoryStored, event.EventMemoryUpdated:
-				path, _ := evt.Payload["path"].(string)
-				log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation", evt.Type, evt.Payload["id"], tenantID, path)
-				distWorker.TriggerForMemory(tenantID, path)
-				consolidationWorker.TriggerForMemory(tenantID, path)
-			case event.EventMemoryRefineRequested:
-				prefix, _ := evt.Payload["path_prefix"].(string)
-				log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
-				distWorker.TriggerForPrefix(tenantID, prefix)
-			}
-			span.End()
+	handleMemoryEvent := func(evt event.Event, streamID string) {
+		metrics.IncWorkerRedisEvent(evt.Type)
+		_, span := tr.Start(context.Background(), "redis.memory_event",
+			trace.WithSpanKind(trace.SpanKindConsumer),
+			trace.WithAttributes(
+				attribute.String("pcmi.event.type", evt.Type),
+			))
+		if streamID != "" {
+			span.SetAttributes(attribute.String("pcmi.stream.id", streamID))
 		}
-	}()
+		tenantID, _ := evt.Payload["tenant_id"].(string)
+		if tenantID != "" {
+			span.SetAttributes(attribute.String("pcmi.tenant_id", tenantID))
+		}
+		switch evt.Type {
+		case event.EventMemoryStored, event.EventMemoryUpdated:
+			path, _ := evt.Payload["path"].(string)
+			log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation", evt.Type, evt.Payload["id"], tenantID, path)
+			distWorker.TriggerForMemory(tenantID, path)
+			consolidationWorker.TriggerForMemory(tenantID, path)
+		case event.EventMemoryRefineRequested:
+			prefix, _ := evt.Payload["path_prefix"].(string)
+			log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
+			distWorker.TriggerForPrefix(tenantID, prefix)
+		}
+		span.End()
+	}
+
+	if backend == event.BackendPubSub {
+		redisEvents := event.SubscribeEvents()
+		go func() {
+			for evt := range redisEvents {
+				handleMemoryEvent(evt, "")
+			}
+		}()
+	} else {
+		consumer := event.NewWorkerStreamConsumer()
+		if err := consumer.EnsureGroup(ctx); err != nil {
+			log.Fatalf("❌ stream consumer group: %v", err)
+		}
+		streamHandler := func(_ context.Context, evt event.Event, streamID string) error {
+			handleMemoryEvent(evt, streamID)
+			return nil
+		}
+		consumer.StartPendingRecovery(ctx, streamHandler)
+		go func() {
+			if err := consumer.Consume(ctx, streamHandler); err != nil && ctx.Err() == nil {
+				log.Printf("❌ stream consumer stopped: %v", err)
+			}
+		}()
+		log.Printf("✅ Subscribed to stream %s (group %s)", event.StreamKey, event.WorkerConsumerGroup)
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)

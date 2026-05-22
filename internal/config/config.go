@@ -170,16 +170,10 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 	if backend != "memory" && backend != "redis" {
 		errs = append(errs, fmt.Sprintf("RATE_LIMIT_BACKEND must be memory or redis (got %q)", c.RateLimitBackend))
 	}
-	windowSecs := c.RateLimitWindowSecs
-	if windowSecs == 0 {
-		windowSecs = 60
-	} else if windowSecs < 1 {
+	if c.RateLimitWindowSecs < 0 {
 		errs = append(errs, fmt.Sprintf("RATE_LIMIT_WINDOW_SECS must be ≥ 1 (got %d)", c.RateLimitWindowSecs))
 	}
-	maxReq := c.RateLimitMaxRequests
-	if maxReq == 0 {
-		maxReq = 100
-	} else if maxReq < 1 {
+	if c.RateLimitMaxRequests < 0 {
 		errs = append(errs, fmt.Sprintf("RATE_LIMIT_MAX_REQUESTS must be ≥ 1 (got %d)", c.RateLimitMaxRequests))
 	}
 

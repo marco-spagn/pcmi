@@ -45,6 +45,9 @@ No further configuration needed.
 | Generate coverage profile only | `make test-cover` |
 | Enforce coverage thresholds (after `test-cover`) | `make cover-check` |
 | Print per-function coverage report | `make cover-report` |
+| gRPC live integration (API on **:50051**) | `make test-integration-live` (after `make infra-up`) |
+| gRPC in-process (Postgres only, no **:50051**) | `make test-integration-bufconn` |
+| Redis Streams bus (`internal/event`) | `make test-streams-integration` (miniredis in-process; no Docker) |
 
 Behind the scenes:
 
@@ -70,6 +73,58 @@ act -j trivy-images     # run trivy on both Docker images
 | `trivy-images` | ⚠️ stub in `act` + `make act-trivy` | `aquasecurity/trivy-action` + its `setup-trivy` pre-steps are not fully emulated; the workflow steps are skipped when `ACT=true`, then `make act-trivy` runs `aquasec/trivy:latest` with the same severity / exit-code policy. |
 | `integration-smoke` | ⚠️ stub in `act` + `make act-integration-smoke` | `act` runs the job container on `host` network while service containers stay on a bridge — background API + health checks flake. When `ACT=true`, only a notice step runs; `make act-integration-smoke` runs `scripts/act_integration_smoke_host.sh` (compose + local `go build` + same bash/Go/SDK scripts as CI). On **GitHub-hosted** runners nothing changes (`ACT` is unset). |
 | `integration-e2e` (OpenAI) | ⚠️ | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY` |
+
+---
+
+## Host integration tests (gRPC live, streams)
+
+These targets are **not** run by `make act-test` or the `go` job’s default `go test ./internal/...` alone. Use them when you change gRPC handlers, streaming, or Redis Streams wiring.
+
+### Ports
+
+| Port | Service | Needed for |
+|------|---------|------------|
+| `5432` | PostgreSQL | `test-integration-bufconn`, `test-integration-live`, `test-integration-handler`, CI `go` job |
+| `6379` | Redis | Full stack (`infra-up`, `act-integration-smoke`); **not** required for bufconn-only gRPC tests |
+| `50051` | gRPC (`pcmi-api`) | `make test-integration-live`, `integration-smoke` gRPC step on GitHub |
+| `8000` | HTTP REST | `make sdk-smoke`, `make infra-smoke`, `scripts/ci_integration_smoke.sh` |
+
+### `make test-integration-live` (TCP gRPC)
+
+Dials a **real** API on `GRPC_HOST` (default `localhost:50051`). The Makefile sets `GRPC_TEST_API_KEY=testkey123` (dev seed from migrations), so tests **do not skip** — if nothing listens on `:50051`, the run fails at dial/RPC time.
+
+Recommended sequence:
+
+```bash
+make infra-up          # postgres :5432, redis :6379, api :8000/:50051, worker
+# infra-up already waits on GET /v1/ready; optional:
+make infra-wait        # or: curl -sf http://localhost:8000/v1/ready
+
+make test-integration-live
+```
+
+Alternatives:
+
+- **Deps only + API on host:** `make infra-deps-up` then `go run ./cmd/api` in another terminal, then `make test-integration-live`.
+- **In-process only (no :50051):** `make test-integration-bufconn` — same package, bufconn server + miniredis; needs migrated Postgres only.
+- **Both:** `make test-integration` (bufconn, then live).
+
+### `make test-streams-integration`
+
+Runs `go test -tags=integration -run TestStream ./internal/event/...` with **miniredis** in-process. No Postgres, Redis, or `:50051` required. Optional before PRs that touch `internal/event` Streams backend; not part of `act-integration-smoke` today.
+
+### What GitHub enforces (with `CI_start`)
+
+| Check | Live gRPC on `:50051` |
+|-------|------------------------|
+| Job `go` | **No** — `GRPC_TEST_API_KEY` unset; live tests in `internal/grpc` are **skipped** |
+| Job `integration-smoke` | **Yes** — builds API on host, then `go test -tags=integration ./internal/grpc/...` with `GRPC_TEST_API_KEY=testkey123` |
+| Local `make act-lint && make act-test` | **No** — same as `go` job (Postgres service only) |
+| Local `make act-integration-smoke` | **Yes** — same scripts as `integration-smoke` |
+
+Full pipeline on GitHub still requires **`CI_start`** in the commit message (or `workflow_dispatch`). See [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+More detail: [integration-testing.md](integration-testing.md), [USAGE.md](USAGE.md).
 
 ---
 

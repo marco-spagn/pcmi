@@ -72,9 +72,12 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 | `make test-race` | Race detector on core packages |
 | `make test-cover` / `make cover-check` | Coverage report + local gate |
 | `make lint` | golangci-lint |
-| `make test-integration-bufconn` | gRPC tests with in-process server + migrated DB |
-| `make test-integration-live` | gRPC against running API (`GRPC_HOST`) |
+| `make test-integration-bufconn` | gRPC in-process (Postgres **:5432** only; no **:50051**) |
+| `make test-integration-live` | gRPC over TCP — needs API on **:50051** (`make infra-up` or `go run ./cmd/api`); sets `GRPC_TEST_API_KEY=testkey123` by default |
+| `make test-integration` | bufconn, then live (both) |
+| `make test-streams-integration` | Redis Streams in `internal/event` (miniredis; no Docker) |
 | `make test-integration-handler` | Handler integration (`-tags=integration`) |
+| `make infra-up` / `make infra-wait` | Compose stack: PG **:5432**, Redis **:6379**, HTTP **:8000**, gRPC **:50051** |
 | `make sdk-smoke` | Python + TypeScript HTTP smokes |
 | `make deploy-structural-test` | CI YAML, Compose, OpenAPI, Helm, proto sanity |
 | `make test-all-local` | Broad local CI parity (see `scripts/test_all_local.sh`) |
@@ -88,7 +91,9 @@ git commit -m "fix: your change CI_start"
 gh workflow run CI
 ```
 
-See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/integration-testing.md) (SSE httptest can be slow; use `PCMI_SKIP_SSE_HTTPTEST=1` if needed).
+See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/integration-testing.md).
+
+**gRPC live locally:** `make infra-up && make test-integration-live`. **GitHub:** live gRPC runs only in the `integration-smoke` job (with `CI_start`); the `go` job skips live tests when `GRPC_TEST_API_KEY` is unset. SSE httptest can be slow — use `PCMI_SKIP_SSE_HTTPTEST=1` if needed.
 
 ## Code style
 

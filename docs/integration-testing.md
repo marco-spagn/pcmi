@@ -1,6 +1,6 @@
 # Integration testing — note operative
 
-Guida rapida per `go test -tags=integration` su handler, service, repository, grpc, embedding.
+Guida rapida per `go test -tags=integration` su handler, service, repository, grpc, embedding, event (Streams).
 
 ---
 
@@ -8,6 +8,56 @@ Guida rapida per `go test -tags=integration` su handler, service, repository, gr
 
 - **Postgres** con migrazioni applicate (`DATABASE_URL`, es. `postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable`).
 - Per test HTTP handler: **Redis** non obbligatorio in host — i test usano **miniredis** in-process.
+- Per **gRPC live** (`make test-integration-live`): API in ascolto su **`GRPC_HOST`** (default `localhost:50051`) e chiave `GRPC_TEST_API_KEY` (default Makefile: `testkey123`).
+
+### Porte (riepilogo)
+
+| Porta | Uso |
+|-------|-----|
+| `5432` | Postgres — bufconn, live, handler integration |
+| `6379` | Redis — stack completo (`make infra-up`); non serve per bufconn gRPC |
+| `50051` | gRPC — solo test **live** e job `integration-smoke` |
+| `8000` | HTTP — smoke SDK / `ci_integration_smoke.sh` |
+
+---
+
+## gRPC — bufconn vs live
+
+| Target | Server | Postgres | :50051 | Note |
+|--------|--------|----------|--------|------|
+| `make test-integration-bufconn` | In-process (bufconn) | Sì | No | `-run '^TestIntegrationBufconn_'` |
+| `make test-integration-live` | TCP su `GRPC_HOST` | Sì (env) | **Sì** | `-run '^TestGRPC\|^TestResolveTenantIntegration$'` |
+| `make test-integration` | Entrambi in sequenza | Sì | Sì (fase live) | |
+
+Se `GRPC_TEST_API_KEY` **non** è impostata, i test live in `internal/grpc/integration_test.go` fanno `t.Skip`. Il Makefile imposta sempre `GRPC_TEST_API_KEY=testkey123` → senza API su `:50051` la run **fallisce** (non viene saltata).
+
+Sequenza consigliata per live:
+
+```bash
+make infra-up
+make test-integration-live
+# opzionale, dopo infra-up: make infra-wait   # GET /v1/ready su :8000
+```
+
+Solo dipendenze + API su host:
+
+```bash
+make infra-deps-up
+go run ./cmd/api    # altro terminale
+make test-integration-live
+```
+
+**CI GitHub** (commit con `CI_start`): il job `go` esegue `go test -tags=integration ./internal/...` **senza** `GRPC_TEST_API_KEY` → live skipped. Il job **`integration-smoke`** avvia API/worker e lancia `go test -tags=integration ./internal/grpc/...` con chiave — parità con `make act-integration-smoke` in locale. Vedi [local-ci.md](local-ci.md).
+
+---
+
+## Redis Streams (`make test-streams-integration`)
+
+Test in `internal/event/` con tag `integration` e **miniredis** in-process (`TestStreamIntegration_*`). Non richiedono Postgres né porta `:50051`. Utile dopo modifiche al backend Streams in `internal/event`.
+
+```bash
+make test-streams-integration
+```
 
 ---
 

@@ -2,7 +2,8 @@ package worker
 
 import (
 	"context"
-	"log"
+	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -20,7 +21,7 @@ func NewEmbeddingWorker(db *pgxpool.Pool, provider embedding.Provider) *Embeddin
 }
 
 func (w *EmbeddingWorker) Start(ctx context.Context) {
-	log.Println("🚀 Real OpenAI Embedding Background Worker started")
+	slog.InfoContext(ctx, "embedding worker started")
 
 	ticker := time.NewTicker(20 * time.Second)
 	defer ticker.Stop()
@@ -28,16 +29,18 @@ func (w *EmbeddingWorker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Embedding worker stopped")
+			slog.InfoContext(ctx, "embedding worker stopped")
 			return
 		case <-ticker.C:
-			w.processPendingEmbeddings()
+			w.processPendingEmbeddings(ctx)
 		}
 	}
 }
 
-func (w *EmbeddingWorker) processPendingEmbeddings() {
-	ctx := context.Background()
+func (w *EmbeddingWorker) processPendingEmbeddings(ctx context.Context) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	query := `SELECT id, content, tenant_id::text FROM list_pending_embeddings(5)`
 	rows, err := w.db.Query(ctx, query)
 	if err != nil {
@@ -51,7 +54,7 @@ func (w *EmbeddingWorker) processPendingEmbeddings() {
 		rows, err = w.db.Query(ctx, query)
 	}
 	if err != nil {
-		log.Printf("embedding worker query error: %v", err)
+		slog.ErrorContext(ctx, "embedding worker query error", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -63,28 +66,32 @@ func (w *EmbeddingWorker) processPendingEmbeddings() {
 			continue
 		}
 
-		ctx := context.Background()
+		rowCtx := ctx
 		if tenantID != "" {
-			if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
-				log.Printf("embedding worker set tenant for id %d: %v", id, err)
+			if _, err := w.db.Exec(rowCtx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+				slog.WarnContext(rowCtx, "embedding worker set tenant failed", "id", id, "err", err)
 				continue
 			}
 		}
 
-		emb, err := w.provider.Generate(ctx, content)
+		emb, err := w.provider.Generate(rowCtx, content)
 		if err != nil {
-			log.Printf("failed to generate embedding for id %d: %v", id, err)
+			if errors.Is(err, embedding.ErrCircuitOpen) {
+				slog.WarnContext(rowCtx, "embedding circuit open, skipping entry", "id", id)
+			} else {
+				slog.WarnContext(rowCtx, "embedding generation failed", "id", id, "err", err)
+			}
 			continue
 		}
 
-		_, err = w.db.Exec(ctx,
+		_, err = w.db.Exec(rowCtx,
 			`UPDATE memory_entries SET embedding = $1 WHERE id = $2 AND tenant_id = $3::uuid`,
 			pgvector.NewVector(emb), id, tenantID)
 
 		if err == nil {
-			log.Printf("✅ Embedding generato e salvato per memory id %d", id)
+			slog.InfoContext(rowCtx, "embedding saved", "id", id)
 		} else {
-			log.Printf("failed to update embedding for id %d: %v", id, err)
+			slog.WarnContext(rowCtx, "embedding update failed", "id", id, "err", err)
 		}
 	}
 }

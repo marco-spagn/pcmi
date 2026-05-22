@@ -43,6 +43,7 @@ flowchart LR
 | Throughput, batch, stream retrieve/eventi | **gRPC** |
 | SDK ufficiali Python/TS | **HTTP** (wrapper in `sdk/`) |
 | Bootstrap tenant / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) o **gRPC** `AdminService` |
+| Elenco tenant/chiavi in dev (senza curl) | **`make admin-list-keys`** (CLI `cmd/pcmi-admin`) |
 | Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` |
 
 Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
@@ -214,6 +215,7 @@ Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md
 | `make test-streams-integration` | Bus Redis Streams in `internal/event` (miniredis, senza stack) |
 | `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
 | `make infra-up` / `make infra-wait` | Stack Compose + attesa `/v1/ready` (:8000) |
+| `make admin-list-keys` | Tabella tenant + API key da Postgres (`DATABASE_URL`; mostra prefisso hash, non la chiave in chiaro). Filtro: `go run ./cmd/pcmi-admin list --tenant default` |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
 | `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |

@@ -3,11 +3,26 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
+
+// AdminAPIKeyOverview is a redacted row for operator CLI (no raw secrets).
+type AdminAPIKeyOverview struct {
+	TenantID   string
+	TenantSlug string
+	ID         string
+	Name       string
+	Role       string
+	HashPrefix string
+	IsActive   bool
+	CreatedAt  time.Time
+	ExpiresAt  *time.Time
+	LastUsedAt *time.Time
+}
 
 type AdminRepository struct {
 	db *pgxpool.Pool
@@ -107,4 +122,66 @@ func (r *AdminRepository) ListAPIKeys(ctx context.Context, tenantID string, limi
 		})
 	}
 	return out, rows.Err()
+}
+
+func (r *AdminRepository) setTenantContext(ctx context.Context, tenantID string) error {
+	_, err := r.db.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID)
+	if err != nil {
+		return fmt.Errorf("set tenant context: %w", err)
+	}
+	return nil
+}
+
+func (r *AdminRepository) listAPIKeysOverview(ctx context.Context, tenantID, tenantSlug string, limit int) ([]AdminAPIKeyOverview, error) {
+	if err := r.setTenantContext(ctx, tenantID); err != nil {
+		return nil, err
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT k.id::text, k.name, k.role, k.is_active,
+		       LEFT(k.key_hash, 8) AS hash_prefix,
+		       k.created_at, k.expires_at, k.last_used_at
+		FROM api_keys k
+		WHERE k.tenant_id = $1::uuid
+		ORDER BY k.created_at DESC
+		LIMIT $2`, tenantID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list api keys: %w", err)
+	}
+	defer rows.Close()
+
+	var out []AdminAPIKeyOverview
+	for rows.Next() {
+		var row AdminAPIKeyOverview
+		row.TenantID = tenantID
+		row.TenantSlug = tenantSlug
+		if err := rows.Scan(
+			&row.ID, &row.Name, &row.Role, &row.IsActive, &row.HashPrefix,
+			&row.CreatedAt, &row.ExpiresAt, &row.LastUsedAt,
+		); err != nil {
+			return nil, err
+		}
+		out = append(out, row)
+	}
+	return out, rows.Err()
+}
+
+// ListAllAPIKeysOverview lists tenants (admin_list_tenants) and their API keys with hash prefix only.
+// tenantFilter matches tenant slug or UUID; empty means all tenants up to tenantLimit.
+func (r *AdminRepository) ListAllAPIKeysOverview(ctx context.Context, tenantLimit, keysPerTenant int, tenantFilter string) ([]AdminAPIKeyOverview, error) {
+	tenants, err := r.ListTenants(ctx, tenantLimit)
+	if err != nil {
+		return nil, err
+	}
+	var out []AdminAPIKeyOverview
+	for _, t := range tenants {
+		if tenantFilter != "" && tenantFilter != t.Slug && tenantFilter != t.ID {
+			continue
+		}
+		keys, err := r.listAPIKeysOverview(ctx, t.ID, t.Slug, keysPerTenant)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, keys...)
+	}
+	return out, nil
 }

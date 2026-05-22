@@ -2,7 +2,7 @@
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
-        helm-lint helm-template helm-package
+        helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -102,6 +102,10 @@ infra-smoke:
 	@curl -sS "$(API_URL)/v1/ready" | jq .
 	@echo "=== GET $(API_URL)/health ==="
 	@curl -sS "$(API_URL)/health" | jq .
+
+# List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
+admin-list-keys:
+	DATABASE_URL=$(DATABASE_URL) go run ./cmd/pcmi-admin list
 
 # Shortcuts
 up: infra-up

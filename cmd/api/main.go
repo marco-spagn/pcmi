@@ -57,6 +57,7 @@ func main() {
 		}
 	}
 	log.Printf("✅ Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
+	middleware.LogMetricsScrapeAuthState(cfg.MetricsScrapeToken)
 
 	ctx := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctx, cfg, "pcmi-api")
@@ -97,7 +98,7 @@ func main() {
 	app.Use(middleware.RateLimitMiddleware(cfg))
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 
-	app.Get("/metrics", adaptor.HTTPHandler(promhttp.HandlerFor(
+	app.Get("/metrics", middleware.MetricsScrapeAuth(cfg.MetricsScrapeToken), adaptor.HTTPHandler(promhttp.HandlerFor(
 		metrics.Registry,
 		promhttp.HandlerOpts{EnableOpenMetrics: false},
 	)))

@@ -9,6 +9,16 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.37.0] — 2026-05-22
+
+### Added — Prometheus /metrics authentication (PCMI-004)
+
+- **`METRICS_SCRAPE_TOKEN`**: when set, `GET /metrics` requires
+  `Authorization: Bearer <token>`; when unset, `/metrics` stays open and the API
+  logs a startup warning.
+- **`middleware.MetricsScrapeAuth`**, example `deploy/prometheus/prometheus.yml`,
+  and docs in `docs/USAGE.md`.
+
 ## [1.36.0] — 2026-05-22
 
 ### Added — Distributed rate limiting via Redis (PCMI-003)

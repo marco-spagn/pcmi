@@ -1,0 +1,15 @@
+# Example Prometheus scrape config for pcmi-api.
+# Set METRICS_SCRAPE_TOKEN on the API and use the same value in bearer_token.
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: pcmi-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["pcmi-api:8000"]
+    # When METRICS_SCRAPE_TOKEN is set on pcmi-api:
+    authorization:
+      credentials: "your-metrics-scrape-token"
+    # Prometheus 2.26+ also accepts:
+    # bearer_token: "your-metrics-scrape-token"

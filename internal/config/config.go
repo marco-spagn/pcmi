@@ -27,7 +27,8 @@ type Config struct {
 	GRPCPort string
 
 	// Authentication
-	AdminAPIKey string
+	AdminAPIKey        string
+	MetricsScrapeToken string // optional: Bearer token for GET /metrics (Prometheus)
 
 	// OpenAI / Embedding
 	OpenAIAPIKey   string
@@ -85,7 +86,8 @@ func Load() *Config {
 		APIPort:   envOr("API_PORT", "8000"),
 		GRPCPort:  envOr("GRPC_PORT", "50051"),
 
-		AdminAPIKey: os.Getenv("ADMIN_API_KEY"),
+		AdminAPIKey:        os.Getenv("ADMIN_API_KEY"),
+		MetricsScrapeToken: strings.TrimSpace(os.Getenv("METRICS_SCRAPE_TOKEN")),
 		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
 		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),

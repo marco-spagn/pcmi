@@ -164,6 +164,10 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	if err != nil || len(ls) < 1 {
 		t.Fatalf("link list: err=%v n=%d", err, len(ls))
 	}
+	linkN, err := links.Count(ctx, tenantID)
+	if err != nil || linkN < 1 {
+		t.Fatalf("link count: err=%v n=%d", err, linkN)
+	}
 	_ = link
 
 	encID, _, _, err := repo.Store(ctx, model.StoreRequest{

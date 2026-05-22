@@ -9,6 +9,16 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.39.0] — 2026-05-22
+
+### Added — Webhook HMAC-SHA256 signatures (PCMI-006)
+
+- Outbound webhook deliveries sign `timestamp + "." + body` with the endpoint secret;
+  headers **`X-PCMI-Signature`**, **`X-PCMI-Timestamp`**, and **`X-PCMI-Delivery-ID`**.
+- **`internal/crypto/hmac.go`** (`HMACSign` / `HMACVerify`) and **`internal/webhook/delivery.go`**.
+- SDK helpers: Python **`verify_signature`**, TypeScript **`verifySignature`**.
+- Documented in **`docs/WORKERS-AND-EVENTS.md`**.
+
 ## [1.38.0] — 2026-05-22
 
 ### Added — Idempotency keys on store (PCMI-005)

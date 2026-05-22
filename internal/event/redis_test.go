@@ -10,7 +10,7 @@ import (
 
 func TestPublishEventRoundTrip(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendPubSub)
+	SetEventBackend(BackendPubSub)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestPublishEventRoundTrip(t *testing.T) {
 
 func TestPublishStreamsRoundTrip(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendStreams)
+	SetEventBackend(BackendStreams)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func TestPublishStreamsRoundTrip(t *testing.T) {
 
 func TestPublishMultipleEvents(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendPubSub)
+	SetEventBackend(BackendPubSub)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatal(err)
@@ -112,7 +112,7 @@ func TestPublishMultipleEvents(t *testing.T) {
 
 func TestWebhookNotifierCalled(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendPubSub)
+	SetEventBackend(BackendPubSub)
 	mr, _ := miniredis.Run()
 	defer func() { closeRedisTest(t, mr) }()
 	InitRedis(mr.Addr())
@@ -138,7 +138,7 @@ func TestWebhookNotifierCalled(t *testing.T) {
 
 func TestSubscribeEventsContext_cancelledParent(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendPubSub)
+	SetEventBackend(BackendPubSub)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatal(err)
@@ -157,7 +157,7 @@ func TestSubscribeEventsContext_cancelledParent(t *testing.T) {
 
 func TestPublishEvent_noWebhookWithoutTenantID(t *testing.T) {
 	lockRedisTest(t)
-	t.Setenv(EnvEventBackend, BackendPubSub)
+	SetEventBackend(BackendPubSub)
 	mr, err := miniredis.Run()
 	if err != nil {
 		t.Fatal(err)

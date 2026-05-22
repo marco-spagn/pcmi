@@ -16,7 +16,7 @@ import (
 func TestStreamIntegration_PublishAndConsume_EndToEnd(t *testing.T) {
 	mr := startRedis(t)
 	InitRedis(mr.Addr())
-	t.Setenv(EnvEventBackend, BackendStreams)
+	SetEventBackend(BackendStreams)
 
 	pub := NewStreamPublisher(RedisClient, StreamKey)
 	consumer := NewStreamConsumer(RedisClient, StreamKey, "int-group", "int-consumer")

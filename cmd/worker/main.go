@@ -57,6 +57,7 @@ func main() {
 	defer db.Close()
 
 	event.InitRedis(cfg.RedisAddr)
+	event.SetEventBackend(cfg.EventBackend)
 
 	// Health check server (port 8081) with DB pool metrics
 	go func() {

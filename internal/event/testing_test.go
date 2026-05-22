@@ -8,6 +8,7 @@ var redisTestMu sync.Mutex
 func lockRedisTest(t testingT) {
 	t.Helper()
 	redisTestMu.Lock()
+	SetEventBackend(BackendStreams)
 	t.Cleanup(func() { redisTestMu.Unlock() })
 }
 

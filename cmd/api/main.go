@@ -76,6 +76,7 @@ func main() {
 	db := pools.Primary
 
 	event.InitRedis(cfg.RedisAddr)
+	event.SetEventBackend(cfg.EventBackend)
 	webhookDispatch := webhook.NewDispatcher(db, cfg.WebhookMaxAttempts)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 

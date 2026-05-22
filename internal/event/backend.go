@@ -1,8 +1,8 @@
 package event
 
 import (
-	"os"
 	"strings"
+	"sync"
 )
 
 const (
@@ -18,17 +18,28 @@ const (
 	BackendPubSub   = "pubsub"
 )
 
+var (
+	backendMu           sync.RWMutex
+	configuredBackend   = BackendStreams
+)
+
+// SetEventBackend selects streams or pub/sub (from config.Load().EventBackend).
+func SetEventBackend(backend string) {
+	backendMu.Lock()
+	defer backendMu.Unlock()
+	switch strings.TrimSpace(strings.ToLower(backend)) {
+	case BackendPubSub:
+		configuredBackend = BackendPubSub
+	default:
+		configuredBackend = BackendStreams
+	}
+}
+
 // EventBackend returns the active event transport (default: streams).
 func EventBackend() string {
-	v := strings.TrimSpace(strings.ToLower(os.Getenv(EnvEventBackend)))
-	switch v {
-	case "", BackendStreams:
-		return BackendStreams
-	case BackendPubSub:
-		return BackendPubSub
-	default:
-		return BackendStreams
-	}
+	backendMu.RLock()
+	defer backendMu.RUnlock()
+	return configuredBackend
 }
 
 func useStreams() bool { return EventBackend() == BackendStreams }

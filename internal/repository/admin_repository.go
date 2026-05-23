@@ -6,9 +6,16 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
+
+// AdminQuerier is the DB surface required by AdminRepository (*pgxpool.Pool and pgxmock pools satisfy it).
+type AdminQuerier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
 
 // AdminAPIKeyOverview is a redacted row for operator CLI (no raw secrets).
 type AdminAPIKeyOverview struct {
@@ -25,10 +32,10 @@ type AdminAPIKeyOverview struct {
 }
 
 type AdminRepository struct {
-	db *pgxpool.Pool
+	db AdminQuerier
 }
 
-func NewAdminRepository(db *pgxpool.Pool) *AdminRepository {
+func NewAdminRepository(db AdminQuerier) *AdminRepository {
 	return &AdminRepository{db: db}
 }
 

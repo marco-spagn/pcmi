@@ -9,6 +9,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.42.0] — 2026-05-23
+
+### Added — Memory importance scoring & temporal decay (PCMI-009)
+
+- Schema **`migrations/015_importance_decay.sql`**: `importance`, `access_count`,
+  `last_accessed_at` on `memory_entries`; per-tenant fusion weights in `tenant_memory_config`.
+- Hybrid score: `W_s×cosine + W_l×bm25 + W_i×importance + W_r×exp(-ln(2)/halflife×age)`.
+- API: `POST /v1/memories` `{ "importance" }`, `POST /v1/retrieve` `{ "decay_enabled" }`,
+  `PATCH /v1/memories/{path}/importance`.
+- Makefile: `test-retrieval-scoring`, `bench-retrieval`; docs updated in [retrieval-pipeline.md](docs/retrieval-pipeline.md).
+
 ## [1.41.0] — 2026-05-23
 
 ### Added — MCP server for AI agents (PCMI-008)

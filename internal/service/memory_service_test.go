@@ -60,6 +60,10 @@ func (r *fullMockRepo) CompactPathHistory(_ context.Context, _ string, _ string,
 	return 0, nil
 }
 
+func (r *fullMockRepo) UpdateImportance(_ context.Context, _, _ string, _ float64) error {
+	return nil
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 func TestMemoryServiceStoreSuccess(t *testing.T) {

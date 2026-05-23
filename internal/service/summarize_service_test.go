@@ -186,3 +186,7 @@ func (s *summarizeMemRepoStub) ExportMemories(context.Context, string, string, i
 func (s *summarizeMemRepoStub) CompactPathHistory(context.Context, string, string, int) (int, error) {
 	return 0, nil
 }
+
+func (s *summarizeMemRepoStub) UpdateImportance(context.Context, string, string, float64) error {
+	return nil
+}

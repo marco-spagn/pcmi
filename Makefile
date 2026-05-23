@@ -1,8 +1,8 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle test-retrieval-scoring bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -104,6 +104,11 @@ infra-smoke:
 	@echo "=== GET $(API_URL)/health ==="
 	@curl -sS "$(API_URL)/health" | jq .
 
+# PCMI-009: importance ranking + PATCH importance (see scripts/smoke_importance_retrieve.sh).
+smoke-importance:
+	@chmod +x scripts/smoke_importance_retrieve.sh
+	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_importance_retrieve.sh
+
 # List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
 admin-list-keys:
 	DATABASE_URL=$(DATABASE_URL) go run ./cmd/pcmi-admin list
@@ -204,6 +209,13 @@ test-idempotency:
 
 test-key-lifecycle:
 	PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -race -count=1 -run 'TestKey' ./internal/handler/...
+
+# Hybrid retrieval scoring: importance fusion + temporal decay (PCMI-009).
+test-retrieval-scoring:
+	go test -race -count=1 -run 'TestImportance|TestTemporalDecay|TestAccessCount|TestDecayDisabled|TestImportanceEndpoint|TestHybridScore|TestRecency|TestDefaultScoring' ./internal/repository/...
+
+bench-retrieval:
+	go test -bench=BenchmarkHybridScore -benchmem -benchtime=5s ./internal/repository/...
 
 # Distributed Redis rate limiter (miniredis) + middleware probes/roles.
 test-ratelimit-integration:

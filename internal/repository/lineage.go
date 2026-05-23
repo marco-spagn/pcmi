@@ -81,8 +81,7 @@ func (r *LineageRepository) DistilledLineage(ctx context.Context, tenantID strin
 	var sources []model.MemoryEntry
 	if len(item.SourceEntryIDs) > 0 {
 		rows, qErr := r.r.Query(ctx, `
-			SELECT id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at, content_encrypted
+			SELECT `+memoryEntrySelectCols+`
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid AND id = ANY($2::bigint[])`,
 			tenantID, item.SourceEntryIDs)

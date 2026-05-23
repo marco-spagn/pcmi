@@ -1,6 +1,6 @@
 # Retrieval Pipeline
 
-Hybrid retrieval in PCMI runs as a single SQL query in the repository layer (`internal/repository/memory_repository.go`), combining structural filtering, semantic ANN, lexical BM25, and weighted score fusion.
+Hybrid retrieval in PCMI runs as a single SQL query in the repository layer (`internal/repository/memory_repository.go`), combining structural filtering, semantic ANN, lexical BM25, importance weighting, optional temporal decay, and weighted score fusion.
 
 ## Pipeline (Figure 7 — readable)
 
@@ -10,7 +10,7 @@ flowchart TB
     direction TB
     I1["Query + path_prefix + limit + weights"]
     I2["tenant_id injected by middleware; optional"]
-    I3["as_of, tags, source_agent_id, embedding_space"]
+    I3["as_of, tags, source_agent_id, embedding_space, decay_enabled"]
   end
 
   subgraph S1["Stage 1 — Structural filter (ltree)"]
@@ -33,55 +33,34 @@ flowchart TB
     S3C["Critical for CVE IDs, ticket numbers"]
   end
 
-  subgraph S4["Stage 4 — Fusion + temporal rank"]
+  subgraph S4["Stage 4 — Importance + temporal decay"]
     direction TB
-    S4A["score = W_s × (1 - cos_dist) + W_l × bm25"]
-    S4B["default W_s = 0.55, W_l = 0.45"]
-    S4C["ORDER BY score DESC LIMIT k"]
-    S4D["filter valid_to IS NULL (or as_of clause)"]
+    S4I["W_i × importance (0–1, default 0.5)"]
+    S4R["W_r × exp(-ln(2)/halflife × age_days)"]
+    S4D["age from last_accessed_at or created_at"]
+  end
+
+  subgraph S5["Stage 5 — Fusion + temporal rank"]
+    direction TB
+    S5A["score = W_s×cosine + W_l×bm25 + W_i×importance + W_r×decay"]
+    S5B["defaults W_s=0.40 W_l=0.30 W_i=0.15 W_r=0.15"]
+    S5C["ORDER BY score DESC LIMIT k"]
+    S5D["filter valid_to IS NULL (or as_of clause)"]
   end
 
   subgraph OUTPUT["Output"]
     direction TB
-    O1["[]MemoryEntry ranked and deduplicated"]
-    O2["weights configurable per-query; optional"]
+    O1["[]MemoryEntry ranked; access_count++"]
+    O2["per-tenant overrides in tenant_memory_config"]
     O3["DATABASE_READ_URL replica for heavy reads"]
-  end
-
-  subgraph REDUCTION["Data reduction"]
-    direction TB
-    R1["N records"]
-    R2["N' filtered"]
-    R3["k top-ranked"]
   end
 
   INPUT --> S1
   S1 --> S2
   S2 --> S3
   S3 --> S4
-  S4 --> OUTPUT
-
-  R1 --> R2
-  R2 --> R3
-
-  S1 -.-> R2
-  S4 -.-> R3
-
-  classDef input fill:#e8e0f4,stroke:#7c6aad,color:#1a1a1a
-  classDef stage1 fill:#d6ebf7,stroke:#4a90b8,color:#1a1a1a
-  classDef stage2 fill:#d9f0d9,stroke:#5a9e5a,color:#1a1a1a
-  classDef stage3 fill:#fde8cc,stroke:#c4843a,color:#1a1a1a
-  classDef stage4 fill:#f8d7da,stroke:#b85450,color:#1a1a1a
-  classDef output fill:#d9f0d9,stroke:#5a9e5a,color:#1a1a1a
-  classDef reduction fill:#f5f5f5,stroke:#888888,color:#1a1a1a
-
-  class INPUT,I1,I2,I3 input
-  class S1,S1A,S1B,S1C stage1
-  class S2,S2A,S2B stage2
-  class S3,S3A,S3B,S3C stage3
-  class S4,S4A,S4B,S4C,S4D stage4
-  class OUTPUT,O1,O2,O3 output
-  class REDUCTION,R1,R2,R3 reduction
+  S4 --> S5
+  S5 --> OUTPUT
 ```
 
 ## Stages
@@ -91,10 +70,26 @@ flowchart TB
 | 1 | `ltree` prefix (`path <@ $prefix`) | Tenant-scoped structural filter; shrinks N → N' |
 | 2 | pgvector HNSW ANN | Semantic similarity via cosine distance |
 | 3 | `pcmi_bm25_rank` + `websearch_to_tsquery` | Lexical match for exact tokens (CVE IDs, tickets) |
-| 4 | Weighted fusion + temporal clause | `0.55 × semantic + 0.45 × BM25`; `valid_to IS NULL` or `as_of` |
+| 4 | Importance + recency | Stored `importance`; decay from memory age (halflife days) |
+| 5 | Weighted fusion + temporal clause | Four-term score; `valid_to IS NULL` or `as_of` |
+
+## Score formula (v1.42+)
+
+```
+score = W_s × cosine + W_l × bm25 + W_i × importance + W_r × exp(-ln(2)/halflife × age_days)
+```
+
+- Default weights sum to **1.0** (`0.40 / 0.30 / 0.15 / 0.15`).
+- Per-tenant overrides: table `tenant_memory_config`.
+- `POST /v1/retrieve` with `"decay_enabled": false` omits the recency term (`W_r = 0`).
+- `POST /v1/memories` accepts `"importance"` in `[0,1]` (default `0.5`).
+- `PATCH /v1/memories/{path}/importance` updates the current row.
+- Ranked retrieves increment `access_count` and `last_accessed_at`.
 
 ## Related
 
 - Implementation: `internal/repository/memory_repository.go`, `internal/repository/retrieve_sql.go`
+- Tests: `make test-retrieval-scoring`, `make bench-retrieval`
+- Manual smoke (API up): `make smoke-importance` → `scripts/smoke_importance_retrieve.sh`
 - Read replica: [federation-read-replicas.md](federation-read-replicas.md)
 - Performance notes: [scalability.md](scalability.md)

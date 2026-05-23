@@ -89,19 +89,21 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		agentID = &a
 	}
 
+	importance := model.NormalizeImportance(req.Importance)
+
 	if len(req.Embedding) > 0 {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12)
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12, $13)
 			RETURNING id`
 		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt).Scan(&id)
+			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance).Scan(&id)
 	} else {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11)
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11, $12)
 			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance).Scan(&id)
 	}
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
@@ -122,11 +124,15 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	var agentID sql.NullString
 	var eventID sql.NullString
 	var score sql.NullFloat64
+	var importance sql.NullFloat64
+	var accessCount sql.NullInt32
+	var lastAccess sql.NullTime
 
 	dest := []any{
 		&e.ID, &e.TenantID, &e.Path, &e.Content, &e.Metadata, &e.Tags,
 		&emb, &e.EmbeddingModel, &e.EmbeddingSpace, &e.Version, &e.ValidFrom, &validTo,
 		&agentID, &eventID, &e.CreatedAt, &e.ContentEncrypted,
+		&importance, &accessCount, &lastAccess,
 	}
 	if includeScore {
 		dest = append(dest, &score)
@@ -149,6 +155,16 @@ func (r *MemoryRepository) scanMemoryEntry(rows interface {
 	if eventID.Valid {
 		s := eventID.String
 		e.SourceEventID = &s
+	}
+	if importance.Valid {
+		e.Importance = importance.Float64
+	}
+	if accessCount.Valid {
+		e.AccessCount = int(accessCount.Int32)
+	}
+	if lastAccess.Valid {
+		t := lastAccess.Time
+		e.LastAccessedAt = &t
 	}
 	if includeScore && score.Valid {
 		e.RelevanceScore = score.Float64
@@ -192,8 +208,16 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		tagMatch = "any"
 	}
 
-	selectCols := `id, tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space,
-			       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at, content_encrypted`
+	selectCols := memoryEntrySelectCols
+
+	decayEnabled := true
+	if req.DecayEnabled != nil {
+		decayEnabled = *req.DecayEnabled
+	}
+	weights, wErr := r.GetScoringWeights(ctx, tenantID, decayEnabled)
+	if wErr != nil {
+		return nil, wErr
+	}
 
 	var q string
 	var args []any
@@ -205,12 +229,13 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	switch {
 	case hasVec && hasText:
 		vec := pgvector.NewVector(queryEmbedding)
+		scoreExpr := hybridScoreSQL(weights,
+			`(1 - (embedding <=> $3::vector))`,
+			`pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $5))`,
+		)
 		q = `
 			SELECT ` + selectCols + `,
-			       (
-			         0.55 * (1 - (embedding <=> $3::vector))
-			         + 0.45 * pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $5))
-			       )::float8 AS relevance_score
+			       ` + scoreExpr + ` AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
@@ -223,9 +248,10 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 		args = []any{tenantID, path, vec, req.AsOf, qText, agentFilter, spaceFilter, tagList, tagMatch, limit}
 	case hasVec:
 		vec := pgvector.NewVector(queryEmbedding)
+		scoreExpr := hybridScoreSQL(weights, `(1 - (embedding <=> $3::vector))`, `0`)
 		q = `
 			SELECT ` + selectCols + `,
-			       (1 - (embedding <=> $3::vector))::float8 AS relevance_score
+			       ` + scoreExpr + ` AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
@@ -233,13 +259,14 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 			  AND ` + scopeFilters("5", "6") + `
 			  AND ` + tagFilters("7", "8") + `
 			  AND embedding IS NOT NULL
-			ORDER BY embedding <=> $3::vector ASC
+			ORDER BY relevance_score DESC
 			LIMIT $9`
 		args = []any{tenantID, path, vec, req.AsOf, agentFilter, spaceFilter, tagList, tagMatch, limit}
 	case hasText:
+		scoreExpr := hybridScoreSQL(weights, `0`, `pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $3))`)
 		q = `
 			SELECT ` + selectCols + `,
-			       pcmi_bm25_rank(content_tsv, websearch_to_tsquery('english', $3))::float8 AS relevance_score
+			       ` + scoreExpr + ` AS relevance_score
 			FROM memory_entries
 			WHERE tenant_id = $1::uuid
 			  AND path <@ $2::ltree
@@ -287,14 +314,24 @@ func (r *MemoryRepository) Retrieve(ctx context.Context, req model.RetrieveReque
 	defer rows.Close()
 
 	var entries []model.MemoryEntry
+	var touchedIDs []int64
 	for rows.Next() {
 		e, scanErr := r.scanMemoryEntry(rows, true)
 		if scanErr != nil {
 			return nil, fmt.Errorf("retrieve scan: %w", scanErr)
 		}
 		entries = append(entries, e)
+		touchedIDs = append(touchedIDs, e.ID)
 	}
-	return entries, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(touchedIDs) > 0 && (hasText || hasVec) {
+		if err := r.touchRetrievedMemories(ctx, touchedIDs); err != nil {
+			return nil, err
+		}
+	}
+	return entries, nil
 }
 
 // CompactPathHistory deletes older superseded rows for a path, keeping the newest keepSuperseded closed versions.

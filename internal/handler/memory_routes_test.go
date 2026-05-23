@@ -58,6 +58,10 @@ func (r *handlerMockRepo) CompactPathHistory(_ context.Context, _ string, _ stri
 	return 0, nil
 }
 
+func (r *handlerMockRepo) UpdateImportance(_ context.Context, _, _ string, _ float64) error {
+	return nil
+}
+
 // ─── helper ──────────────────────────────────────────────────────────────────
 
 func newHandlerApp(t *testing.T, tenantID string) (*fiber.App, *service.MemoryService) {

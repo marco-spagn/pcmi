@@ -41,7 +41,7 @@ func parseRFC3339Time(s, field string) (*time.Time, error) {
 	return &t, nil
 }
 
-func storeFieldsToModel(path, content, metadataJSON string, tags []string, embedding []float32, embeddingModel, embeddingSpace, sourceAgentID string, encryptContent bool, expiresAtRFC string) (model.StoreRequest, error) {
+func storeFieldsToModel(path, content, metadataJSON string, tags []string, embedding []float32, embeddingModel, embeddingSpace, sourceAgentID string, encryptContent bool, expiresAtRFC string, importance *float64) (model.StoreRequest, error) {
 	expiresAt, err := parseExpiresAtRFC3339(expiresAtRFC)
 	if err != nil {
 		return model.StoreRequest{}, err
@@ -58,7 +58,7 @@ func storeFieldsToModel(path, content, metadataJSON string, tags []string, embed
 	if len(embedding) > 0 {
 		embCopy = append(embCopy, embedding...)
 	}
-	return model.StoreRequest{
+	out := model.StoreRequest{
 		Path:           path,
 		Content:        content,
 		Metadata:       meta,
@@ -69,17 +69,27 @@ func storeFieldsToModel(path, content, metadataJSON string, tags []string, embed
 		SourceAgentID:  strings.TrimSpace(sourceAgentID),
 		EncryptContent: encryptContent,
 		ExpiresAt:      expiresAt,
-	}, nil
+	}
+	if importance != nil {
+		out.Importance = importance
+	}
+	return out, nil
 }
 
 func storeProtoToModel(req *pcmiv1.StoreRequest) (model.StoreRequest, error) {
 	if req == nil {
 		return model.StoreRequest{}, nil
 	}
+	var imp *float64
+	if req != nil && req.GetImportance() != 0 {
+		v := req.GetImportance()
+		imp = &v
+	}
 	return storeFieldsToModel(
 		req.GetPath(), req.GetContent(), req.GetMetadataJson(),
 		req.GetTags(), req.GetEmbedding(), req.GetEmbeddingModel(), req.GetEmbeddingSpace(),
 		req.GetSourceAgentId(), req.GetEncryptContent(), req.GetExpiresAtRfc3339(),
+		imp,
 	)
 }
 
@@ -91,10 +101,11 @@ func storeItemProtoToModel(it *pcmiv1.BatchStoreItem) (model.StoreRequest, error
 		it.GetPath(), it.GetContent(), it.GetMetadataJson(),
 		it.GetTags(), it.GetEmbedding(), it.GetEmbeddingModel(), it.GetEmbeddingSpace(),
 		it.GetSourceAgentId(), it.GetEncryptContent(), it.GetExpiresAtRfc3339(),
+		nil,
 	)
 }
 
-func retrieveFieldsToModel(pathPrefix, query string, limit int32, tags []string, tagsMatch, asOfRFC, sourceAgentID, embeddingSpace string) (model.RetrieveRequest, error) {
+func retrieveFieldsToModel(pathPrefix, query string, limit int32, tags []string, tagsMatch, asOfRFC, sourceAgentID, embeddingSpace string, decayEnabled *bool) (model.RetrieveRequest, error) {
 	asOf, err := parseAsOfRFC3339(asOfRFC)
 	if err != nil {
 		return model.RetrieveRequest{}, err
@@ -112,6 +123,7 @@ func retrieveFieldsToModel(pathPrefix, query string, limit int32, tags []string,
 		AsOf:           asOf,
 		SourceAgentID:  strings.TrimSpace(sourceAgentID),
 		EmbeddingSpace: strings.TrimSpace(embeddingSpace),
+		DecayEnabled:   decayEnabled,
 	}, nil
 }
 
@@ -119,10 +131,16 @@ func retrieveProtoToModel(req *pcmiv1.RetrieveRequest) (model.RetrieveRequest, e
 	if req == nil {
 		return model.RetrieveRequest{Limit: 10}, nil
 	}
+	var decay *bool
+	if req != nil && req.GetDecayDisabled() {
+		v := false
+		decay = &v
+	}
 	return retrieveFieldsToModel(
 		req.GetPathPrefix(), req.GetQuery(), req.GetLimit(),
 		req.GetTags(), req.GetTagsMatch(), req.GetAsOfRfc3339(),
 		req.GetSourceAgentId(), req.GetEmbeddingSpace(),
+		decay,
 	)
 }
 
@@ -137,6 +155,7 @@ func batchQueriesProtoToModel(queries []*pcmiv1.BatchRetrieveQuery) ([]model.Ret
 			q.GetPathPrefix(), q.GetQuery(), q.GetLimit(),
 			q.GetTags(), q.GetTagsMatch(), q.GetAsOfRfc3339(),
 			q.GetSourceAgentId(), q.GetEmbeddingSpace(),
+			nil,
 		)
 		if err != nil {
 			return nil, err
@@ -208,6 +227,13 @@ func memoryEntryToProtoRetrieve(e *model.MemoryEntry) *pcmiv1.RetrieveEntry {
 	}
 	if len(e.Embedding) > 0 {
 		out.Embedding = append([]float32(nil), e.Embedding...)
+	}
+	out.Importance = e.Importance
+	if e.AccessCount > 0 {
+		out.AccessCount = int32(e.AccessCount)
+	}
+	if e.LastAccessedAt != nil {
+		out.LastAccessedAtRfc3339 = formatTimeRFC3339(*e.LastAccessedAt)
 	}
 	return out
 }

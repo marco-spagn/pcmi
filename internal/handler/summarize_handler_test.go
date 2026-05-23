@@ -47,6 +47,10 @@ func (s *summarizeMemStub) CompactPathHistory(context.Context, string, string, i
 	return 0, nil
 }
 
+func (s *summarizeMemStub) UpdateImportance(context.Context, string, string, float64) error {
+	return nil
+}
+
 func TestSummarizeHandler_invalidJSON(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
 

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.41.0
+  version: 1.42.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -262,6 +262,34 @@ paths:
                   status: { type: string }
                   version: { type: integer }
                   superseded_id: { type: integer, format: int64, description: Present when a prior version was closed }
+  /v1/memories/{path}/importance:
+    patch:
+      summary: Update importance on the current memory version at path
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema: { type: string }
+          description: ltree path (e.g. root.domain.topic)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateImportanceRequest"
+      responses:
+        "200":
+          description: Importance updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  path: { type: string }
+                  importance: { type: number }
+                  status: { type: string }
+        "404":
+          description: Path not found
   /v1/memories/rollback:
     post:
       summary: Roll back a path to a prior version (append-only; creates new version)
@@ -473,6 +501,12 @@ components:
         embedding_model: { type: string }
         embedding_space: { type: string, default: default, description: Logical embedding space for multi-model migrations }
         source_agent_id: { type: string, format: uuid }
+        importance:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.5
+          description: Retrieval boost weight in [0,1]
     RetrieveRequest:
       type: object
       properties:
@@ -482,6 +516,18 @@ components:
         as_of: { type: string, format: date-time, nullable: true }
         source_agent_id: { type: string, format: uuid, description: Cross-agent scope filter }
         embedding_space: { type: string, description: Filter by embedding space label }
+        decay_enabled:
+          type: boolean
+          default: true
+          description: When false, temporal recency decay is omitted from hybrid scoring
+    UpdateImportanceRequest:
+      type: object
+      required: [importance]
+      properties:
+        importance:
+          type: number
+          minimum: 0
+          maximum: 1
     MemoryEntry:
       type: object
       properties:
@@ -498,7 +544,10 @@ components:
         version: { type: integer }
         valid_from: { type: string, format: date-time }
         valid_to: { type: string, format: date-time, nullable: true }
-        relevance_score: { type: number, description: Cosine-based score when semantic path used }
+        relevance_score: { type: number, description: Fused hybrid score when query/embedding ranking is used }
+        importance: { type: number, minimum: 0, maximum: 1 }
+        access_count: { type: integer }
+        last_accessed_at: { type: string, format: date-time, nullable: true }
         created_at: { type: string, format: date-time }
     RetrieveResponse:
       type: object

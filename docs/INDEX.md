@@ -1,6 +1,6 @@
 # PCMI documentation index
 
-Central map of repository documentation. **API version: v1.42.0** ([`internal/version/version.go`](../internal/version/version.go)).
+Central map of repository documentation. **API version: v1.43.0** ([`internal/version/version.go`](../internal/version/version.go)).
 
 ## Getting started
 
@@ -42,6 +42,7 @@ Central map of repository documentation. **API version: v1.42.0** ([`internal/ve
 | Document | Content |
 |----------|---------|
 | [retrieval-pipeline.md](retrieval-pipeline.md) | Hybrid retrieve (ltree + BM25 + vector) |
+| [SESSIONS.md](SESSIONS.md) | Agent sessions and working memory (v1.43) |
 | [memory-compaction.md](memory-compaction.md) | Compaction vs pruning |
 | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md) | Workers, Redis, SSE, webhooks |
 | [MIGRATIONS.md](MIGRATIONS.md) | SQL migrations in order |

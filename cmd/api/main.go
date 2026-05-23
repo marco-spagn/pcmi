@@ -107,6 +107,9 @@ func main() {
 	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
 		log.Fatalf("❌ FATAL memory routes: %v", err)
 	}
+	if err := handler.SetupSessionRoutes(app, db, pools.Read, cfg); err != nil {
+		log.Fatalf("❌ FATAL session routes: %v", err)
+	}
 	handler.SetupAdminRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.42.0
+  version: 1.43.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -65,6 +65,102 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReadyResponse"
+  /v1/sessions:
+    post:
+      summary: Start an agent session (working memory scope)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionRequest"
+      responses:
+        "201":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentSession"
+  /v1/sessions/{id}:
+    delete:
+      summary: End session (sets ended_at)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Session ended
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentSession"
+        "404":
+          description: Not found
+  /v1/sessions/{id}/memories:
+    post:
+      summary: Store working memory scoped to session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionStoreMemoryRequest"
+      responses:
+        "200":
+          description: Stored
+        "404":
+          description: Session not found
+        "409":
+          description: Session ended
+    get:
+      summary: List session working memories (optional long-term tail)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+        - name: path_prefix
+          in: query
+          schema: { type: string, example: root }
+        - name: include_long_term
+          in: query
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Memories (session rows first when include_long_term=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionMemoriesResponse"
+  /v1/sessions/{id}/promote:
+    post:
+      summary: Promote session working memory to long-term paths
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromoteSessionRequest"
+      responses:
+        "200":
+          description: Promotion summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromoteSessionResponse"
   /v1/memories/history:
     get:
       summary: Historical reconstruction — all versions for a path
@@ -664,3 +760,48 @@ components:
           items: { type: integer, format: int64 }
         method: { type: string, enum: [extractive, llm, none] }
         total: { type: integer }
+    CreateSessionRequest:
+      type: object
+      properties:
+        agent_id: { type: string, format: uuid }
+        metadata: { type: object, additionalProperties: true }
+    AgentSession:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        agent_id: { type: string, format: uuid, nullable: true }
+        metadata: { type: object, additionalProperties: true }
+        started_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [active, ended] }
+    SessionStoreMemoryRequest:
+      type: object
+      required: [path, content]
+      properties:
+        path: { type: string }
+        content: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        tags: { type: array, items: { type: string } }
+        embedding_model: { type: string }
+        source_agent_id: { type: string, format: uuid }
+        importance: { type: number, minimum: 0, maximum: 1 }
+    SessionMemoriesResponse:
+      type: object
+      properties:
+        session_id: { type: string, format: uuid }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+        total: { type: integer }
+    PromoteSessionRequest:
+      type: object
+      properties:
+        target_prefix: { type: string, default: root, example: root }
+    PromoteSessionResponse:
+      type: object
+      properties:
+        session_id: { type: string, format: uuid }
+        promoted: { type: integer }
+        target_prefix: { type: string }
+        status: { type: string }

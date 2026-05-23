@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle test-retrieval-scoring bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -216,6 +216,10 @@ test-retrieval-scoring:
 
 bench-retrieval:
 	go test -bench=BenchmarkHybridScore -benchmem -benchtime=5s ./internal/repository/...
+
+# Agent sessions and working memory (PCMI-010).
+test-sessions-integration:
+	PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -race -count=1 -run 'TestSession' ./internal/handler/...
 
 # Distributed Redis rate limiter (miniredis) + middleware probes/roles.
 test-ratelimit-integration:

@@ -119,6 +119,9 @@ func newIntegrationHTTPApp(t *testing.T, opts ...integrationHTTPOpt) (*fiber.App
 	if err := SetupMemoryRoutes(app, pool, pool, cfg); err != nil {
 		t.Fatal(err)
 	}
+	if err := SetupSessionRoutes(app, pool, pool, cfg); err != nil {
+		t.Fatal(err)
+	}
 	SetupAdminRoutes(app, pool)
 
 	cleanup := func() {

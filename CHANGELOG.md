@@ -9,6 +9,18 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.43.0] — 2026-05-23
+
+### Added — Session & working memory layer (PCMI-010)
+
+- Schema **`migrations/016_sessions.sql`**: `agent_sessions`; partial index on
+  `memory_entries(metadata->>'session_id')`.
+- API: `POST /v1/sessions`, `POST/GET /v1/sessions/{id}/memories`,
+  `POST /v1/sessions/{id}/promote`, `DELETE /v1/sessions/{id}`.
+- Working memory rows carry `metadata.session_id` until promotion clears scope and
+  rewrites paths under `target_prefix` (default `root`).
+- Makefile: `test-sessions-integration`; docs in [SESSIONS.md](docs/SESSIONS.md).
+
 ## [1.42.0] — 2026-05-23
 
 ### Added — Memory importance scoring & temporal decay (PCMI-009)

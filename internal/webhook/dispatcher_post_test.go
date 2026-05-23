@@ -2,12 +2,14 @@ package webhook
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
+
+	"github.com/marco-spagn/pcmi/internal/crypto"
 )
 
 func TestDispatcherPost(t *testing.T) {
@@ -30,16 +32,26 @@ func TestDispatcherPost(t *testing.T) {
 		}
 	})
 
-	t.Run("hmac signature", func(t *testing.T) {
+	t.Run("hmac signature with timestamp", func(t *testing.T) {
 		secret := "test-secret"
 		body := []byte(`{"event_type":"x"}`)
-		mac := hmac.New(sha256.New, []byte(secret))
-		_, _ = mac.Write(body)
-		want := "sha256=" + hex.EncodeToString(mac.Sum(nil))
 
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("X-PCMI-Signature"); got != want {
-				t.Errorf("signature = %q, want %q", got, want)
+			ts := r.Header.Get("X-PCMI-Timestamp")
+			if ts == "" {
+				t.Error("missing X-PCMI-Timestamp")
+			}
+			payload, _ := io.ReadAll(r.Body)
+			if string(payload) != string(body) {
+				t.Errorf("body = %q", payload)
+			}
+			sig := r.Header.Get("X-PCMI-Signature")
+			tsInt, err := strconv.ParseInt(ts, 10, 64)
+			if err != nil {
+				t.Fatalf("timestamp: %v", err)
+			}
+			if !crypto.HMACVerify(secret, sig, ts, payload, time.Unix(tsInt, 0), crypto.DefaultWebhookMaxAge) {
+				t.Errorf("signature verify failed: sig=%q ts=%q", sig, ts)
 			}
 			w.WriteHeader(http.StatusOK)
 		}))

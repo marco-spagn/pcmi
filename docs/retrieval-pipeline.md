@@ -86,10 +86,21 @@ score = W_s × cosine + W_l × bm25 + W_i × importance + W_r × exp(-ln(2)/half
 - `PATCH /v1/memories/{path}/importance` updates the current row.
 - Ranked retrieves increment `access_count` and `last_accessed_at`.
 
+## Retrieve request fields
+
+| JSON field | Effect |
+|------------|--------|
+| `importance` (on store) | Weight in fusion (0–1, default 0.5) |
+| `decay_enabled` | `false` sets recency weight `W_r = 0` for this query |
+| `weights` | Optional override of `W_s`, `W_l`, `W_i`, `W_r` (must sum to 1.0) |
+
+After a ranked retrieve, matching rows get `access_count++` and `last_accessed_at` updated (feeds decay on later queries).
+
 ## Related
 
 - Implementation: `internal/repository/memory_repository.go`, `internal/repository/retrieve_sql.go`
 - Tests: `make test-retrieval-scoring`, `make bench-retrieval`
 - Manual smoke (API up): `make smoke-importance` → `scripts/smoke_importance_retrieve.sh`
+- Full local suite: `make test-full-real` includes this smoke in Phase 3
 - Read replica: [federation-read-replicas.md](federation-read-replicas.md)
 - Performance notes: [scalability.md](scalability.md)

@@ -55,7 +55,7 @@ flowchart TB
 | `cmd/api` | Fiber REST, SSE, Prometheus `/metrics`, gRPC `MemoryService`, OTLP traces |
 | `cmd/worker` | Embeddings, distillation, pruning, consolidation, expiry; `:8081/metrics` |
 | PostgreSQL | Memories, distilled knowledge, links, audit, webhooks; RLS per tenant |
-| Redis | Channel `memory_events` |
+| Redis | Event bus: **Streams** `pcmi:events` (default) or pub/sub `memory_events` (`EVENT_BACKEND`) |
 | SDKs | HTTP clients — see `sdk/` |
 
 ## Store flow
@@ -85,7 +85,7 @@ sequenceDiagram
 | SSE events | 8000 | API key | `GET /v1/events` |
 | Admin API | 8000 / 50051 | `admin` role | HTTP routes + gRPC `AdminService` |
 | Admin UI | 8000 | `admin` role | `GET /v1/admin/ui` (browser, HTTP only) |
-| Prometheus | 8000 | none on `/metrics` | HTTP scrape or gRPC `MetricsService.Scrape` |
+| Prometheus | 8000 | optional Bearer (`METRICS_SCRAPE_TOKEN`) | HTTP scrape or gRPC `MetricsService.Scrape` |
 
 Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 
@@ -99,7 +99,24 @@ Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 
 - **Local**: `docker compose up`
 - **K8s**: `deploy/k8s/` — readiness `GET /v1/ready`, gRPC `Ready`
-- **CI**: lint, unit, integration-smoke, SDK smoke, optional OpenAI E2E
+- **CI**: lint, unit, integration-smoke, SDK smoke, optional OpenAI E2E; trigger with **`CI_start`** in commit message
+- **Local full validation**: `make test-full-real` (see [local-ci.md](local-ci.md))
+
+## Event bus (streams vs pub/sub)
+
+```mermaid
+flowchart LR
+  API[api PublishEvent]
+  subgraph redis [Redis]
+    S[Stream pcmi:events]
+    P[PubSub memory_events]
+  end
+  W[worker consumer]
+  API -->|EVENT_BACKEND=streams| S
+  API -->|EVENT_BACKEND=pubsub| P
+  S --> W
+  P --> W
+```
 
 ## Related docs
 

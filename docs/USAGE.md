@@ -48,6 +48,15 @@ flowchart LR
 
 Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
 
+### MCP (agenti in Cursor / Claude)
+
+Server stdio **`pcmi-mcp`** (`cmd/mcp`): tool `pcmi_store`, `pcmi_retrieve`, … — vedi **[MCP.md](MCP.md)**.
+
+```bash
+make build-mcp
+make test-mcp-smoke    # handshake JSON-RPC
+```
+
 ---
 
 ## HTTP — operazioni base
@@ -62,6 +71,26 @@ Content-Type: application/json
 ```
 
 Ruoli: `readonly` (solo lettura), `write`, `admin` (gestione tenant/chiavi).
+
+### Admin — ciclo di vita API key (ruolo `admin`)
+
+| Azione | HTTP |
+|--------|------|
+| Crea tenant | `POST /v1/admin/tenants` |
+| Elenco tenant | `GET /v1/admin/tenants` |
+| Crea chiave | `POST /v1/admin/api-keys` |
+| Elenco chiavi | `GET /v1/admin/api-keys` |
+| Rotazione | `POST /v1/admin/api-keys/{id}/rotate` → nuovo secret (una sola volta in risposta) |
+| Revoca | `DELETE /v1/admin/api-keys/{id}` |
+
+gRPC equivalente: `AdminService` (`CreateAPIKey`, `RotateAPIKey`, …). In dev, senza curl admin:
+
+```bash
+make admin-list-keys
+# Filtro tenant: go run ./cmd/pcmi-admin list --tenant default
+```
+
+Test integrazione: `make test-key-lifecycle`.
 
 ### Metriche Prometheus (`GET /metrics`)
 
@@ -106,6 +135,43 @@ curl -sN "$PCMI_BASE_URL/v1/events" \
   -d '?types=memory.stored,memory.updated'
 ```
 
+### Idempotenza store (`X-Idempotency-Key`)
+
+Su `POST /v1/memories` puoi inviare un UUID nel header **`X-Idempotency-Key`**. La prima risposta `200` viene memorizzata per **24 ore** per tenant+chiave; i retry restituiscono lo stesso JSON con **`X-Idempotency-Replayed: true`**. Solo le risposte di successo vengono cachate.
+
+```bash
+KEY=$(uuidgen)
+curl -s -X POST "$PCMI_BASE_URL/v1/memories" \
+  -H "X-API-Key: $PCMI_API_KEY" \
+  -H "X-Idempotency-Key: $KEY" \
+  -d '{"path":"root.demo.idem","content":"once"}'
+# Ripeti la stessa richiesta → stesso body, header X-Idempotency-Replayed: true
+```
+
+Test: `make test-idempotency`.
+
+### Dedup ingest (`DEDUP_MODE`)
+
+Evita duplicati per **hash del contenuto** sulla versione corrente dello stesso path (PCMI-011). Precedenza: body `dedup_mode` → header **`X-Dedup-Mode`** → `tenants.settings.dedup_mode` → env **`DEDUP_MODE`**.
+
+| Modalità | Comportamento |
+|----------|----------------|
+| `none` | Nessun dedup (default) |
+| `skip` | `409` o risposta con `status: deduplicated`, `dedup_action: skipped` |
+| `link` | Nuova versione collegata alla sorgente esistente |
+| `merge` | Aggiorna la versione esistente |
+
+```bash
+export DEDUP_MODE=skip   # in .env o compose
+make smoke-dedup         # curl E2E con API su :8000
+```
+
+Test: `make test-dedup`.
+
+### Sessioni agente
+
+Working memory legata a una sessione; promozione verso memoria a lungo termine. Vedi **[SESSIONS.md](SESSIONS.md)** e `make smoke-sessions`.
+
 ### Operazioni avanzate (HTTP)
 
 | Azione | Metodo e path |
@@ -113,10 +179,12 @@ curl -sN "$PCMI_BASE_URL/v1/events" \
 | Storia versioni | `GET /v1/memories/history?path=...` |
 | Rollback | `POST /v1/memories/rollback` |
 | Refine (distillazione) | `POST /v1/memories/refine` |
+| Importanza | `PATCH /v1/memories/{path}/importance` |
 | Link tra path | `POST/GET /v1/memories/links` |
 | Stats tenant | `GET /v1/stats` |
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |
+| Sessioni | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
 
 Contratto completo: [openapi.yaml](openapi.yaml).
 
@@ -233,6 +301,20 @@ Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md
 | `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
 | `make infra-up` / `make infra-wait` | Stack Compose + attesa `/v1/ready` (:8000) |
 | `make admin-list-keys` | Tabella tenant + API key da Postgres (`DATABASE_URL`; mostra prefisso hash, non la chiave in chiaro). Filtro: `go run ./cmd/pcmi-admin list --tenant default` |
+| `make free-dev-ports` / `make act-preflight` | Libera `:5432` / `:6379` (compose + container `act-*`) |
+| `make test-full-real` | CI host + E2E OpenAI opz. + smoke importance/sessions/dedup + MCP — [local-ci.md](local-ci.md) |
+| `make smoke-importance` | Ranking retrieve con importance/decay (curl) |
+| `make smoke-sessions` | Sessioni agente curl E2E |
+| `make smoke-dedup` | Dedup ingest curl E2E |
+| `make test-streams-integration` | Bus Redis Streams (`internal/event`) |
+| `make test-circuit-breaker` | Circuit breaker embedding |
+| `make test-ratelimit-integration` | Rate limit Redis distribuito |
+| `make test-idempotency` | `X-Idempotency-Key` |
+| `make test-key-lifecycle` | Admin rotate/revoke |
+| `make test-retrieval-scoring` | Importance + decay in SQL retrieve |
+| `make test-sessions-integration` | Handler sessioni (`-tags=integration`) |
+| `make test-dedup` | Dedup unit + handler |
+| `make build-mcp` / `make test-mcp-unit` | MCP stdio server |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
 | `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |
@@ -257,14 +339,30 @@ Diagramma: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 |-----------|---------|---------|
 | `DATABASE_URL` | compose | Postgres primario |
 | `DATABASE_READ_URL` | — | Replica letture |
-| `REDIS_ADDR` | `localhost:6379` | Event bus |
+| `REDIS_ADDR` | `localhost:6379` | Redis (eventi + rate limit) |
+| `EVENT_BACKEND` | `streams` | `streams` = Redis Streams `pcmi:events`; `pubsub` = canale legacy `memory_events` |
 | `API_PORT` | `8000` | HTTP |
 | `GRPC_PORT` | `50051` | gRPC |
-| `OPENAI_API_KEY` | — | Embedding + semantic retrieve + LLM summarize |
-| `PCMI_ENCRYPTION_KEY` | — | Cifratura contenuti |
+| `METRICS_SCRAPE_TOKEN` | — | Se impostato, `GET /metrics` richiede `Authorization: Bearer …` |
 | `RATE_LIMIT_DISABLED` | `false` | Disabilita rate limit (dev/CI) |
+| `RATE_LIMIT_BACKEND` | `memory` | `memory` = limiter in-process; `redis` = contatori condivisi tra repliche API |
+| `RATE_LIMIT_RPM` / `_READONLY` / `_WRITE` / `_ADMIN` | 120 / 200 / 100 / 30 | RPM per ruolo (backend redis o memory) |
+| `DEDUP_MODE` | `none` | Default dedup ingest se tenant/richiesta non specificano |
+| `OPENAI_API_KEY` | — | Embedding + semantic retrieve + LLM summarize/distill |
+| `DISTILLATION_MODEL` / `DISTILLATION_BATCH_SIZE` | `gpt-4o-mini` / `10` | Worker distillation |
+| `PCMI_ENCRYPTION_KEY` | — | Cifratura contenuti |
+| `PCMI_BASE_URL` / `PCMI_API_KEY` | — | Solo **`cmd/mcp`** (non api/worker) |
 
 Elenco completo: `.env.example`.
+
+### Webhook in uscita (verifica HMAC)
+
+Alla registrazione webhook imposta un `secret`. Ogni delivery POST include:
+
+- `X-PCMI-Timestamp` — epoch secondi (stringa)
+- `X-PCMI-Signature` — `sha256={hex(HMAC-SHA256(secret, timestamp + "." + body))}`
+
+Verifica lato consumer con tolleranza clock (~5 min). Dettaglio: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 
 ---
 

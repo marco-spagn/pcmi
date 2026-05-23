@@ -78,10 +78,13 @@ Same shape under `mcpServers` in `claude_desktop_config.json`.
 ## Testing
 
 ```bash
+make infra-up           # API on :8000 (if not already running)
 make test-mcp-unit      # go test ./cmd/mcp/...
-make test-mcp-smoke     # initialize handshake
+make test-mcp-smoke     # initialize handshake (needs bin/pcmi-mcp)
 make mcp-e2e            # docker stack + smoke + unit
 ```
+
+Included in **`make test-full-real`** (Phase 3). See [local-ci.md](local-ci.md).
 
 ## Related docs
 

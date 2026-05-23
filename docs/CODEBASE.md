@@ -7,7 +7,9 @@ Documento di orientamento per chi legge o modifica il repository: cosa fa ogni a
 | Percorso | Ruolo |
 |----------|--------|
 | `cmd/api/main.go` | Pool `database.NewPools(DATABASE_URL, DATABASE_READ_URL)`, readiness sul primario, middleware su primario, `handler.SetupMemoryRoutes(app, primary, readReplica)`; gRPC e admin sul primario. |
-| `cmd/worker/main.go` | Worker: embedding (se c’è `OPENAI_API_KEY`), distillation, pruning, consolidation, expiry, subscribe Redis. |
+| `cmd/worker/main.go` | Worker: embedding (circuit breaker), distillation, pruning, consolidation, expiry, consume Redis Streams/pubsub. |
+| `cmd/mcp/main.go` | MCP stdio server → HTTP API (`PCMI_BASE_URL`, `PCMI_API_KEY`). |
+| `cmd/pcmi-admin/main.go` | CLI ops: `list` tenant/API keys (`make admin-list-keys`). |
 
 **Ordine middleware API** (Fiber: il primo `Use` registrato è il più esterno): `otelfiber` (tracing, salta `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 
@@ -62,15 +64,25 @@ Processi asincroni; condividono DB e Redis con l’API.
 
 ## `internal/event`
 
-- `redis.go` — pub/sub canale `memory_events`; opzionale notifica webhook.
+- `backend.go` — `EVENT_BACKEND`: `streams` (XADD `pcmi:events`) vs `pubsub` (`memory_events`).
+- `stream.go` / `redis.go` — publish/consume, consumer group `pcmi-workers`, DLQ.
 - `schema.go` — costanti tipi evento.
-- `bus.go` — bus in-process dove usato.
+
+## `internal/ratelimit`
+
+Limiter Redis distribuito quando `RATE_LIMIT_BACKEND=redis` (chiave per tenant+API key).
+
+## `internal/embedding`
+
+`CircuitBreakerProvider` (gobreaker) wrappa OpenAI e altri provider; metriche `pcmi_embedding_*`.
 
 ## `internal/middleware`
 
 - `apikey.go` — risolve chiave → tenant, ruolo; `set_tenant_context`.
 - `public.go` — `IsUnauthenticatedProbe`: elenco unico path GET esenti da chiave, rate limit e audit.
-- `ratelimit.go` — limiter per API key; probe in `IsUnauthenticatedProbe` esenti dal limit.
+- `ratelimit.go` — limiter per API key (`RATE_LIMIT_BACKEND=memory|redis`); probe esenti.
+- `idempotency.go` — cache `POST /v1/memories` per `X-Idempotency-Key` (24h).
+- `metrics_auth.go` — Bearer su `GET /metrics` se `METRICS_SCRAPE_TOKEN` è impostato.
 - `audit.go` — scrittura `audit_log`.
 - `admin.go`, `rbac.go`, `tenant.go` — ruoli admin e vincoli scrittura.
 
@@ -124,7 +136,7 @@ Client HTTP thin; vedere `sdk/README.md`, mapping API solo-HTTP in `sdk/HTTP-API
 
 ## `scripts/`
 
-Smoke/E2E per CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**), `scripts/e2e/test_pcmi.sh` + `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI. Distillation: `scripts/pcmi_synth/`, `scripts/distill_e2e.sh`, `scripts/run_pcmi_distillation_test.sh`. Legacy manual scripts: `scripts/e2e/legacy/`.
+Smoke/E2E per CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**), `scripts/e2e/test_pcmi.sh` + `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI. Feature smokes: `scripts/smoke_importance_retrieve.sh`, `scripts/smoke_sessions.sh`, `scripts/smoke_dedup.sh`. Validazione completa host: `scripts/run_full_validation.sh` (`make test-full-real`). Port cleanup: `scripts/free_dev_ports.sh`. Distillation: `scripts/pcmi_synth/`, `scripts/distill_e2e.sh`, `scripts/run_pcmi_distillation_test.sh`. Legacy: `scripts/e2e/legacy/`.
 
 ## `examples/`
 
@@ -135,6 +147,8 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 - `make test` — unit tests (`go test ./...`)
 - `make lint` — golangci-lint v2 (install with `make install-lint`; config requires `version: "2"` in `.golangci.yml`)
 - `make test-integration` — gRPC integration tests (`go test -tags=integration ./internal/grpc/...`; API+gRPC+Postgres running)
+- `make test-streams-integration`, `make test-circuit-breaker`, `make test-idempotency`, `make test-ratelimit-integration`, `make test-key-lifecycle`, `make test-retrieval-scoring`, `make test-sessions-integration`, `make test-dedup` — Sprint 1–2 focused packages
+- `make test-full-real` — CI parity + optional OpenAI + feature smokes + MCP
 - `make sdk-smoke` — Python + TypeScript HTTP SDK smoke (`scripts/ci_sdk_smoke.sh`; API on :8000)
 - CI: `integration-smoke` (API+worker locali + Postgres/Redis servizi), `integration-e2e` (compose + OpenAI se secret)
 

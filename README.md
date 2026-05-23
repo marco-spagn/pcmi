@@ -68,13 +68,17 @@ flowchart LR
 | Area | Capabilities |
 |------|----------------|
 | **Memory** | Hierarchical `ltree` paths, append-only versioning, tags, TTL, optional field encryption |
-| **Retrieve** | Path scope, BM25 full-text, optional semantic search, `as_of` temporal reads, keyset cursors |
-| **Workers** | Embedding backfill, knowledge distillation, consolidation, pruning, compaction, expiry |
-| **Integration** | Redis events, SSE, gRPC streams, webhooks + dead-letter queue |
+| **Retrieve** | Hybrid ranking: BM25 + semantic + **importance** + **temporal decay**; `as_of` reads; keyset cursors |
+| **Sessions** | Agent sessions + working memory; promote to long-term (`/v1/sessions/*`) — [docs/SESSIONS.md](docs/SESSIONS.md) |
+| **Dedup** | Content-hash dedup at ingest (`none` / `skip` / `link` / `merge`) — env, tenant, or `X-Dedup-Mode` |
+| **Workers** | Embedding (circuit breaker), distillation, consolidation, pruning, compaction, expiry |
+| **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams |
+| **Integration** | Webhooks with **HMAC** (`timestamp.body`), idempotent store (`X-Idempotency-Key`), MCP stdio server |
 | **Graph** | Memory links, lineage (raw + distilled knowledge) |
-| **Security** | API-key RBAC, PostgreSQL RLS per tenant, audit log |
+| **Security** | API-key RBAC + **rotation/lifecycle** (admin), PostgreSQL RLS, optional metrics Bearer token |
+| **Rate limit** | Per-key limits; **`RATE_LIMIT_BACKEND=redis`** for multi-instance API |
 | **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
-| **Admin** | Tenant/API-key management (HTTP + gRPC), embedded UI at `GET /v1/admin/ui` |
+| **Admin** | Tenant/API-key CRUD + rotate/revoke (HTTP + gRPC), embedded UI at `GET /v1/admin/ui` |
 
 Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (source of truth: [`internal/version/version.go`](internal/version/version.go)).
 
@@ -211,6 +215,8 @@ Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: *
 | [docs/integration-testing.md](docs/integration-testing.md) | Integration test tags and SSE notes |
 | [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
 | [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
+| [docs/SESSIONS.md](docs/SESSIONS.md) | Agent sessions and working memory |
+| [docs/MCP.md](docs/MCP.md) | MCP stdio server for Cursor / Claude |
 | [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
 
@@ -272,7 +278,32 @@ make synth-generate PRESET=finance SYNTH_NUM=500 SYNTH_SEED=42
 # Distillation end-to-end (requires OPENAI_API_KEY in .env)
 make distillation-e2e
 make distillation-e2e PRESET=advertising SYNTH_NUM=200 SYNTH_SEED=1
+
+# Feature smokes (API on :8000 after make infra-up)
+make smoke-importance   # PCMI-009 retrieve ranking
+make smoke-sessions     # PCMI-010 sessions curl E2E
+make smoke-dedup        # PCMI-011 ingest dedup
+
+# Full local validation: CI parity + optional OpenAI E2E + smokes + MCP
+make test-full-real
+
+# Dev ops
+make admin-list-keys    # list tenants/keys from Postgres (hash prefix only)
+make free-dev-ports     # free :5432 / :6379 before compose or act
 ```
+
+| Target | What it validates |
+|--------|-------------------|
+| `make test-streams-integration` | Redis Streams bus (`EVENT_BACKEND=streams`) |
+| `make test-circuit-breaker` | Embedding circuit breaker + worker fast-fail |
+| `make test-ratelimit-integration` | `RATE_LIMIT_BACKEND=redis` (miniredis) |
+| `make test-idempotency` | `X-Idempotency-Key` middleware + repository |
+| `make test-key-lifecycle` | Admin rotate/revoke API keys |
+| `make test-retrieval-scoring` | Importance + temporal decay SQL |
+| `make test-sessions-integration` | Sessions handler (Postgres + migration 016) |
+| `make test-dedup` | Content-hash dedup at ingest |
+| `make test-integration-live` | gRPC TCP on `:50051` (after `make infra-up`) |
+| `make test-mcp-unit` / `make test-mcp-smoke` | MCP stdio server |
 
 **CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
 

@@ -167,7 +167,7 @@ make test-full-real
 | 0 — `act-preflight` | Libera `:5432` / `:6379` | &lt; 1 min |
 | 1 — `ci_like_github.sh` | Lint, govulncheck, Helm, `go test -race -tags=integration`, coverage gate, integration-smoke (HTTP/gRPC/SDK) | **20–45 min** con `-race`; **10–25 min** con `CI_LIKE_NO_RACE=1` |
 | 2 — E2E OpenAI (opz.) | Trio CI: store+embedding, SSE/dedup, distillation finale — oppure `distillation-e2e` sintetico | **5–20 min** (saltata senza chiave) |
-| 3 — smokes + MCP | Un solo `infra-up` se serve: `smoke-importance`, `smoke-sessions` (curl), `build-mcp`, `test-mcp-unit`, `test-mcp-smoke` | 2–4 min |
+| 3 — smokes + MCP | Un solo `infra-up` se serve: `smoke-importance`, `smoke-sessions`, `smoke-dedup` (curl), `build-mcp`, `test-mcp-unit`, `test-mcp-smoke` | 2–4 min |
 | 4 — `test-sessions-integration` | Go test sessioni / working memory (PCMI-010) | 2–5 min |
 
 Dopo la Phase 3, lo stack Compose avviato da `test-full-real` viene fermato con `make infra-down` (salvo `SKIP_INFRA_DOWN=1`).
@@ -202,6 +202,7 @@ Smoke sessioni e MCP singoli (con API su `:8000`):
 ```bash
 make infra-up
 make smoke-sessions      # POST session → memories → promote → DELETE
+make smoke-dedup         # ingest dedup skip/link/merge
 make test-mcp-unit
 make test-mcp-smoke
 # oppure tutto MCP + infra: make mcp-e2e
@@ -217,7 +218,7 @@ SKIP_INFRA_DOWN=1 make test-full-real
 
 - Gate `CI_start` sul messaggio di commit (in locale non serve).
 - Job `integration-e2e` se `OPENAI_API_KEY` mancante (WARN esplicito, exit 0).
-- CodeQL, badge su `main`, scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
+- CodeQL (analisi su `cmd/`, `internal/`, SDK — vedi `.github/codeql/codeql-config.yml`; esclude `*_test.go`, protobuf generati, `docs/`), badge su `main`, scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
 
 Per solo parità CI senza MCP/sessions/E2E: `make ci-like-github`. Per suite “manuale” con più tweak `.env`: `make test-all-local`.
 

@@ -4,24 +4,33 @@ Come PCMI elabora memorie in background e notifica i client.
 
 ## Architettura eventi
 
+Trasporto Redis configurabile con **`EVENT_BACKEND`** (default **`streams`**):
+
+| Valore | Meccanismo | Note |
+|--------|------------|------|
+| `streams` | `XADD` su stream **`pcmi:events`**, consumer group **`pcmi-workers`** | Durable, at-least-once; DLQ `pcmi:events:dlq` dopo max tentativi |
+| `pubsub` | Canale legacy **`memory_events`** | Compatibilità installazioni precedenti |
+
+API e worker devono usare lo **stesso** backend. Test bus Streams senza Docker: `make test-streams-integration`.
+
 ```mermaid
 flowchart TB
   API[pcmi-api]
   PG[(PostgreSQL)]
-  R[(Redis memory_events)]
-  W[pcmi-worker]
+  R[(Redis pcmi:events)]
+  W[pcmi-worker XREADGROUP]
   SSE[SSE /v1/events]
   WH[Webhook HTTP]
   GRPC[gRPC StreamEvents]
 
   API -->|Store| PG
-  API -->|Publish| R
+  API -->|XADD or PUBLISH| R
   R --> W
   R --> SSE
   R --> WH
   R --> GRPC
   W -->|Embed / Distill / Prune| PG
-  W -->|Publish| R
+  W -->|XADD| R
 ```
 
 ## Tipi di evento (Redis / SSE)
@@ -56,13 +65,24 @@ flowchart LR
 
 | Loop | Env / trigger | Effetto |
 |------|----------------|---------|
-| Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Riempie `embedding` NULL |
+| Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Riempie `embedding` NULL; **circuit breaker** su provider OpenAI |
 | Distillation | Redis events, refine | `distilled_knowledge` |
 | Pruning | `PRUNE_INTERVAL_SECS` | Rimuove versioni chiuse vecchie |
 | Consolidation | eventi / soglia | Path `.consolidated` |
 | Expiry | `EXPIRY_INTERVAL_SECS` | Chiude righe con `expires_at` passato |
 
 Metriche worker: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
+
+### Circuit breaker embedding (Sprint 1)
+
+Tutti i provider da `internal/embedding/factory` sono wrappati con **`CircuitBreakerProvider`** (gobreaker + rate limit outbound). Se il circuito è **open**, il worker salta l’embedding senza bloccare il loop (fast-fail).
+
+| Metrica | Significato |
+|---------|-------------|
+| `pcmi_embedding_circuit_state{state="open\|half_open\|closed"}` | Stato corrente (uno a 1) |
+| `pcmi_embedding_requests_total{result="success\|error\|circuit_open"}` | Esiti chiamate |
+
+Test: `make test-circuit-breaker`.
 
 ## Webhook
 

@@ -24,13 +24,33 @@ Central map of repository documentation. **API version: v1.44.0** ([`internal/ve
 | [../proto/pcmi/v1/admin.proto](../proto/pcmi/v1/admin.proto) | Admin gRPC API |
 | [../proto/pcmi/v1/metrics.proto](../proto/pcmi/v1/metrics.proto) | Metrics gRPC API |
 
+## Sprint 1–2 features (operational)
+
+| Topic | Document / command |
+|-------|------------------|
+| Redis Streams (`EVENT_BACKEND`) | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md), `make test-streams-integration` |
+| Embedding circuit breaker | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md), `make test-circuit-breaker` |
+| Distributed rate limit | [USAGE.md](USAGE.md) (`RATE_LIMIT_BACKEND=redis`), `make test-ratelimit-integration` |
+| Metrics scrape auth | [USAGE.md](USAGE.md) (`METRICS_SCRAPE_TOKEN`) |
+| Store idempotency | [USAGE.md](USAGE.md) (`X-Idempotency-Key`), `make test-idempotency` |
+| Webhook HMAC | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md) |
+| API key lifecycle | [USAGE.md](USAGE.md), `make admin-list-keys`, `make test-key-lifecycle` |
+| Importance + decay | [retrieval-pipeline.md](retrieval-pipeline.md), `make smoke-importance` |
+| Agent sessions | [SESSIONS.md](SESSIONS.md), `make smoke-sessions` |
+| Ingest dedup | [USAGE.md](USAGE.md) (`DEDUP_MODE`), `make smoke-dedup` |
+| MCP server | [MCP.md](MCP.md), `make test-mcp-unit` |
+| Full local validation | [local-ci.md](local-ci.md) (`make test-full-real`) |
+
 ## Testing
 
 | Document / script | Content |
 |-------------------|---------|
 | [integration-testing.md](integration-testing.md) | `-tags=integration`, SSE httptest notes |
-| [local-ci.md](local-ci.md) | `make ci-like-github`, CI jobs |
+| [local-ci.md](local-ci.md) | `make ci-like-github`, `make test-full-real`, CI jobs |
 | [distillation-tests.md](distillation-tests.md) | E2E distillation harness (`make distillation-e2e`) |
+| `scripts/smoke_importance_retrieve.sh` | Manual importance retrieve ranking |
+| `scripts/smoke_sessions.sh` | Sessions curl E2E |
+| `scripts/smoke_dedup.sh` | Dedup ingest curl E2E |
 | [../scripts/pcmi_synth/README.md](../scripts/pcmi_synth/README.md) | Synthetic data CLI (presets, seed, size, optional LLM) |
 | [../scripts/distill_e2e.sh](../scripts/distill_e2e.sh) | Simple distillation E2E wrapper |
 | [../scripts/run_pcmi_distillation_test.sh](../scripts/run_pcmi_distillation_test.sh) | Full orchestrator (Docker + ingest + refine) |

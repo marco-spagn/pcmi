@@ -36,7 +36,22 @@ At minimum set:
 OPENAI_API_KEY=sk-...
 DISTILLATION_MODEL=gpt-4o-mini
 EMBEDDING_MODEL=text-embedding-3-small
+# Default in .env.example — required for worker/API to see refine events:
+EVENT_BACKEND=streams
 ```
+
+### Redis event transport (`EVENT_BACKEND`)
+
+| Value | Worker / API behaviour |
+|-------|------------------------|
+| `streams` (default) | Events on Redis Stream **`pcmi:events`** via `XADD`; worker uses `XREADGROUP` |
+| `pubsub` | Legacy channel **`memory_events`** (`PUBLISH` / `SUBSCRIBE`) |
+
+Use **`streams`** for new installs and distillation smokes. If the worker logs **0 subscribers** on `memory_events` while the API publishes to Streams, set `EVENT_BACKEND=streams` on **both** api and worker containers and restart.
+
+Quick check without full E2E: `make test-streams-integration`.
+
+For **`make distill-smoke`** / compose, ensure `.env` has `EVENT_BACKEND=streams` (see `docker-compose.yml` propagation).
 
 > ⚠️ Without `OPENAI_API_KEY` the worker logs
 > `⚠️  Skipping LLM distillation (no OPENAI_API_KEY)` and the distillation
@@ -219,8 +234,7 @@ The worker never wrote a distilled record. Common causes:
 
 ### `0 subscribers su 'memory_events'`
 
-The worker is not running. `make distill-status`. If it crashed,
-`docker compose logs worker | tail -50` and re-build with `make distill-build`.
+Either the worker is not running, or **`EVENT_BACKEND=streams`** is set while you are checking the legacy pub/sub channel. With Streams, inspect `pcmi:events` instead (`redis-cli XLEN pcmi:events`). Fix: align `EVENT_BACKEND` on api + worker, then `make distill-status` / `docker compose logs worker | tail -50`.
 
 ### `invalid input syntax for type uuid: "soc-edr-agent-01"`
 
@@ -258,8 +272,8 @@ run `make distill-down && sleep 90 && make distill-all`.
            │
            ▼  (worker restarted; redis-cli PUBLISH × NUM_REFINE_EVENTS)
 ┌───────────────────────┐
-│  Redis pub/sub        │   channel "memory_events"
-│  memory.refine.requested │  Payload: {tenant_id, path_prefix=…shard_NNN}
+│  Redis (EVENT_BACKEND)│   streams: XADD pcmi:events (default)
+│  memory.refine.requested │  pubsub: channel memory_events (legacy)
 └──────────┬────────────┘
            │
            ▼

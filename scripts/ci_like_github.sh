@@ -167,6 +167,7 @@ if [[ "$MODE" == "full" || "$MODE" == "go" ]]; then
     exit 1
   }
 
+  FREE_DEV_PORTS_LABEL="[ci-like-github]" bash "$ROOT/scripts/free_dev_ports.sh"
   FRESH=1
   $DOCKER_COMPOSE down -v --remove-orphans || true
   $DOCKER_COMPOSE up -d postgres redis

@@ -285,6 +285,8 @@ fi
 
 docker info >/dev/null 2>&1 || { bad "docker not running"; exit 1; }
 
+FREE_DEV_PORTS_LABEL="[test-all-local]" bash "$ROOT/scripts/free_dev_ports.sh"
+
 # ══════════════════════════════════════════════════════════════════════════════
 # PHASE B — Docker Compose full stack
 # ══════════════════════════════════════════════════════════════════════════════

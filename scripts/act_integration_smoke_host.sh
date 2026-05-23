@@ -37,6 +37,8 @@ export EXPECT_API_VERSION="${EXPECT_API_VERSION:-v1.40.0}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export API="${API:-http://127.0.0.1:8000}"
 
+FREE_DEV_PORTS_LABEL="[act-integration-smoke]" bash "$ROOT/scripts/free_dev_ports.sh"
+
 if [ "$FRESH" = "1" ]; then
   echo "[act-integration-smoke] resetting compose volumes (ACT_SMOKE_FRESH_DB=1)"
   $DOCKER_COMPOSE down -v --remove-orphans || true

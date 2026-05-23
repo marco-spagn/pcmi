@@ -1,5 +1,5 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
-        act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all \
+        act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         helm-lint helm-template helm-package admin-list-keys
@@ -61,13 +61,13 @@ env:
 	@test -f .env || (cp .env.example .env && echo "[infra] created .env from .env.example — set OPENAI_API_KEY if you need LLM features")
 
 # Postgres + Redis only.
-infra-deps-up: env
+infra-deps-up: env free-dev-ports
 	@echo "[infra] starting postgres + redis…"
 	$(DOCKER_COMPOSE) up -d postgres redis
 	@bash scripts/infra_wait.sh
 
 # Full stack: postgres, redis, API (:8000, :50051), worker (:8081).
-infra-up: env
+infra-up: env free-dev-ports
 	@echo "[infra] starting postgres, redis, api, worker (build if needed)…"
 	$(DOCKER_COMPOSE) up -d --build --remove-orphans postgres redis api worker
 	@bash scripts/infra_wait.sh $(API_URL)/v1/ready
@@ -260,19 +260,13 @@ distill-smoke:
 act-list:
 	act --list
 
-# Free host ports 5432 / 6379 before `act push`. GitHub Actions defines
-# integration-smoke service containers on those ports; nektos/act still
-# provisions them before running steps — even when ACT=true skips the real
-# work. A prior `make act-integration-smoke` (or `docker compose up`) leaves
-# pcmi-postgres/redis bound and act fails with "port is already allocated".
-# Opt out: SKIP_ACT_PORT_CLEANUP=1 make act-all
-act-preflight:
-	@if [ "$${SKIP_ACT_PORT_CLEANUP:-}" = "1" ]; then \
-	  echo "[act-preflight] SKIP_ACT_PORT_CLEANUP=1 — leaving compose as-is"; \
-	else \
-	  echo "[act-preflight] docker compose down — freeing :5432 / :6379 for act service containers"; \
-	  docker compose down --remove-orphans 2>/dev/null || true; \
-	fi
+# Free host ports 5432 / 6379 (project compose + leftover act service containers).
+# Opt out: SKIP_ACT_PORT_CLEANUP=1
+free-dev-ports:
+	@chmod +x scripts/free_dev_ports.sh
+	@FREE_DEV_PORTS_LABEL="[free-dev-ports]" bash scripts/free_dev_ports.sh
+
+act-preflight: free-dev-ports
 
 # Run the full pipeline locally. Inside act: `trivy-images` is a stub + `make act-trivy`;
 # `integration-smoke` is a stub + `make act-integration-smoke` (host-side compose + bins).
@@ -287,7 +281,7 @@ act-all: act-preflight
 	@$(MAKE) act-integration-smoke
 
 # Run a single job by name. Example: make act-job JOB=integration-smoke
-act-job:
+act-job: act-preflight
 	@if [ -z "$(JOB)" ]; then \
 	  echo "Usage: make act-job JOB=<job-name>"; \
 	  echo "Available jobs:"; \
@@ -297,13 +291,13 @@ act-job:
 	act -j $(JOB)
 
 # Shortcuts for the most useful individual jobs.
-act-lint:
+act-lint: act-preflight
 	act -j golangci-lint
 
-act-test:
+act-test: act-preflight
 	act -j go
 
-act-vuln:
+act-vuln: act-preflight
 	act -j security
 
 # `aquasecurity/trivy-action` is hard to run under act because the composite
@@ -329,7 +323,7 @@ act-trivy:
 
 # Full integration smoke outside act — same scripts as CI, but Postgres/Redis via
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
-act-integration-smoke:
+act-integration-smoke: act-preflight
 	bash scripts/act_integration_smoke_host.sh
 
 # Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
@@ -339,8 +333,11 @@ act-integration-smoke:
 #             CI_LIKE_NO_RACE=1 — Phase F senza race (più veloce; CI GitHub usa ancora -race)
 #                             oppure CI_LIKE_GO_VERBOSE=1 per log dei singoli test
 # Solo smoke HTTP/gRPC/SDK: `make act-integration-smoke` oppure `./scripts/ci_like_github.sh --integration-smoke`
-ci-like-github:
-	@chmod +x scripts/ci_like_github.sh
+# Alias: one command for full host CI parity (auto-frees :5432 / :6379 first).
+test-all: ci-like-github
+
+ci-like-github: act-preflight
+	@chmod +x scripts/ci_like_github.sh scripts/free_dev_ports.sh
 	bash scripts/ci_like_github.sh
 
 # ───────────────────────────────────────────────────────────────────────────────

@@ -40,9 +40,10 @@ type Config struct {
 	EmbeddingModel string
 
 	// Distillation / Worker
-	DistillationModel       string
-	DistillationBatchSize   int
-	DistillationConcurrency int // max parallel LLM jobs, default 4
+	DistillationModel            string
+	DistillationBatchSize        int
+	DistillationConcurrency      int // max parallel LLM jobs, default 4
+	DistillationPolicyDisabled   bool // skip policy engine (e2e smoke, explicit refine only)
 	PruneRetentionDays      int
 	PruneIntervalSecs    int
 	ExpiryIntervalSecs   int
@@ -102,8 +103,9 @@ func Load() *Config {
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
 
-		DistillationBatchSize:   envInt("DISTILLATION_BATCH_SIZE", 10),
-		DistillationConcurrency: envInt("DISTILLATION_CONCURRENCY", 4),
+		DistillationBatchSize:        envInt("DISTILLATION_BATCH_SIZE", 10),
+		DistillationConcurrency:      envInt("DISTILLATION_CONCURRENCY", 4),
+		DistillationPolicyDisabled:   envBool("DISTILLATION_POLICY_DISABLED", false),
 		PruneRetentionDays:   envInt("PRUNE_RETENTION_DAYS", 30),
 		PruneIntervalSecs:    envInt("PRUNE_INTERVAL_SECS", 3600),
 		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),

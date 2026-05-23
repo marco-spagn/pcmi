@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![API](https://img.shields.io/badge/API-v1.44.0-22c55e)](internal/version/version.go)
+[![API](https://img.shields.io/badge/API-v1.45.0-22c55e)](internal/version/version.go)
 
 **Durable, multi-tenant memory for AI agents** — outside the agent runtime, with HTTP and gRPC APIs, hybrid retrieval, background workers, and enterprise controls (RLS, RBAC, audit, observability).
 

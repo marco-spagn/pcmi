@@ -9,6 +9,23 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Fixed
+
+- **`make distill-smoke`**: publish refine events on Redis Streams (`pcmi:events`) when
+  `EVENT_BACKEND=streams`; flush `memory.stored` backlog before refine; set
+  `DISTILLATION_POLICY_DISABLED=1` by default in the e2e script. `memory.refine.requested`
+  was never blocked by `min_interval` — the smoke harness used the wrong transport.
+
+## [1.45.0] — 2026-05-23
+
+### Added — Automatic distillation policy engine (PCMI-012)
+
+- Schema **`migrations/018_distillation_policy.sql`**: `distillation_policies`, `distillation_runs`.
+- Worker policy engine: count threshold, optional max-age trigger, minimum interval between runs.
+- API: `POST/GET /v1/distillation/policies`, `PATCH /v1/distillation/policies/{id}`, `GET /v1/distillation/runs`.
+- Makefile: `test-distillation-policy`, `distillation-policy-e2e`.
+- Env **`DISTILLATION_POLICY_DISABLED`**: skip policy engine (explicit refine / smoke only).
+
 ## [1.44.0] — 2026-05-23
 
 ### Added — Content-hash deduplication at ingest (PCMI-011)

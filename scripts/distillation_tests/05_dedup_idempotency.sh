@@ -50,12 +50,25 @@ echo "[scenario-05] fase 2/3 — distilled_count attuale = ${PRE}"
 # LLM call: quindi il worker fa comunque la chiamata, poi si accorge che
 # ha gli stessi source_entry_ids e fa skip dell'INSERT.
 # Risultato atteso: distilled_count invariato.
-echo "[scenario-05] fase 3/3 — riapplica 10 refine events identici"
+EVENT_BACKEND="${EVENT_BACKEND:-streams}"
+publish_memory_event() {
+  local payload="$1"
+  if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
+    ( cd "$ROOT" && docker compose exec -T redis redis-cli PUBLISH memory_events "$payload" >/dev/null )
+    return 0
+  fi
+  local etype data
+  etype=$(echo "$payload" | jq -r '.Type')
+  data=$(echo "$payload" | jq -c .)
+  printf '%s' "$data" | ( cd "$ROOT" && docker compose exec -T -i redis redis-cli -x XADD pcmi:events '*' type "$etype" data >/dev/null )
+}
+
+echo "[scenario-05] fase 3/3 — riapplica 10 refine events identici (EVENT_BACKEND=${EVENT_BACKEND})"
 for ((i=0; i<10; i++)); do
   PREFIX="$(printf "root.security.incidents.soc.shard_%03d" "$i")"
   PAYLOAD="$(jq -nc --arg t "$TENANT_ID" --arg p "$PREFIX" \
     '{Type:"memory.refine.requested", Payload:{tenant_id:$t, path_prefix:$p, reason:"dedup_retry"}}')"
-  ( cd "$ROOT" && docker compose exec -T redis redis-cli PUBLISH memory_events "$PAYLOAD" >/dev/null )
+  publish_memory_event "$PAYLOAD"
   sleep 1.2
 done
 echo "[scenario-05] aspetto 30s che il worker finisca le 10 LLM calls + dedup check…"

@@ -24,9 +24,15 @@ func (s *MemoryService) BatchStore(ctx context.Context, req *model.BatchStoreReq
 			})
 			continue
 		}
-		metrics.IncStore()
+		if res.Action == "" || res.Action == model.StoreActionStored {
+			metrics.IncStore()
+		}
+		status := "stored"
+		if res.Action != "" && res.Action != model.StoreActionStored {
+			status = res.Action
+		}
 		out.Results = append(out.Results, model.BatchStoreItemResult{
-			Index: i, ID: res.Entry.ID, Status: "stored",
+			Index: i, ID: res.Entry.ID, Status: status,
 			Version: res.Version, SupersededID: res.SupersededID,
 		})
 	}

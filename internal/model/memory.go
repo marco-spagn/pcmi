@@ -28,6 +28,14 @@ type MemoryEntry struct {
 	LastAccessedAt    *time.Time `json:"last_accessed_at,omitempty"`
 }
 
+// StoreResultAction describes how an ingest completed when dedup is enabled.
+const (
+	StoreActionStored  = "stored"
+	StoreActionSkipped = "skipped"
+	StoreActionLinked  = "linked"
+	StoreActionMerged  = "merged"
+)
+
 type StoreRequest struct {
 	TenantID       string                 `json:"tenant_id,omitempty"`
 	Path           string                 `json:"path" validate:"required"`
@@ -42,6 +50,10 @@ type StoreRequest struct {
 	ExpiresAt      *time.Time             `json:"expires_at,omitempty"`
 	// Importance in [0,1]; omitted or zero uses server default 0.5.
 	Importance *float64 `json:"importance,omitempty"`
+	// DedupMode overrides tenant/env for this ingest (none|skip|link|merge).
+	DedupMode string `json:"dedup_mode,omitempty"`
+	// ContentHash is set by the service before persist; not accepted from clients.
+	ContentHash string `json:"-"`
 }
 
 type RetrieveRequest struct {

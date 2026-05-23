@@ -69,6 +69,9 @@ type Config struct {
 	OTELTracesEndpoint string
 	OTELEndpoint       string
 	OTELServiceName    string
+
+	// Dedup (PCMI-011): default ingest dedup mode when tenant/request omit it.
+	DedupMode string
 }
 
 // APIConfig returns the subset of fields required by the API service.
@@ -123,6 +126,8 @@ func Load() *Config {
 		OTELTracesEndpoint: strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")),
 		OTELEndpoint:       strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")),
 		OTELServiceName:    strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME")),
+
+		DedupMode: envOr("DEDUP_MODE", "none"),
 	}
 	return cfg
 }
@@ -192,6 +197,9 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 	if c.RateLimitMaxRequests < 0 {
 		errs = append(errs, fmt.Sprintf("RATE_LIMIT_MAX_REQUESTS must be ≥ 1 (got %d)", c.RateLimitMaxRequests))
 	}
+	if _, err := parseDedupModeConfig(c.DedupMode); err != nil {
+		errs = append(errs, err.Error())
+	}
 
 	if len(errs) == 0 {
 		return nil
@@ -253,6 +261,19 @@ func envInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+func parseDedupModeConfig(s string) (string, error) {
+	s = strings.ToLower(strings.TrimSpace(s))
+	switch s {
+	case "", "none", "skip", "link", "merge":
+		if s == "" {
+			return "none", nil
+		}
+		return s, nil
+	default:
+		return "", fmt.Errorf("DEDUP_MODE must be none|skip|link|merge (got %q)", s)
+	}
 }
 
 func envBool(key string, fallback bool) bool {

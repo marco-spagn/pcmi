@@ -1,5 +1,5 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
-        build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+        build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -114,6 +114,11 @@ smoke-sessions:
 	@chmod +x scripts/smoke_sessions.sh
 	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_sessions.sh
 
+# PCMI-011: content-hash dedup curl E2E (see scripts/smoke_dedup.sh).
+smoke-dedup:
+	@chmod +x scripts/smoke_dedup.sh
+	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_dedup.sh
+
 # List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
 admin-list-keys:
 	DATABASE_URL=$(DATABASE_URL) go run ./cmd/pcmi-admin list
@@ -225,6 +230,10 @@ bench-retrieval:
 # Agent sessions and working memory (PCMI-010).
 test-sessions-integration:
 	PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -race -count=1 -run 'TestSession' ./internal/handler/...
+
+# Content-hash deduplication at ingest (PCMI-011).
+test-dedup:
+	go test -race -count=1 -run 'TestDedup|TestContentHash|TestParseDedupMode|TestNormalizeContentForHash|TestStoreMemoryHandler_Dedup' ./internal/model/... ./internal/service/... ./internal/handler/...
 
 # Distributed Redis rate limiter (miniredis) + middleware probes/roles.
 test-ratelimit-integration:

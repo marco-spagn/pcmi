@@ -190,3 +190,16 @@ func (s *summarizeMemRepoStub) CompactPathHistory(context.Context, string, strin
 func (s *summarizeMemRepoStub) UpdateImportance(context.Context, string, string, float64) error {
 	return nil
 }
+
+func (s *summarizeMemRepoStub) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (s *summarizeMemRepoStub) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (s *summarizeMemRepoStub) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (s *summarizeMemRepoStub) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}

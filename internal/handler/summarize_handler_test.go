@@ -51,6 +51,19 @@ func (s *summarizeMemStub) UpdateImportance(context.Context, string, string, flo
 	return nil
 }
 
+func (s *summarizeMemStub) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (s *summarizeMemStub) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (s *summarizeMemStub) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (s *summarizeMemStub) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}
+
 func TestSummarizeHandler_invalidJSON(t *testing.T) {
 	t.Setenv("OPENAI_API_KEY", "")
 

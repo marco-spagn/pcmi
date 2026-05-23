@@ -52,6 +52,19 @@ func (m *mockMemoryRepo) UpdateImportance(ctx context.Context, tenantID, path st
 	return nil
 }
 
+func (m *mockMemoryRepo) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (m *mockMemoryRepo) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (m *mockMemoryRepo) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (m *mockMemoryRepo) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}
+
 func TestBatchStorePartialSuccess(t *testing.T) {
 	mr, err := miniredis.Run()
 	if err != nil {

@@ -23,7 +23,8 @@ func SetupSessionRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg 
 	if err != nil {
 		return err
 	}
-	memSvc := service.NewMemoryService(memRepo, embed)
+	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
+	memSvc := service.NewMemoryService(memRepo, embed, dedupMode)
 	svc := service.NewSessionService(sessRepo, memSvc)
 
 	api := app.Group("/v1")

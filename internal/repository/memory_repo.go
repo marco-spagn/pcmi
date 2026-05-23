@@ -16,4 +16,8 @@ type MemoryRepo interface {
 	ExportMemories(ctx context.Context, tenantID, pathPrefix string, limit int, includeEmb bool) ([]model.MemoryEntry, error)
 	CompactPathHistory(ctx context.Context, tenantID, path string, keepSuperseded int) (deleted int, err error)
 	UpdateImportance(ctx context.Context, tenantID, path string, importance float64) error
+	GetTenantDedupMode(ctx context.Context, tenantID string) (model.DedupMode, error)
+	FindCurrentByContentHash(ctx context.Context, tenantID, hash string) (*model.MemoryEntry, error)
+	MergeCurrentMetadata(ctx context.Context, tenantID, path string, metadata map[string]interface{}, tags []string) (*model.MemoryEntry, error)
+	UpsertDedupLink(ctx context.Context, tenantID, fromPath, toPath string) error
 }

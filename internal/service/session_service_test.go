@@ -42,6 +42,18 @@ func (s *stubMemoryRepo) CompactPathHistory(context.Context, string, string, int
 func (s *stubMemoryRepo) UpdateImportance(context.Context, string, string, float64) error {
 	return nil
 }
+func (s *stubMemoryRepo) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (s *stubMemoryRepo) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (s *stubMemoryRepo) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (s *stubMemoryRepo) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}
 
 func sessionRepoWithActiveSession(t *testing.T, mock pgxmock.PgxPoolIface, tenantID, sessionID string) *repository.SessionRepository {
 	t.Helper()

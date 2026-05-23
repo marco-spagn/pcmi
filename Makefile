@@ -1,4 +1,5 @@
 .PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-key-lifecycle sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github \
+        build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e \
         act-list act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
@@ -364,3 +365,23 @@ helm-template:
 # Build a redistributable tarball (deploy/helm/pcmi-<version>.tgz).
 helm-package:
 	helm package $(HELM_CHART_DIR) --destination deploy/helm
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MCP server (stdio JSON-RPC) — PR PCMI-008
+# ───────────────────────────────────────────────────────────────────────────────
+
+build-mcp:
+	go build -o bin/pcmi-mcp ./cmd/mcp
+
+install-mcp:
+	go install ./cmd/mcp
+
+test-mcp-unit:
+	go test -race -count=1 ./cmd/mcp/...
+
+test-mcp-smoke: build-mcp
+	@echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"smoke","version":"1.0"}}}' \
+	  | PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123 ./bin/pcmi-mcp 2>/dev/null | grep '"result"'
+
+mcp-e2e: infra-up build-mcp test-mcp-smoke test-mcp-unit
+	@$(MAKE) infra-down

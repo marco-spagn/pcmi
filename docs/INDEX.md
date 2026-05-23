@@ -1,6 +1,6 @@
 # PCMI documentation index
 
-Central map of repository documentation. **API version: v1.33.0** ([`internal/version/version.go`](../internal/version/version.go)).
+Central map of repository documentation. **API version: v1.41.0** ([`internal/version/version.go`](../internal/version/version.go)).
 
 ## Getting started
 
@@ -19,6 +19,7 @@ Central map of repository documentation. **API version: v1.33.0** ([`internal/ve
 | [grpc-vs-http.md](grpc-vs-http.md) | gRPC RPC ↔ HTTP route matrix |
 | [../sdk/README.md](../sdk/README.md) | Python & TypeScript HTTP SDKs |
 | [../sdk/HTTP-API.md](../sdk/HTTP-API.md) | Endpoint → SDK method mapping |
+| [MCP.md](MCP.md) | MCP stdio server for AI agents (`cmd/mcp`) |
 | [../proto/pcmi/v1/memory.proto](../proto/pcmi/v1/memory.proto) | Core gRPC memory API |
 | [../proto/pcmi/v1/admin.proto](../proto/pcmi/v1/admin.proto) | Admin gRPC API |
 | [../proto/pcmi/v1/metrics.proto](../proto/pcmi/v1/metrics.proto) | Metrics gRPC API |

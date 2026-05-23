@@ -30,6 +30,10 @@ type Config struct {
 	AdminAPIKey        string
 	MetricsScrapeToken string // optional: Bearer token for GET /metrics (Prometheus)
 
+	// MCP server (cmd/mcp — stdio JSON-RPC client to PCMI HTTP API)
+	PCMIBaseURL string
+	PCMIAPIKey  string
+
 	// OpenAI / Embedding
 	OpenAIAPIKey   string
 	OpenAIBaseURL  string // optional: proxy or Azure OpenAI endpoint base
@@ -88,6 +92,8 @@ func Load() *Config {
 
 		AdminAPIKey:        os.Getenv("ADMIN_API_KEY"),
 		MetricsScrapeToken: strings.TrimSpace(os.Getenv("METRICS_SCRAPE_TOKEN")),
+		PCMIBaseURL:        strings.TrimSpace(os.Getenv("PCMI_BASE_URL")),
+		PCMIAPIKey:         strings.TrimSpace(os.Getenv("PCMI_API_KEY")),
 		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
 		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
@@ -140,6 +146,14 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 			if c.EncryptionKey == "" {
 				errs = append(errs, "PCMI_ENCRYPTION_KEY is required")
 			}
+		case RequirePCMIBaseURL:
+			if c.PCMIBaseURL == "" {
+				errs = append(errs, "PCMI_BASE_URL is required")
+			}
+		case RequirePCMIAPIKey:
+			if c.PCMIAPIKey == "" {
+				errs = append(errs, "PCMI_API_KEY is required")
+			}
 		}
 	}
 
@@ -189,9 +203,11 @@ func (c *Config) Validate(requiredFields ...RequiredField) error {
 type RequiredField int
 
 const (
-	RequireDatabaseURL  RequiredField = iota
+	RequireDatabaseURL RequiredField = iota
 	RequireAdminAPIKey
 	RequireEncryptionKey
+	RequirePCMIBaseURL
+	RequirePCMIAPIKey
 )
 
 // APIRequiredFields are the fields that the API service must have at startup.
@@ -202,6 +218,12 @@ var APIRequiredFields = []RequiredField{
 // WorkerRequiredFields are the fields that the Worker service must have at startup.
 var WorkerRequiredFields = []RequiredField{
 	RequireDatabaseURL,
+}
+
+// MCPRequiredFields are the fields that the MCP stdio server must have at startup.
+var MCPRequiredFields = []RequiredField{
+	RequirePCMIBaseURL,
+	RequirePCMIAPIKey,
 }
 
 // PruneInterval returns PruneIntervalSecs as a time.Duration.

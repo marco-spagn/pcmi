@@ -165,6 +165,70 @@ func TestAdminRepository_CreateTenant_success(t *testing.T) {
 	}
 }
 
+func TestAdminRepository_RevokeAPIKey_success(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	keyID := uuid.New().String()
+	mock.ExpectQuery(`admin_revoke_api_key`).
+		WithArgs(keyID).
+		WillReturnRows(pgxmock.NewRows([]string{"id"}).AddRow(keyID))
+
+	repo := NewAdminRepository(mock)
+	if err := repo.RevokeAPIKey(context.Background(), keyID); err != nil {
+		t.Fatal(err)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestAdminRepository_RevokeAPIKey_notFound(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	mock.ExpectQuery(`admin_revoke_api_key`).
+		WithArgs(pgxmock.AnyArg()).
+		WillReturnError(pgx.ErrNoRows)
+
+	repo := NewAdminRepository(mock)
+	if err := repo.RevokeAPIKey(context.Background(), uuid.New().String()); err == nil || err.Error() != "api key not found" {
+		t.Fatalf("got err=%v", err)
+	}
+}
+
+func TestAdminRepository_AuditAPIKeyRotation_success(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	tenantID := uuid.New().String()
+	newID := uuid.New().String()
+	prevID := uuid.New().String()
+	mock.ExpectExec(`admin_audit_api_key_rotation`).
+		WithArgs(tenantID, newID, prevID, "/rotate", "POST", 200, "127.0.0.1").
+		WillReturnResult(pgxmock.NewResult("SELECT", 1))
+
+	repo := NewAdminRepository(mock)
+	if err := repo.AuditAPIKeyRotation(context.Background(), tenantID, newID, prevID, "/rotate", "POST", 200, "127.0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAdminRepository_ListAllAPIKeysOverview_tenantFilter(t *testing.T) {
 	t.Parallel()
 

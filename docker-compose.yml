@@ -23,6 +23,7 @@ services:
       - ./migrations/013_idempotency.sql:/docker-entrypoint-initdb.d/013_idempotency.sql
       - ./migrations/014_key_lifecycle.sql:/docker-entrypoint-initdb.d/014_key_lifecycle.sql
       - ./migrations/015_importance_decay.sql:/docker-entrypoint-initdb.d/015_importance_decay.sql
+      - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
     ports:
       - "5432:5432"
     healthcheck:

@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"strings"
 
 	"github.com/marco-spagn/pcmi/internal/version"
@@ -171,14 +169,3 @@ func (s *Server) errResp(id json.RawMessage, code int, msg string) *rpcResponse 
 	}
 }
 
-func loadConfigFromEnv() (baseURL, apiKey string, err error) {
-	baseURL = os.Getenv("PCMI_BASE_URL")
-	apiKey = os.Getenv("PCMI_API_KEY")
-	if baseURL == "" {
-		return "", "", fmt.Errorf("PCMI_BASE_URL is required")
-	}
-	if apiKey == "" {
-		return "", "", fmt.Errorf("PCMI_API_KEY is required")
-	}
-	return baseURL, apiKey, nil
-}

@@ -66,11 +66,29 @@ Metriche worker: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
 
 ## Webhook
 
-1. `POST /v1/webhooks` registra URL + `event_types`.
+1. `POST /v1/webhooks` registra URL + `event_types` (+ `secret` opzionale).
 2. Dispatcher API invia POST HTTP su match Redis.
 3. Fallimenti → retry → `GET /v1/webhooks/dead-letter`.
 
 gRPC: `RegisterWebhook`, `ListWebhooks`, `ListWebhookDeadLetter`.
+
+### Firma HMAC-SHA256 (v1.39+)
+
+Ogni delivery include:
+
+| Header | Valore |
+|--------|--------|
+| `X-PCMI-Signature` | `sha256={hex(HMAC-SHA256(secret, timestamp + "." + body))}` |
+| `X-PCMI-Timestamp` | Unix epoch (secondi, stringa decimale) |
+| `X-PCMI-Delivery-ID` | UUID della riga `webhook_deliveries` |
+| `X-PCMI-Event-Delivery` | `1` |
+| `Content-Type` | `application/json` |
+
+Verifica lato consumer (tolleranza default 5 minuti):
+
+- Go: `crypto.HMACVerify(secret, signature, timestamp, body, time.Now(), crypto.DefaultWebhookMaxAge)`
+- Python: `pcmi.webhook.verify_signature(secret, signature, timestamp, body)`
+- TypeScript: `verifySignature(secret, signature, timestamp, body)` da `sdk/typescript/src/webhook.ts`
 
 ## Consumare eventi
 

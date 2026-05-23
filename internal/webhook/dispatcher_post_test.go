@@ -2,12 +2,12 @@ package webhook
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+
+	"github.com/marco-spagn/pcmi/internal/crypto"
 )
 
 func TestDispatcherPost(t *testing.T) {
@@ -18,6 +18,12 @@ func TestDispatcherPost(t *testing.T) {
 			}
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 				t.Errorf("Content-Type = %q", ct)
+			}
+			if r.Header.Get("X-PCMI-Delivery-ID") == "" {
+				t.Error("expected X-PCMI-Delivery-ID header")
+			}
+			if r.Header.Get("X-PCMI-Timestamp") == "" {
+				t.Error("expected X-PCMI-Timestamp header")
 			}
 			w.WriteHeader(http.StatusNoContent)
 		}))
@@ -33,20 +39,24 @@ func TestDispatcherPost(t *testing.T) {
 	t.Run("hmac signature", func(t *testing.T) {
 		secret := "test-secret"
 		body := []byte(`{"event_type":"x"}`)
-		mac := hmac.New(sha256.New, []byte(secret))
-		_, _ = mac.Write(body)
-		want := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+		ts := int64(1715000000)
 
 		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if got := r.Header.Get("X-PCMI-Signature"); got != want {
-				t.Errorf("signature = %q, want %q", got, want)
+			sig := r.Header.Get("X-PCMI-Signature")
+			tsHdr := r.Header.Get("X-PCMI-Timestamp")
+			if tsHdr != strconv.FormatInt(ts, 10) {
+				t.Errorf("timestamp = %q, want %d", tsHdr, ts)
+			}
+			want := crypto.HMACSign(secret, tsHdr, body)
+			if sig != want {
+				t.Errorf("signature = %q, want %q", sig, want)
 			}
 			w.WriteHeader(http.StatusOK)
 		}))
 		defer srv.Close()
 
-		d := &Dispatcher{client: srv.Client()}
-		if err := d.post(context.Background(), srv.URL, secret, body); err != nil {
+		del := NewDelivery("del-test", srv.URL, secret, body, ts)
+		if err := del.Post(context.Background(), srv.Client()); err != nil {
 			t.Fatal(err)
 		}
 	})

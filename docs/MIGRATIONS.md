@@ -21,6 +21,8 @@ Deve coincidere con l’ordine in `docker-compose.yml` (lista volumi postgres) e
 | `011_v1_15_links_expiry_tags.sql` | `memory_links`, `expires_at`, indice GIN su `tags`, `expire_memory_entries()`. |
 | `012_v1_19_memory_compaction.sql` | `compact_memory_path_history` — rimuove versioni chiuse in eccesso per un singolo path. |
 | `013_idempotency.sql` | Tabella `idempotency_cache` per `X-Idempotency-Key` su `POST /v1/memories` (TTL 24h). |
+| `014_key_lifecycle.sql` | Rotazione chiavi API, grace period, `last_used_ip`. |
+| `015_importance_decay.sql` | `importance`, `access_count`, `last_accessed_at` su `memory_entries`; `tenant_memory_config`. |
 
 ## Aggiungere una nuova migrazione
 

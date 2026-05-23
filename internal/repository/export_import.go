@@ -29,6 +29,7 @@ func (r *MemoryRepository) ExportMemories(ctx context.Context, tenantID, pathPre
 	q := fmt.Sprintf(`
 		SELECT id, tenant_id, path, content, metadata, tags, %s, embedding_model, embedding_space,
 		       version, valid_from, valid_to, source_agent_id, source_event_id::text, created_at, content_encrypted,
+		       importance, access_count, last_accessed_at,
 		       NULL::float8 AS relevance_score
 		FROM memory_entries
 		WHERE tenant_id = $1::uuid

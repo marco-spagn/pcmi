@@ -47,6 +47,7 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tena
 		Version:        version,
 		ValidFrom:      time.Now(),
 		CreatedAt:      time.Now(),
+		Importance:     model.NormalizeImportance(req.Importance),
 	}
 
 	payload := map[string]any{
@@ -189,6 +190,14 @@ func (s *MemoryService) Compact(ctx context.Context, tenantID string, req *model
 
 func (s *MemoryService) GetByPath(ctx context.Context, tenantID, path string, version *int, asOf *time.Time) (*model.MemoryEntry, error) {
 	return s.repo.GetByPath(ctx, tenantID, path, version, asOf)
+}
+
+// UpdateImportance sets importance on the current row at path.
+func (s *MemoryService) UpdateImportance(ctx context.Context, tenantID, path string, importance float64) error {
+	if err := model.ValidateImportance(importance); err != nil {
+		return err
+	}
+	return s.repo.UpdateImportance(ctx, tenantID, path, importance)
 }
 
 func (s *MemoryService) Export(ctx context.Context, tenantID string, req *model.MemoryExportRequest) (*model.MemoryExportResponse, error) {

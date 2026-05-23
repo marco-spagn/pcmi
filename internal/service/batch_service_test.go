@@ -48,6 +48,10 @@ func (m *mockMemoryRepo) CompactPathHistory(ctx context.Context, tenantID, path 
 	return 0, nil
 }
 
+func (m *mockMemoryRepo) UpdateImportance(ctx context.Context, tenantID, path string, importance float64) error {
+	return nil
+}
+
 func TestBatchStorePartialSuccess(t *testing.T) {
 	mr, err := miniredis.Run()
 	if err != nil {

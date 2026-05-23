@@ -290,3 +290,99 @@ func TestIntegration_MemoryRepository_cursorPagination(t *testing.T) {
 		t.Fatalf("cursor+query: err=%v", err)
 	}
 }
+
+func TestIntegration_MemoryRepository_importanceDecay(t *testing.T) {
+	ctx := context.Background()
+	pool := testDBPool(t)
+	tenantID := "00000000-0000-0000-0000-000000000000"
+	setTenant(t, ctx, pool, tenantID)
+
+	prefix := fmt.Sprintf("root.importance.%d", time.Now().UnixNano())
+	repo := NewMemoryRepository(pool, pool)
+
+	low := 0.1
+	high := 0.95
+	lowPath := prefix + ".low"
+	highPath := prefix + ".high"
+	if _, _, _, err := repo.Store(ctx, model.StoreRequest{
+		Path: lowPath, Content: "alpha bravo charlie retrieval scoring", Importance: &low,
+	}, tenantID); err != nil {
+		t.Fatalf("store low: %v", err)
+	}
+	if _, _, _, err := repo.Store(ctx, model.StoreRequest{
+		Path: highPath, Content: "alpha bravo charlie retrieval scoring", Importance: &high,
+	}, tenantID); err != nil {
+		t.Fatalf("store high: %v", err)
+	}
+
+	entries, err := repo.Retrieve(ctx, model.RetrieveRequest{
+		PathPrefix: prefix, Query: "alpha bravo", Limit: 10,
+	}, tenantID, nil)
+	if err != nil {
+		t.Fatalf("retrieve: %v", err)
+	}
+	if len(entries) < 2 {
+		t.Fatalf("expected 2 hits, got %d", len(entries))
+	}
+	if entries[0].Path != highPath {
+		t.Fatalf("high importance should rank first: got %s want %s (scores %v %v)",
+			entries[0].Path, highPath, entries[0].RelevanceScore, entries[1].RelevanceScore)
+	}
+
+	byPath, err := repo.GetByPath(ctx, tenantID, highPath, nil, nil)
+	if err != nil {
+		t.Fatalf("get by path: %v", err)
+	}
+	if byPath.AccessCount < 1 {
+		t.Fatalf("expected access_count >= 1 after retrieve, got %d", byPath.AccessCount)
+	}
+
+	if err := repo.UpdateImportance(ctx, tenantID, lowPath, 0.99); err != nil {
+		t.Fatalf("update importance: %v", err)
+	}
+	updated, err := repo.GetByPath(ctx, tenantID, lowPath, nil, nil)
+	if err != nil || updated.Importance < 0.99 {
+		t.Fatalf("importance patch: err=%v imp=%v", err, updated.Importance)
+	}
+
+	decayOff := false
+	entriesOff, err := repo.Retrieve(ctx, model.RetrieveRequest{
+		PathPrefix: prefix, Query: "alpha bravo", Limit: 10, DecayEnabled: &decayOff,
+	}, tenantID, nil)
+	if err != nil {
+		t.Fatalf("retrieve decay off: %v", err)
+	}
+	if len(entriesOff) < 2 {
+		t.Fatal("expected results with decay disabled")
+	}
+}
+
+func TestAccessCount_IncrementedOnRetrieve(t *testing.T) {
+	ctx := context.Background()
+	pool := testDBPool(t)
+	tenantID := "00000000-0000-0000-0000-000000000000"
+	setTenant(t, ctx, pool, tenantID)
+
+	path := fmt.Sprintf("root.access.%d", time.Now().UnixNano())
+	repo := NewMemoryRepository(pool, pool)
+	if _, _, _, err := repo.Store(ctx, model.StoreRequest{Path: path, Content: "access count probe text"}, tenantID); err != nil {
+		t.Fatalf("store: %v", err)
+	}
+	before, err := repo.GetByPath(ctx, tenantID, path, nil, nil)
+	if err != nil {
+		t.Fatalf("get before: %v", err)
+	}
+	if _, err := repo.Retrieve(ctx, model.RetrieveRequest{PathPrefix: path, Query: "probe", Limit: 5}, tenantID, nil); err != nil {
+		t.Fatalf("retrieve: %v", err)
+	}
+	after, err := repo.GetByPath(ctx, tenantID, path, nil, nil)
+	if err != nil {
+		t.Fatalf("get after: %v", err)
+	}
+	if after.AccessCount != before.AccessCount+1 {
+		t.Fatalf("access_count: before=%d after=%d", before.AccessCount, after.AccessCount)
+	}
+	if after.LastAccessedAt == nil {
+		t.Fatal("expected last_accessed_at to be set")
+	}
+}

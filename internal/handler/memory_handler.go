@@ -78,6 +78,33 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		return c.JSON(result)
 	})
 
+	api.Patch("/memories/*/importance", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
+		raw := strings.TrimSuffix(strings.TrimPrefix(c.Params("*"), "/"), "/importance")
+		path := strings.TrimSpace(raw)
+		if path == "" {
+			return c.Status(400).JSON(fiber.Map{"error": "path is required"})
+		}
+		var req model.UpdateImportanceRequest
+		if err := c.BodyParser(&req); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if err := model.ValidateImportance(req.Importance); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		if err := svc.UpdateImportance(c.Context(), tenantID, path, req.Importance); err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+			}
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.JSON(fiber.Map{
+			"path":       path,
+			"importance": req.Importance,
+			"status":     "updated",
+		})
+	})
+
 	api.Post("/memories/compact", middleware.RequireWriteRole, func(c *fiber.Ctx) error {
 		var req model.CompactMemoryRequest
 		if err := c.BodyParser(&req); err != nil {

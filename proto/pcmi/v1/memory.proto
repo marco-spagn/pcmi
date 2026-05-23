@@ -70,6 +70,8 @@ message StoreRequest {
   repeated float embedding = 11;
   // Optional idempotency key (same semantics as REST X-Idempotency-Key); gRPC Store does not cache yet.
   string idempotency_key = 12;
+  // Importance in [0,1]; default 0.5 when unset.
+  double importance = 13;
 }
 
 message StoreResponse {
@@ -124,6 +126,8 @@ message RetrieveRequest {
   string as_of_rfc3339 = 7;
   string source_agent_id = 8;
   string embedding_space = 9;
+  // When true, temporal recency decay is omitted from hybrid scoring (default false).
+  bool decay_disabled = 10;
 }
 
 // RetrieveEntry mirrors REST MemoryEntry in retrieve responses (v1.26.0+).
@@ -145,6 +149,9 @@ message RetrieveEntry {
   string created_at_rfc3339 = 15;
   bool content_encrypted = 16;
   repeated float embedding = 17; // omitted when not loaded / null in DB
+  double importance = 18;
+  int32 access_count = 19;
+  string last_accessed_at_rfc3339 = 20;
 }
 
 message RetrieveResponse {

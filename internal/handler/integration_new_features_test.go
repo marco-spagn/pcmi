@@ -11,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 func withOpenAIEnv(apiKey, baseURL string) integrationHTTPOpt {
@@ -273,5 +275,97 @@ func TestIntegrationHTTP_RetrieveCursorWithQueryRejected(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("got %d, want 400", resp.StatusCode)
+	}
+}
+
+func TestIntegrationHTTP_StoreDedupSkipSameContent(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	suffix := time.Now().Format("150405")
+	path := "root.http.dedup." + suffix
+	content := "dedup-integration-" + suffix
+	storeBody := `{"path":"` + path + `","content":"` + content + `","embedding_model":"unspecified"}`
+
+	req := reqAuthed(t, http.MethodPost, "/v1/memories", storeBody)
+	req.Header.Set("X-Dedup-Mode", "skip")
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("first store %d: %s", resp.StatusCode, b)
+	}
+	var first struct {
+		ID int64 `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&first); err != nil || first.ID == 0 {
+		t.Fatalf("first id=%d err=%v", first.ID, err)
+	}
+
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("second store %d: %s", resp.StatusCode, b)
+	}
+	var second struct {
+		ID         int64  `json:"id"`
+		Status     string `json:"status"`
+		DedupAction string `json:"dedup_action"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&second); err != nil {
+		t.Fatal(err)
+	}
+	if second.DedupAction != model.StoreActionSkipped || second.Status != "deduplicated" || second.ID != first.ID {
+		t.Fatalf("second response: id=%d status=%q action=%q", second.ID, second.Status, second.DedupAction)
+	}
+}
+
+func TestIntegrationHTTP_StoreDedupLinkDifferentPath(t *testing.T) {
+	app, _, cleanup := newIntegrationHTTPApp(t)
+	defer cleanup()
+
+	suffix := time.Now().Format("150405")
+	canonical := "root.http.dedup.canon." + suffix
+	alias := "root.http.dedup.alias." + suffix
+	content := "dedup-link-" + suffix
+
+	storeBody := `{"path":"` + canonical + `","content":"` + content + `","embedding_model":"unspecified"}`
+	resp, err := app.Test(reqAuthed(t, http.MethodPost, "/v1/memories", storeBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("canonical store %d", resp.StatusCode)
+	}
+
+	linkBody := `{"path":"` + alias + `","content":"` + content + `","embedding_model":"unspecified"}`
+	req := reqAuthed(t, http.MethodPost, "/v1/memories", linkBody)
+	req.Header.Set("X-Dedup-Mode", "link")
+	resp, err = app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("link store %d: %s", resp.StatusCode, b)
+	}
+	var out struct {
+		DedupAction string `json:"dedup_action"`
+		LinkedFrom  string `json:"linked_from"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.DedupAction != model.StoreActionLinked || out.LinkedFrom != alias {
+		t.Fatalf("link response: action=%q linked_from=%q", out.DedupAction, out.LinkedFrom)
 	}
 }

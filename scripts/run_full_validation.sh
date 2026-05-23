@@ -132,11 +132,13 @@ say "Phase 3 — feature smokes + MCP (stack API unico)"
 ensure_api_stack
 export API_URL PCMI_BASE_URL="${API_URL}" PCMI_API_KEY="${PCMI_API_KEY:-testkey123}"
 
-chmod +x scripts/smoke_importance_retrieve.sh scripts/smoke_sessions.sh
+chmod +x scripts/smoke_importance_retrieve.sh scripts/smoke_sessions.sh scripts/smoke_dedup.sh
 say "  smoke-importance (PCMI-009)"
 SKIP_READY=1 make smoke-importance
 say "  smoke-sessions (PCMI-010 curl E2E)"
 SKIP_READY=1 make smoke-sessions
+say "  smoke-dedup (PCMI-011 curl E2E)"
+SKIP_READY=1 make smoke-dedup
 say "  MCP build + unit + smoke JSON-RPC"
 make build-mcp
 make test-mcp-unit

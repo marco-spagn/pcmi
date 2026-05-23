@@ -22,6 +22,25 @@ func TestContentHash_normalizationUnicode(t *testing.T) {
 	}
 }
 
+func TestContentHash_emptyAndWhitespaceOnly(t *testing.T) {
+	t.Parallel()
+	empty := ContentHash("")
+	ws := ContentHash("   \t\n  ")
+	if empty != ws {
+		t.Fatalf("empty and whitespace-only should match: %q vs %q", empty, ws)
+	}
+	if empty == ContentHash("x") {
+		t.Fatal("empty hash should differ from non-empty content")
+	}
+}
+
+func TestNormalizeContentForHash_emptyAndWhitespace(t *testing.T) {
+	t.Parallel()
+	if got := NormalizeContentForHash("  \t  "); got != "" {
+		t.Fatalf("whitespace-only should normalize to empty, got %q", got)
+	}
+}
+
 func TestParseDedupMode(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

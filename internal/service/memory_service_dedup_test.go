@@ -52,6 +52,9 @@ func (d *dedupMockRepo) currentByHash(hash string) *model.MemoryEntry {
 func (d *dedupMockRepo) Store(_ context.Context, req model.StoreRequest, _ string) (int64, int, *int64, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if d.entries == nil {
+		d.entries = map[string]*model.MemoryEntry{}
+	}
 	d.storeCalls++
 	id := int64(100 + d.storeCalls)
 	d.entries[req.Path] = &model.MemoryEntry{
@@ -240,5 +243,170 @@ func TestDedup_NormalizationUnicode(t *testing.T) {
 	}
 	if res.Action != model.StoreActionSkipped {
 		t.Fatalf("expected skip, got %q", res.Action)
+	}
+}
+
+func TestDedup_EmptyContentSamePath_Skip(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	repo.seed("root.empty", "", 11)
+	svc := dedupSvc(repo, model.DedupModeSkip)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.empty", Content: "  \t  ",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionSkipped || repo.storeCalls != 0 {
+		t.Fatalf("action=%q storeCalls=%d", res.Action, repo.storeCalls)
+	}
+}
+
+func TestDedup_ModeNone_AlwaysStoresEvenDuplicate(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{tenantMode: model.DedupModeSkip}
+	svc := dedupSvc(repo, model.DedupModeNone)
+	repo.seed("root.dup", "same", 1)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.dup", Content: "same", DedupMode: "none",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionStored || repo.storeCalls != 1 {
+		t.Fatalf("none mode should store: action=%q storeCalls=%d", res.Action, repo.storeCalls)
+	}
+}
+
+func TestDedup_ModeSkip_SkipsDuplicate(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{tenantMode: model.DedupModeNone}
+	svc := dedupSvc(repo, model.DedupModeNone)
+	repo.seed("root.dup", "same", 1)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.dup", Content: "same", DedupMode: "skip",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionSkipped || repo.storeCalls != 0 {
+		t.Fatalf("skip override should skip: action=%q storeCalls=%d", res.Action, repo.storeCalls)
+	}
+}
+
+func TestDedup_RequestModeOverridesTenantDefault(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{tenantMode: model.DedupModeSkip}
+	svc := dedupSvc(repo, model.DedupModeSkip)
+	repo.seed("root.a", "body", 2)
+	repo.seed("root.b", "body", 3)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.new", Content: "body", DedupMode: "link",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionLinked {
+		t.Fatalf("link override expected, got %q", res.Action)
+	}
+}
+
+func TestDedup_LinkMode_NoExistingHash_Stores(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	svc := dedupSvc(repo, model.DedupModeLink)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.new", Content: "fresh content",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionStored || repo.storeCalls != 1 {
+		t.Fatalf("expected store when no hash match: action=%q storeCalls=%d", res.Action, repo.storeCalls)
+	}
+	if len(repo.links) != 0 {
+		t.Fatalf("expected no links, got %+v", repo.links)
+	}
+}
+
+func TestDedup_Merge_ConflictingMetadata_Overwrites(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	repo.seed("root.doc", "text", 5)
+	repo.entries["root.doc"].Metadata = map[string]interface{}{"a": "old", "keep": true}
+	svc := dedupSvc(repo, model.DedupModeMerge)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.doc", Content: "text",
+		Metadata: map[string]interface{}{"a": "new", "b": 2},
+		Tags:     []string{"t1"},
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionMerged {
+		t.Fatalf("expected merge, got %q", res.Action)
+	}
+	meta, _ := res.Entry.Metadata.(map[string]interface{})
+	if meta["a"] != "new" || meta["b"] != 2 || meta["keep"] != true {
+		t.Fatalf("metadata=%v", meta)
+	}
+}
+
+func TestDedup_MergeDifferentPath_Stores(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	repo.seed("root.a", "shared", 1)
+	svc := dedupSvc(repo, model.DedupModeMerge)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.b", Content: "shared",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionStored || repo.storeCalls != 1 || repo.mergeCalls != 0 {
+		t.Fatalf("merge mode different path should store: action=%q store=%d merge=%d", res.Action, repo.storeCalls, repo.mergeCalls)
+	}
+}
+
+func TestDedup_HashMismatchDifferentContent_Stores(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	repo.findByHashFn = func(_ string) *model.MemoryEntry {
+		return &model.MemoryEntry{ID: 99, Path: "root.stale", Content: "different body", Version: 1}
+	}
+	svc := dedupSvc(repo, model.DedupModeSkip)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.x", Content: "incoming body",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionStored || repo.storeCalls != 1 {
+		t.Fatalf("hash mismatch must store: action=%q storeCalls=%d", res.Action, repo.storeCalls)
+	}
+}
+
+func TestDedup_SkipDifferentPath_Stores(t *testing.T) {
+	t.Parallel()
+	repo := &dedupMockRepo{}
+	repo.seed("root.a", "shared", 1)
+	svc := dedupSvc(repo, model.DedupModeSkip)
+
+	res, err := svc.Store(context.Background(), &model.StoreRequest{
+		Path: "root.b", Content: "shared",
+	}, "tid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Action != model.StoreActionStored || repo.storeCalls != 1 {
+		t.Fatalf("skip mode different path should store: action=%q storeCalls=%d", res.Action, repo.storeCalls)
 	}
 }

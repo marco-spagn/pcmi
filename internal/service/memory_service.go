@@ -121,6 +121,10 @@ func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, t
 	if existing == nil {
 		return nil, false, nil
 	}
+	// Defensive: hash index mismatch or collision — always persist new content.
+	if model.ContentHash(existing.Content) != hash {
+		return nil, false, nil
+	}
 
 	samePath := existing.Path == path
 	makeResult := func(entry *model.MemoryEntry, action string, linkedFrom string) *StoreResult {

@@ -257,7 +257,11 @@ make test-integration           # both
 # SDK smoke (Python + TypeScript)
 make sdk-smoke
 
-# Near-full CI parity locally (~15–25 min first run)
+# Full CI parity on host (~15–45+ min; auto-frees :5432 / :6379)
+make ci-like-github
+# alias: make test-all
+
+# Broad local suite (compose + smoke; also auto-frees ports)
 make test-all-local
 # Faster: make test-all-local-quick
 

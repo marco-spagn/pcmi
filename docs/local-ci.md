@@ -32,15 +32,16 @@ No further configuration needed.
 
 | Goal | Command |
 |---|---|
+| **All tests / full CI on host** (auto-frees `:5432` / `:6379`; alias `make test-all`) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
+| Broad local suite (compose + HTTP/gRPC smoke; auto-frees ports) | `make test-all-local` |
 | See what jobs exist | `make act-list` |
-| Free `:5432` / `:6379` before act (stops project `docker compose`) | `make act-preflight` |
+| Free `:5432` / `:6379` manually (compose down + stop act service containers) | `make free-dev-ports` or `make act-preflight` |
 | Run **everything** (`act` + host `trivy` + host smoke, ≈ 20–30 min) | `make act-all` |
 | Run just the linter | `make act-lint` |
 | Run unit tests + race detector | `make act-test` |
 | Run `govulncheck` supply-chain scan | `make act-vuln` |
 | Run Trivy image scan (API + worker) | `make act-trivy` |
 | Run integration smoke (compose + **host** bins, same scripts as CI) | `make act-integration-smoke` |
-| **Full CI parity on host** (lint/vuln/helm opt., `go test -race -tags=integration`, coverage gate, then smoke) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
 | Run a job by name | `make act-job JOB=integration-smoke` |
 | Generate coverage profile only | `make test-cover` |
 | Enforce coverage thresholds (after `test-cover`) | `make cover-check` |
@@ -189,12 +190,12 @@ default unless `PCMI_FORCE_SSE_HTTPTEST=1`. Full write-up:
 **`Bind for 0.0.0.0:5432 failed: port is already allocated`**
 `act` always starts the `integration-smoke` service containers (Postgres/Redis)
 on the host **before** any step runs, even when the job is a no-op under `ACT`.
-If you just ran `make act-integration-smoke` or `docker compose up`, stop the
-stack first: `docker compose down` (or run `make act-all`, which calls
-`make act-preflight` to do that automatically). To keep Compose running, use
-`SKIP_ACT_PORT_CLEANUP=1 make act-all` — then you must free `5432`/`6379`
-yourself, or avoid running jobs that need those service ports.
-A leftover **act** service container can hold `:5432` after `make act-test` / `act push` — `docker ps --filter publish=5432` then `docker stop <name>` (or `make infra-down` in pcmi first).
+The usual fix is automatic: `make ci-like-github`, `make act-all`, `make act-test`,
+`make infra-up`, and `make test-all-local` all run `scripts/free_dev_ports.sh`
+first (compose down + stop any Docker container publishing `:5432` / `:6379`,
+including leftover `act-*` service containers). Manual cleanup: `make free-dev-ports`.
+To keep Compose running, use `SKIP_ACT_PORT_CLEANUP=1` — then you must free
+those ports yourself before jobs that bind them.
 
 ---
 

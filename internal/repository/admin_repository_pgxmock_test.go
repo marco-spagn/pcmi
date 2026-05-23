@@ -45,8 +45,8 @@ func TestAdminRepository_RotateAPIKey_success(t *testing.T) {
 	t.Cleanup(func() { mock.Close() })
 
 	keyID := uuid.New().String()
-	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role"}).
-		AddRow(keyID, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "rotated", "admin")
+	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role", "previous_key_id", "grace_ends_at"}).
+		AddRow(keyID, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "rotated", "admin", "", nil)
 	mock.ExpectQuery(`admin_rotate_api_key`).
 		WithArgs(keyID, "newhash", "rotated").
 		WillReturnRows(rows)
@@ -98,6 +98,7 @@ func TestAdminRepository_ListAPIKeys_empty(t *testing.T) {
 		WithArgs(tenantID, 10).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "name", "role", "is_active", "expires_at", "created_at", "last_used_at",
+			"rotated_to", "rotation_grace_ends_at", "last_used_ip",
 		}))
 
 	repo := &AdminRepository{db: mock}
@@ -123,7 +124,8 @@ func TestAdminRepository_ListAPIKeys_row(t *testing.T) {
 	created := time.Unix(1700000000, 0).UTC()
 	rows := pgxmock.NewRows([]string{
 		"id", "name", "role", "is_active", "expires_at", "created_at", "last_used_at",
-	}).AddRow("kid", "ci", "user", true, nil, created, nil)
+		"rotated_to", "rotation_grace_ends_at", "last_used_ip",
+	}).AddRow("kid", "ci", "user", true, nil, created, nil, nil, nil, nil)
 	mock.ExpectQuery(`FROM api_keys`).
 		WithArgs(tenantID, 5).
 		WillReturnRows(rows)

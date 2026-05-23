@@ -22,14 +22,14 @@ func TestAdminService_RotateAPIKey_attachesRawKey(t *testing.T) {
 	t.Cleanup(func() { mock.Close() })
 
 	keyID := uuid.New().String()
-	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role"}).
-		AddRow(keyID, uuid.New().String(), "rot", "user")
+	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role", "previous_key_id", "grace_ends_at"}).
+		AddRow(keyID, uuid.New().String(), "rot", "user", "", nil)
 	mock.ExpectQuery(`admin_rotate_api_key`).
 		WithArgs(keyID, pgxmock.AnyArg(), "rot").
 		WillReturnRows(rows)
 
 	svc := NewAdminService(repository.NewAdminRepository(mock))
-	resp, err := svc.RotateAPIKey(context.Background(), keyID, "rot")
+	resp, err := svc.RotateAPIKey(context.Background(), keyID, "rot", "", "", "")
 	if err != nil {
 		t.Fatal(err)
 	}

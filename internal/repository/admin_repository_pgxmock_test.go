@@ -45,8 +45,8 @@ func TestAdminRepository_RotateAPIKey_success(t *testing.T) {
 	t.Cleanup(func() { mock.Close() })
 
 	keyID := uuid.New().String()
-	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role"}).
-		AddRow(keyID, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "rotated", "admin")
+	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role", "previous_key_id", "grace_ends_at"}).
+		AddRow(keyID, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "rotated", "admin", "", nil)
 	mock.ExpectQuery(`admin_rotate_api_key`).
 		WithArgs(keyID, "newhash", "rotated").
 		WillReturnRows(rows)

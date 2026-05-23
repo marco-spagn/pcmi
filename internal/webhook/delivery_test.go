@@ -2,6 +2,9 @@ package webhook
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -122,5 +125,22 @@ func TestDelivery_Post_ExpiredTimestampRejectedByReceiver(t *testing.T) {
 	now := time.Now().UTC()
 	if crypto.HMACVerify(secret, sig, tsStr, body, now, crypto.DefaultWebhookMaxAge) {
 		t.Fatal("stale delivery timestamp should fail verify at receiver")
+	}
+}
+
+func TestWebhookDelivery_NotLegacyBodyOnlyHMAC(t *testing.T) {
+	secret := "test-secret"
+	body := []byte(`{"event_type":"x"}`)
+	ts := int64(1715000000)
+	del := NewDelivery("del-1", "", secret, body, ts)
+
+	mac := hmac.New(sha256.New, []byte(secret))
+	_, _ = mac.Write(body)
+	legacy := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+
+	req, _ := http.NewRequest(http.MethodPost, "http://example.com", nil)
+	del.ApplyHeaders(req)
+	if req.Header.Get("X-PCMI-Signature") == legacy {
+		t.Fatal("signature must use timestamp.body scheme, not body-only")
 	}
 }

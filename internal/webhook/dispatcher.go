@@ -201,7 +201,8 @@ func (d *Dispatcher) processPending() {
 }
 
 func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
-	err := d.post(ctx, pd.URL, pd.Secret, pd.Body)
+	del := NewDelivery(pd.ID, pd.URL, pd.Secret, pd.Body, 0)
+	err := del.Post(ctx, d.client)
 	attempts := pd.Attempts + 1
 	if err == nil {
 		_, _ = d.db.Exec(ctx, `
@@ -229,6 +230,7 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 		WHERE id = $1::uuid`, pd.ID, attempts, errMsg, backoff.String())
 }
 
+// post delivers a webhook; kept for tests that exercise HTTP behavior without a delivery id.
 func (d *Dispatcher) post(ctx context.Context, url, secret string, body []byte) error {
-	return NewDelivery("", url, secret, body, 0).Post(ctx, d.client)
+	return NewDelivery("test-delivery", url, secret, body, 0).Post(ctx, d.client)
 }

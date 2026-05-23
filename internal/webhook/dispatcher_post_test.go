@@ -21,6 +21,12 @@ func TestDispatcherPost(t *testing.T) {
 			if ct := r.Header.Get("Content-Type"); ct != "application/json" {
 				t.Errorf("Content-Type = %q", ct)
 			}
+			if r.Header.Get("X-PCMI-Delivery-ID") == "" {
+				t.Error("expected X-PCMI-Delivery-ID header")
+			}
+			if r.Header.Get("X-PCMI-Timestamp") == "" {
+				t.Error("expected X-PCMI-Timestamp header")
+			}
 			w.WriteHeader(http.StatusNoContent)
 		}))
 		defer srv.Close()

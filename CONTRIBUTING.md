@@ -79,6 +79,9 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 | `make test-integration-handler` | Handler integration (`-tags=integration`) |
 | `make infra-up` / `make infra-wait` | Compose stack: PG **:5432**, Redis **:6379**, HTTP **:8000**, gRPC **:50051** |
 | `make sdk-smoke` | Python + TypeScript HTTP smokes |
+| `make sdk-go-test` | Go SDK unit tests (`sdk/go`, httptest) |
+| `make sdk-go-smoke` | Docker infra + Go SDK tests + `examples/basic` |
+| `make sdk-all` | Python/TS smoke + Go SDK unit tests |
 | `make deploy-structural-test` | CI YAML, Compose, OpenAPI, Helm, proto sanity |
 | `make test-all-local` | Broad local CI parity (see `scripts/test_all_local.sh`) |
 | `make test-full-real` | Full host validation: CI + optional OpenAI E2E + importance/sessions/dedup smokes + MCP — [docs/local-ci.md](docs/local-ci.md) |

@@ -232,9 +232,30 @@ The worker never wrote a distilled record. Common causes:
 2. **`gpt-4o-mini` rate limit hit by a previous run** — wait 60-70s and re-run.
 3. **Postgres unhealthy** — `make distill-status`.
 
+### `distilled_count` stuck at 1 (expected 10 on `make distill-smoke`)
+
+Common with **`EVENT_BACKEND=streams`** (default since v1.44): the worker reads
+`pcmi:events` via XREADGROUP, not the legacy `memory_events` pub/sub channel.
+Older scripts that only `PUBLISH memory_events` never deliver refine events.
+
+`run_pcmi_distillation_test.sh` now XADDs to `pcmi:events` and clears the
+`memory.stored` backlog before refine. If you publish events manually, match the
+backend (`XADD pcmi:events` vs `PUBLISH memory_events`).
+
+A single distilled row can also happen when the worker restarts and drains a
+large `memory.stored` backlog (all shards map to the same `root.security`
+prefix). Use `DISTILLATION_POLICY_DISABLED=true` for smoke or define per-prefix
+policies instead of relying on store events.
+
 ### `0 subscribers su 'memory_events'`
 
-Either the worker is not running, or **`EVENT_BACKEND=streams`** is set while you are checking the legacy pub/sub channel. With Streams, inspect `pcmi:events` instead (`redis-cli XLEN pcmi:events`). Fix: align `EVENT_BACKEND` on api + worker, then `make distill-status` / `docker compose logs worker | tail -50`.
+With **`EVENT_BACKEND=streams`** (default), a pub/sub subscriber count of **0** is
+expected — the worker consumes **`pcmi:events`** via `XREADGROUP`, not the legacy
+`memory_events` channel. Inspect the stream instead (`redis-cli XLEN pcmi:events`)
+and align `EVENT_BACKEND` on **api + worker**.
+
+For legacy **`pubsub`**, zero subscribers usually means the worker is not running.
+Fix: `make distill-status`, `docker compose logs worker | tail -50`.
 
 ### `invalid input syntax for type uuid: "soc-edr-agent-01"`
 

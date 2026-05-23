@@ -25,6 +25,7 @@ services:
       - ./migrations/015_importance_decay.sql:/docker-entrypoint-initdb.d/015_importance_decay.sql
       - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
       - ./migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql
+      - ./migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -70,6 +71,8 @@ services:
       DISTILLATION_BATCH_SIZE: "${DISTILLATION_BATCH_SIZE:-10}"
       # Max parallel LLM distillation jobs (default 4, range 1-16).
       DISTILLATION_CONCURRENCY: "${DISTILLATION_CONCURRENCY:-4}"
+      # Set true for distill-smoke (explicit memory.refine.requested only).
+      DISTILLATION_POLICY_DISABLED: "${DISTILLATION_POLICY_DISABLED:-}"
     depends_on:
       postgres:
         condition: service_healthy

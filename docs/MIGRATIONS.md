@@ -25,6 +25,7 @@ Deve coincidere con l’ordine in `docker-compose.yml` (lista volumi postgres) e
 | `015_importance_decay.sql` | `importance`, `access_count`, `last_accessed_at` su `memory_entries`; `tenant_memory_config`. |
 | `016_sessions.sql` | `agent_sessions`; indice su `memory_entries(metadata->>'session_id')` per working memory. |
 | `017_dedup.sql` | `content_hash` su `memory_entries`; indice parziale per versioni correnti (dedup ingest). |
+| `018_distillation_policy.sql` | `distillation_policies`, `distillation_runs` — policy engine per distillation automatica. |
 
 ## Aggiungere una nuova migrazione
 

@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -234,6 +234,14 @@ test-sessions-integration:
 # Content-hash deduplication at ingest (PCMI-011).
 test-dedup:
 	go test -race -count=1 -run 'TestDedup|TestContentHash|TestParseDedupMode|TestNormalizeContentForHash|TestStoreMemoryHandler_Dedup' ./internal/model/... ./internal/service/... ./internal/handler/...
+
+# Automatic distillation policy engine (PCMI-012).
+test-distillation-policy:
+	go test -race -count=1 -run 'TestDistillationPolicy_|TestDistillationRun_' ./internal/worker/...
+
+# Policy unit tests + quick distillation smoke (PCMI-012 gate companion).
+distillation-policy-e2e: test-distillation-policy
+	$(MAKE) distill-smoke PRESET=$(PRESET) SYNTH_SEED=$(SYNTH_SEED)
 
 # Distributed Redis rate limiter (miniredis) + middleware probes/roles.
 test-ratelimit-integration:

@@ -130,7 +130,7 @@ func (s *adminServer) RotateAPIKey(ctx context.Context, req *pcmiv1.RotateAPIKey
 	if err := s.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	resp, err := s.admin.RotateAPIKey(ctx, req.GetId(), req.GetName())
+	resp, err := s.admin.RotateAPIKey(ctx, req.GetId(), req.GetName(), "/grpc/AdminService/RotateAPIKey", "POST", "")
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
 			return nil, status.Error(codes.NotFound, err.Error())

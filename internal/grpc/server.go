@@ -57,7 +57,13 @@ func (s *memoryServer) resolveTenantAndRole(ctx context.Context, apiKey string) 
 	var active bool
 	err = s.db.QueryRow(ctx, `
 		SELECT tenant_id::text, role, is_active FROM api_keys
-		WHERE key_hash = $1 AND (expires_at IS NULL OR expires_at > NOW())`,
+		WHERE key_hash = $1
+		  AND is_active = true
+		  AND (expires_at IS NULL OR expires_at > NOW())
+		  AND (
+		        rotated_to IS NULL
+		        OR (rotation_grace_ends_at IS NOT NULL AND rotation_grace_ends_at > NOW())
+		      )`,
 		keyHash).Scan(&tenantID, &role, &active)
 	if err != nil || !active {
 		return "", "", status.Error(codes.Unauthenticated, "invalid API key")

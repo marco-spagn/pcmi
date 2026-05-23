@@ -9,6 +9,19 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.40.0] — 2026-05-23
+
+### Added — API key rotation and lifecycle (PCMI-007)
+
+- Schema **`migrations/014_key_lifecycle.sql`**: `rotated_to`, `rotation_grace_ends_at`,
+  `last_used_ip` on `api_keys`; rotation creates a new key while the previous hash remains
+  valid for a 24h grace period.
+- Admin endpoints: **`POST /v1/admin/api-keys/{id}/rotate`**, **`DELETE /v1/admin/api-keys/{id}`**,
+  enhanced **`GET /v1/admin/api-keys`** (lifecycle fields).
+- Middleware and gRPC auth honor expiry, revocation, and rotation grace; **`last_used_at`** /
+  **`last_used_ip`** updated on each successful request.
+- Audit event **`api_key_rotation`** on rotate; Makefile target **`test-key-lifecycle`**.
+
 ## [1.39.0] — 2026-05-22
 
 ### Added — Webhook HMAC-SHA256 signatures (PCMI-006)

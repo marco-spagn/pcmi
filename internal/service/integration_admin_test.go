@@ -73,7 +73,7 @@ func TestIntegration_AdminService(t *testing.T) {
 	if keyID == "" {
 		t.Fatalf("missing key id: %#v", keys[0])
 	}
-	if _, err := svc.RotateAPIKey(ctx, keyID, "rotated"); err != nil {
+	if _, err := svc.RotateAPIKey(ctx, keyID, "rotated", "", "", ""); err != nil {
 		t.Fatalf("rotate: %v", err)
 	}
 }

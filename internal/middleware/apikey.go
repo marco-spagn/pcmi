@@ -48,15 +48,28 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		var apiKeyID, tenantID, role string
 		var isActive bool
 		err := db.QueryRow(c.Context(), `
-			SELECT id::text, tenant_id, role, is_active
+			SELECT id::text, tenant_id::text, role, is_active
 			FROM api_keys
 			WHERE key_hash = $1
+			  AND is_active = true
 			  AND (expires_at IS NULL OR expires_at > NOW())
+			  AND (
+			        rotated_to IS NULL
+			        OR (rotation_grace_ends_at IS NOT NULL AND rotation_grace_ends_at > NOW())
+			      )
 		`, keyHash).Scan(&apiKeyID, &tenantID, &role, &isActive)
 
 		if err != nil || !isActive {
 			return c.Status(401).JSON(fiber.Map{"error": "Invalid or expired API key"})
 		}
+
+		clientIP := c.IP()
+		go func(id, ip string) {
+			_, _ = db.Exec(context.Background(),
+				`UPDATE api_keys SET last_used_at = NOW(), last_used_ip = $2 WHERE id = $1::uuid`,
+				id, ip,
+			)
+		}(apiKeyID, clientIP)
 
 		// Imposta tutto nel contesto
 		c.Locals(APIKeyContextKey, apiKey)

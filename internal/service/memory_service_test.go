@@ -19,6 +19,7 @@ type fullMockRepo struct {
 	getHistoricalFn      func(path string) (*model.MemoryEntry, error)
 	compactFn            func() (int, error)
 	exportFn             func() ([]model.MemoryEntry, error)
+	updateImportanceFn   func(importance float64) error
 }
 
 func (r *fullMockRepo) Store(_ context.Context, req model.StoreRequest, _ string) (int64, int, *int64, error) {
@@ -60,7 +61,10 @@ func (r *fullMockRepo) CompactPathHistory(_ context.Context, _ string, _ string,
 	return 0, nil
 }
 
-func (r *fullMockRepo) UpdateImportance(_ context.Context, _, _ string, _ float64) error {
+func (r *fullMockRepo) UpdateImportance(_ context.Context, _, _ string, importance float64) error {
+	if r.updateImportanceFn != nil {
+		return r.updateImportanceFn(importance)
+	}
 	return nil
 }
 
@@ -214,6 +218,33 @@ func TestMemoryServiceCompactCustomKeep(t *testing.T) {
 	}
 	if resp.KeepSuperseded != 5 {
 		t.Fatalf("expected keep=5, got %d", resp.KeepSuperseded)
+	}
+}
+
+// ─── UpdateImportance ─────────────────────────────────────────────────────────
+
+func TestMemoryServiceUpdateImportance(t *testing.T) {
+	var got float64
+	repo := &fullMockRepo{
+		updateImportanceFn: func(importance float64) error {
+			got = importance
+			return nil
+		},
+	}
+	svc := NewMemoryService(repo, nil)
+	if err := svc.UpdateImportance(context.Background(), "tid", "root.note", 0.75); err != nil {
+		t.Fatal(err)
+	}
+	if got != 0.75 {
+		t.Fatalf("importance=%v", got)
+	}
+}
+
+func TestMemoryServiceUpdateImportance_invalid(t *testing.T) {
+	svc := NewMemoryService(&fullMockRepo{}, nil)
+	err := svc.UpdateImportance(context.Background(), "tid", "root.note", 2.0)
+	if err == nil {
+		t.Fatal("expected validation error")
 	}
 }
 

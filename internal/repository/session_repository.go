@@ -20,17 +20,37 @@ const (
 	sessionScopeLongTerm = "long_term"
 )
 
+// sessionWriteDB is implemented by *pgxpool.Pool and pgxmock pools.
+type sessionWriteDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Begin(ctx context.Context) (pgx.Tx, error)
+}
+
+// sessionReadDB is implemented by *pgxpool.Pool and pgxmock pools.
+type sessionReadDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+}
+
 // SessionRepository persists agent_sessions and session-scoped memory queries.
 type SessionRepository struct {
-	w *pgxpool.Pool
-	r *pgxpool.Pool
+	w sessionWriteDB
+	r sessionReadDB
 }
 
 func NewSessionRepository(writePool, readPool *pgxpool.Pool) *SessionRepository {
 	if readPool == nil {
 		readPool = writePool
 	}
-	return &SessionRepository{w: writePool, r: readPool}
+	return NewSessionRepositoryFromDB(writePool, readPool)
+}
+
+// NewSessionRepositoryFromDB wires session persistence (pgxmock in unit tests).
+func NewSessionRepositoryFromDB(w sessionWriteDB, r sessionReadDB) *SessionRepository {
+	if r == nil {
+		r, _ = w.(sessionReadDB)
+	}
+	return &SessionRepository{w: w, r: r}
 }
 
 func (r *SessionRepository) Create(ctx context.Context, tenantID string, req model.CreateSessionRequest) (*model.AgentSession, error) {

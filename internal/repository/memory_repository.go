@@ -7,15 +7,29 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	pcmicrypto "github.com/marco-spagn/pcmi/internal/crypto"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/pgvector/pgvector-go"
 )
 
+// memoryWriteDB is implemented by *pgxpool.Pool and pgxmock pools.
+type memoryWriteDB interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
+// memoryReadDB is implemented by *pgxpool.Pool and pgxmock pools.
+type memoryReadDB interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type MemoryRepository struct {
-	w *pgxpool.Pool // primary: transactions, inserts, strong reads (rollback / historical)
-	r *pgxpool.Pool // read pool: replica when configured, else same as w
+	w memoryWriteDB // primary: transactions, inserts, strong reads (rollback / historical)
+	r memoryReadDB  // read pool: replica when configured, else same as w
 }
 
 // NewMemoryRepository routes writes to writePool and SELECT-heavy paths to readPool.
@@ -24,7 +38,15 @@ func NewMemoryRepository(writePool, readPool *pgxpool.Pool) *MemoryRepository {
 	if readPool == nil {
 		readPool = writePool
 	}
-	return &MemoryRepository{w: writePool, r: readPool}
+	return NewMemoryRepositoryFromDB(writePool, readPool)
+}
+
+// NewMemoryRepositoryFromDB wires memory persistence (pgxmock in unit tests).
+func NewMemoryRepositoryFromDB(w memoryWriteDB, r memoryReadDB) *MemoryRepository {
+	if r == nil {
+		r, _ = w.(memoryReadDB)
+	}
+	return &MemoryRepository{w: w, r: r}
 }
 
 // Store appends a new version for path, soft-closing the current row when one exists.

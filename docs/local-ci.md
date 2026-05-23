@@ -33,6 +33,7 @@ No further configuration needed.
 | Goal | Command |
 |---|---|
 | **All tests / full CI on host** (auto-frees `:5432` / `:6379`; alias `make test-all`) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
+| **Simulazione completa** (CI + E2E OpenAI opz. + MCP + feature smokes) | `make test-full-real` |
 | Broad local suite (compose + HTTP/gRPC smoke; auto-frees ports) | `make test-all-local` |
 | See what jobs exist | `make act-list` |
 | Free `:5432` / `:6379` manually (compose down + stop act service containers) | `make free-dev-ports` or `make act-preflight` |
@@ -126,6 +127,82 @@ Runs `go test -tags=integration -run TestStream ./internal/event/...` with **min
 Full pipeline on GitHub still requires **`CI_start`** in the commit message (or `workflow_dispatch`). See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 More detail: [integration-testing.md](integration-testing.md), [USAGE.md](USAGE.md).
+
+---
+
+## Simulazione completa (tutte le funzionalità)
+
+Per **una sola sequenza** che replica il massimo della pipeline GitHub in locale (job `go` + `integration-smoke` +, se possibile, `integration-e2e` + MCP + smoke feature), usa:
+
+```bash
+make test-full-real
+```
+
+Equivalente: `./scripts/run_full_validation.sh`
+
+### Prerequisiti
+
+| Requisito | Obbligatorio | Note |
+|-----------|--------------|------|
+| Go toolchain | Sì | Come per `make ci-like-github` |
+| Docker daemon | Sì | Compose per Postgres/Redis e E2E |
+| `curl`, `jq`, `git` | Sì | Smoke HTTP e script CI |
+| `psql` sul host | Sì | Phase 1 (`act_integration_smoke_host.sh`) — macOS: `brew install libpq && brew link --force libpq` |
+| `golangci-lint` o Docker | Consigliato | Altrimenti Phase 1 salta lint con avviso |
+| `helm` / Docker | Consigliato | Altrimenti Phase 1 salta Helm con avviso |
+| `OPENAI_API_KEY` | No | Se assente: **Phase 2 saltata con WARN** (non fallisce il target); resto della suite gira |
+| `python3` | Solo se `FULL_VALIDATION_E2E=distill` | `make distillation-e2e` |
+
+Crea `.env` da `.env.example` se mancante (`make env`). Per l’E2E embedding/distillation, esporta la chiave o mettila in `.env`:
+
+```bash
+export OPENAI_API_KEY=sk-…
+make test-full-real
+```
+
+### Tempi indicativi (laptop, prima esecuzione)
+
+| Fase | Cosa valida | Tempo tipico |
+|------|-------------|--------------|
+| 0 — `act-preflight` | Libera `:5432` / `:6379` | &lt; 1 min |
+| 1 — `ci_like_github.sh` | Lint, govulncheck, Helm, `go test -race -tags=integration`, coverage gate, integration-smoke (HTTP/gRPC/SDK) | **20–45 min** con `-race`; **10–25 min** con `CI_LIKE_NO_RACE=1` |
+| 2 — E2E OpenAI (opz.) | Trio CI: store+embedding, SSE/dedup, distillation finale — oppure `distillation-e2e` sintetico | **5–20 min** (saltata senza chiave) |
+| 3 — MCP | Build `pcmi-mcp` + smoke `initialize` JSON-RPC | &lt; 1 min |
+| 4 — `smoke-importance` | Ranking + PATCH importance (PCMI-009) | 1–2 min |
+| 5 — `test-sessions-integration` | Sessioni / working memory (PCMI-010) | 2–5 min |
+
+**Totale:** ~30–70 min con OpenAI e race; ~15–35 min con `CI_LIKE_NO_RACE=1` e senza Phase 2.
+
+### Accelerare senza perdere troppo segnale
+
+```bash
+# Più veloce su laptop (Phase 1 senza -race; GitHub CI usa ancora -race)
+CI_LIKE_NO_RACE=1 PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make test-full-real
+```
+
+### Varianti Phase 2 (OpenAI)
+
+Default (come job `integration-e2e` su GitHub):
+
+```bash
+make test-full-real
+# → test_pcmi.sh, ci_e2e_sse_dedup.sh, ci_e2e_finale.sh
+```
+
+Pipeline distillation su dati sintetici (alternativa locale):
+
+```bash
+FULL_VALIDATION_E2E=distill make test-full-real
+# → make distillation-e2e PRESET=soc SYNTH_NUM=100
+```
+
+### Cosa non include
+
+- Gate `CI_start` sul messaggio di commit (in locale non serve).
+- Job `integration-e2e` se `OPENAI_API_KEY` mancante (WARN esplicito, exit 0).
+- CodeQL, badge su `main`, scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
+
+Per solo parità CI senza MCP/sessions/E2E: `make ci-like-github`. Per suite “manuale” con più tweak `.env`: `make test-all-local`.
 
 ---
 

@@ -90,5 +90,6 @@ score = W_s × cosine + W_l × bm25 + W_i × importance + W_r × exp(-ln(2)/half
 
 - Implementation: `internal/repository/memory_repository.go`, `internal/repository/retrieve_sql.go`
 - Tests: `make test-retrieval-scoring`, `make bench-retrieval`
+- Manual smoke (API up): `make smoke-importance` → `scripts/smoke_importance_retrieve.sh`
 - Read replica: [federation-read-replicas.md](federation-read-replicas.md)
 - Performance notes: [scalability.md](scalability.md)

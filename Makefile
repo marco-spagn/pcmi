@@ -2,7 +2,7 @@
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -103,6 +103,11 @@ infra-smoke:
 	@curl -sS "$(API_URL)/v1/ready" | jq .
 	@echo "=== GET $(API_URL)/health ==="
 	@curl -sS "$(API_URL)/health" | jq .
+
+# PCMI-009: importance ranking + PATCH importance (see scripts/smoke_importance_retrieve.sh).
+smoke-importance:
+	@chmod +x scripts/smoke_importance_retrieve.sh
+	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_importance_retrieve.sh
 
 # List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
 admin-list-keys:

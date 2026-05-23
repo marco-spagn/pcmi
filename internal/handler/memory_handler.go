@@ -26,7 +26,8 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	if err != nil {
 		return fmt.Errorf("embedding provider: %w", err)
 	}
-	svc := service.NewMemoryService(repo, embed)
+	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
+	svc := service.NewMemoryService(repo, embed, dedupMode)
 
 	api := app.Group("/v1")
 
@@ -35,6 +36,14 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 		}
+		if hdr := strings.TrimSpace(c.Get("X-Dedup-Mode")); hdr != "" && strings.TrimSpace(req.DedupMode) == "" {
+			req.DedupMode = hdr
+		}
+		if req.DedupMode != "" {
+			if _, err := model.ParseDedupMode(req.DedupMode); err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+			}
+		}
 
 		tenantID := c.Locals(middleware.TenantContextKey).(string)
 
@@ -42,12 +51,24 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
-		metrics.IncStore()
+		if result.Action == "" || result.Action == model.StoreActionStored {
+			metrics.IncStore()
+		}
 
+		status := "stored"
+		if result.Action != "" && result.Action != model.StoreActionStored {
+			status = "deduplicated"
+		}
 		resp := fiber.Map{
 			"id":      result.Entry.ID,
-			"status":  "stored",
+			"status":  status,
 			"version": result.Version,
+		}
+		if result.Action != "" && result.Action != model.StoreActionStored {
+			resp["dedup_action"] = result.Action
+		}
+		if result.LinkedFrom != "" {
+			resp["linked_from"] = result.LinkedFrom
 		}
 		if result.SupersededID != nil {
 			resp["superseded_id"] = *result.SupersededID

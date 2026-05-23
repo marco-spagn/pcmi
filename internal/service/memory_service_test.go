@@ -68,6 +68,19 @@ func (r *fullMockRepo) UpdateImportance(_ context.Context, _, _ string, importan
 	return nil
 }
 
+func (r *fullMockRepo) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (r *fullMockRepo) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (r *fullMockRepo) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *fullMockRepo) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 func TestMemoryServiceStoreSuccess(t *testing.T) {

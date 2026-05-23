@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.43.0
+  version: 1.44.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -335,6 +335,13 @@ paths:
             type: string
             format: uuid
           description: Optional UUID; duplicate requests within 24h return the cached 200 body with X-Idempotency-Replayed true
+        - in: header
+          name: X-Dedup-Mode
+          required: false
+          schema:
+            type: string
+            enum: [none, skip, link, merge]
+          description: Overrides tenant/env dedup for this ingest (see DEDUP_MODE)
       requestBody:
         required: true
         content:
@@ -355,7 +362,9 @@ paths:
                 type: object
                 properties:
                   id: { type: integer, format: int64 }
-                  status: { type: string }
+                  status: { type: string, description: stored or deduplicated }
+                  dedup_action: { type: string, enum: [skipped, linked, merged], description: Present when ingest deduplicated }
+                  linked_from: { type: string, description: Request path linked to canonical entry (link mode) }
                   version: { type: integer }
                   superseded_id: { type: integer, format: int64, description: Present when a prior version was closed }
   /v1/memories/{path}/importance:
@@ -603,6 +612,10 @@ components:
           maximum: 1
           default: 0.5
           description: Retrieval boost weight in [0,1]
+        dedup_mode:
+          type: string
+          enum: [none, skip, link, merge]
+          description: Per-request dedup override (env DEDUP_MODE and tenants.settings.dedup_mode otherwise)
     RetrieveRequest:
       type: object
       properties:

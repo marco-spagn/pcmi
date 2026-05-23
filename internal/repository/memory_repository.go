@@ -112,20 +112,21 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 	}
 
 	importance := model.NormalizeImportance(req.Importance)
+	contentHash := strings.TrimSpace(req.ContentHash)
 
 	if len(req.Embedding) > 0 {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12, $13)
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12, $13, $14)
 			RETURNING id`
 		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance).Scan(&id)
+			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&id)
 	} else {
 		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11, $12)
+			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
+			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11, $12, $13)
 			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance).Scan(&id)
+		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&id)
 	}
 	if err != nil {
 		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
@@ -135,6 +136,13 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		return 0, 0, nil, fmt.Errorf("store commit: %w", err)
 	}
 	return id, version, supersededID, nil
+}
+
+func nullIfEmpty(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
 }
 
 func (r *MemoryRepository) scanMemoryEntry(rows interface {

@@ -9,6 +9,16 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.44.0] — 2026-05-23
+
+### Added — Content-hash deduplication at ingest (PCMI-011)
+
+- Schema **`migrations/017_dedup.sql`**: `content_hash` on `memory_entries`; partial index on current rows.
+- Ingest modes **`DEDUP_MODE`**: `none` | `skip` | `link` | `merge` (env default, `tenants.settings.dedup_mode`, request `dedup_mode` or `X-Dedup-Mode`).
+- Normalized SHA-256 hash (trim, lowercase, Unicode NFC) for duplicate detection.
+- `link` creates `memory_links` with `link_type=duplicate` across paths; `merge` updates metadata/tags in place.
+- Makefile: `test-dedup`.
+
 ## [1.43.0] — 2026-05-23
 
 ### Added — Session & working memory layer (PCMI-010)

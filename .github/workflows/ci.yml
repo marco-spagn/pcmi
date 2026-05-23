@@ -451,8 +451,8 @@ jobs:
       - name: Integration smoke suite (bash)
         if: ${{ env.ACT != 'true' }}
         env:
-          PCMI_EXPECT_VERSION: v1.43.0
-          EXPECT_API_VERSION: v1.43.0
+          PCMI_EXPECT_VERSION: v1.44.0
+          EXPECT_API_VERSION: v1.44.0
           PGHOST: "127.0.0.1"
           API: "http://127.0.0.1:8000"
         run: |

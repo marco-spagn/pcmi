@@ -62,6 +62,19 @@ func (r *handlerMockRepo) UpdateImportance(_ context.Context, _, _ string, _ flo
 	return nil
 }
 
+func (r *handlerMockRepo) GetTenantDedupMode(context.Context, string) (model.DedupMode, error) {
+	return model.DedupModeNone, nil
+}
+func (r *handlerMockRepo) FindCurrentByContentHash(context.Context, string, string) (*model.MemoryEntry, error) {
+	return nil, nil
+}
+func (r *handlerMockRepo) MergeCurrentMetadata(context.Context, string, string, map[string]interface{}, []string) (*model.MemoryEntry, error) {
+	return nil, errors.New("not implemented")
+}
+func (r *handlerMockRepo) UpsertDedupLink(context.Context, string, string, string) error {
+	return nil
+}
+
 // ─── helper ──────────────────────────────────────────────────────────────────
 
 func newHandlerApp(t *testing.T, tenantID string) (*fiber.App, *service.MemoryService) {

@@ -25,6 +25,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/handler"
 	metrics "github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
@@ -86,7 +87,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ FATAL embedding provider: %v", err)
 	}
-	memSvc := service.NewMemoryService(repo, embed)
+	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
+	memSvc := service.NewMemoryService(repo, embed, dedupMode)
 
 	app := fiber.New(fiber.Config{
 		AppName: "PCMI API " + version.Tag,

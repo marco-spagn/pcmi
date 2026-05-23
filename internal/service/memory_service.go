@@ -14,23 +14,36 @@ import (
 )
 
 type MemoryService struct {
-	repo     repository.MemoryRepo
-	embedder embedding.Provider
+	repo            repository.MemoryRepo
+	embedder        embedding.Provider
+	defaultDedup    model.DedupMode
 }
 
 type StoreResult struct {
 	Entry        *model.MemoryEntry
 	Version      int
 	SupersededID *int64
+	Action       string
+	LinkedFrom   string
 }
 
-func NewMemoryService(repo repository.MemoryRepo, embedder embedding.Provider) *MemoryService {
-	return &MemoryService{repo: repo, embedder: embedder}
+func NewMemoryService(repo repository.MemoryRepo, embedder embedding.Provider, defaultDedup ...model.DedupMode) *MemoryService {
+	mode := model.DedupModeNone
+	if len(defaultDedup) > 0 && defaultDedup[0] != "" {
+		mode = defaultDedup[0]
+	}
+	return &MemoryService{repo: repo, embedder: embedder, defaultDedup: mode}
 }
 
 func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tenantID string) (*StoreResult, error) {
-	log.Printf("📥 [SERVICE] Store — tenant=%s path=%s", tenantID, req.Path)
+	path := strings.TrimSpace(req.Path)
+	log.Printf("📥 [SERVICE] Store — tenant=%s path=%s", tenantID, path)
 
+	if res, handled, err := s.tryDedup(ctx, req, tenantID, path); handled {
+		return res, err
+	}
+
+	req.ContentHash = model.ContentHash(req.Content)
 	id, version, supersededID, err := s.repo.Store(ctx, *req, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("store failed: %w", err)
@@ -73,7 +86,82 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tena
 		Entry:        entry,
 		Version:      version,
 		SupersededID: supersededID,
+		Action:       model.StoreActionStored,
 	}, nil
+}
+
+func (s *MemoryService) resolveDedupMode(ctx context.Context, tenantID string, req *model.StoreRequest) (model.DedupMode, error) {
+	if m := strings.TrimSpace(req.DedupMode); m != "" {
+		return model.ParseDedupMode(m)
+	}
+	tenantMode, err := s.repo.GetTenantDedupMode(ctx, tenantID)
+	if err != nil {
+		return "", err
+	}
+	if tenantMode != model.DedupModeNone && tenantMode != "" {
+		return tenantMode, nil
+	}
+	return s.defaultDedup, nil
+}
+
+func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, tenantID, path string) (*StoreResult, bool, error) {
+	mode, err := s.resolveDedupMode(ctx, tenantID, req)
+	if err != nil {
+		return nil, true, fmt.Errorf("dedup mode: %w", err)
+	}
+	if mode == model.DedupModeNone {
+		return nil, false, nil
+	}
+
+	hash := model.ContentHash(req.Content)
+	existing, err := s.repo.FindCurrentByContentHash(ctx, tenantID, hash)
+	if err != nil {
+		return nil, true, err
+	}
+	if existing == nil {
+		return nil, false, nil
+	}
+
+	samePath := existing.Path == path
+	makeResult := func(entry *model.MemoryEntry, action string, linkedFrom string) *StoreResult {
+		return &StoreResult{
+			Entry:      entry,
+			Version:    entry.Version,
+			Action:     action,
+			LinkedFrom: linkedFrom,
+		}
+	}
+
+	switch mode {
+	case model.DedupModeSkip:
+		if samePath {
+			log.Printf("⏭️ [DEDUP] skip tenant=%s path=%s id=%d", tenantID, path, existing.ID)
+			return makeResult(existing, model.StoreActionSkipped, ""), true, nil
+		}
+		return nil, false, nil
+	case model.DedupModeLink:
+		if samePath {
+			log.Printf("⏭️ [DEDUP] skip (link mode, same path) tenant=%s path=%s id=%d", tenantID, path, existing.ID)
+			return makeResult(existing, model.StoreActionSkipped, ""), true, nil
+		}
+		if err := s.repo.UpsertDedupLink(ctx, tenantID, path, existing.Path); err != nil {
+			return nil, true, err
+		}
+		log.Printf("🔗 [DEDUP] link %s -> %s tenant=%s", path, existing.Path, tenantID)
+		return makeResult(existing, model.StoreActionLinked, path), true, nil
+	case model.DedupModeMerge:
+		if !samePath {
+			return nil, false, nil
+		}
+		merged, err := s.repo.MergeCurrentMetadata(ctx, tenantID, path, req.Metadata, req.Tags)
+		if err != nil {
+			return nil, true, err
+		}
+		log.Printf("🔀 [DEDUP] merge metadata tenant=%s path=%s id=%d", tenantID, path, merged.ID)
+		return makeResult(merged, model.StoreActionMerged, ""), true, nil
+	default:
+		return nil, false, nil
+	}
 }
 
 func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest, tenantID string) (*model.RetrieveResponse, error) {

@@ -1,6 +1,6 @@
 # PCMI documentation index
 
-Central map of repository documentation. **API version: v1.43.0** ([`internal/version/version.go`](../internal/version/version.go)).
+Central map of repository documentation. **API version: v1.44.0** ([`internal/version/version.go`](../internal/version/version.go)).
 
 ## Getting started
 

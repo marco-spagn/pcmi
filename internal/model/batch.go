@@ -72,12 +72,14 @@ type APIKeyRotateRequest struct {
 }
 
 type APIKeyRotateResponse struct {
-	ID        string `json:"id"`
-	TenantID  string `json:"tenant_id"`
-	Name      string `json:"name"`
-	Role      string `json:"role"`
-	APIKey    string `json:"api_key"`
-	ExpiresAt *time.Time `json:"expires_at,omitempty"`
+	ID                   string     `json:"id"`
+	TenantID             string     `json:"tenant_id"`
+	Name                 string     `json:"name"`
+	Role                 string     `json:"role"`
+	APIKey               string     `json:"api_key"`
+	ExpiresAt            *time.Time `json:"expires_at,omitempty"`
+	PreviousKeyID        string     `json:"previous_key_id,omitempty"`
+	RotationGraceEndsAt  *time.Time `json:"rotation_grace_ends_at,omitempty"`
 }
 
 type APIKeyCreateRequest struct {

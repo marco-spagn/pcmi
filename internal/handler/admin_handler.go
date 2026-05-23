@@ -75,10 +75,17 @@ func SetupAdminRoutes(app *fiber.App, db *pgxpool.Pool) {
 	admin.Post("/api-keys/:id/rotate", func(c *fiber.Ctx) error {
 		var req model.APIKeyRotateRequest
 		_ = c.BodyParser(&req)
-		resp, err := svc.RotateAPIKey(c.Context(), c.Params("id"), req.Name)
+		resp, err := svc.RotateAPIKey(c.Context(), c.Params("id"), req.Name, c.Path(), c.Method(), c.IP())
 		if err != nil {
 			return c.Status(404).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(resp)
+	})
+
+	admin.Delete("/api-keys/:id", func(c *fiber.Ctx) error {
+		if err := svc.RevokeAPIKey(c.Context(), c.Params("id")); err != nil {
+			return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+		}
+		return c.SendStatus(204)
 	})
 }

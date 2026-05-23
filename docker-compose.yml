@@ -21,6 +21,7 @@ services:
       - ./migrations/011_v1_15_links_expiry_tags.sql:/docker-entrypoint-initdb.d/011_v1_15_links_expiry_tags.sql
       - ./migrations/012_v1_19_memory_compaction.sql:/docker-entrypoint-initdb.d/012_v1_19_memory_compaction.sql
       - ./migrations/013_idempotency.sql:/docker-entrypoint-initdb.d/013_idempotency.sql
+      - ./migrations/014_key_lifecycle.sql:/docker-entrypoint-initdb.d/014_key_lifecycle.sql
     ports:
       - "5432:5432"
     healthcheck:

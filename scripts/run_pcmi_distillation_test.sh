@@ -32,6 +32,8 @@
 #   PCMI_API_KEY   (default: testkey123, seedata nella migration 003)
 #   PCMI_BASE_URL  (default: http://localhost:8000)
 #   PCMI_REDIS_URL (default: redis://localhost:6379/0)
+#   EVENT_BACKEND  (default streams) — lo script pubblica su pcmi:events (XADD) o memory_events (PUBLISH)
+#   DISTILLATION_POLICY_DISABLED  (default 1 per questo script) — niente auto-distill su memory.stored
 # =============================================================================
 
 set -Eeuo pipefail
@@ -39,6 +41,18 @@ set -Eeuo pipefail
 # --- Config ------------------------------------------------------------------
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+
+# Stesso .env usato da docker compose (OPENAI_API_KEY, EVENT_BACKEND, …)
+if [[ -f "${ROOT}/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${ROOT}/.env"
+  set +a
+fi
+EVENT_BACKEND="${EVENT_BACKEND:-streams}"
+# Smoke: distillazione solo via memory.refine.requested (non policy / backlog stored)
+DISTILLATION_POLICY_DISABLED="${DISTILLATION_POLICY_DISABLED:-1}"
+export DISTILLATION_POLICY_DISABLED
 
 PCMI_BASE_URL="${PCMI_BASE_URL:-http://localhost:8000}"
 # Admin key seedata via migration 003 → tenant default 00000000-…
@@ -122,6 +136,28 @@ count_worker_429() {
   local n
   n=$("${COMPOSE[@]}" logs --no-color worker 2>/dev/null | grep -c 'status code: 429' || true)
   echo "${n:-0}"
+}
+
+# Pubblica un evento PCMI sul backend configurato (streams = default dal worker).
+publish_memory_event() {
+  local payload="$1"
+  if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
+    "${COMPOSE[@]}" exec -T redis redis-cli PUBLISH memory_events "$payload" >/dev/null
+    return 0
+  fi
+  local etype data
+  etype=$(echo "$payload" | jq -r '.Type')
+  data=$(echo "$payload" | jq -c .)
+  printf '%s' "$data" | "${COMPOSE[@]}" exec -T -i redis redis-cli -x XADD pcmi:events '*' type "$etype" data >/dev/null
+}
+
+# Dopo ingest con worker fermo, l'API ha XADDato memory.stored sullo stream: svuota prima del refine.
+flush_event_stream_backlog() {
+  if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
+    return 0
+  fi
+  log "  → DEL pcmi:events (rimuove backlog memory.stored dall'ingest)"
+  "${COMPOSE[@]}" exec -T redis redis-cli DEL pcmi:events >/dev/null 2>&1 || true
 }
 
 # Stampa riga metrica: partenza x, atteso z, (opzionale) valore attuale y
@@ -282,7 +318,7 @@ fi
 # Stop residui idempotente
 "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 
-log "  docker compose up -d (DISTILLATION_BATCH_SIZE=${DISTILL_BATCH_SIZE})…"
+log "  docker compose up -d (DISTILLATION_BATCH_SIZE=${DISTILL_BATCH_SIZE}, EVENT_BACKEND=${EVENT_BACKEND}, DISTILLATION_POLICY_DISABLED=${DISTILLATION_POLICY_DISABLED})…"
 export DISTILLATION_BATCH_SIZE="$DISTILL_BATCH_SIZE"
 "${COMPOSE[@]}" up -d >/dev/null
 
@@ -437,14 +473,21 @@ assert_eq "active_memories dopo ingest" "$Y_ACTIVE" "$EXPECT_ACTIVE" \
   "${COMPOSE[@]}" logs --no-color --tail=60 api || true
 }
 
-# --- 5c) Riavvio worker e attesa che sia sottoscritto a Redis ----------------
+# --- 5c) Riavvio worker: flush stream backlog, poi attesa consumer ------------
 if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
-  log "  → start worker per processare il refine event"
+  flush_event_stream_backlog
+  log "  → start worker per processare i refine event"
   "${COMPOSE[@]}" start worker >/dev/null
   for i in $(seq 1 30); do
-    if "${COMPOSE[@]}" logs --no-color --tail=50 worker 2>/dev/null \
-         | grep -q "subscribing to memory_events"; then
-      ok "worker risubscribed a memory_events (tentativo ${i}/30)"
+    if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
+      if "${COMPOSE[@]}" logs --no-color --tail=80 worker 2>/dev/null \
+           | grep -qE 'Redis connected|event backend=pubsub'; then
+        ok "worker pronto (pubsub, tentativo ${i}/30)"
+        break
+      fi
+    elif "${COMPOSE[@]}" logs --no-color --tail=80 worker 2>/dev/null \
+         | grep -q "Subscribed to stream pcmi:events"; then
+      ok "worker sottoscritto a stream pcmi:events (tentativo ${i}/30)"
       break
     fi
     sleep 1
@@ -466,7 +509,7 @@ for ((sh=0; sh<NUM_REFINE_EVENTS; sh++)); do
     --arg p "$PREFIX_SH" \
     --arg r "shard_$(printf "%03d" "$sh")" \
     '{Type:"memory.refine.requested", Payload:{tenant_id:$t, path_prefix:$p, reason:$r}}')"
-  "${COMPOSE[@]}" exec -T redis redis-cli PUBLISH memory_events "$PAYLOAD_SH" >/dev/null
+  publish_memory_event "$PAYLOAD_SH"
   REFINE_PUBLISHED=$((REFINE_PUBLISHED + 1))
   if (( REFINE_PUBLISHED % 10 == 0 )); then
     log "    refine published: ${REFINE_PUBLISHED}/${NUM_REFINE_EVENTS}"

@@ -71,6 +71,8 @@ services:
       DISTILLATION_BATCH_SIZE: "${DISTILLATION_BATCH_SIZE:-10}"
       # Max parallel LLM distillation jobs (default 4, range 1-16).
       DISTILLATION_CONCURRENCY: "${DISTILLATION_CONCURRENCY:-4}"
+      # Set true for distill-smoke (explicit memory.refine.requested only).
+      DISTILLATION_POLICY_DISABLED: "${DISTILLATION_POLICY_DISABLED:-}"
     depends_on:
       postgres:
         condition: service_healthy

@@ -99,9 +99,14 @@ func main() {
 	}
 
 	distWorker := worker.NewDistillationWorker(db, cfg)
-	policyEngine := worker.NewDistillationPolicyEngine(db, distWorker)
+	var policyEngine *worker.DistillationPolicyEngine
+	if cfg.DistillationPolicyDisabled {
+		log.Println("ℹ️  Distillation policy engine disabled (DISTILLATION_POLICY_DISABLED)")
+	} else {
+		policyEngine = worker.NewDistillationPolicyEngine(db, distWorker)
+		go policyEngine.Start(ctx)
+	}
 	go distWorker.Start(ctx)
-	go policyEngine.Start(ctx)
 
 	pruneWorker := worker.NewPruningWorker(db, cfg)
 	go pruneWorker.Start(ctx)
@@ -130,8 +135,10 @@ func main() {
 		switch evt.Type {
 		case event.EventMemoryStored, event.EventMemoryUpdated:
 			path, _ := evt.Payload["path"].(string)
-			log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation policy", evt.Type, evt.Payload["id"], tenantID, path)
-			policyEngine.OnMemoryEvent(tenantID, path)
+			if policyEngine != nil {
+				log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation policy", evt.Type, evt.Payload["id"], tenantID, path)
+				policyEngine.OnMemoryEvent(tenantID, path)
+			}
 			consolidationWorker.TriggerForMemory(tenantID, path)
 		case event.EventMemoryRefineRequested:
 			prefix, _ := evt.Payload["path_prefix"].(string)

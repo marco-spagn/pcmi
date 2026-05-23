@@ -5,10 +5,19 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"log"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+// apiKeyDB is satisfied by *pgxpool.Pool and pgxmock pools in tests.
+type apiKeyDB interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+}
 
 const (
 	APIKeyContextKey   = "api_key"
@@ -18,6 +27,10 @@ const (
 )
 
 func APIKeyMiddleware(db *pgxpool.Pool) fiber.Handler {
+	return apiKeyMiddleware(db)
+}
+
+func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
 			return c.Next()
@@ -67,7 +80,20 @@ func APIKeyMiddleware(db *pgxpool.Pool) fiber.Handler {
 		// Imposta tenant nel DB per RLS
 		_, _ = db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID)
 
+		touchAPIKeyLastUsed(db, apiKeyID)
+
 		log.Printf("🔑 API Key authenticated → tenant=%s, role=%s", tenantID, role)
 		return c.Next()
 	}
+}
+
+func touchAPIKeyLastUsed(db apiKeyDB, keyID string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_, _ = db.Exec(ctx,
+			`UPDATE api_keys SET last_used_at = NOW() WHERE id = $1::uuid`,
+			keyID,
+		)
+	}()
 }

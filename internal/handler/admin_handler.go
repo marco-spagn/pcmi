@@ -4,7 +4,6 @@ import (
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/handler/adminui"
 	"github.com/marco-spagn/pcmi/internal/middleware"
@@ -13,7 +12,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/service"
 )
 
-func SetupAdminRoutes(app *fiber.App, db *pgxpool.Pool) {
+func SetupAdminRoutes(app *fiber.App, db repository.AdminQuerier) {
 	repo := repository.NewAdminRepository(db)
 	svc := service.NewAdminService(repo)
 	admin := app.Group("/v1/admin", middleware.RequireAdminRole)

@@ -81,6 +81,20 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 | `make sdk-smoke` | Python + TypeScript HTTP smokes |
 | `make deploy-structural-test` | CI YAML, Compose, OpenAPI, Helm, proto sanity |
 | `make test-all-local` | Broad local CI parity (see `scripts/test_all_local.sh`) |
+| `make test-full-real` | Full host validation: CI + optional OpenAI E2E + importance/sessions/dedup smokes + MCP — [docs/local-ci.md](docs/local-ci.md) |
+| `make ci-like-github` | CI parity without feature smokes (alias `make test-all`) |
+| `make free-dev-ports` / `make act-preflight` | Free `:5432` / `:6379` before compose or `act` |
+| `make admin-list-keys` | List tenants/API keys from Postgres (hash prefix only) |
+| `make test-streams-integration` | Redis Streams event bus |
+| `make test-circuit-breaker` | Embedding circuit breaker |
+| `make test-ratelimit-integration` | Distributed Redis rate limiter |
+| `make test-idempotency` | `X-Idempotency-Key` on store |
+| `make test-key-lifecycle` | Admin API key rotate/revoke |
+| `make test-retrieval-scoring` | Importance + temporal decay |
+| `make test-sessions-integration` | Agent sessions handler |
+| `make test-dedup` | Content-hash dedup at ingest |
+| `make smoke-importance` / `make smoke-sessions` / `make smoke-dedup` | curl E2E (API on `:8000`) |
+| `make build-mcp` / `make test-mcp-unit` / `make test-mcp-smoke` | MCP stdio server |
 | `make distillation-e2e` | Full distillation scenario (needs `OPENAI_API_KEY`) |
 
 **GitHub CI** runs when the commit message includes **`CI_start`**, or on `workflow_dispatch`:

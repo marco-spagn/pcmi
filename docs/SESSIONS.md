@@ -22,4 +22,5 @@ Sessions bound an agent run to a **working memory** scope. Rows in `memory_entri
 
 ```bash
 make test-sessions-integration   # requires DATABASE_URL + migration 016
+make smoke-sessions            # curl E2E (API on :8000, testkey123)
 ```

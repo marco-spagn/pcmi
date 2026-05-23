@@ -18,6 +18,9 @@
 #   Default FULL_VALIDATION_E2E=trio:
 #     scripts/e2e/test_pcmi.sh, ci_e2e_sse_dedup.sh, ci_e2e_finale.sh
 #
+# Infra (Phase 3 — un solo avvio stack per smoke HTTP/MCP):
+#   SKIP_INFRA_DOWN=1 — non esegue make infra-down a fine validazione (debug locale)
+#
 # Prerequisites: go, docker, curl, jq, git; psql on PATH per ci-like-github smoke;
 #   python3 per distillation-e2e; OPENAI opzionale per Phase 2.
 #
@@ -29,6 +32,7 @@ cd "$ROOT"
 API_URL="${API_URL:-http://localhost:8000}"
 DATABASE_URL="${DATABASE_URL:-postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable}"
 FULL_VALIDATION_E2E="${FULL_VALIDATION_E2E:-trio}"
+INFRA_STARTED=0
 
 say() { echo "[test-full-real] $*"; }
 warn() { echo "[test-full-real] WARN: $*" >&2; }
@@ -55,22 +59,38 @@ sync_openai_to_env_file() {
   fi
 }
 
-api_healthy() {
-  curl -sf "${API_URL}/v1/health" >/dev/null 2>&1 || \
-    curl -sf "${API_URL}/health" >/dev/null 2>&1
+api_ready() {
+  curl -sf "${API_URL}/v1/ready" 2>/dev/null \
+    | jq -e '.status == "ready" and .database_ok == true and .redis_ok == true' >/dev/null 2>&1
 }
 
 ensure_api_stack() {
-  if api_healthy; then
-    say "API già raggiungibile su ${API_URL}"
+  if api_ready; then
+    say "API pronta su ${API_URL} (/v1/ready)"
     return 0
   fi
   say "Avvio stack Docker (make infra-up) per smoke HTTP/MCP…"
   make infra-up
+  INFRA_STARTED=1
+  if ! api_ready; then
+    warn "API non risponde su /v1/ready dopo infra-up"
+    exit 1
+  fi
+}
+
+maybe_infra_down() {
+  if [[ "${SKIP_INFRA_DOWN:-}" == "1" ]]; then
+    warn "SKIP_INFRA_DOWN=1 — stack Docker lasciato attivo"
+    return 0
+  fi
+  if [[ "$INFRA_STARTED" == "1" ]]; then
+    say "Arresto stack Docker (make infra-down)…"
+    make infra-down
+  fi
 }
 
 usage() {
-  sed -n '2,28p' "$0"
+  sed -n '2,30p' "$0"
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -108,17 +128,24 @@ else
   warn "         Per il job GitHub integration-e2e: trio script o FULL_VALIDATION_E2E=distill"
 fi
 
-say "Phase 3 — MCP server (build + smoke JSON-RPC)"
+say "Phase 3 — feature smokes + MCP (stack API unico)"
 ensure_api_stack
+export API_URL PCMI_BASE_URL="${API_URL}" PCMI_API_KEY="${PCMI_API_KEY:-testkey123}"
+
+chmod +x scripts/smoke_importance_retrieve.sh scripts/smoke_sessions.sh
+say "  smoke-importance (PCMI-009)"
+SKIP_READY=1 make smoke-importance
+say "  smoke-sessions (PCMI-010 curl E2E)"
+SKIP_READY=1 make smoke-sessions
+say "  MCP build + unit + smoke JSON-RPC"
 make build-mcp
+make test-mcp-unit
 make test-mcp-smoke
 
-say "Phase 4 — importance ranking smoke (PCMI-009)"
-ensure_api_stack
-make smoke-importance
-
-say "Phase 5 — agent sessions integration (PCMI-010)"
+say "Phase 4 — agent sessions integration (PCMI-010 go test)"
 export DATABASE_URL
 PCMI_SKIP_SSE_HTTPTEST=1 make test-sessions-integration
+
+maybe_infra_down
 
 say "Fine — validazione completa terminata."

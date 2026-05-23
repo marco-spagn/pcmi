@@ -167,9 +167,10 @@ make test-full-real
 | 0 — `act-preflight` | Libera `:5432` / `:6379` | &lt; 1 min |
 | 1 — `ci_like_github.sh` | Lint, govulncheck, Helm, `go test -race -tags=integration`, coverage gate, integration-smoke (HTTP/gRPC/SDK) | **20–45 min** con `-race`; **10–25 min** con `CI_LIKE_NO_RACE=1` |
 | 2 — E2E OpenAI (opz.) | Trio CI: store+embedding, SSE/dedup, distillation finale — oppure `distillation-e2e` sintetico | **5–20 min** (saltata senza chiave) |
-| 3 — MCP | Build `pcmi-mcp` + smoke `initialize` JSON-RPC | &lt; 1 min |
-| 4 — `smoke-importance` | Ranking + PATCH importance (PCMI-009) | 1–2 min |
-| 5 — `test-sessions-integration` | Sessioni / working memory (PCMI-010) | 2–5 min |
+| 3 — smokes + MCP | Un solo `infra-up` se serve: `smoke-importance`, `smoke-sessions` (curl), `build-mcp`, `test-mcp-unit`, `test-mcp-smoke` | 2–4 min |
+| 4 — `test-sessions-integration` | Go test sessioni / working memory (PCMI-010) | 2–5 min |
+
+Dopo la Phase 3, lo stack Compose avviato da `test-full-real` viene fermato con `make infra-down` (salvo `SKIP_INFRA_DOWN=1`).
 
 **Totale:** ~30–70 min con OpenAI e race; ~15–35 min con `CI_LIKE_NO_RACE=1` e senza Phase 2.
 
@@ -194,6 +195,22 @@ Pipeline distillation su dati sintetici (alternativa locale):
 ```bash
 FULL_VALIDATION_E2E=distill make test-full-real
 # → make distillation-e2e PRESET=soc SYNTH_NUM=100
+```
+
+Smoke sessioni e MCP singoli (con API su `:8000`):
+
+```bash
+make infra-up
+make smoke-sessions      # POST session → memories → promote → DELETE
+make test-mcp-unit
+make test-mcp-smoke
+# oppure tutto MCP + infra: make mcp-e2e
+```
+
+Tenere lo stack attivo dopo `test-full-real`:
+
+```bash
+SKIP_INFRA_DOWN=1 make test-full-real
 ```
 
 ### Cosa non include

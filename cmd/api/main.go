@@ -113,6 +113,7 @@ func main() {
 		log.Fatalf("❌ FATAL session routes: %v", err)
 	}
 	handler.SetupAdminRoutes(app, db)
+	handler.SetupDistillationPolicyRoutes(app, db)
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": version.Tag})

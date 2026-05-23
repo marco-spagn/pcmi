@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.44.0
+  version: 1.45.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -554,6 +554,49 @@ paths:
                     items: { type: object }
                   total: { type: integer }
                   tenant: { type: string, format: uuid }
+  /v1/distillation/policies:
+    get:
+      summary: List distillation policies for the tenant
+      responses:
+        "200":
+          description: Policy list
+    post:
+      summary: Create a distillation policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDistillationPolicyRequest"
+      responses:
+        "201":
+          description: Created
+  /v1/distillation/policies/{id}:
+    patch:
+      summary: Update a distillation policy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Updated
+        "404":
+          description: Not found
+  /v1/distillation/runs:
+    get:
+      summary: List distillation runs (optional policy_id filter)
+      parameters:
+        - name: policy_id
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Run history
   /v1/audit:
     get:
       summary: List API audit log entries for the authenticated tenant
@@ -818,3 +861,13 @@ components:
         promoted: { type: integer }
         target_prefix: { type: string }
         status: { type: string }
+    CreateDistillationPolicyRequest:
+      type: object
+      required: [name, path_prefix]
+      properties:
+        name: { type: string }
+        path_prefix: { type: string }
+        enabled: { type: boolean, default: true }
+        count_threshold: { type: integer, minimum: 1, default: 10 }
+        min_interval_secs: { type: integer, minimum: 0, default: 300 }
+        max_age_secs: { type: integer, nullable: true }

@@ -25,6 +25,7 @@ services:
       - ./migrations/015_importance_decay.sql:/docker-entrypoint-initdb.d/015_importance_decay.sql
       - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
       - ./migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql
+      - ./migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql
     ports:
       - "5432:5432"
     healthcheck:

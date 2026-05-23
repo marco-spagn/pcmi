@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.39.0
+  version: 1.40.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -217,9 +217,17 @@ paths:
       summary: List API keys for tenant
     post:
       summary: Create API key (returns plaintext key once)
+  /v1/admin/api-keys/{id}:
+    delete:
+      summary: Revoke API key immediately (sets is_active=false)
+      responses:
+        "204":
+          description: Revoked
+        "404":
+          description: Key not found
   /v1/admin/api-keys/{id}/rotate:
     post:
-      summary: Rotate API key hash (returns new plaintext key once)
+      summary: Rotate API key (new row + 24h grace on previous hash; returns new plaintext key once)
   /v1/memories:
     post:
       summary: Store a memory entry (append-only; supersedes same path)

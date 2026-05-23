@@ -37,7 +37,7 @@ func (s *AdminService) ListAPIKeys(ctx context.Context, tenantID string, limit i
 	return s.repo.ListAPIKeys(ctx, tenantID, limit)
 }
 
-func (s *AdminService) RotateAPIKey(ctx context.Context, keyID, name string) (*model.APIKeyRotateResponse, error) {
+func (s *AdminService) RotateAPIKey(ctx context.Context, keyID, name, auditPath, auditMethod, auditIP string) (*model.APIKeyRotateResponse, error) {
 	raw, hash, err := generateAPIKey()
 	if err != nil {
 		return nil, err
@@ -47,7 +47,14 @@ func (s *AdminService) RotateAPIKey(ctx context.Context, keyID, name string) (*m
 		return nil, err
 	}
 	resp.APIKey = raw
+	if resp.PreviousKeyID != "" && auditPath != "" {
+		_ = s.repo.AuditAPIKeyRotation(ctx, resp.TenantID, resp.ID, resp.PreviousKeyID, auditPath, auditMethod, 200, auditIP)
+	}
 	return resp, nil
+}
+
+func (s *AdminService) RevokeAPIKey(ctx context.Context, keyID string) error {
+	return s.repo.RevokeAPIKey(ctx, keyID)
 }
 
 func (s *AdminService) CreateAPIKey(ctx context.Context, req *model.APIKeyCreateRequest) (*model.APIKeyRotateResponse, error) {

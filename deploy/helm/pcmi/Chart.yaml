@@ -9,7 +9,7 @@ version: 0.1.0
 
 # appVersion mirrors internal/version/version.go:Tag and is auto-checked by
 # internal/deploy.TestHelmAppVersionMatchesGoTag.
-appVersion: v1.39.0
+appVersion: v1.40.0
 
 kubeVersion: ">=1.27.0-0"
 

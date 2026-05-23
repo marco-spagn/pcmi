@@ -22,8 +22,9 @@ func TestAdminService_RotateAPIKey_attachesRawKey(t *testing.T) {
 	t.Cleanup(func() { mock.Close() })
 
 	keyID := uuid.New().String()
+	tenantID := uuid.New().String()
 	rows := pgxmock.NewRows([]string{"id", "tenant_id", "name", "role", "previous_key_id", "grace_ends_at"}).
-		AddRow(keyID, uuid.New().String(), "rot", "user", "", nil)
+		AddRow(keyID, tenantID, "rot", "user", keyID, nil)
 	mock.ExpectQuery(`admin_rotate_api_key`).
 		WithArgs(keyID, pgxmock.AnyArg(), "rot").
 		WillReturnRows(rows)

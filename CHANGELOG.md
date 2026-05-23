@@ -9,6 +9,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+## [1.41.0] — 2026-05-23
+
+### Added — MCP server for AI agents (PCMI-008)
+
+- **`cmd/mcp`**: stdio MCP server (`bin/pcmi-mcp`) with JSON-RPC 2.0 — five tools
+  (`pcmi_store`, `pcmi_retrieve`, `pcmi_get_history`, `pcmi_list_paths`, `pcmi_create_link`)
+  and two resources (`pcmi://memory/{path}`, `pcmi://stats`).
+- **Env**: `PCMI_BASE_URL`, `PCMI_API_KEY`.
+- **Makefile**: `build-mcp`, `install-mcp`, `test-mcp-unit`, `test-mcp-smoke`, `mcp-e2e`.
+- **Docs**: [docs/MCP.md](docs/MCP.md), [cmd/mcp/README.md](cmd/mcp/README.md).
+
 ## [1.40.0] — 2026-05-23
 
 ### Added — API key rotation and lifecycle (PCMI-007)

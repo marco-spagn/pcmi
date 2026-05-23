@@ -5,7 +5,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/marco-spagn/pcmi/main/badges/coverage.json)](badges/coverage.json)
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![API](https://img.shields.io/badge/API-v1.33.0-22c55e)](internal/version/version.go)
+[![API](https://img.shields.io/badge/API-v1.41.0-22c55e)](internal/version/version.go)
 
 **Durable, multi-tenant memory for AI agents** — outside the agent runtime, with HTTP and gRPC APIs, hybrid retrieval, background workers, and enterprise controls (RLS, RBAC, audit, observability).
 
@@ -184,10 +184,12 @@ Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: *
 | **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus scrape at `GET /metrics`, admin UI |
 | **gRPC** | Agents, batch workloads, streaming retrieve/events; `MemoryService`, `AdminService`, `MetricsService` |
 | **SDKs** | Python & TypeScript thin HTTP clients — see [sdk/HTTP-API.md](sdk/HTTP-API.md) |
+| **MCP** | stdio server for Cursor / Claude — see [docs/MCP.md](docs/MCP.md) |
 
 | Resource | Location |
 |----------|----------|
 | OpenAPI 3 | [docs/openapi.yaml](docs/openapi.yaml) |
+| MCP server | [docs/MCP.md](docs/MCP.md) |
 | gRPC protos | [proto/pcmi/v1/](proto/pcmi/v1/) |
 | gRPC ↔ HTTP matrix | [docs/grpc-vs-http.md](docs/grpc-vs-http.md) |
 
@@ -221,6 +223,7 @@ Optional technical report (PDF build): [docs/papers/](docs/papers/).
 | Path | Description |
 |------|-------------|
 | [`cmd/api`](cmd/api) | HTTP + gRPC server, `/metrics`, admin UI |
+| [`cmd/mcp`](cmd/mcp) | MCP stdio server for AI agents (`pcmi-mcp`) |
 | [`cmd/worker`](cmd/worker) | Embedding, distillation, pruning, expiry |
 | [`internal/`](internal/) | Domain logic (handler, service, repository, worker, grpc) |
 | [`proto/`](proto/) | Protobuf definitions |

@@ -101,11 +101,14 @@ func TestCIWorkflowYAMLValid(t *testing.T) {
 	if !strings.Contains(ciText, "Job DAG") {
 		t.Error("ci.yml should document job DAG in header comments")
 	}
-	if strings.Contains(ciText, "git push origin HEAD:main") {
-		t.Error("ci.yml must not push directly to main (branch protection); use create-pull-request for badge updates")
+	if !strings.Contains(ciText, "git push origin HEAD:main") {
+		t.Error("ci.yml should push coverage badge updates directly to main")
 	}
-	if !strings.Contains(ciText, "peter-evans/create-pull-request") {
-		t.Error("ci.yml should open a PR for coverage badge updates (peter-evans/create-pull-request)")
+	if !strings.Contains(ciText, "persist-credentials: true") {
+		t.Error("ci.yml go job should use actions/checkout with persist-credentials for badge push")
+	}
+	if strings.Contains(ciText, "peter-evans/create-pull-request") {
+		t.Error("ci.yml must not use create-pull-request for badge updates (direct push to main)")
 	}
 	if !strings.Contains(ciText, "badges/**") {
 		t.Error("ci.yml should paths-ignore badges/** on push to avoid badge-update CI loops")

@@ -308,7 +308,7 @@ make free-dev-ports     # free :5432 / :6379 before compose or act
 
 **CI on GitHub:** workflows run on every push/PR (or via `gh workflow run CI`). The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
 
-**Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main` (updated by a bot PR from CI when coverage changes on `main`). CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
+**Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main` (CI commits it on `main` when coverage changes; see [docs/github-branch-protection.md](docs/github-branch-protection.md) for ruleset bypass). CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
 
 ---
 

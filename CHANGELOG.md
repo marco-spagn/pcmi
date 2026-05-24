@@ -15,7 +15,7 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - **Version drift**: smoke health checks use `scripts/ci/resolve_version.sh` / `pcmi-resolve-version` action (reads `internal/version/version.go`) instead of hardcoded tags in YAML.
 - **Parity**: `scripts/ci/phases/` (A–G) shared with `scripts/ci_like_github.sh`; Postgres migrate, Trivy, API worker lifecycle, and coverage env centralized under `scripts/ci/`.
 - **Docs**: [docs/local-ci.md](docs/local-ci.md) matrix, CONTRIBUTING and PR template aligned.
-- **Coverage badge**: `go` job opens/updates `chore/coverage-badge` via `peter-evans/create-pull-request` instead of pushing to `main` (respects branch protection). `paths-ignore: badges/**` and `[skip ci]` unchanged.
+- **Coverage badge**: `go` job commits `badges/coverage.json` to `main` when changed (`[skip ci]`, `paths-ignore: badges/**`). Branch protection must allow **GitHub Actions** bypass (or optional `BADGE_UPDATE_TOKEN` PAT) — see [docs/github-branch-protection.md](docs/github-branch-protection.md).
 
 ## [1.47.0] — 2026-05-24
 

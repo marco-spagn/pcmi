@@ -102,6 +102,8 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 
 **GitHub CI** runs on every push and pull request that match the workflow triggers (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). You can also trigger it manually with `gh workflow run CI`.
 
+Maintainers: if CI cannot update the coverage badge on `main` (GH013), configure a **GitHub Actions** ruleset bypass — see [docs/github-branch-protection.md](docs/github-branch-protection.md). Optional secret `BADGE_UPDATE_TOKEN` is documented there.
+
 See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/integration-testing.md).
 
 **gRPC live locally:** `make infra-up && make test-integration-live`. **GitHub:** live gRPC runs in the `integration-smoke` job; the `go` job skips live tests when `GRPC_TEST_API_KEY` is unset. SSE httptest can be slow — use `PCMI_SKIP_SSE_HTTPTEST=1` if needed.

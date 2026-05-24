@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -256,6 +256,18 @@ test-integration-all:
 sdk-smoke:
 	PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
 		bash scripts/ci_sdk_smoke.sh
+
+# Go SDK unit tests (httptest; no live API required).
+sdk-go-test:
+	cd sdk/go && go test -race -count=1 ./...
+
+# Go SDK smoke: docker infra + unit tests + examples/basic against live API.
+sdk-go-smoke: infra-up sdk-go-test
+	cd sdk/go && PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=$(GRPC_TEST_API_KEY) go run ./examples/basic
+	$(MAKE) infra-down
+
+# All HTTP SDK checks (Python/TS smoke + Go unit tests).
+sdk-all: sdk-smoke sdk-go-test
 
 # Synthetic data presets: soc | finance | advertising | healthcare | custom
 PRESET ?= soc

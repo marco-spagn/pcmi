@@ -8,6 +8,7 @@ Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput stor
 |------|---------|--------|
 | `python/pcmi/` | Python 3.10+, `httpx` | Async `PCMIClient` |
 | `typescript/src/` | Node / browser `fetch` | `PCMIClient` class |
+| `go/pcmi/` | Go 1.25+, stdlib | `pcmi.Client` |
 
 ## Transports
 
@@ -57,6 +58,30 @@ npm run build   # optional; smoke uses source via tsx
 export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
 npm run smoke        # HTTP store/retrieve/compact
 npm run admin-smoke  # admin list tenants/keys (read-only)
+```
+
+### Go
+
+```bash
+cd sdk/go
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+go test -race ./...
+go run ./examples/basic
+```
+
+From repo root:
+
+```bash
+make sdk-go-test
+make sdk-go-smoke   # requires Docker infra
+make sdk-all        # Python/TS smoke + Go tests
+```
+
+```go
+import "github.com/marco-spagn/pcmi/sdk/go/pcmi"
+
+client, _ := pcmi.NewClient("http://localhost:8000", "your-key")
+resp, _ := client.Store(ctx, "root.demo", "hello", nil, &pcmi.StoreOptions{Tags: []string{"sdk"}})
 ```
 
 Do **not** use `npx tsx <<'HEREDOC'` for imports: Node treats stdin as `[eval]` and named exports from `.ts` fail. Use `npm run smoke` or `npx tsx smoke.mts`.

@@ -150,6 +150,8 @@ Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
 - `make test-streams-integration`, `make test-circuit-breaker`, `make test-idempotency`, `make test-ratelimit-integration`, `make test-key-lifecycle`, `make test-retrieval-scoring`, `make test-sessions-integration`, `make test-dedup` — Sprint 1–2 focused packages
 - `make test-full-real` — CI parity + optional OpenAI + feature smokes + MCP
 - `make sdk-smoke` — Python + TypeScript HTTP SDK smoke (`scripts/ci_sdk_smoke.sh`; API on :8000)
+- `make sdk-go-test` / `make sdk-go-smoke` — Go HTTP SDK (`sdk/go/`; smoke needs API on :8000)
+- `make sdk-all` — Python/TS smoke + Go unit tests
 - CI: `integration-smoke` (API+worker locali + Postgres/Redis servizi), `integration-e2e` (compose + OpenAI se secret)
 
 ## Convezioni utili in futuro

@@ -62,7 +62,7 @@ func main() {
 |--------------|----------|
 | `memory.go` | store, retrieve, batch, compact, refine, history, stats |
 | `session.go` | create/end session, working memory, promote |
-| `admin.go` | tenants, API keys, audit |
+| `admin.go` | tenants, API keys (`ListTenants` / `ListAPIKeys` accept `limit` + `cursor`) |
 | `events.go` | ingest, schemas, SSE subscribe |
 | `options.go` | client timeout, retries, request options |
 | `errors.go` | typed API errors |
@@ -89,6 +89,10 @@ make sdk-go-test    # unit tests with -race
 make sdk-go-smoke   # infra-up + tests + examples/basic + infra-down
 make sdk-all        # Python/TS smoke + Go tests
 ```
+
+## List pagination
+
+`ListTenants(ctx, limit, cursor)` and `ListAPIKeys(ctx, tenantID, limit, cursor)` map to `GET /v1/admin/*` query params. The JSON body includes `next_cursor`, `has_more`, and `total` on tenants only. Other list endpoints are not wrapped yet — call REST with the same query params (see [USAGE.md](../../docs/USAGE.md#paginazione-cursor-sulle-liste-pcmi-014)).
 
 ## OpenAPI
 

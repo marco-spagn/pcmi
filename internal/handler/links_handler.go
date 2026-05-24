@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/middleware"
@@ -33,14 +31,26 @@ func (h *LinksHandler) Post(c *fiber.Ctx) error {
 
 func (h *LinksHandler) List(c *fiber.Ctx) error {
 	tenantID := c.Locals(middleware.TenantContextKey).(string)
-	limit, _ := strconv.Atoi(c.Query("limit"))
-	links, err := h.repo.List(c.Context(), tenantID,
-		c.Query("from_path"), c.Query("to_path"), c.Query("link_type"), limit)
+	pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+	if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for link listings; use cursor"})
+	}
+	links, pageResp, err := h.repo.List(c.Context(), tenantID,
+		c.Query("from_path"), c.Query("to_path"), c.Query("link_type"),
+		model.PageRequest{Cursor: pageParams.Cursor, Limit: pageParams.Limit})
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 	if links == nil {
 		links = []model.MemoryLink{}
 	}
-	return c.JSON(fiber.Map{"entries": links, "total": len(links)})
+	return c.JSON(fiber.Map{
+		"entries":     links,
+		"limit":       pageParams.Limit,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
+	})
 }

@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: PCMI API
   description: Persistent Cognitive Memory Infrastructure — memory API (v1)
-  version: 1.46.0
+  version: 1.47.0
 servers:
   - url: http://localhost:8000
     description: Local
@@ -169,9 +169,9 @@ paths:
           in: query
           required: true
           schema: { type: string, example: root.domain.topic }
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+        - $ref: "#/components/parameters/ListAfterID"
       responses:
         "200":
           description: Version history newest-first
@@ -300,9 +300,16 @@ paths:
   /v1/admin/tenants:
     get:
       summary: List tenants (admin role)
+      parameters:
+        - $ref: "#/components/parameters/ListLimit100"
+        - $ref: "#/components/parameters/ListCursor"
       responses:
         "200":
-          description: Tenant list
+          description: Tenant list (keyset pagination; after_id not supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTenantsListResponse"
     post:
       summary: Create tenant (admin role)
       responses:
@@ -311,6 +318,20 @@ paths:
   /v1/admin/api-keys:
     get:
       summary: List API keys for tenant
+      parameters:
+        - name: tenant_id
+          in: query
+          schema: { type: string, format: uuid }
+          description: Filter keys for tenant (defaults to caller tenant)
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+      responses:
+        "200":
+          description: API key list (keyset pagination; after_id not supported)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminAPIKeysListResponse"
     post:
       summary: Create API key (returns plaintext key once)
   /v1/admin/api-keys/{id}:
@@ -481,19 +502,15 @@ paths:
     get:
       summary: List webhook deliveries that exhausted retries
       parameters:
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
       responses:
         "200":
           description: Dead-letter queue entries
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  entries: { type: array, items: { type: object } }
-                  total: { type: integer }
+                $ref: "#/components/schemas/WebhookDeadLetterListResponse"
   /v1/events:
     post:
       summary: Ingest a universal runtime event (validated against schema registry when strict)
@@ -538,28 +555,30 @@ paths:
           in: query
           required: true
           schema: { type: string, example: root.test }
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+        - $ref: "#/components/parameters/ListAfterID"
       responses:
         "200":
           description: Distilled entries
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  entries:
-                    type: array
-                    items: { type: object }
-                  total: { type: integer }
-                  tenant: { type: string, format: uuid }
+                $ref: "#/components/schemas/DistilledListResponse"
   /v1/distillation/policies:
     get:
       summary: List distillation policies for the tenant
+      parameters:
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+        - $ref: "#/components/parameters/ListAfterID"
       responses:
         "200":
           description: Policy list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DistillationPoliciesListResponse"
     post:
       summary: Create a distillation policy
       requestBody:
@@ -591,22 +610,23 @@ paths:
         - name: policy_id
           in: query
           schema: { type: integer, format: int64 }
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 200 }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+        - $ref: "#/components/parameters/ListAfterID"
       responses:
         "200":
           description: Run history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DistillationRunsListResponse"
   /v1/audit:
     get:
       summary: List API audit log entries for the authenticated tenant
       parameters:
-        - name: limit
-          in: query
-          schema: { type: integer, default: 50, maximum: 200 }
-        - name: offset
-          in: query
-          schema: { type: integer, default: 0 }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+        - $ref: "#/components/parameters/ListAfterID"
         - name: since
           in: query
           schema: { type: string, format: date-time }
@@ -624,7 +644,36 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
+  parameters:
+    ListLimit50:
+      name: limit
+      in: query
+      schema: { type: integer, default: 50, minimum: 1, maximum: 200 }
+      description: Page size (server clamps to 1–200)
+    ListLimit100:
+      name: limit
+      in: query
+      schema: { type: integer, default: 100, minimum: 1, maximum: 200 }
+      description: Page size (server clamps to 1–200)
+    ListCursor:
+      name: cursor
+      in: query
+      schema: { type: string }
+      description: Opaque keyset continuation from a prior response `next_cursor` (mutually exclusive with `after_id`)
+    ListAfterID:
+      name: after_id
+      in: query
+      schema: { type: integer, format: int64, minimum: 1 }
+      description: Legacy alias that builds a cursor when `cursor` is absent (not supported on admin tenant/key or webhook lists)
   schemas:
+    PaginatedListMeta:
+      type: object
+      properties:
+        limit: { type: integer }
+        next_cursor:
+          type: string
+          description: Empty when there is no further page; pass as `cursor` on the next request
+        has_more: { type: boolean }
     ReadyResponse:
       type: object
       properties:
@@ -754,14 +803,87 @@ components:
         user_agent: { type: string }
         created_at: { type: string, format: date-time }
     AuditListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            entries:
+              type: array
+              items: { $ref: "#/components/schemas/AuditEntry" }
+            total:
+              type: integer
+              description: Total rows matching the filter (not just the current page)
+            offset:
+              type: integer
+              description: Deprecated; always 0 (offset pagination removed)
+    HistoryResponse:
       type: object
       properties:
+        path: { type: string }
         entries:
           type: array
-          items: { $ref: "#/components/schemas/AuditEntry" }
-        total: { type: integer }
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+        total:
+          type: integer
+          description: Number of entries in this page (not total versions for the path)
         limit: { type: integer }
-        offset: { type: integer }
+        next_cursor: { type: string }
+        has_more: { type: boolean }
+    DistilledListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            entries:
+              type: array
+              items: { type: object }
+            total:
+              type: integer
+              description: Number of entries in this page
+            tenant: { type: string, format: uuid }
+    DistillationPoliciesListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            policies:
+              type: array
+              items: { type: object }
+    DistillationRunsListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            runs:
+              type: array
+              items: { type: object }
+    WebhookDeadLetterListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            entries:
+              type: array
+              items: { type: object }
+    AdminTenantsListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            tenants:
+              type: array
+              items: { type: object }
+            total:
+              type: integer
+              description: Total tenants in the system (not just this page)
+    AdminAPIKeysListResponse:
+      allOf:
+        - $ref: "#/components/schemas/PaginatedListMeta"
+        - type: object
+          properties:
+            api_keys:
+              type: array
+              items: { type: object }
     IngestEventRequest:
       type: object
       required: [event_type]
@@ -777,14 +899,6 @@ components:
         event_type: { type: string }
         timestamp: { type: string, format: date-time }
         status: { type: string }
-    HistoryResponse:
-      type: object
-      properties:
-        path: { type: string }
-        entries:
-          type: array
-          items: { $ref: "#/components/schemas/MemoryEntry" }
-        total: { type: integer }
     EventSchema:
       type: object
       properties:

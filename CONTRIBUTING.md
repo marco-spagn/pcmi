@@ -100,17 +100,11 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 | `make build-mcp` / `make test-mcp-unit` / `make test-mcp-smoke` | MCP stdio server |
 | `make distillation-e2e` | Full distillation scenario (needs `OPENAI_API_KEY`) |
 
-**GitHub CI** runs when the commit message includes **`CI_start`**, or on `workflow_dispatch`:
-
-```bash
-git commit -m "fix: your change CI_start"
-# or
-gh workflow run CI
-```
+**GitHub CI** runs on every push and pull request that match the workflow triggers (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). You can also trigger it manually with `gh workflow run CI`.
 
 See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/integration-testing.md).
 
-**gRPC live locally:** `make infra-up && make test-integration-live`. **GitHub:** live gRPC runs only in the `integration-smoke` job (with `CI_start`); the `go` job skips live tests when `GRPC_TEST_API_KEY` is unset. SSE httptest can be slow — use `PCMI_SKIP_SSE_HTTPTEST=1` if needed.
+**gRPC live locally:** `make infra-up && make test-integration-live`. **GitHub:** live gRPC runs in the `integration-smoke` job; the `go` job skips live tests when `GRPC_TEST_API_KEY` is unset. SSE httptest can be slow — use `PCMI_SKIP_SSE_HTTPTEST=1` if needed.
 
 ## Code style
 

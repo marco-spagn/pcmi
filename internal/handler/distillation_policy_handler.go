@@ -3,8 +3,10 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
+	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
 // SetupDistillationPolicyRoutes registers distillation policy CRUD and run history.
@@ -88,25 +91,34 @@ func (h *DistillationPolicyHandler) List(c *fiber.Ctx) error {
 	if !ok || tenantID == "" {
 		return c.Status(401).JSON(fiber.Map{"error": "tenant context missing"})
 	}
-	limit := c.QueryInt("limit", 50)
-	if limit < 1 {
-		limit = 1
-	}
-	if limit > 200 {
-		limit = 200
+	pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 	ctx := context.Background()
 	if _, err := h.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
-	rows, err := h.db.Query(ctx, `
+
+	q := `
 		SELECT id, tenant_id::text, name, path_prefix::text, enabled,
 		       count_threshold, min_interval_secs, max_age_secs, last_triggered_at,
 		       created_at, updated_at
 		FROM distillation_policies
-		WHERE tenant_id = $1::uuid
-		ORDER BY created_at DESC
-		LIMIT $2`, tenantID, limit)
+		WHERE tenant_id = $1::uuid`
+	args := []any{tenantID}
+	argN := 2
+	clause, clauseArgs, err := repository.KeysetCreatedAtIDClause(pageParams.Cursor, model.SortKeyCreatedAtIDDesc, argN)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+	q += clause
+	args = append(args, clauseArgs...)
+	argN += len(clauseArgs)
+	q += fmt.Sprintf(` ORDER BY created_at DESC, id DESC LIMIT $%d`, argN)
+	args = append(args, repository.FetchLimit(pageParams.Limit))
+
+	rows, err := h.db.Query(ctx, q, args...)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -123,7 +135,19 @@ func (h *DistillationPolicyHandler) List(c *fiber.Ctx) error {
 		}
 		policies = append(policies, p)
 	}
-	return c.JSON(fiber.Map{"policies": policies, "total": len(policies)})
+	trimmed, pageResp, err := model.FinishInt64Page(policies, pageParams.Limit, model.SortKeyCreatedAtIDDesc,
+		func(p model.DistillationPolicy) int64 { return p.ID },
+		func(p model.DistillationPolicy) time.Time { return p.CreatedAt },
+	)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{
+		"policies":    trimmed,
+		"limit":       pageParams.Limit,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
+	})
 }
 
 func (h *DistillationPolicyHandler) Patch(c *fiber.Ctx) error {
@@ -178,12 +202,9 @@ func (h *DistillationPolicyHandler) ListRuns(c *fiber.Ctx) error {
 	if !ok || tenantID == "" {
 		return c.Status(401).JSON(fiber.Map{"error": "tenant context missing"})
 	}
-	limit := c.QueryInt("limit", 50)
-	if limit < 1 {
-		limit = 1
-	}
-	if limit > 200 {
-		limit = 200
+	pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 	var policyID *int64
 	if v := strings.TrimSpace(c.Query("policy_id")); v != "" {
@@ -197,25 +218,30 @@ func (h *DistillationPolicyHandler) ListRuns(c *fiber.Ctx) error {
 	if _, err := h.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
-	var rows pgx.Rows
-	var err error
+
+	baseQ := `
+		SELECT id, policy_id, tenant_id::text, path_prefix, status, error_message,
+		       source_count, distilled_id, created_at, completed_at
+		FROM distillation_runs
+		WHERE tenant_id = $1::uuid`
+	args := []any{tenantID}
+	argN := 2
 	if policyID != nil {
-		rows, err = h.db.Query(ctx, `
-			SELECT id, policy_id, tenant_id::text, path_prefix, status, error_message,
-			       source_count, distilled_id, created_at, completed_at
-			FROM distillation_runs
-			WHERE tenant_id = $1::uuid AND policy_id = $2
-			ORDER BY created_at DESC
-			LIMIT $3`, tenantID, *policyID, limit)
-	} else {
-		rows, err = h.db.Query(ctx, `
-			SELECT id, policy_id, tenant_id::text, path_prefix, status, error_message,
-			       source_count, distilled_id, created_at, completed_at
-			FROM distillation_runs
-			WHERE tenant_id = $1::uuid
-			ORDER BY created_at DESC
-			LIMIT $2`, tenantID, limit)
+		baseQ += fmt.Sprintf(` AND policy_id = $%d`, argN)
+		args = append(args, *policyID)
+		argN++
 	}
+	clause, clauseArgs, err := repository.KeysetCreatedAtIDClause(pageParams.Cursor, model.SortKeyCreatedAtIDDesc, argN)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+	baseQ += clause
+	args = append(args, clauseArgs...)
+	argN += len(clauseArgs)
+	baseQ += fmt.Sprintf(` ORDER BY created_at DESC, id DESC LIMIT $%d`, argN)
+	args = append(args, repository.FetchLimit(pageParams.Limit))
+
+	rows, err := h.db.Query(ctx, baseQ, args...)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
@@ -233,5 +259,17 @@ func (h *DistillationPolicyHandler) ListRuns(c *fiber.Ctx) error {
 		r.ErrorMessage = errMsg
 		runs = append(runs, r)
 	}
-	return c.JSON(fiber.Map{"runs": runs, "total": len(runs)})
+	trimmed, pageResp, err := model.FinishInt64Page(runs, pageParams.Limit, model.SortKeyCreatedAtIDDesc,
+		func(r model.DistillationRun) int64 { return r.ID },
+		func(r model.DistillationRun) time.Time { return r.CreatedAt },
+	)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(fiber.Map{
+		"runs":        trimmed,
+		"limit":       pageParams.Limit,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
+	})
 }

@@ -17,7 +17,6 @@
 - [ ] [CHANGELOG.md](../CHANGELOG.md) updated under `[Unreleased]` if user-visible
 - [ ] Version bump in `internal/version/version.go` + `docs/openapi.yaml` if releasing API version
 - [ ] OpenAPI / `docs/grpc-vs-http.md` / SDK `HTTP-API.md` updated for API changes
-- [ ] Commit message includes `CI_start` if full GitHub CI should run
 
 ## Test plan
 

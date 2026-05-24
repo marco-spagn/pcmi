@@ -9,6 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
+
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 func TestAdminRepository_RotateAPIKey_notFound(t *testing.T) {
@@ -95,14 +97,14 @@ func TestAdminRepository_ListAPIKeys_empty(t *testing.T) {
 
 	tenantID := uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").String()
 	mock.ExpectQuery(`FROM api_keys`).
-		WithArgs(tenantID, 10).
+		WithArgs(tenantID, 11).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "name", "role", "is_active", "expires_at", "created_at", "last_used_at",
 			"rotated_to", "rotation_grace_ends_at", "last_used_ip",
 		}))
 
 	repo := &AdminRepository{db: mock}
-	got, err := repo.ListAPIKeys(context.Background(), tenantID, 10)
+	got, _, err := repo.ListAPIKeys(context.Background(), tenantID, model.PageRequest{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,11 +129,11 @@ func TestAdminRepository_ListAPIKeys_row(t *testing.T) {
 		"rotated_to", "rotation_grace_ends_at", "last_used_ip",
 	}).AddRow("kid", "ci", "user", true, nil, created, nil, nil, nil, nil)
 	mock.ExpectQuery(`FROM api_keys`).
-		WithArgs(tenantID, 5).
+		WithArgs(tenantID, 6).
 		WillReturnRows(rows)
 
 	repo := &AdminRepository{db: mock}
-	got, err := repo.ListAPIKeys(context.Background(), tenantID, 5)
+	got, _, err := repo.ListAPIKeys(context.Background(), tenantID, model.PageRequest{Limit: 5})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -243,7 +245,7 @@ func TestAdminRepository_ListAllAPIKeysOverview_tenantFilter(t *testing.T) {
 	tenantRows := pgxmock.NewRows([]string{"id", "slug", "name", "settings", "created_at"}).
 		AddRow(tenantA, "alpha", "Alpha", map[string]interface{}{}, time.Now()).
 		AddRow(tenantB, "beta", "Beta", map[string]interface{}{}, time.Now())
-	mock.ExpectQuery(`admin_list_tenants`).WithArgs(10).WillReturnRows(tenantRows)
+	mock.ExpectQuery(`FROM tenants`).WithArgs(11).WillReturnRows(tenantRows)
 
 	mock.ExpectExec(`set_tenant_context`).WithArgs(tenantA).WillReturnResult(pgxmock.NewResult("SELECT", 1))
 	keyRows := pgxmock.NewRows([]string{

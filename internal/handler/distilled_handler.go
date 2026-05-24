@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -11,10 +12,13 @@ import (
 	"github.com/jackc/pgx/v5"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
+	"github.com/marco-spagn/pcmi/internal/model"
+	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
 type distilledQuerier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 type DistilledHandler struct {
@@ -36,72 +40,108 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "path_prefix is required"})
 	}
 
-	limit := c.QueryInt("limit", 50)
-	if limit < 1 {
-		limit = 1
+	pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
-	if limit > 200 {
-		limit = 200
+	if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for distilled listings; use cursor"})
 	}
 
 	log.Printf("📡 [DISTILLED] tenant=%s path_prefix=%s", tenantID, pathPrefix)
 
-	rows, err := h.db.Query(context.Background(), `
+	ctx := context.Background()
+	var total int
+	if err := h.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM distilled_knowledge WHERE tenant_id = $1::uuid AND path <@ $2::ltree`,
+		tenantID, pathPrefix,
+	).Scan(&total); err != nil {
+		log.Printf("❌ [DISTILLED] count: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	q := `
 		SELECT id, path::text, summary, insights, confidence_score, distilled_at, source_entry_ids, version
 		FROM distilled_knowledge
 		WHERE tenant_id = $1::uuid
-		  AND path <@ $2::ltree
-		ORDER BY distilled_at DESC
-		LIMIT $3`, tenantID, pathPrefix, limit)
+		  AND path <@ $2::ltree`
+	args := []any{tenantID, pathPrefix}
+	argN := 3
+	clause, clauseArgs, err := repository.KeysetTimeIDClause(pageParams.Cursor, model.SortKeyCreatedAtIDDesc, "distilled_at", argN)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+	q += clause
+	args = append(args, clauseArgs...)
+	argN += len(clauseArgs)
+	q += fmt.Sprintf(` ORDER BY distilled_at DESC, id DESC LIMIT $%d`, argN)
+	args = append(args, repository.FetchLimit(pageParams.Limit))
+
+	rows, err := h.db.Query(ctx, q, args...)
 	if err != nil {
 		log.Printf("❌ [DISTILLED] query: %v", err)
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 	defer rows.Close()
 
-	results := make([]map[string]any, 0)
+	type distilledRow struct {
+		id          int64
+		path        string
+		summary     string
+		insightsRaw []byte
+		confidence  sql.NullFloat64
+		distilledAt time.Time
+		sourceIDs   []int64
+		version     int
+	}
+	var scanned []distilledRow
 	for rows.Next() {
-		var (
-			id          int64
-			path        string
-			summary     string
-			insightsRaw []byte
-			confidence  sql.NullFloat64
-			distilledAt time.Time
-			sourceIDs   []int64
-			version     int
-		)
-		if err := rows.Scan(&id, &path, &summary, &insightsRaw, &confidence, &distilledAt, &sourceIDs, &version); err != nil {
+		var row distilledRow
+		if err := rows.Scan(&row.id, &row.path, &row.summary, &row.insightsRaw, &row.confidence, &row.distilledAt, &row.sourceIDs, &row.version); err != nil {
 			log.Printf("❌ [DISTILLED] scan: %v", err)
 			continue
 		}
+		scanned = append(scanned, row)
+	}
 
-		var insights any = json.RawMessage(insightsRaw)
-		if len(insightsRaw) > 0 {
+	trimmed, pageResp, err := model.FinishInt64Page(scanned, pageParams.Limit, model.SortKeyCreatedAtIDDesc,
+		func(r distilledRow) int64 { return r.id },
+		func(r distilledRow) time.Time { return r.distilledAt },
+	)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	results := make([]map[string]any, 0, len(trimmed))
+	for _, row := range trimmed {
+		var insights any = json.RawMessage(row.insightsRaw)
+		if len(row.insightsRaw) > 0 {
 			var arr []any
-			if json.Unmarshal(insightsRaw, &arr) == nil {
+			if json.Unmarshal(row.insightsRaw, &arr) == nil {
 				insights = arr
 			}
 		}
-
-		row := map[string]any{
-			"id":               id,
-			"path":             path,
-			"summary":          summary,
+		out := map[string]any{
+			"id":               row.id,
+			"path":             row.path,
+			"summary":          row.summary,
 			"insights":         insights,
-			"distilled_at":     distilledAt.Format(time.RFC3339),
-			"source_entry_ids": sourceIDs,
-			"version":          version,
+			"distilled_at":     row.distilledAt.Format(time.RFC3339),
+			"source_entry_ids": row.sourceIDs,
+			"version":          row.version,
 		}
-		if confidence.Valid {
-			row["confidence_score"] = confidence.Float64
+		if row.confidence.Valid {
+			out["confidence_score"] = row.confidence.Float64
 		}
-		results = append(results, row)
+		results = append(results, out)
 	}
 
 	return c.JSON(fiber.Map{
-		"entries": results,
-		"total":   len(results),
-		"tenant":  tenantID,
+		"entries":     results,
+		"total":       total,
+		"tenant":      tenantID,
+		"limit":       pageParams.Limit,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
 	})
 }

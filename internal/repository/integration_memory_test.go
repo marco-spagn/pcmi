@@ -90,7 +90,7 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	}
 	_ = id2
 
-	hist, err := repo.ListPathHistory(ctx, tenantID, path, 10)
+	hist, _, err := repo.ListPathHistory(ctx, tenantID, path, model.PageRequest{Limit: 10})
 	if err != nil || len(hist) < 2 {
 		t.Fatalf("history: err=%v len=%d", err, len(hist))
 	}
@@ -160,7 +160,7 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("link create: %v", err)
 	}
-	ls, err := links.List(ctx, tenantID, path, "", "", 10)
+	ls, _, err := links.List(ctx, tenantID, path, "", "", model.PageRequest{Limit: 10})
 	if err != nil || len(ls) < 1 {
 		t.Fatalf("link list: err=%v n=%d", err, len(ls))
 	}
@@ -206,15 +206,15 @@ func TestIntegration_MemoryRepository_flow(t *testing.T) {
 	}
 
 	aud := NewAuditRepository(pool)
-	if _, _, err := aud.List(ctx, tenantID, 10, 0, nil); err != nil {
+	if _, _, err := aud.List(ctx, tenantID, model.PageRequest{Limit: 10}, nil); err != nil {
 		t.Fatalf("audit: %v", err)
 	}
 	since := time.Now().Add(-24 * time.Hour)
-	if _, _, err := aud.List(ctx, tenantID, 5, 0, &since); err != nil {
+	if _, _, err := aud.List(ctx, tenantID, model.PageRequest{Limit: 5}, &since); err != nil {
 		t.Fatalf("audit since: %v", err)
 	}
 
-	if _, err := repo.ListPathHistory(ctx, tenantID, path, 0); err != nil {
+	if _, _, err := repo.ListPathHistory(ctx, tenantID, path, model.PageRequest{Limit: 0}); err != nil {
 		t.Fatalf("history limit norm: %v", err)
 	}
 }

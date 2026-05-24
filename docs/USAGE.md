@@ -92,6 +92,43 @@ make admin-list-keys
 
 Test integrazione: `make test-key-lifecycle`.
 
+### Paginazione cursor sulle liste (PCMI-014)
+
+Gli endpoint che restituiscono liste lunghe usano **keyset pagination** (non `OFFSET`). Query comuni:
+
+| Parametro | Descrizione |
+|-----------|-------------|
+| `limit` | Righe per pagina, **1–200** (default dipende dall’endpoint: es. `50` su audit/history, `100` su `GET /v1/admin/tenants`) |
+| `cursor` | Stringa opaca da `next_cursor` della risposta precedente |
+| `after_id` | Alias legacy: costruisce un cursor quando `cursor` è assente. **Non** usare insieme a `cursor` (400) |
+
+Campi di risposta comuni: `limit`, `next_cursor` (vuoto se fine lista), `has_more`.
+
+| Endpoint | Chiave array | `total` | Note |
+|----------|--------------|---------|------|
+| `GET /v1/audit` | `entries` | Conteggio **globale** (con filtro `since`) | `offset` restituito sempre `0` (deprecato) |
+| `GET /v1/admin/tenants` | `tenants` | Conteggio **globale** tenant | `after_id` non supportato — solo `cursor` |
+| `GET /v1/admin/api-keys` | `api_keys` | assente | `after_id` non supportato |
+| `GET /v1/memories/history` | `entries` | Righe **in questa pagina** | `path` obbligatorio |
+| `GET /v1/distilled` | `entries` | Righe **in questa pagina** | `path_prefix` obbligatorio |
+| `GET /v1/distillation/policies` | `policies` | assente | |
+| `GET /v1/distillation/runs` | `runs` | assente | opz. `policy_id` |
+| `GET /v1/webhooks`, `GET /v1/webhooks/dead-letter` | `entries` | assente | webhook: solo `cursor` |
+| `GET /v1/memories/links` | `entries` | assente | filtri `from_path`, `to_path`, `link_type` |
+
+Esempio (audit):
+
+```bash
+curl -s "${PCMI_BASE_URL}/v1/audit?limit=10" -H "X-API-Key: ${PCMI_API_KEY}" | jq '{total, has_more, next_cursor}'
+# pagina successiva:
+CUR=$(curl -s "${PCMI_BASE_URL}/v1/audit?limit=10" -H "X-API-Key: ${PCMI_API_KEY}" | jq -r .next_cursor)
+curl -s "${PCMI_BASE_URL}/v1/audit?limit=10&cursor=${CUR}" -H "X-API-Key: ${PCMI_API_KEY}"
+```
+
+Il smoke CI [`scripts/ci_integration_smoke.sh`](../scripts/ci_integration_smoke.sh) verifica `audit.total`, `admin/tenants.total` e la presenza di array su distilled; per la dead-letter usa `entries | length` (non `total`).
+
+Contratto OpenAPI: [openapi.yaml](openapi.yaml). Test: `make test-pagination`.
+
 ### Metriche Prometheus (`GET /metrics`)
 
 L’endpoint non usa `X-API-Key`. In produzione imposta **`METRICS_SCRAPE_TOKEN`** sull’API e configura Prometheus con lo stesso segreto:
@@ -216,7 +253,7 @@ GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
   go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
 ```
 
-Su **GitHub** (messaggio commit con `CI_start`), i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
+Su **GitHub**, i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
 
 Esempio concettuale (Go):
 
@@ -316,7 +353,7 @@ Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md
 | `make test-dedup` | Dedup unit + handler |
 | `make build-mcp` / `make test-mcp-unit` | MCP stdio server |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
-| `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
+| `make ci-like-github` | Parità ampia con workflow CI: lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |
 
 ---

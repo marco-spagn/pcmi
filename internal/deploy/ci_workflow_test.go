@@ -26,7 +26,6 @@ func TestCIWorkflowYAMLValid(t *testing.T) {
 		t.Fatal("missing jobs map")
 	}
 	requiredJobs := []string{
-		"ci-gate",
 		"golangci-lint",
 		"security",
 		"helm-lint",

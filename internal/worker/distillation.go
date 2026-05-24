@@ -205,6 +205,9 @@ Return ONLY valid JSON:
 	resp, err := w.openai.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model:    w.modelName,
 		Messages: messages,
+		ResponseFormat: &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+		},
 	})
 	if err != nil {
 		log.Printf("❌ LLM distillation error: %v", err)
@@ -212,17 +215,10 @@ Return ONLY valid JSON:
 		return
 	}
 
-	var result struct {
-		Summary  string   `json:"summary"`
-		Insights []string `json:"insights"`
-	}
-	content := strings.TrimSpace(resp.Choices[0].Message.Content)
-	content = strings.TrimPrefix(content, "```json")
-	content = strings.TrimPrefix(content, "```")
-	content = strings.TrimSuffix(content, "```")
-	content = strings.TrimSpace(content)
-	if err := json.Unmarshal([]byte(content), &result); err != nil {
+	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
+	if err != nil {
 		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 

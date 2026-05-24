@@ -13,7 +13,8 @@ import (
 )
 
 type auditLister interface {
-	List(ctx context.Context, tenantID string, limit, offset int, since *time.Time) ([]model.AuditEntry, int, error)
+	List(ctx context.Context, tenantID string, page model.PageRequest, since *time.Time) ([]model.AuditEntry, model.PageResponse, error)
+	Count(ctx context.Context, tenantID string, since *time.Time) (int, error)
 }
 
 type AuditHandler struct {
@@ -27,8 +28,13 @@ func NewAuditHandler(db *pgxpool.Pool) *AuditHandler {
 func (h *AuditHandler) List(c *fiber.Ctx) error {
 	tenantID := c.Locals(middleware.TenantContextKey).(string)
 
-	limit := c.QueryInt("limit", 50)
-	offset := c.QueryInt("offset", 0)
+	pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
+	if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for audit listings; use cursor"})
+	}
 
 	var since *time.Time
 	if s := c.Query("since"); s != "" {
@@ -39,15 +45,25 @@ func (h *AuditHandler) List(c *fiber.Ctx) error {
 		since = &t
 	}
 
-	entries, total, err := h.repo.List(c.Context(), tenantID, limit, offset, since)
+	entries, pageResp, err := h.repo.List(c.Context(), tenantID, model.PageRequest{
+		Cursor: pageParams.Cursor,
+		Limit:  pageParams.Limit,
+	}, since)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	total, err := h.repo.Count(c.Context(), tenantID, since)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.JSON(fiber.Map{
-		"entries": entries,
-		"total":   total,
-		"limit":   limit,
-		"offset":  offset,
+		"entries":     entries,
+		"total":       total,
+		"limit":       pageParams.Limit,
+		"offset":      0,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
 	})
 }

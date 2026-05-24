@@ -13,6 +13,7 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/database"
+	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
@@ -53,7 +54,7 @@ func runList(args []string) error {
 
 	repo := repository.NewAdminRepository(pool)
 
-	tenants, err := repo.ListTenants(ctx, *tenantLimit)
+	tenants, _, err := repo.ListTenants(ctx, model.PageRequest{Limit: *tenantLimit})
 	if err != nil {
 		return err
 	}

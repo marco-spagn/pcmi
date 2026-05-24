@@ -81,17 +81,23 @@ func (s *adminServer) ListTenants(ctx context.Context, req *pcmiv1.ListTenantsRe
 	if err := s.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
+	limit := clampAdminLimit(req.GetLimit())
+	var cur model.Cursor
 	if strings.TrimSpace(req.GetCursor()) != "" {
-		if _, err := model.DecodeCursor(req.GetCursor()); err != nil {
+		decoded, err := model.DecodeCursor(req.GetCursor())
+		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid cursor: "+err.Error())
 		}
+		cur = decoded
 	}
-	limit := clampAdminLimit(req.GetLimit())
-	tenants, err := s.admin.ListTenants(ctx, limit)
+	tenants, pageResp, err := s.admin.ListTenants(ctx, model.PageRequest{Cursor: cur, Limit: limit})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list tenants: %v", err)
 	}
-	out := &pcmiv1.ListTenantsResponse{}
+	out := &pcmiv1.ListTenantsResponse{
+		NextCursor: pageResp.NextCursor,
+		HasMore:    pageResp.HasMore,
+	}
 	for i := range tenants {
 		out.Tenants = append(out.Tenants, tenantToProto(&tenants[i]))
 	}
@@ -144,20 +150,26 @@ func (s *adminServer) ListAPIKeys(ctx context.Context, req *pcmiv1.ListAPIKeysRe
 	if err := s.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	if strings.TrimSpace(req.GetCursor()) != "" {
-		if _, err := model.DecodeCursor(req.GetCursor()); err != nil {
-			return nil, status.Error(codes.InvalidArgument, "invalid cursor: "+err.Error())
-		}
-	}
 	if strings.TrimSpace(req.GetTenantId()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
 	}
 	limit := clampAdminLimit(req.GetLimit())
-	keys, err := s.admin.ListAPIKeys(ctx, req.GetTenantId(), limit)
+	var cur model.Cursor
+	if strings.TrimSpace(req.GetCursor()) != "" {
+		decoded, err := model.DecodeCursor(req.GetCursor())
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, "invalid cursor: "+err.Error())
+		}
+		cur = decoded
+	}
+	keys, pageResp, err := s.admin.ListAPIKeys(ctx, req.GetTenantId(), model.PageRequest{Cursor: cur, Limit: limit})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list api keys: %v", err)
 	}
-	out := &pcmiv1.ListAPIKeysResponse{}
+	out := &pcmiv1.ListAPIKeysResponse{
+		NextCursor: pageResp.NextCursor,
+		HasMore:    pageResp.HasMore,
+	}
 	for _, row := range keys {
 		sum, mapErr := apiKeySummaryFromMap(row)
 		if mapErr != nil {

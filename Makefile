@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration test-pagination bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -220,6 +220,10 @@ test-idempotency:
 test-key-lifecycle:
 	PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -race -count=1 -run 'TestKey' ./internal/handler/...
 
+# Cursor-based pagination on list endpoints (PCMI-014).
+test-pagination:
+	go test -race -count=1 -run TestPagination ./internal/repository/... ./internal/handler/... ./internal/model/...
+
 # Hybrid retrieval scoring: importance fusion + temporal decay (PCMI-009).
 test-retrieval-scoring:
 	go test -race -count=1 -run 'TestImportance|TestTemporalDecay|TestAccessCount|TestDecayDisabled|TestImportanceEndpoint|TestHybridScore|TestRecency|TestDefaultScoring' ./internal/repository/...
@@ -294,9 +298,7 @@ distill-smoke:
 	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
 		--preset $(PRESET) --num 100 --seed $(SYNTH_SEED) --no-build
 
-# GitHub Actions: add CI_start to the commit message to run the remote pipeline
-# (e.g. git commit -m "fix: foo CI_start"). Without it, only the ci-gate job runs.
-# Manual run: gh workflow run CI
+# GitHub Actions CI runs on push/PR; manual run: gh workflow run CI
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Local GitHub Actions runner (act) — replaces GitHub-hosted runs.
@@ -377,7 +379,7 @@ act-trivy:
 act-integration-smoke: act-preflight
 	bash scripts/act_integration_smoke_host.sh
 
-# Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
+# Replica locale della CI GitHub (workflow CI): lint/vuln/helm opzionali,
 # go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
 # Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
 # Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github

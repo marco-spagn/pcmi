@@ -47,7 +47,7 @@ go run ./cmd/api    # altro terminale
 make test-integration-live
 ```
 
-**CI GitHub** (commit con `CI_start`): il job `go` esegue `go test -tags=integration ./internal/...` **senza** `GRPC_TEST_API_KEY` → live skipped. Il job **`integration-smoke`** avvia API/worker e lancia `go test -tags=integration ./internal/grpc/...` con chiave — parità con `make act-integration-smoke` in locale. Vedi [local-ci.md](local-ci.md).
+**CI GitHub:** il job `go` esegue `go test -tags=integration ./internal/...` **senza** `GRPC_TEST_API_KEY` → live skipped. Il job **`integration-smoke`** avvia API/worker e lancia `go test -tags=integration ./internal/grpc/...` con chiave — parità con `make act-integration-smoke` in locale. Vedi [local-ci.md](local-ci.md).
 
 ---
 

@@ -437,6 +437,15 @@ func TestIntegrationHTTP_AdminTenants(t *testing.T) {
 		b, _ := io.ReadAll(resp.Body)
 		t.Fatalf("list tenants %d: %s", resp.StatusCode, b)
 	}
+	var listBody struct {
+		Total int `json:"total"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&listBody); err != nil {
+		t.Fatal(err)
+	}
+	if listBody.Total < 1 {
+		t.Fatalf("list tenants total=%d want >= 1", listBody.Total)
+	}
 
 	slug := "http-e2e-" + time.Now().Format("150405")
 	body, _ := json.Marshal(map[string]any{"slug": slug, "name": "E2E Tenant", "settings": map[string]any{}})

@@ -32,8 +32,8 @@ FRESH="${ACT_SMOKE_FRESH_DB:-1}"
 # shellcheck source=compose_postgres_wait.inc.sh
 source "$ROOT/scripts/compose_postgres_wait.inc.sh"
 
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.46.0}"
-export EXPECT_API_VERSION="${EXPECT_API_VERSION:-v1.46.0}"
+export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.47.0}"
+export EXPECT_API_VERSION="${EXPECT_API_VERSION:-v1.47.0}"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export API="${API:-http://127.0.0.1:8000}"
 

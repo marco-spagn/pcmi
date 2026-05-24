@@ -115,7 +115,7 @@ Alternatives:
 
 Runs `go test -tags=integration -run TestStream ./internal/event/...` with **miniredis** in-process. No Postgres, Redis, or `:50051` required. Optional before PRs that touch `internal/event` Streams backend; not part of `act-integration-smoke` today.
 
-### What GitHub enforces (with `CI_start`)
+### What GitHub enforces
 
 | Check | Live gRPC on `:50051` |
 |-------|------------------------|
@@ -124,7 +124,7 @@ Runs `go test -tags=integration -run TestStream ./internal/event/...` with **min
 | Local `make act-lint && make act-test` | **No** — same as `go` job (Postgres service only) |
 | Local `make act-integration-smoke` | **Yes** — same scripts as `integration-smoke` |
 
-Full pipeline on GitHub still requires **`CI_start`** in the commit message (or `workflow_dispatch`). See [CONTRIBUTING.md](../CONTRIBUTING.md).
+The full pipeline runs on every push/PR that matches [`.github/workflows/ci.yml`](../.github/workflows/ci.yml). See [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 More detail: [integration-testing.md](integration-testing.md), [USAGE.md](USAGE.md).
 
@@ -216,7 +216,6 @@ SKIP_INFRA_DOWN=1 make test-full-real
 
 ### Cosa non include
 
-- Gate `CI_start` sul messaggio di commit (in locale non serve).
 - Job `integration-e2e` se `OPENAI_API_KEY` mancante (WARN esplicito, exit 0).
 - CodeQL (analisi su `cmd/`, `internal/`, SDK — vedi `.github/codeql/codeql-config.yml`; esclude `*_test.go`, protobuf generati, `docs/`), badge su `main`, scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
 

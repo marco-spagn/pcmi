@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -137,9 +138,10 @@ func TestAdminHandler_listAPIKeys_queryTenantOverride(t *testing.T) {
 
 	override := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").String()
 	mock.ExpectQuery(`FROM api_keys`).
-		WithArgs(override, 50).
+		WithArgs(override, 51).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "name", "role", "is_active", "expires_at", "created_at", "last_used_at",
+			"rotated_to", "rotation_grace_ends_at", "last_used_ip",
 		}))
 
 	app := adminTestApp(t, mock)
@@ -153,13 +155,50 @@ func TestAdminHandler_listAPIKeys_queryTenantOverride(t *testing.T) {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
 	var out struct {
+		HasMore bool `json:"has_more"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.HasMore {
+		t.Fatalf("has_more=%v", out.HasMore)
+	}
+}
+
+func TestAdminHandler_listTenants_includesTotal(t *testing.T) {
+	t.Parallel()
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	mock.ExpectQuery(`FROM tenants`).
+		WithArgs(51).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "slug", "name", "settings", "created_at"}).
+			AddRow("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "default", "Default", map[string]interface{}{}, time.Now()))
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM tenants`).
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(2))
+
+	app := adminTestApp(t, mock)
+	req := httptest.NewRequest(http.MethodGet, "/v1/admin/tenants?limit=50", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status=%d body=%s", resp.StatusCode, b)
+	}
+	var out struct {
 		Total int `json:"total"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		t.Fatal(err)
 	}
-	if out.Total != 0 {
-		t.Fatalf("total=%d", out.Total)
+	if out.Total != 2 {
+		t.Fatalf("total=%d want 2", out.Total)
 	}
 }
 

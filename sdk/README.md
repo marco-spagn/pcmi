@@ -94,6 +94,12 @@ await client.store("root.demo", "hello", {}, { tags: ["sdk"] });
 const result = await client.retrieve("root.demo", "", 5);
 ```
 
+## List pagination (HTTP)
+
+Paginated `GET` routes accept `limit`, `cursor`, and (where supported) `after_id`. Responses include `next_cursor` and `has_more`. Some lists also return `total` (full count on audit and admin tenants; page row count on history/distilled). Pass `next_cursor` back as `?cursor=…` on the next request. The Go admin client exposes `cursor` on `ListTenants` / `ListAPIKeys`; Python/TypeScript smokes read `total` where the API still provides it.
+
+See [USAGE.md](../docs/USAGE.md#paginazione-cursor-sulle-liste-pcmi-014) and [openapi.yaml](../docs/openapi.yaml).
+
 ## OpenAPI
 
 Full schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).

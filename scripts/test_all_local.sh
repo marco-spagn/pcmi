@@ -155,12 +155,7 @@ else
 	echo "$VIOLATIONS" >&2
 fi
 
-section "A2 — CI_start gate (simulated)"
-if echo "feat CI_start" | grep -Fq 'CI_start'; then ok "CI_start enables CI"; else bad "CI_start"; fi
-if ! echo "docs only" | grep -Fq 'CI_start'; then ok "no CI_start skips CI"; else bad "skip logic"; fi
-echo "  → GitHub: git commit -m '... CI_start' or gh workflow run CI"
-
-section "A3 — build & vet"
+section "A2 — build & vet"
 go build -o /dev/null ./... && ok "go build" || bad "go build"
 go vet ./... && ok "go vet" || bad "go vet"
 
@@ -500,7 +495,7 @@ echo "  passed:  $PASS"
 echo "  failed:  $FAIL"
 echo "  skipped: $SKIP"
 echo ""
-echo "  CI on GitHub: include CI_start in commit message for full pipeline."
+echo "  CI on GitHub: runs on push/PR (see .github/workflows/ci.yml)."
 echo "  .env restored from $ENV_BACKUP"
 if [ "${KEEP_STACK:-}" = "1" ]; then
 	echo "  stack left running (KEEP_STACK=1)"

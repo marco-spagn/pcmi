@@ -79,6 +79,7 @@ flowchart LR
 | **Rate limit** | Per-key limits; **`RATE_LIMIT_BACKEND=redis`** for multi-instance API |
 | **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
 | **Admin** | Tenant/API-key CRUD + rotate/revoke (HTTP + gRPC), embedded UI at `GET /v1/admin/ui` |
+| **Lists** | Keyset pagination (`limit`, `cursor`, `after_id` where supported) on audit, history, distilled, webhooks, distillation, admin — see [docs/USAGE.md](docs/USAGE.md#paginazione-cursor-sulle-liste-pcmi-014) |
 
 Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (source of truth: [`internal/version/version.go`](internal/version/version.go)).
 
@@ -305,7 +306,7 @@ make free-dev-ports     # free :5432 / :6379 before compose or act
 | `make test-integration-live` | gRPC TCP on `:50051` (after `make infra-up`) |
 | `make test-mcp-unit` / `make test-mcp-smoke` | MCP stdio server |
 
-**CI on GitHub:** workflows run when the commit message contains `CI_start`, or via `gh workflow run CI`. The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
+**CI on GitHub:** workflows run on every push/PR (or via `gh workflow run CI`). The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
 
 **Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main`. CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
 

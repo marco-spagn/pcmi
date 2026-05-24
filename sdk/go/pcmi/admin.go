@@ -7,8 +7,11 @@ import (
 )
 
 // ListTenants returns admin tenants (GET /v1/admin/tenants).
-func (c *Client) ListTenants(ctx context.Context, limit int) (map[string]any, error) {
+func (c *Client) ListTenants(ctx context.Context, limit int, cursor string) (map[string]any, error) {
 	q := url.Values{"limit": {strconv.Itoa(limit)}}
+	if cursor != "" {
+		q.Set("cursor", cursor)
+	}
 	var out map[string]any
 	if err := c.doJSON(ctx, "GET", "/v1/admin/tenants?"+q.Encode(), nil, &out); err != nil {
 		return nil, err
@@ -30,10 +33,13 @@ func (c *Client) CreateTenant(ctx context.Context, slug, name string, settings m
 }
 
 // ListAPIKeys lists API keys (GET /v1/admin/api-keys).
-func (c *Client) ListAPIKeys(ctx context.Context, tenantID string, limit int) (map[string]any, error) {
+func (c *Client) ListAPIKeys(ctx context.Context, tenantID string, limit int, cursor string) (map[string]any, error) {
 	q := url.Values{"limit": {strconv.Itoa(limit)}}
 	if tenantID != "" {
 		q.Set("tenant_id", tenantID)
+	}
+	if cursor != "" {
+		q.Set("cursor", cursor)
 	}
 	var out map[string]any
 	if err := c.doJSON(ctx, "GET", "/v1/admin/api-keys?"+q.Encode(), nil, &out); err != nil {

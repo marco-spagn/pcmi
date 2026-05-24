@@ -159,7 +159,10 @@ func (c *StreamConsumer) Consume(ctx context.Context, handler StreamHandler) err
 }
 
 func (c *StreamConsumer) ack(ctx context.Context, ids ...string) error {
-	return c.client.XAck(ctx, c.stream, c.group, ids...).Err()
+	// ACK must complete even when the read loop ctx is cancelled (shutdown, test teardown).
+	ackCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	return c.client.XAck(ackCtx, c.stream, c.group, ids...).Err()
 }
 
 func decodeStreamMessage(msg redis.XMessage) (Event, error) {

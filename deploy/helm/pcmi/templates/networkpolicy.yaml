@@ -12,8 +12,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      {{- include "pcmi.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: api
+      {{- include "pcmi.api.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress
@@ -54,8 +53,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      {{- include "pcmi.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: worker
+      {{- include "pcmi.worker.selectorLabels" . | nindent 6 }}
   policyTypes:
     - Ingress
     - Egress

@@ -32,14 +32,10 @@ func TestDistillationJobContextDeadline(t *testing.T) {
 // with no DB does not panic (nil-safe guard).
 func TestMarkRunCompleted_NilDB(t *testing.T) {
 	w := &DistillationWorker{} // db is nil
-	// Must not panic — the function logs a warning and returns.
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("markRunCompleted panicked with nil db: %v", r)
 		}
 	}()
-	ctx := context.Background()
-	// Calling with nil db will hit the db.Exec path — the nil check is
-	// handled by the pgxpool returning an error, not a panic.
-	_ = ctx
+	w.markRunCompleted(context.Background(), "00000000-0000-0000-0000-000000000000", 1)
 }

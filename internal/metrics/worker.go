@@ -102,6 +102,29 @@ func IncDistillationQueued() { distillationQueuedJobs.Inc() }
 // DecDistillationQueued decrements the queued-jobs gauge.
 func DecDistillationQueued() { distillationQueuedJobs.Dec() }
 
+// ── Webhook delivery metrics ──────────────────────────────────────────────────
+
+var (
+	webhookDeadLetterTotal = promauto.With(WorkerRegistry).NewCounter(
+		prometheus.CounterOpts{
+			Name: "pcmi_webhook_dead_letter_total",
+			Help: "Webhook deliveries moved to dead-letter after exhausting retries",
+		},
+	)
+	webhookPendingOldestAge = promauto.With(WorkerRegistry).NewGauge(
+		prometheus.GaugeOpts{
+			Name: "pcmi_webhook_pending_oldest_age_seconds",
+			Help: "Age in seconds of the oldest pending webhook delivery",
+		},
+	)
+)
+
+// IncWebhookDeadLetter increments when a delivery enters dead-letter status.
+func IncWebhookDeadLetter() { webhookDeadLetterTotal.Inc() }
+
+// SetWebhookPendingOldestAge sets the age gauge (0 when no pending deliveries).
+func SetWebhookPendingOldestAge(seconds float64) { webhookPendingOldestAge.Set(seconds) }
+
 // ── Embedding circuit breaker metrics ───────────────────────────────────────────
 
 const (

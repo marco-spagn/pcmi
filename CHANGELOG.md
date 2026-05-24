@@ -9,6 +9,20 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added — audit fixes (10 missing features)
+
+- **`cmd/migrate`**: idempotent migration runner (`schema_migrations` tracking); built into the legacy Dockerfile as `/pcmi-migrate`; Helm init-container when `migrations.enabled=true`.
+- **Helm**: `networkpolicy.yaml` (API + worker isolation), `worker-hpa.yaml` (custom metric `pcmi_distillation_queued_jobs`), `values.yaml` keys `networkPolicy`, `migrations`, `worker.autoscaling`.
+- **Prometheus**: webhook dead-letter alert rules in `deploy/prometheus/alerts.yaml`.
+- **Embedding**: `ValidateModelDimension()` at startup — fails fast when `EMBEDDING_MODEL` native dimension ≠ DB `VECTOR(1536)`.
+- **Python SDK**: session lifecycle (`create_session`, `end_session`, `store_session_memory`, `list_session_memories`, `promote_session`).
+
+### Fixed
+
+- **Worker distillation**: 3-minute job timeout; `distillation_runs` rows marked `completed` after success.
+- **Import**: ltree path validation per entry; generic `store failed` instead of raw DB errors.
+- **Rate limit**: startup warning when using in-memory backend with multiple API replicas.
+
 ### Changed — CI/CD refactor
 
 - **Workflow** (`.github/workflows/ci.yml`): documented job DAG, per-job `timeout-minutes`, concurrency cancel-in-progress, failure log artifacts for smoke/E2E.

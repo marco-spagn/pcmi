@@ -316,6 +316,9 @@ func (w *DistillationWorker) hasDuplicateDistillation(ctx context.Context, tenan
 // FIX-4: without this, all distillation_runs rows stayed in 'running' forever
 // regardless of outcome, making the runs history table useless for monitoring.
 func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID string, distilledID int64) {
+	if w.db == nil {
+		return
+	}
 	_, err := w.db.Exec(ctx, `
 		UPDATE distillation_runs
 		SET    status       = 'completed',

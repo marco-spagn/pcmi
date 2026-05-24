@@ -228,6 +228,8 @@ func TestPrometheusAlertsReferenceKnownMetrics(t *testing.T) {
 		"pcmi_distillation_sources_per_job",
 		"pcmi_distillation_active_jobs",
 		"pcmi_distillation_queued_jobs",
+		"pcmi_webhook_dead_letter_total",
+		"pcmi_webhook_pending_oldest_age_seconds",
 	}
 	hasKnown := func(expr string) bool {
 		for _, m := range knownMetrics {

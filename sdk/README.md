@@ -6,7 +6,7 @@ Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput stor
 
 | Path | Runtime | Notes |
 |------|---------|--------|
-| `python/pcmi/` | Python 3.10+, `httpx` | Async `PCMIClient` |
+| `python/pcmi/` | Python 3.10+, `httpx` | Async `PCMIClient` (store, retrieve, sessions, webhooks, …) |
 | `typescript/src/` | Node / browser `fetch` | `PCMIClient` class |
 | `go/pcmi/` | Go 1.25+, stdlib | `pcmi.Client` |
 
@@ -15,6 +15,7 @@ Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput stor
 | Capability | gRPC | HTTP SDK |
 |------------|------|----------|
 | Store / retrieve / batch | Yes | Yes |
+| Sessions (working memory, promote) | Yes | Yes (Go, Python, TS) |
 | Compact, refine, links, stats | Yes (gRPC v1.28+) | Yes |
 | SSE events, webhooks, migrate, export | Yes (gRPC v1.29+) | Yes |
 | Admin tenants/keys | Yes (`AdminService`) | Yes (HTTP — SDK uses REST) |

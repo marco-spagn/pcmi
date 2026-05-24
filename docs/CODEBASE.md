@@ -140,7 +140,7 @@ Smoke/E2E per CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**),
 
 ## `examples/`
 
-Celery e Temporal minimi che chiamano l’API HTTP; vedi `examples/README.md`.
+Celery, Temporal e esempi AI framework (LangChain, LlamaIndex, AutoGen, CrewAI) che chiamano l’API HTTP; vedi `examples/README.md`.
 
 ## Test
 

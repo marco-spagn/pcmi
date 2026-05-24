@@ -3,7 +3,7 @@
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
-        changelog-unreleased changelog-tag \
+        changelog-unreleased changelog-tag examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -149,6 +149,25 @@ test-branch-manual: test-all-local
 # Workflows, compose, openapi, Helm chart YAML/JSON, scripts bash -n, proto markers (no cluster).
 deploy-structural-test:
 	go test -race -count=1 ./internal/deploy/...
+
+# AI framework examples (PCMI-016): structural smoke only (no pip / no API).
+EXAMPLES_AI_DIRS = langchain llamaindex autogen crewai
+
+examples-smoke-structural:
+	@for dir in $(EXAMPLES_AI_DIRS); do \
+		echo "[examples] $$dir structural"; \
+		cd examples/$$dir && python3 smoke_test.py && cd ../..; \
+	done
+
+# Live smoke: requires infra-up, pip install per example, PCMI_API_KEY.
+examples-smoke: infra-up
+	@for dir in $(EXAMPLES_AI_DIRS); do \
+		echo "[examples] $$dir"; \
+		cd examples/$$dir && python3 -m pip install -q -r requirements.txt && \
+			PCMI_BASE_URL=$(API_URL) PCMI_API_KEY=$(GRPC_TEST_API_KEY) PCMI_SMOKE_LIVE=1 python3 smoke_test.py && \
+			cd ../..; \
+	done
+	$(MAKE) infra-down
 
 # Release notes via git-cliff (see cliff.toml, docs/API-VERSIONING.md). Requires git-cliff on PATH.
 changelog-unreleased:

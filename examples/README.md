@@ -6,6 +6,12 @@ Reference clients that call the **HTTP API** from common orchestrators. They are
 |-----------|-------------|
 | [celery/](celery/) | Celery tasks: store + retrieve over HTTP (`httpx`). |
 | [temporal/](temporal/) | Temporal workflow + activities calling PCMI asynchronously. |
+| [langchain/](langchain/) | LangChain tools: store, retrieve, session working memory. |
+| [llamaindex/](llamaindex/) | LlamaIndex `FunctionTool` wrappers for store / retrieve. |
+| [autogen/](autogen/) | AutoGen AgentChat `FunctionTool` for store / retrieve. |
+| [crewai/](crewai/) | CrewAI `@tool` functions for store / retrieve. |
+
+Shared HTTP helpers for the AI framework samples: [`pcmi_http.py`](pcmi_http.py) (not a production SDK).
 
 Shared environment (see each README):
 

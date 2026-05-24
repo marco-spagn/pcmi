@@ -417,4 +417,4 @@ Vedi [DATA-MODEL.md](DATA-MODEL.md).
 
 - [retrieval-pipeline.md](retrieval-pipeline.md) — come funziona il ranking.
 - [failure-modes.md](failure-modes.md) — resilienza.
-- [examples/README.md](../examples/README.md) — Celery / Temporal.
+- [examples/README.md](../examples/README.md) — Celery / Temporal / LangChain / LlamaIndex / AutoGen / CrewAI.

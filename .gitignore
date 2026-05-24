@@ -71,6 +71,10 @@ coverage-badge.txt
 # Smoke script venv (local only)
 examples/temporal/.venv_smoke/
 examples/celery/.venv_smoke/
+examples/langchain/.venv/
+examples/llamaindex/.venv/
+examples/autogen/.venv/
+examples/crewai/.venv/
 sdk/python/.venv/
 sdk/python/pcmi.egg-info/
 sdk/typescript/node_modules/

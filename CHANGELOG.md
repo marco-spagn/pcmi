@@ -17,6 +17,15 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - **Docs**: [docs/local-ci.md](docs/local-ci.md) matrix, CONTRIBUTING and PR template aligned.
 - **Coverage badge**: `go` job commits `badges/coverage.json` to `main` when changed (`[skip ci]`, `paths-ignore: badges/**`). Branch protection must allow **GitHub Actions** bypass (or optional `BADGE_UPDATE_TOKEN` PAT) — see [docs/github-branch-protection.md](docs/github-branch-protection.md).
 
+## [1.49.0] — 2026-05-24
+
+### Added — AI framework examples (PCMI-016)
+
+- **`examples/langchain`**, **`examples/llamaindex`**, **`examples/autogen`**, **`examples/crewai`**: minimal store / retrieve (and LangChain session working memory) via shared [`examples/pcmi_http.py`](examples/pcmi_http.py).
+- Each directory includes `README.md`, `requirements.txt`, `main.py`, and `smoke_test.py` (structural by default; set `PCMI_SMOKE_LIVE=1` for live API checks).
+- **Makefile**: `examples-smoke-structural`, `examples-smoke` (Docker infra + live smoke).
+- **Tests**: `internal/deploy/examples_test.go` layout guard.
+
 ## [1.48.0] — 2026-05-24
 
 ### Added — Changelog & API versioning policy (PCMI-015)

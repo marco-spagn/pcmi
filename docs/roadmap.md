@@ -1,6 +1,11 @@
 # PCMI evolution roadmap
 
-## v1.48.0 (current)
+## v1.49.0 (current)
+
+- **AI framework examples** (PCMI-016): LangChain, LlamaIndex, AutoGen AgentChat, CrewAI — minimal HTTP integration under `examples/`.
+- API version `v1.49.0`.
+
+## v1.48.0
 
 - **API versioning policy**: [API-VERSIONING.md](API-VERSIONING.md), `cliff.toml`, Release workflow on `v*` tags.
 - API version `v1.48.0`.

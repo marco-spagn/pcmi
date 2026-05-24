@@ -236,7 +236,7 @@ Optional technical report (PDF build): [docs/papers/](docs/papers/).
 | [`proto/`](proto/) | Protobuf definitions |
 | [`migrations/`](migrations/) | SQL schema (`001`–`012`) |
 | [`sdk/`](sdk/) | Python & TypeScript HTTP clients |
-| [`examples/`](examples/) | Celery & Temporal integration samples |
+| [`examples/`](examples/) | Celery, Temporal, LangChain, LlamaIndex, AutoGen, CrewAI samples |
 | [`deploy/helm/`](deploy/helm/) | Primary Kubernetes packaging |
 | [`deploy/k8s/`](deploy/k8s/) | Static manifests (non-Helm) |
 | [`k8s/`](k8s/) | **Deprecated** — use `deploy/helm/` |

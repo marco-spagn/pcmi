@@ -1,0 +1,3 @@
+httpx>=0.27,<1
+autogen-agentchat>=0.4.0,<0.5
+autogen-core>=0.4.0,<0.5

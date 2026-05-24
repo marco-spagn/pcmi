@@ -76,7 +76,7 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 
 | Document | Content |
 |----------|---------|
-| [../examples/README.md](../examples/README.md) | Celery, Temporal |
+| [../examples/README.md](../examples/README.md) | Celery, Temporal, LangChain, LlamaIndex, AutoGen, CrewAI |
 | [roadmap.md](roadmap.md) | Release evolution |
 | [high-lev-arch.md](high-lev-arch.md) | Long-form architecture vision |
 

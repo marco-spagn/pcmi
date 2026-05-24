@@ -369,21 +369,8 @@ act-vuln: act-preflight
 # emulate. Locally we get an identical scan by running the upstream image
 # directly — same severity, same exit code, same flags as the workflow.
 act-trivy:
-	@echo "[act-trivy] building images…"
-	docker build -f Dockerfile.api    -t pcmi-api:ci    .
-	docker build -f Dockerfile.worker -t pcmi-worker:ci .
-	@for img in pcmi-api:ci pcmi-worker:ci; do \
-	  echo "[act-trivy] scanning $$img"; \
-	  docker run --rm \
-	    -v /var/run/docker.sock:/var/run/docker.sock \
-	    aquasec/trivy:latest image \
-	    --severity HIGH,CRITICAL \
-	    --exit-code 1 \
-	    --ignore-unfixed \
-	    --pkg-types os,library \
-	    --scanners vuln \
-	    "$$img" || exit 1; \
-	done
+	@chmod +x scripts/ci/trivy_images.sh
+	bash scripts/ci/trivy_images.sh
 
 # Full integration smoke outside act — same scripts as CI, but Postgres/Redis via
 # docker compose on your machine (see scripts/act_integration_smoke_host.sh).
@@ -401,7 +388,7 @@ act-integration-smoke: act-preflight
 test-all: ci-like-github
 
 ci-like-github: act-preflight
-	@chmod +x scripts/ci_like_github.sh scripts/free_dev_ports.sh
+	@chmod +x scripts/ci_like_github.sh scripts/free_dev_ports.sh scripts/ci/*.sh scripts/ci/phases/*.sh
 	bash scripts/ci_like_github.sh
 
 # Simulazione production-like: CI host + E2E OpenAI (se chiave) + MCP + importance + sessions.

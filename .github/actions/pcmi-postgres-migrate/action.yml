@@ -1,0 +1,18 @@
+name: Postgres wait and migrations
+description: Waits for Postgres service and applies migrations/*.sql
+inputs:
+  host:
+    description: Postgres host
+    required: false
+    default: '127.0.0.1'
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        PGHOST: ${{ inputs.host }}
+        PGPASSWORD: pcmi
+      run: |
+        set -euo pipefail
+        chmod +x scripts/ci/migrate_postgres.sh
+        scripts/ci/migrate_postgres.sh

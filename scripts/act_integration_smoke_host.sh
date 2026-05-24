@@ -16,7 +16,7 @@
 # Env:
 #   ACT_SMOKE_FRESH_DB — if 1 (default), runs `docker compose down -v` first (destructive).
 #   DOCKER_COMPOSE — override for the compose binary (default: "docker compose").
-#   PCMI_EXPECT_VERSION / EXPECT_API_VERSION — same as CI (default v1.33.0).
+#   PCMI_EXPECT_VERSION / EXPECT_API_VERSION — from scripts/ci/resolve_version.sh if unset.
 #   Do not use `docker compose up --wait` for first-time Postgres: Compose marks the
 #   service healthy while initdb's bootstrap instance still runs migrations; the
 #   published :5432 port is only reliable after the final restart. We wait using
@@ -32,8 +32,8 @@ FRESH="${ACT_SMOKE_FRESH_DB:-1}"
 # shellcheck source=compose_postgres_wait.inc.sh
 source "$ROOT/scripts/compose_postgres_wait.inc.sh"
 
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.47.0}"
-export EXPECT_API_VERSION="${EXPECT_API_VERSION:-v1.47.0}"
+# shellcheck source=ci/resolve_version.sh
+source "$ROOT/scripts/ci/resolve_version.sh"
 export PGHOST="${PGHOST:-127.0.0.1}"
 export API="${API:-http://127.0.0.1:8000}"
 
@@ -91,38 +91,21 @@ export EXPIRY_INTERVAL_SECS="${EXPIRY_INTERVAL_SECS:-2}"
 export WEBHOOK_MAX_ATTEMPTS="${WEBHOOK_MAX_ATTEMPTS:-2}"
 
 echo "[act-integration-smoke] building API + worker"
-go build -o bin/pcmi-api ./cmd/api
-go build -o bin/pcmi-worker ./cmd/worker
-
-rm -f api.log worker.log
-./bin/pcmi-api > api.log 2>&1 &
-api_pid=$!
-./bin/pcmi-worker > worker.log 2>&1 &
-worker_pid=$!
+rm -f api.log worker.log api.pid worker.pid
+chmod +x scripts/ci/start_api_worker.sh scripts/ci/wait_api_health.sh scripts/ci/stop_api_worker.sh
+scripts/ci/start_api_worker.sh
 
 cleanup() {
-  kill "$api_pid" "$worker_pid" 2>/dev/null || true
-  wait "$api_pid" 2>/dev/null || true
-  wait "$worker_pid" 2>/dev/null || true
+  scripts/ci/stop_api_worker.sh
 }
 trap cleanup EXIT
 
 echo "[act-integration-smoke] waiting for HTTP /v1/health …"
-ok=0
-for i in $(seq 1 45); do
-  if curl -sf "http://127.0.0.1:${API_PORT}/v1/health" >/dev/null; then
-    ok=1
-    echo "API healthy"
-    break
-  fi
-  sleep 2
-done
-if [ "$ok" != "1" ]; then
-  echo "[act-integration-smoke] API did not become healthy"
+API_URL="http://127.0.0.1:${API_PORT}/v1/health" scripts/ci/wait_api_health.sh || {
   cat api.log || true
   cat worker.log || true
   exit 1
-fi
+}
 
 chmod +x scripts/ci_integration_smoke.sh scripts/ci_sdk_smoke.sh
 ./scripts/ci_integration_smoke.sh

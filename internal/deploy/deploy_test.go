@@ -378,10 +378,16 @@ func TestCITrivyActionTagFormat(t *testing.T) {
 		idx = end
 	}
 	if found == 0 {
-		// Workflow does not use the wrapper. Make sure the direct-docker
-		// equivalent is in place so Trivy scanning isn't quietly disabled.
-		if !strings.Contains(body, "aquasec/trivy:latest") {
-			t.Error("workflow has no aquasecurity/trivy-action `uses:` AND no `aquasec/trivy:latest` docker invocation — Trivy scanning seems disabled")
+		// Workflow does not use the wrapper. Trivy must remain via docker image
+		// in ci.yml or in scripts/ci/trivy_images.sh (shared with make act-trivy).
+		trivyOK := strings.Contains(body, "aquasec/trivy:latest")
+		if !trivyOK && strings.Contains(body, "scripts/ci/trivy_images.sh") {
+			scriptPath := filepath.Join(repoRoot(t), "scripts", "ci", "trivy_images.sh")
+			scriptBody := string(readFile(t, scriptPath))
+			trivyOK = strings.Contains(scriptBody, "aquasec/trivy:latest")
+		}
+		if !trivyOK {
+			t.Error("workflow has no aquasecurity/trivy-action `uses:` AND no `aquasec/trivy:latest` (in ci.yml or scripts/ci/trivy_images.sh) — Trivy scanning seems disabled")
 		}
 	}
 }

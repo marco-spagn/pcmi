@@ -10,8 +10,11 @@ PGHOST="${PGHOST:-localhost}"
 
 API="${API:-http://localhost:8000}"
 KEY="${PCMI_API_KEY:-testkey123}"
-export PCMI_EXPECT_VERSION="${PCMI_EXPECT_VERSION:-v1.47.0}"
-VER="${EXPECT_API_VERSION:-v1.47.0}"
+if [[ -z "${PCMI_EXPECT_VERSION:-}" || -z "${EXPECT_API_VERSION:-}" ]]; then
+  # shellcheck source=ci/resolve_version.sh
+  source "$ROOT/scripts/ci/resolve_version.sh"
+fi
+VER="${EXPECT_API_VERSION}"
 hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${KEY}")
 
 echo "== Readiness /v1/ready =="

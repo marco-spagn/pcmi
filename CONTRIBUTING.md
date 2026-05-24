@@ -126,6 +126,8 @@ See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/
 
 ## Versioning and releases
 
+See **[docs/API-VERSIONING.md](docs/API-VERSIONING.md)** for SemVer rules, the release checklist, conventional commits, and the tagged release workflow.
+
 The public API version is defined in one place:
 
 ```go
@@ -143,6 +145,8 @@ When bumping a release, also update:
 CI and local smoke read the API tag from `internal/version/version.go` via `scripts/ci/resolve_version.sh` — do not hardcode versions in `.github/workflows/ci.yml`.
 
 Semantic versioning applies to the **HTTP/gRPC API contract**, not individual SDK package versions.
+
+Tagged releases (`git tag vX.Y.Z` matching `version.go`) trigger **Release** workflow notes via `git-cliff` (`cliff.toml`). Preview locally with `make changelog-unreleased`.
 
 ## Database migrations
 

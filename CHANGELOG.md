@@ -17,6 +17,16 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - **Docs**: [docs/local-ci.md](docs/local-ci.md) matrix, CONTRIBUTING and PR template aligned.
 - **Coverage badge**: `go` job commits `badges/coverage.json` to `main` when changed (`[skip ci]`, `paths-ignore: badges/**`). Branch protection must allow **GitHub Actions** bypass (or optional `BADGE_UPDATE_TOKEN` PAT) — see [docs/github-branch-protection.md](docs/github-branch-protection.md).
 
+## [1.48.0] — 2026-05-24
+
+### Added — Changelog & API versioning policy (PCMI-015)
+
+- **[docs/API-VERSIONING.md](docs/API-VERSIONING.md)**: SemVer rules for the HTTP/gRPC contract, release checklist, conventional commits, and client expectations.
+- **`cliff.toml`**: [git-cliff](https://git-cliff.org/) configuration (Keep a Changelog groupings).
+- **[`.github/workflows/release.yml`](.github/workflows/release.yml)**: on tag `vX.Y.Z`, verify tag matches `internal/version/version.go`, generate notes with git-cliff, publish GitHub Release.
+- **Makefile**: `changelog-unreleased`, `changelog-tag TAG=vX.Y.Z`.
+- **Tests**: `internal/deploy` guards for release workflow, `cliff.toml`, and API versioning doc.
+
 ## [1.47.0] — 2026-05-24
 
 ### Added — Cursor-based pagination (PCMI-014)

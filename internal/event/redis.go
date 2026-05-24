@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"os"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -25,7 +26,11 @@ func SetWebhookNotifier(fn func(tenantID, eventType string, payload map[string]a
 	webhookNotify = fn
 }
 
-// InitRedis initializes Redis connection
+// InitRedis initializes the Redis connection with exponential-backoff retry.
+// BUG-FIX-4: the original code called log.Fatalf on the first Ping failure,
+// killing the process for any transient Redis unavailability at startup
+// (e.g. K8s rolling deploy where Redis pod is briefly in Terminating state).
+// We now retry 6 times (max ~32 s total) before giving up.
 func InitRedis(addr string) {
 	if RedisClient != nil {
 		_ = RedisClient.Close()
@@ -36,11 +41,26 @@ func InitRedis(addr string) {
 		DB:       0,
 	})
 
-	_, err := RedisClient.Ping(ctx).Result()
-	if err != nil {
-		log.Fatalf("❌ Failed to connect to Redis: %v", err)
+	const maxAttempts = 6
+	backoff := 500 * time.Millisecond
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		_, err := RedisClient.Ping(ctx).Result()
+		if err == nil {
+			log.Println("✅ Connected to Redis")
+			return
+		}
+		if attempt == maxAttempts {
+			// Only fatal after all retries exhausted.
+			log.Fatalf("❌ Failed to connect to Redis after %d attempts: %v", maxAttempts, err)
+		}
+		log.Printf("⏳ Redis not ready (attempt %d/%d): %v — retrying in %s",
+			attempt, maxAttempts, err, backoff)
+		time.Sleep(backoff)
+		backoff *= 2
+		if backoff > 16*time.Second {
+			backoff = 16 * time.Second
+		}
 	}
-	log.Println("✅ Connected to Redis")
 }
 
 // PublishEvent publishes an event to Redis (streams by default, pub/sub when EVENT_BACKEND=pubsub).

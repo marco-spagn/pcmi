@@ -69,8 +69,14 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		c.Locals(RoleContextKey, role)
 		c.Locals(TenantContextKey, tenantID)
 
-		// Imposta tenant nel DB per RLS
-		_, _ = db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID)
+		// BUG-FIX-5: set_tenant_context activates PostgreSQL RLS for this
+		// connection. Silently ignoring the error (_, _ = ...) means that on
+		// a DB hiccup the request proceeds without tenant isolation, risking
+		// cross-tenant data exposure. Return 503 instead.
+		if _, err := db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+			log.Printf("❌ set_tenant_context failed for tenant=%s: %v", tenantID, err)
+			return c.Status(503).JSON(fiber.Map{"error": "tenant context unavailable, please retry"})
+		}
 
 		touchAPIKeyLastUsed(db, apiKeyID, c.IP())
 

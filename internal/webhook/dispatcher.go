@@ -52,6 +52,7 @@ type endpoint struct {
 
 type pendingDelivery struct {
 	ID         string
+	TenantID   string // BUG-FIX-3: needed to set RLS context before UPDATE
 	EndpointID string
 	URL        string
 	Secret     string
@@ -155,8 +156,12 @@ func (d *Dispatcher) processPending() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	// BUG-FIX-3: include wd.tenant_id in the SELECT so we can call
+	// set_tenant_context before each UPDATE, preventing a stale RLS
+	// context from a previous pool connection leaking across tenants.
 	rows, err := d.db.Query(ctx, `
-		SELECT wd.id::text, wd.endpoint_id::text, we.url, COALESCE(we.secret, ''),
+		SELECT wd.id::text, wd.tenant_id::text, wd.endpoint_id::text,
+		       we.url, COALESCE(we.secret, ''),
 		       wd.event_type, wd.attempts, wd.payload
 		FROM webhook_deliveries wd
 		JOIN webhook_endpoints we ON we.id = wd.endpoint_id
@@ -176,7 +181,7 @@ func (d *Dispatcher) processPending() {
 	for rows.Next() {
 		var pd pendingDelivery
 		var payload map[string]any
-		if err := rows.Scan(&pd.ID, &pd.EndpointID, &pd.URL, &pd.Secret, &pd.EventType, &pd.Attempts, &payload); err != nil {
+		if err := rows.Scan(&pd.ID, &pd.TenantID, &pd.EndpointID, &pd.URL, &pd.Secret, &pd.EventType, &pd.Attempts, &payload); err != nil {
 			continue
 		}
 		body, err := json.Marshal(map[string]any{
@@ -201,6 +206,15 @@ func (d *Dispatcher) processPending() {
 }
 
 func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
+	// BUG-FIX-3: set tenant context before any UPDATE to keep RLS
+	// correct even when the pgxpool reuses a connection that had a
+	// different tenant set by the previous caller.
+	if pd.TenantID != "" {
+		if _, err := d.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", pd.TenantID); err != nil {
+			log.Printf("webhook attempt: set_tenant_context failed for delivery %s: %v", pd.ID, err)
+			return
+		}
+	}
 	del := NewDelivery(pd.ID, pd.URL, pd.Secret, pd.Body, 0)
 	err := del.Post(ctx, d.client)
 	attempts := pd.Attempts + 1

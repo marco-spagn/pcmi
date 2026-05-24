@@ -138,6 +138,10 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 		FROM memory_entries
 		WHERE tenant_id = $1::uuid
 		  AND path <@ $2::ltree
+		  -- BUG-FIX-2: exclude .distilled sub-paths so that already-distilled
+		  -- knowledge is never re-fed into the next distillation cycle, which would
+		  -- cause content drift and inflated source_entry_ids on every tick.
+		  AND NOT (path ~ ($2 || '.distilled{1,}')::lquery)
 		  AND valid_to IS NULL
 		ORDER BY created_at DESC
 		LIMIT $3`, tenantID, pathPrefix, batchSize)
@@ -215,6 +219,13 @@ Return ONLY valid JSON:
 		return
 	}
 
+	// BUG-FIX-1: guard against empty Choices (OpenAI API can return 0 choices on
+	// content-filter or rate-limit soft errors without returning an HTTP error code).
+	if len(resp.Choices) == 0 {
+		log.Printf("❌ LLM returned 0 choices (finish_reason may be 'content_filter')")
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
+		return
+	}
 	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
 	if err != nil {
 		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)

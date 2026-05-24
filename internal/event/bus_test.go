@@ -8,6 +8,7 @@ import (
 func TestBusPublishSubscribe(t *testing.T) {
 	bus := NewBus()
 	ch := bus.Subscribe(EventMemoryStored)
+	defer bus.Unsubscribe(EventMemoryStored, ch)
 
 	bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"id": 1}})
 
@@ -26,7 +27,8 @@ func TestBusPublishSubscribe(t *testing.T) {
 
 func TestBusPublishNonBlockingWhenChannelsFull(t *testing.T) {
 	bus := NewBus()
-	_ = bus.Subscribe(EventMemoryStored)
+	ch := bus.Subscribe(EventMemoryStored)
+	defer bus.Unsubscribe(EventMemoryStored, ch)
 	// Buffer is 10; extra publishes must not block the publisher.
 	for i := 0; i < 50; i++ {
 		bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"i": i}})

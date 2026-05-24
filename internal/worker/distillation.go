@@ -121,7 +121,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
-	distilledPath := pathPrefix + ".distilled"
+	distilledPath := distilledBranchPath(pathPrefix)
 
 	ctx := context.Background()
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
@@ -133,14 +133,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	batchSize := w.batchSize
 	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
 
-	rows, err := w.db.Query(ctx, `
-		SELECT id, content, metadata
-		FROM memory_entries
-		WHERE tenant_id = $1::uuid
-		  AND path <@ $2::ltree
-		  AND valid_to IS NULL
-		ORDER BY created_at DESC
-		LIMIT $3`, tenantID, pathPrefix, batchSize)
+	rows, err := w.db.Query(ctx, distillationSourceEntriesSQL(), tenantID, pathPrefix, batchSize)
 	if err != nil {
 		log.Printf("❌ distillation query error: %v", err)
 		return
@@ -215,6 +208,13 @@ Return ONLY valid JSON:
 		return
 	}
 
+	// BUG-FIX-1: guard against empty Choices (OpenAI API can return 0 choices on
+	// content-filter or rate-limit soft errors without returning an HTTP error code).
+	if len(resp.Choices) == 0 {
+		log.Printf("❌ LLM returned 0 choices (finish_reason may be 'content_filter')")
+		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
+		return
+	}
 	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
 	if err != nil {
 		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)

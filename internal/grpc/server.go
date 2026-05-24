@@ -68,7 +68,12 @@ func (s *memoryServer) resolveTenantAndRole(ctx context.Context, apiKey string) 
 	if err != nil || !active {
 		return "", "", status.Error(codes.Unauthenticated, "invalid API key")
 	}
-	_, _ = s.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID)
+	// BUG-FIX-7: gRPC path had the same silent-discard bug as the HTTP middleware
+	// (BUG-FIX-5). A failed set_tenant_context leaves RLS inactive on a pooled
+	// connection, potentially exposing another tenant's data.
+	if _, err := s.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+		return "", "", status.Errorf(codes.Unavailable, "tenant context unavailable: %v", err)
+	}
 	return tenantID, role, nil
 }
 

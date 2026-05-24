@@ -8,7 +8,9 @@ import (
 func TestBusMultipleSubscribers(t *testing.T) {
 	bus := NewBus()
 	ch1 := bus.Subscribe(EventMemoryStored)
+	defer bus.Unsubscribe(EventMemoryStored, ch1)
 	ch2 := bus.Subscribe(EventMemoryStored)
+	defer bus.Unsubscribe(EventMemoryStored, ch2)
 
 	bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"id": 42}})
 
@@ -33,7 +35,9 @@ func TestBusPublishNoSubscribers(t *testing.T) {
 func TestBusPublishDifferentTypes(t *testing.T) {
 	bus := NewBus()
 	chStored := bus.Subscribe(EventMemoryStored)
+	defer bus.Unsubscribe(EventMemoryStored, chStored)
 	chUpdated := bus.Subscribe(EventMemoryUpdated)
+	defer bus.Unsubscribe(EventMemoryUpdated, chUpdated)
 
 	bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"path": "root.a"}})
 
@@ -57,7 +61,9 @@ func TestBusPublishDifferentTypes(t *testing.T) {
 func TestBusSubscribeReturnsDifferentChannels(t *testing.T) {
 	bus := NewBus()
 	ch1 := bus.Subscribe(EventKnowledgeDistilled)
+	defer bus.Unsubscribe(EventKnowledgeDistilled, ch1)
 	ch2 := bus.Subscribe(EventKnowledgeDistilled)
+	defer bus.Unsubscribe(EventKnowledgeDistilled, ch2)
 	if ch1 == ch2 {
 		t.Fatal("Subscribe must return distinct channels for each subscriber")
 	}
@@ -66,6 +72,7 @@ func TestBusSubscribeReturnsDifferentChannels(t *testing.T) {
 func TestBusPublishNonBlocking(t *testing.T) {
 	bus := NewBus()
 	ch := bus.Subscribe(EventMemoryRefineRequested)
+	defer bus.Unsubscribe(EventMemoryRefineRequested, ch)
 
 	// Fill the buffer (capacity 10)
 	for i := 0; i < 20; i++ {

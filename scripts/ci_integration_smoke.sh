@@ -174,7 +174,7 @@ echo "== Webhook dead-letter =="
 curl -sf -X POST "${API}/v1/webhooks" "${hdr[@]}" -d '{"url":"http://127.0.0.1:9/dead","event_types":["memory.stored"],"secret":""}' | jq -e '.status == "registered"'
 curl -sf -X POST "${API}/v1/memories" "${hdr[@]}" -d "{\"path\":\"root.ci.dlq.${SUFFIX}\",\"content\":\"dlq\",\"metadata\":{}}" | jq -e '.id'
 for i in $(seq 1 30); do
-  n=$(curl -sf "${API}/v1/webhooks/dead-letter?limit=10" -H "X-API-Key: ${KEY}" | jq '.total')
+  n=$(curl -sf "${API}/v1/webhooks/dead-letter?limit=10" -H "X-API-Key: ${KEY}" | jq '.entries | length')
   if [ "${n:-0}" -ge 1 ]; then
     echo "dead-letter ok"
     break

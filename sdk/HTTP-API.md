@@ -42,6 +42,22 @@ OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 
 Admin methods require **admin** role (`testkey123` in default migrations). CI runs read-only `admin_smoke` / `admin-smoke.mts`.
 
+## List pagination (query params)
+
+| Query | Meaning |
+|-------|---------|
+| `limit` | Page size 1–200 (endpoint default, often 50) |
+| `cursor` | Opaque token from prior `next_cursor` |
+| `after_id` | Legacy alias when `cursor` is empty (not on admin tenants/keys or webhooks) |
+
+| Response field | Meaning |
+|----------------|---------|
+| `next_cursor` | Pass as `cursor` for the next page (empty when done) |
+| `has_more` | `true` if another page exists |
+| `total` | Present on audit (global count), admin tenants (global), history/distilled (rows in this page only) |
+
+Go: `ListTenants` / `ListAPIKeys` set `cursor` in the query string. Python `list_audit` still sends `offset` for compatibility; the server ignores offset and returns `offset: 0`.
+
 ## Store / retrieve options (HTTP)
 
 Both SDKs support parity fields on `store` / `retrieve`:

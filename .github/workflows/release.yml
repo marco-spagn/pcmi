@@ -1,0 +1,77 @@
+# PCMI — tagged API releases (PCMI-015).
+# Push tag vX.Y.Z (must match internal/version/version.go Tag) → GitHub Release with git-cliff notes.
+# Does not publish container images (see future docker-publish workflow).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)generate release notes for (e.g. v1.48.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "value=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: ${{ steps.tag.outputs.value }}
+
+      - name: Verify tag matches internal/version
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=scripts/ci/resolve_version.sh
+          source scripts/ci/resolve_version.sh
+          if [[ "$RELEASE_TAG" != "$PCMI_EXPECT_VERSION" ]]; then
+            echo "Tag $RELEASE_TAG does not match version.go Tag $PCMI_EXPECT_VERSION" >&2
+            exit 1
+          fi
+          echo "version.go Tag matches tag $RELEASE_TAG"
+
+      - name: Install git-cliff
+        uses: taiki-e/install-action@v2
+        with:
+          tool: git-cliff
+
+      - name: Generate release notes
+        id: notes
+        env:
+          RELEASE_TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          set -euo pipefail
+          git cliff --config cliff.toml --strip header --tag "$RELEASE_TAG" > release-notes.md
+          echo "path=release-notes.md" >> "$GITHUB_OUTPUT"
+          head -n 40 release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.value }}
+          name: ${{ steps.tag.outputs.value }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: false

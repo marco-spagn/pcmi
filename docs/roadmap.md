@@ -1,6 +1,16 @@
 # PCMI evolution roadmap
 
-## v1.33.0 (current)
+## v1.48.0 (current)
+
+- **API versioning policy**: [API-VERSIONING.md](API-VERSIONING.md), `cliff.toml`, Release workflow on `v*` tags.
+- API version `v1.48.0`.
+
+## v1.47.0
+
+- **Cursor pagination** (PCMI-014): keyset `cursor` / `next_cursor` / `has_more` on list endpoints.
+- API version `v1.47.0`.
+
+## v1.33.0
 
 - **gRPC Admin + Metrics**: `AdminService` (tenant/API keys) and `MetricsService` (`Scrape`, `StreamScrape`) on the gRPC plane; HTTP `GET /metrics` and admin routes remain for Prometheus and browsers.
 - **Admin UI**: embedded dashboard at `GET /v1/admin/ui`.

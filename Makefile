@@ -3,6 +3,7 @@
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        changelog-unreleased changelog-tag \
         helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -148,6 +149,16 @@ test-branch-manual: test-all-local
 # Workflows, compose, openapi, Helm chart YAML/JSON, scripts bash -n, proto markers (no cluster).
 deploy-structural-test:
 	go test -race -count=1 ./internal/deploy/...
+
+# Release notes via git-cliff (see cliff.toml, docs/API-VERSIONING.md). Requires git-cliff on PATH.
+changelog-unreleased:
+	@command -v git-cliff >/dev/null 2>&1 || (echo "install git-cliff: https://git-cliff.org/docs/installation/" && exit 1)
+	git cliff --config cliff.toml --unreleased
+
+changelog-tag:
+	@test -n "$(TAG)" || (echo "usage: make changelog-tag TAG=v1.48.0" && exit 1)
+	@command -v git-cliff >/dev/null 2>&1 || (echo "install git-cliff: https://git-cliff.org/docs/installation/" && exit 1)
+	git cliff --config cliff.toml --strip header --tag "$(TAG)"
 
 # Unit tests (default; integration tests use build tag "integration").
 test:

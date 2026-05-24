@@ -19,6 +19,9 @@ on:
       - main
       - release/**
       - develop
+      - feat/**
+      - feature/**
+    # Skipped only when every changed file matches (badge-only pushes on main).
     paths-ignore:
       - 'badges/**'
 

@@ -114,10 +114,50 @@ func TestCIWorkflowYAMLValid(t *testing.T) {
 		t.Error("ci.yml should paths-ignore badges/** on push to avoid badge-update CI loops")
 	}
 
+	on, ok := root["on"].(map[string]interface{})
+	if !ok || on == nil {
+		t.Fatal("missing on: triggers")
+	}
+	if _, ok := on["workflow_dispatch"]; !ok {
+		t.Error("ci.yml should allow workflow_dispatch")
+	}
+	pushBranches := eventBranchPatterns(t, on, "push")
+	prBranches := eventBranchPatterns(t, on, "pull_request")
+	for _, want := range []string{"main", "feat/**", "feature/**"} {
+		if !containsString(pushBranches, want) {
+			t.Errorf("on.push.branches: missing %q (got %v)", want, pushBranches)
+		}
+		if !containsString(prBranches, want) {
+			t.Errorf("on.pull_request.branches: missing %q (got %v)", want, prBranches)
+		}
+	}
+	pushPathsIgnore := eventPathsIgnore(t, on, "push")
+	if !containsString(pushPathsIgnore, "badges/**") {
+		t.Errorf("on.push.paths-ignore: want badges/** (got %v)", pushPathsIgnore)
+	}
+
 	resolveScript := filepath.Join(repo, "scripts/ci/resolve_version.sh")
 	if _, err := os.Stat(resolveScript); err != nil {
 		t.Errorf("missing %s: %v", resolveScript, err)
 	}
+}
+
+func eventBranchPatterns(t *testing.T, on map[string]interface{}, event string) []string {
+	t.Helper()
+	ev, ok := on[event].(map[string]interface{})
+	if !ok || ev == nil {
+		t.Fatalf("on.%s missing or not a map", event)
+	}
+	return stringSliceField(t, ev, "branches")
+}
+
+func eventPathsIgnore(t *testing.T, on map[string]interface{}, event string) []string {
+	t.Helper()
+	ev, ok := on[event].(map[string]interface{})
+	if !ok || ev == nil {
+		t.Fatalf("on.%s missing or not a map", event)
+	}
+	return stringSliceField(t, ev, "paths-ignore")
 }
 
 func stringSliceField(t *testing.T, m map[string]interface{}, key string) []string {

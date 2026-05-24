@@ -44,8 +44,13 @@ func SetupAdminRoutes(app *fiber.App, db repository.AdminQuerier) {
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
+		total, err := svc.CountTenants(c.Context())
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		}
 		return c.JSON(fiber.Map{
 			"tenants":     tenants,
+			"total":       total,
 			"limit":       pageParams.Limit,
 			"next_cursor": pageResp.NextCursor,
 			"has_more":    pageResp.HasMore,

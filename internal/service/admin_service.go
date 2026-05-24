@@ -33,6 +33,10 @@ func (s *AdminService) ListTenants(ctx context.Context, page model.PageRequest) 
 	return s.repo.ListTenants(ctx, page)
 }
 
+func (s *AdminService) CountTenants(ctx context.Context) (int, error) {
+	return s.repo.CountTenants(ctx)
+}
+
 func (s *AdminService) ListAPIKeys(ctx context.Context, tenantID string, page model.PageRequest) ([]map[string]interface{}, model.PageResponse, error) {
 	return s.repo.ListAPIKeys(ctx, tenantID, page)
 }

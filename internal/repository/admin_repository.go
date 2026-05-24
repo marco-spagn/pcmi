@@ -57,6 +57,15 @@ func (r *AdminRepository) CreateTenant(ctx context.Context, slug, name string, s
 
 const sortKeyTenantCreatedAt = model.SortKeyCreatedAtDesc
 
+// CountTenants returns the total number of tenants.
+func (r *AdminRepository) CountTenants(ctx context.Context) (int, error) {
+	var total int
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM tenants`).Scan(&total); err != nil {
+		return 0, fmt.Errorf("count tenants: %w", err)
+	}
+	return total, nil
+}
+
 func (r *AdminRepository) ListTenants(ctx context.Context, page model.PageRequest) ([]model.TenantResponse, model.PageResponse, error) {
 	limit := page.Limit
 	if limit <= 0 {

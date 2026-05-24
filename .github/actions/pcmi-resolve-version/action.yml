@@ -1,0 +1,17 @@
+name: Resolve PCMI API version
+description: Reads internal/version/version.go Tag for smoke and health checks
+outputs:
+  tag:
+    description: API version tag (e.g. v1.47.0)
+    value: ${{ steps.resolve.outputs.tag }}
+runs:
+  using: composite
+  steps:
+    - id: resolve
+      shell: bash
+      run: |
+        set -euo pipefail
+        # shellcheck disable=SC1091
+        source "${{ github.workspace }}/scripts/ci/resolve_version.sh"
+        echo "tag=${PCMI_EXPECT_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "Resolved API version: ${PCMI_EXPECT_VERSION}"

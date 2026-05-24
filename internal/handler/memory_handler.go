@@ -44,12 +44,20 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 				return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 			}
 		}
+		// BUG-FIX-11: validate ltree path client-side before reaching the DB.
+		// Without this, PostgreSQL returns error messages that reveal internal
+		// table structure (e.g. "invalid ltree label … SQLSTATE 22000") which
+		// are then forwarded verbatim to the client via err.Error().
+		if err := model.ValidateLtreePath(strings.TrimSpace(req.Path)); err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": "invalid path: " + err.Error()})
+		}
 
 		tenantID := c.Locals(middleware.TenantContextKey).(string)
 
 		result, err := svc.Store(c.Context(), &req, tenantID)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			// BUG-FIX-11: never forward raw DB errors to the client.
+			return c.Status(500).JSON(fiber.Map{"error": "store failed"})
 		}
 		if result.Action == "" || result.Action == model.StoreActionStored {
 			metrics.IncStore()
@@ -146,6 +154,12 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {
 			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		// BUG-FIX-11: validate path_prefix before DB call.
+		if p := strings.TrimSpace(req.PathPrefix); p != "" && p != "root" {
+			if err := model.ValidateLtreePath(p); err != nil {
+				return c.Status(400).JSON(fiber.Map{"error": "invalid path_prefix: " + err.Error()})
+			}
 		}
 
 		tenantID := c.Locals(middleware.TenantContextKey).(string)

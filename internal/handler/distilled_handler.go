@@ -124,6 +124,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"entries":     results,
+		"total":       len(results),
 		"tenant":      tenantID,
 		"limit":       pageParams.Limit,
 		"next_cursor": pageResp.NextCursor,

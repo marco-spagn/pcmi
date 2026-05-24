@@ -23,6 +23,16 @@ func (s *stubAudit) List(_ context.Context, _ string, _ model.PageRequest, _ *ti
 	return s.entries, s.page, s.err
 }
 
+func (s *stubAudit) Count(_ context.Context, _ string, _ *time.Time) (int, error) {
+	if s.err != nil {
+		return 0, s.err
+	}
+	if len(s.entries) > 0 {
+		return len(s.entries), nil
+	}
+	return 0, nil
+}
+
 func TestAuditHandlerList_invalidSince(t *testing.T) {
 	t.Parallel()
 	app := newTestApp(uuid.New().String(), "admin")
@@ -79,14 +89,16 @@ func TestAuditHandlerList_success(t *testing.T) {
 	}
 	var body struct {
 		Entries    []model.AuditEntry `json:"entries"`
+		Total      int                `json:"total"`
 		Limit      int                `json:"limit"`
+		Offset     int                `json:"offset"`
 		NextCursor string             `json:"next_cursor"`
 		HasMore    bool               `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Limit != 10 || !body.HasMore || body.NextCursor != "cursor-token" || len(body.Entries) != 1 {
+	if body.Limit != 10 || body.Total != 1 || body.Offset != 0 || !body.HasMore || body.NextCursor != "cursor-token" || len(body.Entries) != 1 {
 		t.Fatalf("unexpected %+v", body)
 	}
 }

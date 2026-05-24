@@ -17,6 +17,21 @@ func NewAuditRepository(db *pgxpool.Pool) *AuditRepository {
 	return &AuditRepository{db: db}
 }
 
+// Count returns the number of audit rows for a tenant (optional since filter).
+func (r *AuditRepository) Count(ctx context.Context, tenantID string, since *time.Time) (int, error) {
+	countQ := `SELECT COUNT(*) FROM audit_log WHERE tenant_id = $1::uuid`
+	args := []any{tenantID}
+	if since != nil {
+		countQ += ` AND created_at >= $2`
+		args = append(args, *since)
+	}
+	var total int
+	if err := r.db.QueryRow(ctx, countQ, args...).Scan(&total); err != nil {
+		return 0, fmt.Errorf("audit count: %w", err)
+	}
+	return total, nil
+}
+
 func (r *AuditRepository) List(
 	ctx context.Context,
 	tenantID string,

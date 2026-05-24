@@ -14,6 +14,7 @@ import (
 
 type auditLister interface {
 	List(ctx context.Context, tenantID string, page model.PageRequest, since *time.Time) ([]model.AuditEntry, model.PageResponse, error)
+	Count(ctx context.Context, tenantID string, since *time.Time) (int, error)
 }
 
 type AuditHandler struct {
@@ -49,9 +50,16 @@ func (h *AuditHandler) List(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	total, err := h.repo.Count(c.Context(), tenantID, since)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
 	return c.JSON(fiber.Map{
 		"entries":     entries,
+		"total":       total,
 		"limit":       pageParams.Limit,
+		"offset":      0,
 		"next_cursor": pageResp.NextCursor,
 		"has_more":    pageResp.HasMore,
 	})

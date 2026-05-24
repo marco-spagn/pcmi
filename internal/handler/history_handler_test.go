@@ -76,13 +76,14 @@ func TestHistoryHandlerGet_success(t *testing.T) {
 	var body struct {
 		Path    string              `json:"path"`
 		Entries []model.MemoryEntry `json:"entries"`
+		Total   int                 `json:"total"`
 		Limit   int                 `json:"limit"`
 		HasMore bool                `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Path != "root.a" || body.Limit != 10 || len(body.Entries) != 2 {
+	if body.Path != "root.a" || body.Limit != 10 || body.Total != 2 || len(body.Entries) != 2 {
 		t.Fatalf("unexpected %+v", body)
 	}
 }

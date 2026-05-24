@@ -47,6 +47,7 @@ func (h *HistoryHandler) Get(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"path":        path,
 		"entries":     entries,
+		"total":       len(entries),
 		"limit":       pageParams.Limit,
 		"next_cursor": pageResp.NextCursor,
 		"has_more":    pageResp.HasMore,

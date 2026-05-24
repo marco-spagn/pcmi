@@ -479,8 +479,13 @@ func (s *memoryServer) ListAudit(ctx context.Context, req *pcmiv1.ListAuditReque
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "audit: %v", err)
 	}
+	total, err := s.auditRepo.Count(ctx, tenantID, since)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "audit count: %v", err)
+	}
 	return toJSONResponse(map[string]any{
-		"entries": entries, "limit": limit, "next_cursor": pageResp.NextCursor, "has_more": pageResp.HasMore,
+		"entries": entries, "total": total, "limit": limit, "offset": 0,
+		"next_cursor": pageResp.NextCursor, "has_more": pageResp.HasMore,
 	})
 }
 

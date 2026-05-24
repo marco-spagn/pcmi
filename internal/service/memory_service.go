@@ -316,6 +316,16 @@ func (s *MemoryService) Import(ctx context.Context, tenantID string, req *model.
 	}
 	out := &model.MemoryImportResponse{}
 	for i, item := range req.Entries {
+		// FIX-7: Import bypasses the HTTP handler so ltree path validation
+		// was never applied — invalid paths produced raw DB errors recorded
+		// in the result with Error: err.Error() leaking schema details.
+		if err := model.ValidateLtreePath(strings.TrimSpace(item.Path)); err != nil {
+			out.Results = append(out.Results, model.BatchStoreItemResult{
+				Index: i, Status: "error",
+				Error: "invalid path: " + err.Error(),
+			})
+			continue
+		}
 		if mode == "skip" {
 			existing, err := s.repo.GetByPath(ctx, tenantID, item.Path, nil, nil)
 			if err == nil && existing != nil {
@@ -326,7 +336,10 @@ func (s *MemoryService) Import(ctx context.Context, tenantID string, req *model.
 		}
 		res, err := s.Store(ctx, &item, tenantID)
 		if err != nil {
-			out.Results = append(out.Results, model.BatchStoreItemResult{Index: i, Status: "error", Error: err.Error()})
+			out.Results = append(out.Results, model.BatchStoreItemResult{
+				Index: i, Status: "error",
+				Error: "store failed", // never expose raw DB errors
+			})
 			continue
 		}
 		out.Imported++

@@ -24,16 +24,20 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux \
-    go build -trimpath -ldflags="-s -w" -o /pcmi-api    ./cmd/api && \
+    go build -trimpath -ldflags="-s -w" -o /pcmi-api     ./cmd/api && \
     CGO_ENABLED=0 GOOS=linux \
-    go build -trimpath -ldflags="-s -w" -o /pcmi-worker ./cmd/worker
+    go build -trimpath -ldflags="-s -w" -o /pcmi-worker  ./cmd/worker && \
+    CGO_ENABLED=0 GOOS=linux \
+    go build -trimpath -ldflags="-s -w" -o /pcmi-migrate ./cmd/migrate
 
 FROM alpine:3.21
 RUN apk --no-cache add ca-certificates tzdata
-WORKDIR /root/
+WORKDIR /app
 
-COPY --from=builder /pcmi-api    .
-COPY --from=builder /pcmi-worker .
+COPY --from=builder /pcmi-api     .
+COPY --from=builder /pcmi-worker  .
+COPY --from=builder /pcmi-migrate .
+COPY migrations/ migrations/
 
 EXPOSE 8000 50051
 CMD ["./pcmi-api"]

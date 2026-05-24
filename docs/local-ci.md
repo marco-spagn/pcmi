@@ -236,7 +236,7 @@ SKIP_INFRA_DOWN=1 make test-full-real
 ### Cosa non include
 
 - Job `integration-e2e` se `OPENAI_API_KEY` mancante (WARN esplicito, exit 0).
-- CodeQL (analisi su `cmd/`, `internal/`, SDK — vedi `.github/codeql/codeql-config.yml`; esclude `*_test.go`, protobuf generati, `docs/`), badge su `main`, scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
+- CodeQL (analisi su `cmd/`, `internal/`, SDK — vedi `.github/codeql/codeql-config.yml`; esclude `*_test.go`, protobuf generati, `docs/`), badge su `main` (CI apre PR `chore/coverage-badge`, non push diretto), scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
 
 Per solo parità CI senza MCP/sessions/E2E: `make ci-like-github`. Per suite “manuale” con più tweak `.env`: `make test-all-local`.
 

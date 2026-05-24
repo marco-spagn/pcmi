@@ -35,6 +35,25 @@ func distillationConcurrencyFrom(cfgConcurrency int) int {
 	return defaultDistillationConcurrency
 }
 
+// distilledBranchPath is the ltree path where distilled knowledge is stored for a prefix.
+func distilledBranchPath(pathPrefix string) string {
+	return pathPrefix + ".distilled"
+}
+
+// distillationSourceEntriesSQL selects raw memories eligible for distillation under pathPrefix.
+// BUG-FIX-2: rows at or under prefix.distilled are excluded to avoid re-distillation loops.
+func distillationSourceEntriesSQL() string {
+	return `
+		SELECT id, content, metadata
+		FROM memory_entries
+		WHERE tenant_id = $1::uuid
+		  AND path <@ $2::ltree
+		  AND NOT (path <@ (($2::text || '.distilled')::ltree))
+		  AND valid_to IS NULL
+		ORDER BY created_at DESC
+		LIMIT $3`
+}
+
 // DistillPathPrefix maps a memory path to the ltree prefix used for distillation.
 func DistillPathPrefix(path string) string {
 	path = strings.TrimSpace(path)

@@ -29,15 +29,30 @@ func TestDistillPathPrefix_DistilledPathDoesNotIncludeItself(t *testing.T) {
 	}
 }
 
-// TestDistillationQueryExcludesDistilledPaths verifies that the SQL constructed
-// for BUG-FIX-2 contains the NOT lquery filter.
+// TestDistillationQueryExcludesDistilledPaths verifies BUG-FIX-2 uses ltree <@
+// (not lquery) so PostgreSQL accepts the filter and .distilled branches are skipped.
 func TestDistillationQueryExcludesDistilledPaths(t *testing.T) {
-	// The actual SQL string is embedded in runDistillationJobWithPrefix.
-	// We verify it via the source code of the function using a marker comment.
-	// A proper integration test would need a live DB; this is a compile-time
-	// presence check.
-	const fixMarker = "BUG-FIX-2"
-	_ = fixMarker // marker is in distillation.go; if removed the intent is lost
+	sql := distillationSourceEntriesSQL()
+	if strings.Contains(sql, "::lquery") {
+		t.Fatal("distillation query must not use lquery; it caused ltree syntax errors in E2E")
+	}
+	const exclude = "NOT (path <@ (($2::text || '.distilled')::ltree))"
+	if !strings.Contains(sql, exclude) {
+		t.Fatalf("missing BUG-FIX-2 exclude clause:\n%s", sql)
+	}
+}
+
+func TestDistilledBranchPath(t *testing.T) {
+	cases := []struct{ prefix, want string }{
+		{"root.test", "root.test.distilled"},
+		{"root.security", "root.security.distilled"},
+		{"root.sse", "root.sse.distilled"},
+	}
+	for _, tc := range cases {
+		if got := distilledBranchPath(tc.prefix); got != tc.want {
+			t.Errorf("distilledBranchPath(%q) = %q, want %q", tc.prefix, got, tc.want)
+		}
+	}
 }
 
 // TestParseDistillationLLMResponse_EmptyChoices verifies BUG-FIX-1:

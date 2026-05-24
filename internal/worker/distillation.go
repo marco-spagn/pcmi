@@ -121,7 +121,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	if tenantID == "" {
 		tenantID = "00000000-0000-0000-0000-000000000000"
 	}
-	distilledPath := pathPrefix + ".distilled"
+	distilledPath := distilledBranchPath(pathPrefix)
 
 	ctx := context.Background()
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
@@ -133,18 +133,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	batchSize := w.batchSize
 	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
 
-	rows, err := w.db.Query(ctx, `
-		SELECT id, content, metadata
-		FROM memory_entries
-		WHERE tenant_id = $1::uuid
-		  AND path <@ $2::ltree
-		  -- BUG-FIX-2: exclude .distilled sub-paths so that already-distilled
-		  -- knowledge is never re-fed into the next distillation cycle, which would
-		  -- cause content drift and inflated source_entry_ids on every tick.
-		  AND NOT (path ~ ($2 || '.distilled{1,}')::lquery)
-		  AND valid_to IS NULL
-		ORDER BY created_at DESC
-		LIMIT $3`, tenantID, pathPrefix, batchSize)
+	rows, err := w.db.Query(ctx, distillationSourceEntriesSQL(), tenantID, pathPrefix, batchSize)
 	if err != nil {
 		log.Printf("❌ distillation query error: %v", err)
 		return

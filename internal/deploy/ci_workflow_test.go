@@ -1,7 +1,10 @@
 package deploy_test
 
 import (
+	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -11,7 +14,8 @@ import (
 // or dropped jobs surface before merge.
 func TestCIWorkflowYAMLValid(t *testing.T) {
 	repo := repoRoot(t)
-	data := readFile(t, filepath.Join(repo, ".github/workflows/ci.yml"))
+	ciPath := filepath.Join(repo, ".github/workflows/ci.yml")
+	data := readFile(t, ciPath)
 
 	var root map[string]interface{}
 	if err := yaml.Unmarshal(data, &root); err != nil {
@@ -39,6 +43,27 @@ func TestCIWorkflowYAMLValid(t *testing.T) {
 			t.Errorf("missing job %q", j)
 		}
 	}
+
+	// Job DAG expectations (needs edges).
+	smoke, _ := jobs["integration-smoke"].(map[string]interface{})
+	if smoke != nil {
+		needs := stringSliceField(t, smoke, "needs")
+		for _, want := range []string{"go", "golangci-lint", "security", "trivy-images"} {
+			if !containsString(needs, want) {
+				t.Errorf("integration-smoke needs: missing %q (got %v)", want, needs)
+			}
+		}
+	}
+	e2e, _ := jobs["integration-e2e"].(map[string]interface{})
+	if e2e != nil {
+		needs := stringSliceField(t, e2e, "needs")
+		for _, want := range []string{"go", "golangci-lint"} {
+			if !containsString(needs, want) {
+				t.Errorf("integration-e2e needs: missing %q (got %v)", want, needs)
+			}
+		}
+	}
+
 	perms, ok := root["permissions"].(map[string]interface{})
 	if !ok || perms == nil {
 		t.Fatal("missing permissions map")
@@ -46,4 +71,72 @@ func TestCIWorkflowYAMLValid(t *testing.T) {
 	if _, ok := perms["pull-requests"]; !ok {
 		t.Error(`permissions missing pull-requests (sticky coverage comment)`)
 	}
+
+	conc, ok := root["concurrency"].(map[string]interface{})
+	if !ok || conc == nil {
+		t.Fatal("missing concurrency block (cancel in-progress on new push)")
+	}
+	if conc["cancel-in-progress"] != true {
+		t.Error("concurrency.cancel-in-progress should be true")
+	}
+
+	for _, j := range requiredJobs {
+		job, _ := jobs[j].(map[string]interface{})
+		if job == nil {
+			continue
+		}
+		if _, has := job["timeout-minutes"]; !has {
+			t.Errorf("job %q missing timeout-minutes", j)
+		}
+	}
+
+	ciText := string(data)
+	if regexp.MustCompile(`PCMI_EXPECT_VERSION:\s*v[0-9]`).MatchString(ciText) {
+		t.Error("ci.yml must not hardcode PCMI_EXPECT_VERSION; use pcmi-resolve-version action")
+	}
+	if !strings.Contains(ciText, "scripts/ci/resolve_version.sh") &&
+		!strings.Contains(ciText, "pcmi-resolve-version") {
+		t.Error("ci.yml should reference version resolution (action or script)")
+	}
+	if !strings.Contains(ciText, "Job DAG") {
+		t.Error("ci.yml should document job DAG in header comments")
+	}
+
+	resolveScript := filepath.Join(repo, "scripts/ci/resolve_version.sh")
+	if _, err := os.Stat(resolveScript); err != nil {
+		t.Errorf("missing %s: %v", resolveScript, err)
+	}
+}
+
+func stringSliceField(t *testing.T, m map[string]interface{}, key string) []string {
+	t.Helper()
+	raw, ok := m[key]
+	if !ok {
+		return nil
+	}
+	switch v := raw.(type) {
+	case []interface{}:
+		out := make([]string, 0, len(v))
+		for _, item := range v {
+			s, _ := item.(string)
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+		return out
+	case string:
+		return []string{v}
+	default:
+		t.Errorf("%s: unexpected type %T", key, raw)
+		return nil
+	}
+}
+
+func containsString(hay []string, needle string) bool {
+	for _, s := range hay {
+		if s == needle {
+			return true
+		}
+	}
+	return false
 }

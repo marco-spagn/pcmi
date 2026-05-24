@@ -137,7 +137,8 @@ When bumping a release, also update:
 - `docs/openapi.yaml` → `info.version`
 - `docs/INDEX.md` and `docs/roadmap.md` (current version section)
 - Helm `deploy/helm/pcmi/Chart.yaml` `appVersion` if shipping a tagged release
-- CI smoke env defaults if they pin an exact tag
+
+CI and local smoke read the API tag from `internal/version/version.go` via `scripts/ci/resolve_version.sh` — do not hardcode versions in `.github/workflows/ci.yml`.
 
 Semantic versioning applies to the **HTTP/gRPC API contract**, not individual SDK package versions.
 

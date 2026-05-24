@@ -28,6 +28,25 @@ No further configuration needed.
 
 ---
 
+## CI parity matrix (GitHub ↔ local)
+
+| Stage | GitHub job | Local (`make` / script) | Shared implementation |
+|-------|------------|-------------------------|------------------------|
+| Lint | `golangci-lint` | `make act-lint` | golangci-lint-action / `scripts/ci/phases/b_lint.sh` |
+| Supply chain | `security` | `make act-vuln` | `scripts/ci/phases/c_govulncheck.sh` |
+| Deploy manifests | `helm-lint` | Phase D in `ci-like-github` | `scripts/ci/phases/d_helm.sh` |
+| Container scan | `trivy-images` | `make act-trivy` | `scripts/ci/trivy_images.sh` |
+| Unit + integration + coverage | `go` | `make act-test` or Phase F | `scripts/ci/phases/a_go_static.sh`, `f_go_integration.sh`, `coverage_env.sh` |
+| HTTP/gRPC/SDK smoke | `integration-smoke` | `make act-integration-smoke` | `scripts/act_integration_smoke_host.sh`, `ci_integration_smoke.sh` |
+| OpenAI E2E | `integration-e2e` | `OPENAI_API_KEY=… act -j integration-e2e` or `test-full-real` | compose + `scripts/e2e/*` |
+| SAST | CodeQL (separate workflow) | — | `.github/workflows/codeql.yml` |
+
+**Full host parity** (phases A–G, no CodeQL/E2E unless configured): `make ci-like-github`.
+
+API version for smoke (`/v1/health`): resolved at runtime from `internal/version/version.go` via `scripts/ci/resolve_version.sh` — never pin tags in workflow YAML.
+
+---
+
 ## Day-to-day commands
 
 | Goal | Command |
@@ -72,7 +91,7 @@ act -j trivy-images     # run trivy on both Docker images
 | `golangci-lint` | ✅ | Identical to GitHub run |
 | `go` (build, vet, race test, coverage) | ✅ | Identical |
 | `security` (govulncheck) | ✅ | Identical |
-| `trivy-images` | ⚠️ stub in `act` + `make act-trivy` | `aquasecurity/trivy-action` + its `setup-trivy` pre-steps are not fully emulated; the workflow steps are skipped when `ACT=true`, then `make act-trivy` runs `aquasec/trivy:latest` with the same severity / exit-code policy. |
+| `trivy-images` | ⚠️ stub in `act` + `make act-trivy` | Workflow skips when `ACT=true`; `make act-trivy` runs `scripts/ci/trivy_images.sh` (same Trivy flags as GitHub). |
 | `integration-smoke` | ⚠️ stub in `act` + `make act-integration-smoke` | `act` runs the job container on `host` network while service containers stay on a bridge — background API + health checks flake. When `ACT=true`, only a notice step runs; `make act-integration-smoke` runs `scripts/act_integration_smoke_host.sh` (compose + local `go build` + same bash/Go/SDK scripts as CI). On **GitHub-hosted** runners nothing changes (`ACT` is unset). |
 | `integration-e2e` (OpenAI) | ⚠️ | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY` |
 

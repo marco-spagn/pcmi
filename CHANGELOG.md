@@ -9,6 +9,13 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Changed — CI/CD refactor
+
+- **Workflow** (`.github/workflows/ci.yml`): documented job DAG, per-job `timeout-minutes`, concurrency cancel-in-progress, failure log artifacts for smoke/E2E.
+- **Version drift**: smoke health checks use `scripts/ci/resolve_version.sh` / `pcmi-resolve-version` action (reads `internal/version/version.go`) instead of hardcoded tags in YAML.
+- **Parity**: `scripts/ci/phases/` (A–G) shared with `scripts/ci_like_github.sh`; Postgres migrate, Trivy, API worker lifecycle, and coverage env centralized under `scripts/ci/`.
+- **Docs**: [docs/local-ci.md](docs/local-ci.md) matrix, CONTRIBUTING and PR template aligned.
+
 ## [1.47.0] — 2026-05-24
 
 ### Added — Cursor-based pagination (PCMI-014)

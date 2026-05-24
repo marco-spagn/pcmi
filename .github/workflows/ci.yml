@@ -1,21 +1,24 @@
-# PCMI CI: Go build/vet + integration smoke + optional OpenAI E2E
-# Coverage: sticky PR comment (pull_request + push with open PR), job summary,
-# artifacts. Emoji in summary matches enforcement thresholds (see ci_coverage_check.sh).
-# Runs on every push/PR matching the triggers below (and workflow_dispatch).
+# PCMI CI: lint → unit/integration (race) → smoke → optional OpenAI E2E
+# Coverage: sticky PR comment, job summary, artifacts (see scripts/ci_coverage_check.sh).
+#
+# ── Job DAG (needs →) ─────────────────────────────────────────────────────────
+# Wave 1 (parallel):
+#   golangci-lint | security | helm-lint | trivy-images | go
+# Wave 2 (after Wave 1 subsets):
+#   integration-smoke  → needs [go, golangci-lint, security, trivy-images]
+#   integration-e2e    → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; no retry)
+# CodeQL: separate workflow (.github/workflows/codeql.yml)
+# Local parity: make ci-like-github → scripts/ci_like_github.sh (phases A–G)
+# Version for smoke: scripts/ci/resolve_version.sh (internal/version/version.go)
 
 name: CI
 
-# ── Triggers ottimizzati (evita esecuzione doppia push + PR) ──
 on:
   push:
     branches:
       - main
       - release/**
       - develop
-    # Skip CI when the only thing changed is the auto-committed coverage badge
-    # JSON (see "Commit dynamic coverage badge" step in the go job). Without
-    # this, every push that updates coverage would trigger another CI run that
-    # produces an identical badge → infinite loop.
     paths-ignore:
       - 'badges/**'
 
@@ -29,22 +32,19 @@ on:
 
   workflow_dispatch:
 
-# Cancella run precedenti sulla stessa PR/branch
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
-  pull-requests: write   # per sticky coverage comment
-  # `contents: write` is granted at job-level on the go job only, used to push
-  # the auto-generated badges/coverage.json back to main. PR builds keep the
-  # default read-only token.
+  pull-requests: write
 
 jobs:
   golangci-lint:
     name: golangci-lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
@@ -59,24 +59,26 @@ jobs:
   security:
     name: Security scan (govulncheck)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
       - name: govulncheck
-        run: govulncheck ./...
+        run: |
+          chmod +x scripts/ci/phases/c_govulncheck.sh
+          scripts/ci/phases/c_govulncheck.sh
 
   helm-lint:
     name: Helm chart lint
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Helm
         uses: azure/setup-helm@v4
@@ -89,8 +91,6 @@ jobs:
       - name: helm template (renders default values)
         run: helm template pcmi deploy/helm/pcmi > /tmp/pcmi-rendered.yaml
 
-      # Catch malformed manifests before they reach a cluster. kubeval
-      # vendors Kubernetes OpenAPI schemas so we can validate offline.
       - name: Install kubeconform
         run: |
           curl -sSLo kubeconform.tar.gz \
@@ -106,6 +106,7 @@ jobs:
   trivy-images:
     name: Trivy image scan (API + Worker)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -120,48 +121,16 @@ jobs:
         if: ${{ env.ACT != 'true' }}
         uses: docker/setup-buildx-action@v4
 
-      - name: Build pcmi-api image
-        if: ${{ env.ACT != 'true' }}
-        run: docker build -f Dockerfile.api -t pcmi-api:ci .
-
-      - name: Build pcmi-worker image
-        if: ${{ env.ACT != 'true' }}
-        run: docker build -f Dockerfile.worker -t pcmi-worker:ci .
-
-      - name: Trivy scan pcmi-api
+      - name: Build and scan images (Trivy)
         if: ${{ env.ACT != 'true' }}
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL \
-            --exit-code 1 \
-            --ignore-unfixed \
-            --pkg-types os,library \
-            --scanners vuln \
-            --format table \
-            pcmi-api:ci
-
-      - name: Trivy scan pcmi-worker
-        if: ${{ env.ACT != 'true' }}
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-            --severity HIGH,CRITICAL \
-            --exit-code 1 \
-            --ignore-unfixed \
-            --pkg-types os,library \
-            --scanners vuln \
-            --format table \
-            pcmi-worker:ci
+          chmod +x scripts/ci/trivy_images.sh
+          scripts/ci/trivy_images.sh
 
   go:
     name: Go build, vet & test + coverage
     runs-on: ubuntu-latest
-    # Job-level write permission so the final step can push the regenerated
-    # badges/coverage.json back to main. All other jobs keep the workflow
-    # default (read-only / pr-write).
+    timeout-minutes: 45
     permissions:
       contents: write
       pull-requests: write
@@ -186,61 +155,29 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Build all packages
-        run: go build ./...
-
-      - name: Vet
-        run: go vet ./...
+      - name: Static checks (build, vet, config audit)
+        run: |
+          chmod +x scripts/ci/phases/a_go_static.sh
+          scripts/ci/phases/a_go_static.sh
 
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
-      - name: Apply database migrations
-        env:
-          PGPASSWORD: pcmi
-        run: |
-          for i in $(seq 1 30); do
-            psql -h 127.0.0.1 -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1 && break
-            sleep 2
-          done
-          for f in migrations/*.sql; do
-            echo "Applying $f"
-            psql -h 127.0.0.1 -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
-          done
+      - uses: ./.github/actions/pcmi-postgres-migrate
 
-      # Fast structural invariant — runs before the heavy integration suite so
-      # a rogue os.Getenv lands as a 5-second failure, not a 5-minute one.
-      # Test source: internal/config/getenv_audit_test.go (PR #2).
-      - name: Audit — no os.Getenv outside internal/config
-        run: |
-          go test -count=1 ./internal/config/... \
-            -run 'TestNoOSGetenvOutsideConfig|TestEnvExampleStaysInSyncWithConfig'
-
-      - name: Test (with race detector + coverage)
+      - name: Test (race detector + integration + coverage)
         env:
           DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
+          SKIP_COVERAGE: "1"
         run: |
-          go test -race -count=1 -tags=integration \
-            -coverprofile=coverage.out \
-            -covermode=atomic \
-            ./internal/...
+          chmod +x scripts/ci/phases/f_go_integration.sh
+          scripts/ci/phases/f_go_integration.sh
 
       - name: Enforce coverage thresholds
-        env:
-          # Global % is over "hand-written" statements only: COVERAGE_OMIT_PROTOBUF strips
-          # generated grpc/pcmiv1 *.pb.go (see scripts/ci_coverage_check.sh). Floors match
-          # what `go test ./internal/...` + Postgres integration exercises today; raise them as
-          # handler/grpc coverage grows.
-          COVERAGE_MIN_TOTAL: "39"
-          COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,repository:70,service:70,worker:19"
-          COVERAGE_OMIT_PROTOBUF: "true"
-          COVERAGE_MD_OUT: coverage-summary.md
-          COVERAGE_BADGE_OUT: coverage-badge.txt
-          # Shields.io "endpoint" JSON committed back to main → renders a fully
-          # dynamic badge in the README without Codecov/Coveralls/gists.
-          COVERAGE_ENDPOINT_OUT: badges/coverage.json
         run: |
+          # shellcheck disable=SC1091
+          source scripts/ci/coverage_env.sh
           chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
 
@@ -289,13 +226,6 @@ jobs:
             badges/coverage.json
           retention-days: 14
 
-      # Commit the regenerated coverage endpoint JSON back to main so the
-      # README badge updates the moment a reviewer opens the repo. This step
-      # only runs on push events targeting main; PR builds never commit.
-      #
-      # The push trigger has paths-ignore: ['badges/**'], so this auto-commit
-      # cannot cause an infinite CI loop. [skip ci] in the commit message is a
-      # belt-and-braces safeguard.
       - name: Commit dynamic coverage badge (main only)
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && hashFiles('badges/coverage.json') != '' }}
         env:
@@ -315,6 +245,7 @@ jobs:
   integration-smoke:
     name: Integration smoke (Postgres + Redis)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [go, golangci-lint, security, trivy-images]
     services:
       postgres:
@@ -352,64 +283,38 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - uses: ./.github/actions/pcmi-resolve-version
+        if: ${{ env.ACT != 'true' }}
+        id: api_version
+
       - name: Install tooling
         if: ${{ env.ACT != 'true' }}
         run: sudo apt-get update && sudo apt-get install -y postgresql-client jq curl
 
-      - name: Apply migrations
+      - uses: ./.github/actions/pcmi-postgres-migrate
         if: ${{ env.ACT != 'true' }}
-        env:
-          PGPASSWORD: pcmi
-        run: |
-          for i in $(seq 1 30); do
-            psql -h 127.0.0.1 -U pcmi -d pcmi -c 'SELECT 1' >/dev/null 2>&1 && break
-            sleep 2
-          done
-          for f in migrations/*.sql; do
-            echo "Applying $f"
-            psql -h 127.0.0.1 -U pcmi -d pcmi -v ON_ERROR_STOP=1 -f "$f"
-          done
 
       - name: Build and start API + worker
         if: ${{ env.ACT != 'true' }}
-        env:
-          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
-          REDIS_ADDR: 127.0.0.1:6379
-          API_PORT: "8000"
-          GRPC_PORT: "50051"
-          RATE_LIMIT_DISABLED: "true"
-          PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
-          PRUNE_INTERVAL_SECS: "3600"
-          EXPIRY_INTERVAL_SECS: "2"
-          WEBHOOK_MAX_ATTEMPTS: "2"
         run: |
-          go build -o bin/pcmi-api ./cmd/api
-          go build -o bin/pcmi-worker ./cmd/worker
-          ./bin/pcmi-api > api.log 2>&1 &
-          echo $! > api.pid
-          ./bin/pcmi-worker > worker.log 2>&1 &
-          echo $! > worker.pid
+          chmod +x scripts/ci/start_api_worker.sh
+          scripts/ci/start_api_worker.sh
 
       - name: Wait for API health
         if: ${{ env.ACT != 'true' }}
         run: |
-          for i in $(seq 1 45); do
-            if curl -sf http://127.0.0.1:8000/v1/health >/dev/null; then
-              echo "API healthy"
-              exit 0
-            fi
-            sleep 2
-          done
-          echo "API did not become healthy"
-          cat api.log || true
-          cat worker.log || true
-          exit 1
+          chmod +x scripts/ci/wait_api_health.sh
+          scripts/ci/wait_api_health.sh || {
+            cat api.log 2>/dev/null || true
+            cat worker.log 2>/dev/null || true
+            exit 1
+          }
 
       - name: Integration smoke suite (bash)
         if: ${{ env.ACT != 'true' }}
         env:
-          PCMI_EXPECT_VERSION: v1.47.0
-          EXPECT_API_VERSION: v1.47.0
+          PCMI_EXPECT_VERSION: ${{ steps.api_version.outputs.tag }}
+          EXPECT_API_VERSION: ${{ steps.api_version.outputs.tag }}
           PGHOST: "127.0.0.1"
           API: "http://127.0.0.1:8000"
         run: |
@@ -433,22 +338,33 @@ jobs:
           chmod +x scripts/ci_sdk_smoke.sh
           ./scripts/ci_sdk_smoke.sh
 
+      - name: Upload smoke logs on failure
+        if: failure() && env.ACT != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-smoke-logs-${{ github.run_id }}
+          path: |
+            api.log
+            worker.log
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Show logs on failure
-        if: ${{ failure() && env.ACT != 'true' }}
+        if: failure() && env.ACT != 'true'
         run: |
           cat api.log 2>/dev/null || true
           cat worker.log 2>/dev/null || true
 
       - name: Stop processes
-        if: ${{ always() && env.ACT != 'true' }}
+        if: always() && env.ACT != 'true'
         run: |
-          for f in api.pid worker.pid; do
-            [ -f "$f" ] && kill "$(cat "$f")" 2>/dev/null || true
-          done
+          chmod +x scripts/ci/stop_api_worker.sh
+          scripts/ci/stop_api_worker.sh
 
   integration-e2e:
     name: Integration E2E (docker compose + OpenAI)
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     needs: [go, golangci-lint]
     steps:
       - uses: actions/checkout@v6
@@ -494,6 +410,18 @@ jobs:
           ./scripts/e2e/test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_finale.sh
+
+      - name: Upload compose logs on failure
+        if: failure() && steps.openai.outputs.enabled == 'true'
+        run: docker compose logs --tail=200 > compose-failure.log || true
+
+      - name: Publish compose failure log
+        if: failure() && steps.openai.outputs.enabled == 'true' && hashFiles('compose-failure.log') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: integration-e2e-logs-${{ github.run_id }}
+          path: compose-failure.log
+          retention-days: 7
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

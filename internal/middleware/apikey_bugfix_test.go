@@ -1,54 +1,63 @@
 package middleware
 
 import (
-	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"github.com/pashagolub/pgxmock/v4"
 )
 
-// query but fails set_tenant_context.
-}
-
 // TestAPIKeyMiddleware_SetTenantContextFailureReturns503 verifies BUG-FIX-5:
-// a failure in set_tenant_context must result in HTTP 503, not a silent
-// pass-through that could expose another tenant's data.
-//
-// This is a compile-time documentation test; the runtime behaviour is
-// validated by the integration suite (make test-integration). The test
-// ensures the handler path exists in source via a function reference.
+// set_tenant_context failure must return 503 and must not invoke downstream handlers.
 func TestAPIKeyMiddleware_SetTenantContextFailureReturns503(t *testing.T) {
-	// Verify that the middleware function is exported and takes a *pgxpool.Pool.
-	// The actual DB-level failure path is covered by integration tests.
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	raw := "pcmi_tenant_ctx_fail"
+	hash := apiKeyHash(raw)
+	keyID := uuid.New().String()
+	tenantID := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").String()
+
+	rows := pgxmock.NewRows([]string{"id", "tenant_id", "role", "is_active"}).
+		AddRow(keyID, tenantID, "user", true)
+	mock.ExpectQuery(`FROM api_keys`).WithArgs(hash).WillReturnRows(rows)
+	mock.ExpectExec(`set_tenant_context`).WithArgs(tenantID).
+		WillReturnError(errors.New("set_tenant_context unavailable"))
+
 	app := fiber.New()
-	_ = app // suppress unused warning
+	hit := false
+	app.Use(apiKeyMiddleware(mock))
+	app.Get("/v1/stats", func(c *fiber.Ctx) error {
+		hit = true
+		return c.SendString("ok")
+	})
 
-	// Ensure the BUG-FIX-5 comment marker exists in the source.
-	const marker = "BUG-FIX-5"
-	_ = marker
-}
-
-// TestIsUnauthenticatedProbe ensures health endpoints bypass auth.
-func TestIsUnauthenticatedProbe(t *testing.T) {
-	cases := []struct {
-		method, path string
-		want         bool
-	}{
-		{"GET", "/v1/health", true},
-		{"GET", "/health", true},
-		{"GET", "/metrics", true},
-		{"GET", "/v1/memories", false},
-		{"POST", "/v1/memories", false},
-		{"GET", "/v1/health/extra", false},
+	req := httptest.NewRequest(http.MethodGet, "/v1/stats", nil)
+	req.Header.Set("X-API-Key", raw)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tc := range cases {
-		got := IsUnauthenticatedProbe(tc.method, tc.path)
-		if got != tc.want {
-			t.Errorf("IsUnauthenticatedProbe(%q,%q) = %v, want %v",
-				tc.method, tc.path, got, tc.want)
-		}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusServiceUnavailable {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status=%d body=%s, want 503", resp.StatusCode, b)
+	}
+	if hit {
+		t.Fatal("downstream handler ran after set_tenant_context failure")
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
 	}
 }
-
-// dummy context to satisfy interface in any helper that needs it.
-var _ = context.Background

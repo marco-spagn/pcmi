@@ -22,6 +22,13 @@ func (s *stubPathHistory) ListPathHistory(_ context.Context, _, _ string, _ mode
 	return s.entries, s.page, s.err
 }
 
+func (s *stubPathHistory) CountPathHistory(_ context.Context, _, _ string) (int, error) {
+	if s.err != nil {
+		return 0, s.err
+	}
+	return len(s.entries), nil
+}
+
 func TestHistoryHandlerGet_missingPath(t *testing.T) {
 	t.Parallel()
 	app := newTestApp(uuid.New().String(), "admin")

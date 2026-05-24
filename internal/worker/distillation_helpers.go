@@ -1,7 +1,9 @@
 package worker
 
 import (
+	"encoding/json"
 	"log"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -62,4 +64,47 @@ func sourceIDsEqual(a, b []int64) bool {
 	na := normalizeSourceIDs(a)
 	nb := normalizeSourceIDs(b)
 	return slices.Equal(na, nb)
+}
+
+var trailingCommaBeforeClose = regexp.MustCompile(`,(\s*[}\]])`)
+
+type distillationLLMResult struct {
+	Summary  string   `json:"summary"`
+	Insights []string `json:"insights"`
+}
+
+// parseDistillationLLMResponse extracts summary/insights from model output, repairing common JSON defects.
+func parseDistillationLLMResponse(raw string) (distillationLLMResult, error) {
+	content := sanitizeDistillationJSON(raw)
+	var result distillationLLMResult
+	if err := json.Unmarshal([]byte(content), &result); err == nil {
+		return result, nil
+	}
+	repaired := repairDistillationJSON(content)
+	if err := json.Unmarshal([]byte(repaired), &result); err != nil {
+		return distillationLLMResult{}, err
+	}
+	return result, nil
+}
+
+func sanitizeDistillationJSON(raw string) string {
+	content := strings.TrimSpace(raw)
+	content = strings.TrimPrefix(content, "```json")
+	content = strings.TrimPrefix(content, "```")
+	content = strings.TrimSuffix(content, "```")
+	return strings.TrimSpace(content)
+}
+
+func repairDistillationJSON(content string) string {
+	content = trailingCommaBeforeClose.ReplaceAllString(content, `$1`)
+	if idx := strings.Index(content, `"insights"`); idx >= 0 {
+		tail := content[idx:]
+		missing := strings.Count(tail, "[") - strings.Count(tail, "]")
+		if missing > 0 {
+			if close := strings.LastIndex(content, "}"); close >= 0 {
+				content = content[:close] + strings.Repeat("]", missing) + content[close:]
+			}
+		}
+	}
+	return content
 }

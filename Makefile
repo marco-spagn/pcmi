@@ -298,9 +298,7 @@ distill-smoke:
 	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
 		--preset $(PRESET) --num 100 --seed $(SYNTH_SEED) --no-build
 
-# GitHub Actions: add CI_start to the commit message to run the remote pipeline
-# (e.g. git commit -m "fix: foo CI_start"). Without it, only the ci-gate job runs.
-# Manual run: gh workflow run CI
+# GitHub Actions CI runs on push/PR; manual run: gh workflow run CI
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Local GitHub Actions runner (act) — replaces GitHub-hosted runs.
@@ -381,7 +379,7 @@ act-trivy:
 act-integration-smoke: act-preflight
 	bash scripts/act_integration_smoke_host.sh
 
-# Replica locale della CI GitHub (workflow CI con CI_start): lint/vuln/helm opzionali,
+# Replica locale della CI GitHub (workflow CI): lint/vuln/helm opzionali,
 # go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
 # Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
 # Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github

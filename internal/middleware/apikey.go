@@ -63,14 +63,6 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "Invalid or expired API key"})
 		}
 
-		clientIP := c.IP()
-		go func(id, ip string) {
-			_, _ = db.Exec(context.Background(),
-				`UPDATE api_keys SET last_used_at = NOW(), last_used_ip = $2 WHERE id = $1::uuid`,
-				id, ip,
-			)
-		}(apiKeyID, clientIP)
-
 		// Imposta tutto nel contesto
 		c.Locals(APIKeyContextKey, apiKey)
 		c.Locals(APIKeyIDContextKey, apiKeyID)
@@ -80,20 +72,20 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		// Imposta tenant nel DB per RLS
 		_, _ = db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID)
 
-		touchAPIKeyLastUsed(db, apiKeyID)
+		touchAPIKeyLastUsed(db, apiKeyID, c.IP())
 
 		log.Printf("🔑 API Key authenticated → tenant=%s, role=%s", tenantID, role)
 		return c.Next()
 	}
 }
 
-func touchAPIKeyLastUsed(db apiKeyDB, keyID string) {
+func touchAPIKeyLastUsed(db apiKeyDB, keyID, clientIP string) {
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_, _ = db.Exec(ctx,
-			`UPDATE api_keys SET last_used_at = NOW() WHERE id = $1::uuid`,
-			keyID,
+			`UPDATE api_keys SET last_used_at = NOW(), last_used_ip = $2 WHERE id = $1::uuid`,
+			keyID, clientIP,
 		)
 	}()
 }

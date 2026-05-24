@@ -13,6 +13,7 @@ import (
 
 type pathHistoryLister interface {
 	ListPathHistory(ctx context.Context, tenantID, path string, page model.PageRequest) ([]model.MemoryEntry, model.PageResponse, error)
+	CountPathHistory(ctx context.Context, tenantID, path string) (int, error)
 }
 
 type HistoryHandler struct {
@@ -44,10 +45,15 @@ func (h *HistoryHandler) Get(c *fiber.Ctx) error {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
+	total, err := h.repo.CountPathHistory(c.Context(), tenantID, path)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
+
 	return c.JSON(fiber.Map{
 		"path":        path,
 		"entries":     entries,
-		"total":       len(entries),
+		"total":       total,
 		"limit":       pageParams.Limit,
 		"next_cursor": pageResp.NextCursor,
 		"has_more":    pageResp.HasMore,

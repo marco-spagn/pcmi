@@ -18,6 +18,7 @@ import (
 
 type distilledQuerier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 type DistilledHandler struct {
@@ -43,8 +44,21 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
+	if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for distilled listings; use cursor"})
+	}
 
 	log.Printf("📡 [DISTILLED] tenant=%s path_prefix=%s", tenantID, pathPrefix)
+
+	ctx := context.Background()
+	var total int
+	if err := h.db.QueryRow(ctx,
+		`SELECT COUNT(*) FROM distilled_knowledge WHERE tenant_id = $1::uuid AND path <@ $2::ltree`,
+		tenantID, pathPrefix,
+	).Scan(&total); err != nil {
+		log.Printf("❌ [DISTILLED] count: %v", err)
+		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+	}
 
 	q := `
 		SELECT id, path::text, summary, insights, confidence_score, distilled_at, source_entry_ids, version
@@ -63,7 +77,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	q += fmt.Sprintf(` ORDER BY distilled_at DESC, id DESC LIMIT $%d`, argN)
 	args = append(args, repository.FetchLimit(pageParams.Limit))
 
-	rows, err := h.db.Query(context.Background(), q, args...)
+	rows, err := h.db.Query(ctx, q, args...)
 	if err != nil {
 		log.Printf("❌ [DISTILLED] query: %v", err)
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
@@ -124,7 +138,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"entries":     results,
-		"total":       len(results),
+		"total":       total,
 		"tenant":      tenantID,
 		"limit":       pageParams.Limit,
 		"next_cursor": pageResp.NextCursor,

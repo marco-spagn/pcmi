@@ -200,37 +200,26 @@ func TestKeyLifecycle_LastUsedAtUpdated(t *testing.T) {
 		t.Fatalf("stats with new key: want 200, got %d", check.StatusCode)
 	}
 
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
+	var lastUsed *time.Time
+	var lastIP *string
 	for {
-		var lastUsed *time.Time
 		err := pool.QueryRow(context.Background(),
-			`SELECT last_used_at FROM api_keys WHERE id = $1::uuid`, keyID,
-		).Scan(&lastUsed)
+			`SELECT last_used_at, last_used_ip FROM api_keys WHERE id = $1::uuid`, keyID,
+		).Scan(&lastUsed, &lastIP)
 		if err != nil {
 			t.Fatal(err)
 		}
-		if lastUsed != nil {
+		if lastUsed != nil && lastIP != nil && *lastIP != "" {
 			break
 		}
 		if time.Now().After(deadline) {
-			t.Fatal("last_used_at not updated within timeout")
+			t.Fatalf("last_used_at/ip not updated within timeout: at=%v ip=%v", lastUsed, lastIP)
 		}
-		time.Sleep(25 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
-
-	var lastUsed *time.Time
-	var lastIP *string
-	err := pool.QueryRow(context.Background(),
-		`SELECT last_used_at, last_used_ip FROM api_keys WHERE id = $1::uuid`, keyID,
-	).Scan(&lastUsed, &lastIP)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if lastUsed == nil || lastUsed.Before(time.Now().Add(-2*time.Minute)) {
+	if lastUsed.Before(time.Now().Add(-2 * time.Minute)) {
 		t.Fatalf("last_used_at not updated: %v", lastUsed)
-	}
-	if lastIP == nil || *lastIP == "" {
-		t.Fatal("last_used_ip not set")
 	}
 }
 

@@ -84,16 +84,25 @@ func TestStreamConsumer_Consume_AcksOnSuccess(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("timeout waiting for consumer")
 	}
-	cancel()
-	time.Sleep(50 * time.Millisecond)
 
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		pending, err := client.XPending(context.Background(), StreamKey, "test-group").Result()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if pending.Count == 0 {
+			cancel()
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	cancel()
 	pending, err := client.XPending(context.Background(), StreamKey, "test-group").Result()
 	if err != nil {
 		t.Fatal(err)
 	}
-	if pending.Count != 0 {
-		t.Fatalf("expected 0 pending after ACK, got %d", pending.Count)
-	}
+	t.Fatalf("expected 0 pending after ACK, got %d", pending.Count)
 }
 
 func TestStreamConsumer_Consume_NoAckOnProcessingError(t *testing.T) {

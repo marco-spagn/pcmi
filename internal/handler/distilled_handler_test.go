@@ -52,6 +52,9 @@ func TestDistilledHandler_queryError(t *testing.T) {
 	t.Cleanup(func() { mock.Close() })
 
 	tenant := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").String()
+	mock.ExpectQuery(`SELECT COUNT`).
+		WithArgs(tenant, "root.p").
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
 	mock.ExpectQuery(`SELECT id, path`).
 		WithArgs(tenant, "root.p", 51).
 		WillReturnError(errors.New("query failed"))
@@ -85,6 +88,9 @@ func TestDistilledHandler_limitClampedHigh(t *testing.T) {
 	rows := pgxmock.NewRows([]string{
 		"id", "path", "summary", "insights", "confidence_score", "distilled_at", "source_entry_ids", "version",
 	})
+	mock.ExpectQuery(`SELECT COUNT`).
+		WithArgs(tenant, "root").
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(0))
 	mock.ExpectQuery(`SELECT id, path`).
 		WithArgs(tenant, "root", 201).
 		WillReturnRows(rows)
@@ -129,6 +135,9 @@ func TestDistilledHandler_successRow(t *testing.T) {
 		"id", "path", "summary", "insights", "confidence_score", "distilled_at", "source_entry_ids", "version",
 	}).AddRow(int64(3), "root.topic", "brief", []byte(`[1,2]`), sql.NullFloat64{Float64: 0.7, Valid: true}, at, []int64{10, 20}, 4)
 
+	mock.ExpectQuery(`SELECT COUNT`).
+		WithArgs(tenant, "root.topic").
+		WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(1))
 	mock.ExpectQuery(`SELECT id, path`).
 		WithArgs(tenant, "root.topic", 2).
 		WillReturnRows(rows)

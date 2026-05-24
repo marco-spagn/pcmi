@@ -253,7 +253,7 @@ GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
   go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
 ```
 
-Su **GitHub** (messaggio commit con `CI_start`), i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
+Su **GitHub**, i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
 
 Esempio concettuale (Go):
 
@@ -353,7 +353,7 @@ Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md
 | `make test-dedup` | Dedup unit + handler |
 | `make build-mcp` / `make test-mcp-unit` | MCP stdio server |
 | `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
-| `make ci-like-github` | Parità ampia con workflow CI (`CI_start`): lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
+| `make ci-like-github` | Parità ampia con workflow CI: lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
 | `make sdk-smoke` | Smoke Python + TS (API su :8000) |
 
 ---

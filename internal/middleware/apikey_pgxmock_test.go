@@ -38,7 +38,7 @@ func TestAPIKeyMiddleware_validKey_setsContext(t *testing.T) {
 		AddRow(keyID, tenantID, "user", true)
 	mock.ExpectQuery(`FROM api_keys`).WithArgs(hash).WillReturnRows(rows)
 	mock.ExpectExec(`set_tenant_context`).WithArgs(tenantID).WillReturnResult(pgxmock.NewResult("SELECT", 1))
-	mock.ExpectExec(`UPDATE api_keys SET last_used_at`).WithArgs(keyID).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	mock.ExpectExec(`UPDATE api_keys SET last_used_at`).WithArgs(keyID, pgxmock.AnyArg()).WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
 	app := fiber.New()
 	app.Use(apiKeyMiddleware(mock))

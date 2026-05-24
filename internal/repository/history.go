@@ -9,6 +9,23 @@ import (
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
+// CountPathHistory returns the number of versions stored for a path.
+func (r *MemoryRepository) CountPathHistory(ctx context.Context, tenantID, path string) (int, error) {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return 0, fmt.Errorf("path is required")
+	}
+	var n int
+	err := r.r.QueryRow(ctx,
+		`SELECT COUNT(*) FROM memory_entries WHERE tenant_id = $1::uuid AND path = $2::ltree`,
+		tenantID, path,
+	).Scan(&n)
+	if err != nil {
+		return 0, fmt.Errorf("count path history: %w", err)
+	}
+	return n, nil
+}
+
 // ListPathHistory returns all versions for a path, newest version first.
 func (r *MemoryRepository) ListPathHistory(
 	ctx context.Context,

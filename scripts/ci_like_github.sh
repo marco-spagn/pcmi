@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Replica locale della pipeline GitHub Actions `.github/workflows/ci.yml` quando
-# i job sono abilitati (messaggio di commit con `CI_start` o workflow_dispatch).
+# Replica locale della pipeline GitHub Actions `.github/workflows/ci.yml`.
 #
 # Esegue in sequenza (come sul runner, dove molti job sono paralleli):
 #   - build / vet / test di audit config (stesso ordine logico del job `go`)
@@ -57,8 +56,7 @@ Su CI lo step è spesso ~5–20 min; su Mac con -race e PCMI_GO_TEST_P=1 è real
 PCMI_GO_TEST_TIMEOUT (default 45m). Progressione: CI_LIKE_GO_VERBOSE=1 oppure CI_LIKE_HEARTBEAT_SECS=120.
 Velocità: PCMI_SKIP_SSE_HTTPTEST=1 (default nello script), oppure CI_LIKE_NO_RACE=1 per Phase F senza race.
 
-Su GitHub la pipeline completa parte solo con CI_start nel messaggio di commit; questo
-script non applica quel gate. integration-e2e (OpenAI) non è incluso.
+integration-e2e (OpenAI) non è incluso in questo script.
 EOF
 }
 

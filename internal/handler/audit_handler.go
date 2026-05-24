@@ -32,6 +32,9 @@ func (h *AuditHandler) List(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
+	if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for audit listings; use cursor"})
+	}
 
 	var since *time.Time
 	if s := c.Query("since"); s != "" {

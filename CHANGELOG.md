@@ -16,6 +16,14 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
   `DISTILLATION_POLICY_DISABLED=1` by default in the e2e script. `memory.refine.requested`
   was never blocked by `min_interval` — the smoke harness used the wrong transport.
 
+## [1.46.0] — 2026-05-23
+
+### Added — Go HTTP SDK (PCMI-013)
+
+- **`sdk/go/pcmi/`**: Go 1.25 client for store, retrieve, sessions, admin, and SSE events.
+- **`sdk/go/examples/basic`**: live smoke against a running API.
+- Makefile: `sdk-go-test`, `sdk-go-smoke`, `sdk-all`.
+
 ## [1.45.0] — 2026-05-23
 
 ### Added — Automatic distillation policy engine (PCMI-012)

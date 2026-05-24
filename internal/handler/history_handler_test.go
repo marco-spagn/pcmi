@@ -14,11 +14,12 @@ import (
 
 type stubPathHistory struct {
 	entries []model.MemoryEntry
+	page    model.PageResponse
 	err     error
 }
 
-func (s *stubPathHistory) ListPathHistory(_ context.Context, _, _ string, _ int) ([]model.MemoryEntry, error) {
-	return s.entries, s.err
+func (s *stubPathHistory) ListPathHistory(_ context.Context, _, _ string, _ model.PageRequest) ([]model.MemoryEntry, model.PageResponse, error) {
+	return s.entries, s.page, s.err
 }
 
 func TestHistoryHandlerGet_missingPath(t *testing.T) {
@@ -75,12 +76,13 @@ func TestHistoryHandlerGet_success(t *testing.T) {
 	var body struct {
 		Path    string              `json:"path"`
 		Entries []model.MemoryEntry `json:"entries"`
-		Total   int                 `json:"total"`
+		Limit   int                 `json:"limit"`
+		HasMore bool                `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Path != "root.a" || body.Total != 2 || len(body.Entries) != 2 {
+	if body.Path != "root.a" || body.Limit != 10 || len(body.Entries) != 2 {
 		t.Fatalf("unexpected %+v", body)
 	}
 }

@@ -137,9 +137,10 @@ func TestAdminHandler_listAPIKeys_queryTenantOverride(t *testing.T) {
 
 	override := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").String()
 	mock.ExpectQuery(`FROM api_keys`).
-		WithArgs(override, 50).
+		WithArgs(override, 51).
 		WillReturnRows(pgxmock.NewRows([]string{
 			"id", "name", "role", "is_active", "expires_at", "created_at", "last_used_at",
+			"rotated_to", "rotation_grace_ends_at", "last_used_ip",
 		}))
 
 	app := adminTestApp(t, mock)
@@ -153,13 +154,13 @@ func TestAdminHandler_listAPIKeys_queryTenantOverride(t *testing.T) {
 		t.Fatalf("status=%d", resp.StatusCode)
 	}
 	var out struct {
-		Total int `json:"total"`
+		HasMore bool `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		t.Fatal(err)
 	}
-	if out.Total != 0 {
-		t.Fatalf("total=%d", out.Total)
+	if out.HasMore {
+		t.Fatalf("has_more=%v", out.HasMore)
 	}
 }
 

@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pashagolub/pgxmock/v4"
+
+	"github.com/marco-spagn/pcmi/internal/model"
 )
 
 func TestLinksRepository_Count_pgxmock(t *testing.T) {
@@ -53,11 +55,11 @@ func TestLinksRepository_List_toPathAndLinkTypeFilters(t *testing.T) {
 	}).AddRow(int64(2), "root.a", "root.b", "depends_on", []byte("{}"), now)
 
 	mock.ExpectQuery(`SELECT id, from_path`).
-		WithArgs(tenant, "root.a", "root.b", "depends_on", 10).
+		WithArgs(tenant, "root.a", "root.b", "depends_on", 11).
 		WillReturnRows(rows)
 
 	repo := NewLinksRepositoryReadOnly(mock)
-	got, err := repo.List(context.Background(), tenant, "root.a", "root.b", "depends_on", 10)
+	got, _, err := repo.List(context.Background(), tenant, "root.a", "root.b", "depends_on", model.PageRequest{Limit: 10})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -64,7 +64,10 @@ func (s *memoryServer) ListLinks(ctx context.Context, req *pcmiv1.ListLinksReque
 		return nil, err
 	}
 	limit := int(req.GetLimit())
-	links, err := s.linksRepo.List(ctx, tenantID, req.GetFromPath(), req.GetToPath(), req.GetLinkType(), limit)
+	if limit <= 0 {
+		limit = 50
+	}
+	links, _, err := s.linksRepo.List(ctx, tenantID, req.GetFromPath(), req.GetToPath(), req.GetLinkType(), model.PageRequest{Limit: limit})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list links: %v", err)
 	}
@@ -345,7 +348,7 @@ func (s *memoryServer) GetHistory(ctx context.Context, req *pcmiv1.GetHistoryReq
 	if limit <= 0 {
 		limit = 50
 	}
-	entries, err := s.memRepo.ListPathHistory(ctx, tenantID, path, limit)
+	entries, _, err := s.memRepo.ListPathHistory(ctx, tenantID, path, model.PageRequest{Limit: limit})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "history: %v", err)
 	}
@@ -461,7 +464,6 @@ func (s *memoryServer) ListAudit(ctx context.Context, req *pcmiv1.ListAuditReque
 	if limit <= 0 {
 		limit = 50
 	}
-	offset := int(req.GetOffset())
 	var since *time.Time
 	if s := strings.TrimSpace(req.GetSinceRfc3339()); s != "" {
 		t, perr := time.Parse(time.RFC3339, s)
@@ -473,12 +475,12 @@ func (s *memoryServer) ListAudit(ctx context.Context, req *pcmiv1.ListAuditReque
 		}
 		since = &t
 	}
-	entries, total, err := s.auditRepo.List(ctx, tenantID, limit, offset, since)
+	entries, pageResp, err := s.auditRepo.List(ctx, tenantID, model.PageRequest{Limit: limit}, since)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "audit: %v", err)
 	}
 	return toJSONResponse(map[string]any{
-		"entries": entries, "total": total, "limit": limit, "offset": offset,
+		"entries": entries, "limit": limit, "next_cursor": pageResp.NextCursor, "has_more": pageResp.HasMore,
 	})
 }
 

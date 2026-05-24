@@ -48,7 +48,7 @@ func TestLinksHandlerList_success(t *testing.T) {
 	}).AddRow(int64(7), "root.a", "root.b", "related", []byte("{}"), now)
 
 	mock.ExpectQuery(`SELECT id, from_path`).
-		WithArgs(tenantID, 50).
+		WithArgs(tenantID, 51).
 		WillReturnRows(rows)
 
 	app := newTestApp(tenantID, "admin")
@@ -65,12 +65,13 @@ func TestLinksHandlerList_success(t *testing.T) {
 	}
 	var body struct {
 		Entries []model.MemoryLink `json:"entries"`
-		Total   int                `json:"total"`
+		Limit   int                `json:"limit"`
+		HasMore bool               `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Total != 1 || len(body.Entries) != 1 || body.Entries[0].ID != 7 {
+	if body.Limit != 50 || len(body.Entries) != 1 || body.Entries[0].ID != 7 {
 		t.Fatalf("unexpected body %+v", body)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -92,7 +93,7 @@ func TestLinksHandlerList_emptyUsesEmptySlice(t *testing.T) {
 		"id", "from_path", "to_path", "link_type", "metadata", "created_at",
 	})
 	mock.ExpectQuery(`SELECT id, from_path`).
-		WithArgs(tenantID, 10).
+		WithArgs(tenantID, 11).
 		WillReturnRows(rows)
 
 	app := newTestApp(tenantID, "admin")
@@ -109,12 +110,12 @@ func TestLinksHandlerList_emptyUsesEmptySlice(t *testing.T) {
 	}
 	var body struct {
 		Entries []model.MemoryLink `json:"entries"`
-		Total   int                `json:"total"`
+		Limit   int                `json:"limit"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Total != 0 || len(body.Entries) != 0 {
+	if body.Limit != 10 || len(body.Entries) != 0 {
 		t.Fatalf("expected empty entries, got %+v", body)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -133,7 +134,7 @@ func TestLinksHandlerList_repositoryError(t *testing.T) {
 
 	tenantID := uuid.New().String()
 	mock.ExpectQuery(`SELECT id, from_path`).
-		WithArgs(tenantID, 50).
+		WithArgs(tenantID, 51).
 		WillReturnError(errors.New("db unavailable"))
 
 	app := newTestApp(tenantID, "admin")

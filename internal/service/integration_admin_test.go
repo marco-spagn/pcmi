@@ -42,7 +42,7 @@ func TestIntegration_AdminService(t *testing.T) {
 	adminRepo := repository.NewAdminRepository(pool)
 	svc := NewAdminService(adminRepo)
 
-	if _, err := svc.ListTenants(ctx, 5); err != nil {
+	if _, _, err := svc.ListTenants(ctx, model.PageRequest{Limit: 5}); err != nil {
 		t.Fatalf("list tenants: %v", err)
 	}
 
@@ -60,7 +60,7 @@ func TestIntegration_AdminService(t *testing.T) {
 		t.Fatalf("create api key: %v", err)
 	}
 
-	keys, err := svc.ListAPIKeys(ctx, tenant.ID, 10)
+	keys, _, err := svc.ListAPIKeys(ctx, tenant.ID, model.PageRequest{Limit: 10})
 	if err != nil || len(keys) < 1 {
 		t.Fatalf("list keys: err=%v n=%d", err, len(keys))
 	}

@@ -43,7 +43,7 @@ func TestGetHistoricalVersion_validation(t *testing.T) {
 
 func TestListPathHistory_emptyPath(t *testing.T) {
 	r := &MemoryRepository{}
-	_, err := r.ListPathHistory(context.Background(), "00000000-0000-0000-0000-000000000000", "", 10)
+	_, _, err := r.ListPathHistory(context.Background(), "00000000-0000-0000-0000-000000000000", "", model.PageRequest{Limit: 10})
 	if err == nil {
 		t.Fatal("expected error")
 	}

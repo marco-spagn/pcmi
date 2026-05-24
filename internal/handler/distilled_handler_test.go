@@ -53,7 +53,7 @@ func TestDistilledHandler_queryError(t *testing.T) {
 
 	tenant := uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").String()
 	mock.ExpectQuery(`SELECT id, path`).
-		WithArgs(tenant, "root.p", 50).
+		WithArgs(tenant, "root.p", 51).
 		WillReturnError(errors.New("query failed"))
 
 	app := newTestApp(tenant, "admin")
@@ -86,7 +86,7 @@ func TestDistilledHandler_limitClampedHigh(t *testing.T) {
 		"id", "path", "summary", "insights", "confidence_score", "distilled_at", "source_entry_ids", "version",
 	})
 	mock.ExpectQuery(`SELECT id, path`).
-		WithArgs(tenant, "root", 200).
+		WithArgs(tenant, "root", 201).
 		WillReturnRows(rows)
 
 	app := newTestApp(tenant, "admin")
@@ -130,7 +130,7 @@ func TestDistilledHandler_successRow(t *testing.T) {
 	}).AddRow(int64(3), "root.topic", "brief", []byte(`[1,2]`), sql.NullFloat64{Float64: 0.7, Valid: true}, at, []int64{10, 20}, 4)
 
 	mock.ExpectQuery(`SELECT id, path`).
-		WithArgs(tenant, "root.topic", 1).
+		WithArgs(tenant, "root.topic", 2).
 		WillReturnRows(rows)
 
 	app := newTestApp(tenant, "admin")
@@ -146,13 +146,13 @@ func TestDistilledHandler_successRow(t *testing.T) {
 	}
 	var body struct {
 		Entries []map[string]any `json:"entries"`
-		Total   int              `json:"total"`
+		Limit   int              `json:"limit"`
 		Tenant  string           `json:"tenant"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Total != 1 || body.Tenant != tenant {
+	if len(body.Entries) != 1 || body.Tenant != tenant || body.Limit != 1 {
 		t.Fatalf("unexpected %+v", body)
 	}
 	e0 := body.Entries[0]

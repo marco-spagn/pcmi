@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -70,13 +71,23 @@ func (r *LinksRepository) Create(ctx context.Context, tenantID string, req model
 	return &link, nil
 }
 
-func (r *LinksRepository) List(ctx context.Context, tenantID, fromPath, toPath, linkType string, limit int) ([]model.MemoryLink, error) {
+func (r *LinksRepository) List(
+	ctx context.Context,
+	tenantID, fromPath, toPath, linkType string,
+	page model.PageRequest,
+) ([]model.MemoryLink, model.PageResponse, error) {
+	limit := page.Limit
 	if limit <= 0 {
 		limit = 50
 	}
 	if limit > 200 {
 		limit = 200
 	}
+	sortKey := model.SortKeyCreatedAtIDDesc
+	if !page.Cursor.IsZero() && page.Cursor.SortKey != "" {
+		sortKey = page.Cursor.SortKey
+	}
+
 	fromPath = strings.TrimSpace(fromPath)
 	toPath = strings.TrimSpace(toPath)
 	linkType = strings.TrimSpace(linkType)
@@ -100,12 +111,20 @@ func (r *LinksRepository) List(ctx context.Context, tenantID, fromPath, toPath, 
 		args = append(args, linkType)
 		n++
 	}
-	q += fmt.Sprintf(" ORDER BY created_at DESC LIMIT $%d", n)
-	args = append(args, limit)
+	clause, clauseArgs, err := KeysetCreatedAtIDClause(page.Cursor, sortKey, n)
+	if err != nil {
+		return nil, model.PageResponse{}, err
+	}
+	q += clause
+	args = append(args, clauseArgs...)
+	n += len(clauseArgs)
+
+	q += fmt.Sprintf(" ORDER BY created_at DESC, id DESC LIMIT $%d", n)
+	args = append(args, FetchLimit(limit))
 
 	rows, err := r.r.Query(ctx, q, args...)
 	if err != nil {
-		return nil, err
+		return nil, model.PageResponse{}, err
 	}
 	defer rows.Close()
 
@@ -113,11 +132,18 @@ func (r *LinksRepository) List(ctx context.Context, tenantID, fromPath, toPath, 
 	for rows.Next() {
 		var l model.MemoryLink
 		if err := rows.Scan(&l.ID, &l.FromPath, &l.ToPath, &l.LinkType, &l.Metadata, &l.CreatedAt); err != nil {
-			return nil, err
+			return nil, model.PageResponse{}, err
 		}
 		out = append(out, l)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, model.PageResponse{}, err
+	}
+	trimmed, pageResp, err := model.FinishInt64Page(out, limit, sortKey,
+		func(l model.MemoryLink) int64 { return l.ID },
+		func(l model.MemoryLink) time.Time { return l.CreatedAt },
+	)
+	return trimmed, pageResp, err
 }
 
 func (r *LinksRepository) Count(ctx context.Context, tenantID string) (int, error) {

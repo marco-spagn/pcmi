@@ -55,13 +55,33 @@ func (r *AdminRepository) CreateTenant(ctx context.Context, slug, name string, s
 	return &t, nil
 }
 
-func (r *AdminRepository) ListTenants(ctx context.Context, limit int) ([]model.TenantResponse, error) {
-	rows, err := r.db.Query(ctx,
-		`SELECT id::text, slug, name, settings, created_at FROM admin_list_tenants($1)`,
-		limit,
-	)
+const sortKeyTenantCreatedAt = model.SortKeyCreatedAtDesc
+
+func (r *AdminRepository) ListTenants(ctx context.Context, page model.PageRequest) ([]model.TenantResponse, model.PageResponse, error) {
+	limit := page.Limit
+	if limit <= 0 {
+		limit = 100
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	q := `SELECT id::text, slug, name, settings, created_at FROM tenants WHERE 1=1`
+	args := []any{}
+	argN := 1
+	clause, clauseArgs, err := KeysetTimeClause(page.Cursor, sortKeyTenantCreatedAt, "created_at", argN)
 	if err != nil {
-		return nil, fmt.Errorf("list tenants: %w", err)
+		return nil, model.PageResponse{}, err
+	}
+	q += clause
+	args = append(args, clauseArgs...)
+	argN += len(clauseArgs)
+	q += fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d`, argN)
+	args = append(args, FetchLimit(limit))
+
+	rows, err := r.db.Query(ctx, q, args...)
+	if err != nil {
+		return nil, model.PageResponse{}, fmt.Errorf("list tenants: %w", err)
 	}
 	defer rows.Close()
 
@@ -69,11 +89,18 @@ func (r *AdminRepository) ListTenants(ctx context.Context, limit int) ([]model.T
 	for rows.Next() {
 		var t model.TenantResponse
 		if err := rows.Scan(&t.ID, &t.Slug, &t.Name, &t.Settings, &t.CreatedAt); err != nil {
-			return nil, err
+			return nil, model.PageResponse{}, err
 		}
 		out = append(out, t)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, model.PageResponse{}, err
+	}
+	trimmed, pageResp, err := model.FinishInt64Page(out, limit, sortKeyTenantCreatedAt,
+		func(t model.TenantResponse) int64 { return 0 },
+		func(t model.TenantResponse) time.Time { return t.CreatedAt },
+	)
+	return trimmed, pageResp, err
 }
 
 func (r *AdminRepository) RotateAPIKey(ctx context.Context, keyID, keyHash, name string) (*model.APIKeyRotateResponse, error) {
@@ -134,34 +161,79 @@ func (r *AdminRepository) CreateAPIKey(ctx context.Context, tenantID, keyHash, n
 	return &resp, nil
 }
 
-func (r *AdminRepository) ListAPIKeys(ctx context.Context, tenantID string, limit int) ([]map[string]interface{}, error) {
-	rows, err := r.db.Query(ctx, `
+func (r *AdminRepository) ListAPIKeys(ctx context.Context, tenantID string, page model.PageRequest) ([]map[string]interface{}, model.PageResponse, error) {
+	limit := page.Limit
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	sortKey := sortKeyTenantCreatedAt
+
+	q := `
 		SELECT id::text, name, role, is_active, expires_at, created_at, last_used_at,
 		       rotated_to::text, rotation_grace_ends_at, last_used_ip
 		FROM api_keys
-		WHERE tenant_id = $1::uuid
-		ORDER BY created_at DESC
-		LIMIT $2`, tenantID, limit)
+		WHERE tenant_id = $1::uuid`
+	args := []any{tenantID}
+	argN := 2
+	clause, clauseArgs, err := KeysetTimeClause(page.Cursor, sortKey, "created_at", argN)
 	if err != nil {
-		return nil, err
+		return nil, model.PageResponse{}, err
+	}
+	q += clause
+	args = append(args, clauseArgs...)
+	argN += len(clauseArgs)
+	q += fmt.Sprintf(` ORDER BY created_at DESC LIMIT $%d`, argN)
+	args = append(args, FetchLimit(limit))
+
+	rows, err := r.db.Query(ctx, q, args...)
+	if err != nil {
+		return nil, model.PageResponse{}, err
 	}
 	defer rows.Close()
 
-	var out []map[string]interface{}
+	type keyRow struct {
+		row map[string]interface{}
+		at  time.Time
+	}
+	var scanned []keyRow
 	for rows.Next() {
 		var id, name, role string
 		var active bool
 		var expiresAt, createdAt, lastUsed, rotatedTo, graceEnds, lastIP interface{}
+		var created time.Time
 		if err := rows.Scan(&id, &name, &role, &active, &expiresAt, &createdAt, &lastUsed, &rotatedTo, &graceEnds, &lastIP); err != nil {
-			return nil, err
+			return nil, model.PageResponse{}, err
 		}
-		out = append(out, map[string]interface{}{
-			"id": id, "name": name, "role": role, "is_active": active,
-			"expires_at": expiresAt, "created_at": createdAt, "last_used_at": lastUsed,
-			"rotated_to": rotatedTo, "rotation_grace_ends_at": graceEnds, "last_used_ip": lastIP,
+		if ts, ok := createdAt.(time.Time); ok {
+			created = ts
+		}
+		scanned = append(scanned, keyRow{
+			at: created,
+			row: map[string]interface{}{
+				"id": id, "name": name, "role": role, "is_active": active,
+				"expires_at": expiresAt, "created_at": createdAt, "last_used_at": lastUsed,
+				"rotated_to": rotatedTo, "rotation_grace_ends_at": graceEnds, "last_used_ip": lastIP,
+			},
 		})
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, model.PageResponse{}, err
+	}
+	trimmed, pageResp, err := model.FinishInt64Page(scanned, limit, sortKey,
+		func(k keyRow) int64 { return 0 },
+		func(k keyRow) time.Time { return k.at },
+	)
+	if err != nil {
+		return nil, model.PageResponse{}, err
+	}
+	out := make([]map[string]interface{}, len(trimmed))
+	for i, k := range trimmed {
+		out[i] = k.row
+	}
+	return out, pageResp, nil
 }
 
 func (r *AdminRepository) setTenantContext(ctx context.Context, tenantID string) error {
@@ -208,7 +280,7 @@ func (r *AdminRepository) listAPIKeysOverview(ctx context.Context, tenantID, ten
 // ListAllAPIKeysOverview lists tenants (admin_list_tenants) and their API keys with hash prefix only.
 // tenantFilter matches tenant slug or UUID; empty means all tenants up to tenantLimit.
 func (r *AdminRepository) ListAllAPIKeysOverview(ctx context.Context, tenantLimit, keysPerTenant int, tenantFilter string) ([]AdminAPIKeyOverview, error) {
-	tenants, err := r.ListTenants(ctx, tenantLimit)
+	tenants, _, err := r.ListTenants(ctx, model.PageRequest{Limit: tenantLimit})
 	if err != nil {
 		return nil, err
 	}

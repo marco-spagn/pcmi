@@ -28,7 +28,7 @@ func (r *LineageRepository) MemoryLineage(ctx context.Context, tenantID, path st
 	}
 
 	memRepo := NewMemoryRepository(r.w, r.r)
-	versions, err := memRepo.ListPathHistory(ctx, tenantID, path, 100)
+	versions, _, err := memRepo.ListPathHistory(ctx, tenantID, path, model.PageRequest{Limit: 100})
 	if err != nil {
 		return nil, err
 	}

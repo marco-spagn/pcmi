@@ -15,12 +15,12 @@ import (
 
 type stubAudit struct {
 	entries []model.AuditEntry
-	total   int
+	page    model.PageResponse
 	err     error
 }
 
-func (s *stubAudit) List(_ context.Context, _ string, _, _ int, _ *time.Time) ([]model.AuditEntry, int, error) {
-	return s.entries, s.total, s.err
+func (s *stubAudit) List(_ context.Context, _ string, _ model.PageRequest, _ *time.Time) ([]model.AuditEntry, model.PageResponse, error) {
+	return s.entries, s.page, s.err
 }
 
 func TestAuditHandlerList_invalidSince(t *testing.T) {
@@ -63,10 +63,13 @@ func TestAuditHandlerList_success(t *testing.T) {
 		{ID: 1, TenantID: tenantID, EventType: "read", Path: "/x", Method: "GET", StatusCode: 200, CreatedAt: when},
 	}
 	app := newTestApp(tenantID, "admin")
-	h := &AuditHandler{repo: &stubAudit{entries: entries, total: 100}}
+	h := &AuditHandler{repo: &stubAudit{
+		entries: entries,
+		page:    model.PageResponse{HasMore: true, NextCursor: "cursor-token"},
+	}}
 	app.Get("/audit", h.List)
 
-	resp, err := app.Test(httptest.NewRequest("GET", "/audit?limit=10&offset=5&since=2024-01-01T00:00:00Z", nil))
+	resp, err := app.Test(httptest.NewRequest("GET", "/audit?limit=10&since=2024-01-01T00:00:00Z", nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,15 +78,15 @@ func TestAuditHandlerList_success(t *testing.T) {
 		t.Fatalf("status %d want 200", resp.StatusCode)
 	}
 	var body struct {
-		Entries []model.AuditEntry `json:"entries"`
-		Total   int                `json:"total"`
-		Limit   int                `json:"limit"`
-		Offset  int                `json:"offset"`
+		Entries    []model.AuditEntry `json:"entries"`
+		Limit      int                `json:"limit"`
+		NextCursor string             `json:"next_cursor"`
+		HasMore    bool               `json:"has_more"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
 	}
-	if body.Total != 100 || body.Limit != 10 || body.Offset != 5 || len(body.Entries) != 1 {
+	if body.Limit != 10 || !body.HasMore || body.NextCursor != "cursor-token" || len(body.Entries) != 1 {
 		t.Fatalf("unexpected %+v", body)
 	}
 }

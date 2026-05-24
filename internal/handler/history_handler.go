@@ -12,7 +12,7 @@ import (
 )
 
 type pathHistoryLister interface {
-	ListPathHistory(ctx context.Context, tenantID, path string, limit int) ([]model.MemoryEntry, error)
+	ListPathHistory(ctx context.Context, tenantID, path string, page model.PageRequest) ([]model.MemoryEntry, model.PageResponse, error)
 }
 
 type HistoryHandler struct {
@@ -31,16 +31,24 @@ func (h *HistoryHandler) Get(c *fiber.Ctx) error {
 	}
 
 	tenantID := c.Locals(middleware.TenantContextKey).(string)
-	limit := c.QueryInt("limit", 50)
+	pageParams, err := ParseListPagination(c, model.SortKeyIDDesc, 50)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+	}
 
-	entries, err := h.repo.ListPathHistory(c.Context(), tenantID, path, limit)
+	entries, pageResp, err := h.repo.ListPathHistory(c.Context(), tenantID, path, model.PageRequest{
+		Cursor: pageParams.Cursor,
+		Limit:  pageParams.Limit,
+	})
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.JSON(fiber.Map{
-		"path":    path,
-		"entries": entries,
-		"total":   len(entries),
+		"path":        path,
+		"entries":     entries,
+		"limit":       pageParams.Limit,
+		"next_cursor": pageResp.NextCursor,
+		"has_more":    pageResp.HasMore,
 	})
 }

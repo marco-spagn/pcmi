@@ -29,12 +29,12 @@ func (s *AdminService) CreateTenant(ctx context.Context, req *model.TenantCreate
 	return s.repo.CreateTenant(ctx, slug, name, req.Settings)
 }
 
-func (s *AdminService) ListTenants(ctx context.Context, limit int) ([]model.TenantResponse, error) {
-	return s.repo.ListTenants(ctx, limit)
+func (s *AdminService) ListTenants(ctx context.Context, page model.PageRequest) ([]model.TenantResponse, model.PageResponse, error) {
+	return s.repo.ListTenants(ctx, page)
 }
 
-func (s *AdminService) ListAPIKeys(ctx context.Context, tenantID string, limit int) ([]map[string]interface{}, error) {
-	return s.repo.ListAPIKeys(ctx, tenantID, limit)
+func (s *AdminService) ListAPIKeys(ctx context.Context, tenantID string, page model.PageRequest) ([]map[string]interface{}, model.PageResponse, error) {
+	return s.repo.ListAPIKeys(ctx, tenantID, page)
 }
 
 func (s *AdminService) RotateAPIKey(ctx context.Context, keyID, name, auditPath, auditMethod, auditIP string) (*model.APIKeyRotateResponse, error) {

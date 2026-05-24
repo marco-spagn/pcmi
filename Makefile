@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration test-pagination bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -219,6 +219,10 @@ test-idempotency:
 
 test-key-lifecycle:
 	PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -race -count=1 -run 'TestKey' ./internal/handler/...
+
+# Cursor-based pagination on list endpoints (PCMI-014).
+test-pagination:
+	go test -race -count=1 -run TestPagination ./internal/repository/... ./internal/handler/... ./internal/model/...
 
 # Hybrid retrieval scoring: importance fusion + temporal decay (PCMI-009).
 test-retrieval-scoring:

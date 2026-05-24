@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"strconv"
-
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/marco-spagn/pcmi/internal/handler/adminui"
@@ -32,12 +30,26 @@ func SetupAdminRoutes(app *fiber.App, db repository.AdminQuerier) {
 	})
 
 	admin.Get("/tenants", func(c *fiber.Ctx) error {
-		limit, _ := strconv.Atoi(c.Query("limit", "100"))
-		tenants, err := svc.ListTenants(c.Context(), limit)
+		pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtDesc, 100)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+			return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for tenant listings; use cursor"})
+		}
+		tenants, pageResp, err := svc.ListTenants(c.Context(), model.PageRequest{
+			Cursor: pageParams.Cursor,
+			Limit:  pageParams.Limit,
+		})
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
-		return c.JSON(fiber.Map{"tenants": tenants, "total": len(tenants)})
+		return c.JSON(fiber.Map{
+			"tenants":     tenants,
+			"limit":       pageParams.Limit,
+			"next_cursor": pageResp.NextCursor,
+			"has_more":    pageResp.HasMore,
+		})
 	})
 
 	admin.Get("/api-keys", func(c *fiber.Ctx) error {
@@ -45,12 +57,26 @@ func SetupAdminRoutes(app *fiber.App, db repository.AdminQuerier) {
 		if q := c.Query("tenant_id"); q != "" {
 			tenantID = q
 		}
-		limit, _ := strconv.Atoi(c.Query("limit", "50"))
-		keys, err := svc.ListAPIKeys(c.Context(), tenantID, limit)
+		pageParams, err := ParseListPagination(c, model.SortKeyCreatedAtDesc, 50)
+		if err != nil {
+			return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+		}
+		if !pageParams.Cursor.IsZero() && pageParams.Cursor.LastID > 0 && pageParams.Cursor.LastTimestamp.IsZero() {
+			return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for api key listings; use cursor"})
+		}
+		keys, pageResp, err := svc.ListAPIKeys(c.Context(), tenantID, model.PageRequest{
+			Cursor: pageParams.Cursor,
+			Limit:  pageParams.Limit,
+		})
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 		}
-		return c.JSON(fiber.Map{"api_keys": keys, "total": len(keys)})
+		return c.JSON(fiber.Map{
+			"api_keys":    keys,
+			"limit":       pageParams.Limit,
+			"next_cursor": pageResp.NextCursor,
+			"has_more":    pageResp.HasMore,
+		})
 	})
 
 	admin.Post("/api-keys", func(c *fiber.Ctx) error {

@@ -9,12 +9,13 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
-### Fixed
+## [1.47.0] — 2026-05-24
 
-- **`make distill-smoke`**: publish refine events on Redis Streams (`pcmi:events`) when
-  `EVENT_BACKEND=streams`; flush `memory.stored` backlog before refine; set
-  `DISTILLATION_POLICY_DISABLED=1` by default in the e2e script. `memory.refine.requested`
-  was never blocked by `min_interval` — the smoke harness used the wrong transport.
+### Added — Cursor-based pagination (PCMI-014)
+
+- **List endpoints** accept `limit`, `cursor`, and `after_id`; responses include `next_cursor` and `has_more`.
+- Handlers: audit, links, webhooks, distilled, distillation policies/runs, admin tenants/keys, memory history.
+- Makefile target: `test-pagination`.
 
 ## [1.46.0] — 2026-05-23
 

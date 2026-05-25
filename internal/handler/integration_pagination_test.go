@@ -366,8 +366,10 @@ func TestIntegrationHTTP_AdminTenantsListCursorPagination(t *testing.T) {
 	if len(page2.Tenants) != 1 {
 		t.Fatalf("page2 tenants=%d", len(page2.Tenants))
 	}
-	if page2.Total != page1.Total {
-		t.Fatalf("total changed: %d vs %d", page1.Total, page2.Total)
+	// total may increase between page1 and page2 if parallel integration tests
+	// create tenants concurrently; it must never decrease.
+	if page2.Total < page1.Total {
+		t.Fatalf("total decreased between pages: %d → %d", page1.Total, page2.Total)
 	}
 	if page1.Tenants[0].ID == page2.Tenants[0].ID {
 		t.Fatalf("duplicate tenant boundary id=%s", page1.Tenants[0].ID)

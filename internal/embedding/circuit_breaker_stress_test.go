@@ -53,7 +53,8 @@ func TestCBStress_ConcurrentTrip(t *testing.T) {
 
 // TestCBStress_OpenCircuitFastFail verifies that 200 goroutines all get
 // ErrCircuitOpen quickly once the circuit is open. Each call must return
-// in < 5ms (no upstream latency should be incurred).
+// in < 25ms (upstream latency is 100ms, so any slip past the circuit check
+// would be caught even with generous goroutine-scheduling headroom under -race).
 func TestCBStress_OpenCircuitFastFail(t *testing.T) {
 	t.Parallel()
 	inner := &stubProvider{fn: func(_ context.Context, _ string) ([]float32, error) {
@@ -93,7 +94,7 @@ func TestCBStress_OpenCircuitFastFail(t *testing.T) {
 			if !errors.Is(err, ErrCircuitOpen) {
 				wrongErrors.Add(1)
 			}
-			if elapsed > 5*time.Millisecond {
+			if elapsed > 25*time.Millisecond {
 				slowCalls.Add(1)
 			}
 		}()

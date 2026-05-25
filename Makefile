@@ -3,7 +3,7 @@
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
-        changelog-unreleased changelog-tag examples-smoke-structural examples-smoke \
+        changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
@@ -178,6 +178,24 @@ changelog-tag:
 	@test -n "$(TAG)" || (echo "usage: make changelog-tag TAG=v1.48.0" && exit 1)
 	@command -v git-cliff >/dev/null 2>&1 || (echo "install git-cliff: https://git-cliff.org/docs/installation/" && exit 1)
 	git cliff --config cliff.toml --strip header --tag "$(TAG)"
+
+# tag-release: bump internal/version/version.go, commit, and create an annotated tag.
+# The push triggers .github/workflows/release.yml (binaries + GitHub Release + container).
+# Usage: make tag-release VERSION=v1.50.0
+tag-release:
+	@test -n "$(VERSION)" || (echo "usage: make tag-release VERSION=v1.50.0" && exit 1)
+	@echo "→ bumping version to $(VERSION) in internal/version/version.go"
+	@SEMVER=$$(echo "$(VERSION)" | sed 's/^v//'); \
+	  sed -e "s/Tag = \"v[0-9]*\.[0-9]*\.[0-9]*\"/Tag = \"$(VERSION)\"/" \
+	      -e "s/Semver = \"[0-9]*\.[0-9]*\.[0-9]*\"/Semver = \"$$SEMVER\"/" \
+	      internal/version/version.go > internal/version/version.go.tmp && \
+	  mv internal/version/version.go.tmp internal/version/version.go
+	@git add internal/version/version.go
+	@git commit -m "chore(release): bump version to $(VERSION)"
+	@git tag -a "$(VERSION)" -m "Release $(VERSION)"
+	@echo ""
+	@echo "  Done. Push to trigger the release pipeline:"
+	@echo "    git push origin main && git push origin $(VERSION)"
 
 # Unit tests (default; integration tests use build tag "integration").
 test:

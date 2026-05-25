@@ -185,13 +185,13 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 
 # ── Step 6: Retrieve memories ─────────────────────────────────────────────────
 header "Retrieving memories"
-info "Querying root.security for 'critical threat'..."
+info "Listing all memories under root.security..."
 
 MEMORIES_RETRIEVED=$(pcurl --max-time 10 -X POST "${API_URL}/v1/retrieve" \
-  -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
+  -d '{"path_prefix":"root.security","query":"","limit":10}' \
   2>/dev/null | jq -r '(.entries // []) | length' 2>/dev/null)
 MEMORIES_RETRIEVED="${MEMORIES_RETRIEVED:-0}"
-ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
+ok "Retrieved ${MEMORIES_RETRIEVED} memories under root.security"
 
 # ── Step 7 & 8: Distillation ──────────────────────────────────────────────────
 header "Distillation"

@@ -287,7 +287,9 @@ paths:
   /v1/admin/ui:
     get:
       summary: Embedded admin dashboard (HTML)
-      description: Requires admin API key. Serves the bundled admin UI for tenants, API keys, and health links.
+      description: |
+        Serves the bundled admin HTML shell (no API key on page load).
+        In the browser, pass an admin key via `?key=` or the prompt; API calls use `X-API-Key`.
       responses:
         "200":
           description: HTML dashboard
@@ -295,8 +297,6 @@ paths:
             text/html:
               schema:
                 type: string
-        "403":
-          description: Non-admin API key
   /v1/admin/tenants:
     get:
       summary: List tenants (admin role)

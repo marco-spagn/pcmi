@@ -13,9 +13,12 @@ import (
 func SetupAdminRoutes(app *fiber.App, db repository.AdminQuerier) {
 	repo := repository.NewAdminRepository(db)
 	svc := service.NewAdminService(repo)
-	admin := app.Group("/v1/admin", middleware.RequireAdminRole)
 
-	adminui.Register(admin)
+	// Static admin dashboard: browsers cannot send X-API-Key on navigation.
+	// The page prompts for ?key= or uses fetch with the key (see adminui.html).
+	adminui.Register(app)
+
+	admin := app.Group("/v1/admin", middleware.RequireAdminRole)
 
 	admin.Post("/tenants", func(c *fiber.Ctx) error {
 		var req model.TenantCreateRequest

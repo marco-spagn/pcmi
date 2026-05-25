@@ -3,7 +3,7 @@
 # Usage: bash scripts/quickstart.sh
 # Requires: docker, curl, jq
 
-set -euo pipefail
+set -uo pipefail
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 GREEN=$'\033[0;32m'
@@ -186,32 +186,11 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 header "Retrieving memories"
 info "Querying root.security for 'critical threat'..."
 
-# Write to a temp file so curl runs outside $() — avoids any subshell
-# quoting/expansion issue that could silently drop custom headers.
-_ret_tmp=$(mktemp)
-curl -s --max-time 10 \
-  -X POST "${API_URL}/v1/retrieve" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
+MEMORIES_RETRIEVED=$(curl -s --max-time 10 -X POST "${API_URL}/v1/retrieve" \
+  -H "Content-Type: application/json" -H "X-API-Key: ${API_KEY}" \
   -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
-  -o "$_ret_tmp" 2>/dev/null || true
-response=$(cat "$_ret_tmp" 2>/dev/null || echo '{}')
-rm -f "$_ret_tmp"
-
-# Check success by presence of .entries (always in RetrieveResponse),
-# not by absence of .error (which is fragile when error is null/"").
-if printf '%s' "$response" | jq -e '.entries' >/dev/null 2>&1; then
-  MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length' 2>/dev/null || echo 0)
-  ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
-  if [ "$MEMORIES_RETRIEVED" -gt 0 ]; then
-    printf '%s' "$response" \
-      | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
-  fi
-else
-  _errmsg=$(printf '%s' "$response" | jq -r '.error // "no response"' 2>/dev/null || echo "no response")
-  warn "Retrieve failed: ${_errmsg}"
-  warn "Manual check: curl -s -X POST ${API_URL}/v1/retrieve -H 'X-API-Key: ${API_KEY}' -H 'Content-Type: application/json' -d '{\"path_prefix\":\"root.security\",\"limit\":1}' | jq ."
-fi
+  2>/dev/null | jq -r '(.entries // []) | length' 2>/dev/null || echo 0)
+ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
 
 # ── Step 7 & 8: Distillation ──────────────────────────────────────────────────
 header "Distillation"

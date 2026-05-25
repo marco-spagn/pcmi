@@ -144,3 +144,46 @@ func TestWebhookDelivery_NotLegacyBodyOnlyHMAC(t *testing.T) {
 		t.Fatal("signature must use timestamp.body scheme, not body-only")
 	}
 }
+
+// TestDelivery_PostTimeout verifies that a context deadline cancels the POST
+// before the slow upstream responds. The upstream hangs; the context fires after
+// 50ms; Post must return a non-nil error.
+func TestDelivery_PostTimeout(t *testing.T) {
+	t.Parallel()
+	unblock := make(chan struct{})
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-unblock:
+		case <-r.Context().Done():
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(func() {
+		close(unblock)
+		srv.Close()
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+
+	d := NewDelivery("timeout-test", srv.URL, "", []byte("{}"), 0)
+	err := d.Post(ctx, srv.Client())
+	if err == nil {
+		t.Fatal("expected error from context timeout, got nil")
+	}
+}
+
+// TestDelivery_Post_NilClientUsesDefault verifies that a nil *http.Client
+// falls back to http.DefaultClient and successfully delivers the payload.
+func TestDelivery_Post_NilClientUsesDefault(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(srv.Close)
+
+	d := NewDelivery("nil-client", srv.URL, "", []byte("{}"), 0)
+	if err := d.Post(context.Background(), nil); err != nil {
+		t.Fatalf("expected success with nil client, got: %v", err)
+	}
+}

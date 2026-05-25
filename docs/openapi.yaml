@@ -638,6 +638,130 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuditListResponse"
+  /v1/memories/refine:
+    post:
+      summary: Queue an asynchronous distillation-refine job for a path prefix
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefineRequest"
+      responses:
+        "200":
+          description: Job queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RefineResponse"
+        "400":
+          description: Invalid request
+        "503":
+          description: Event bus unavailable
+  /v1/memories/links:
+    post:
+      summary: Create a typed link between two memory paths
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkRequest"
+      responses:
+        "201":
+          description: Link created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryLink"
+        "400":
+          description: Invalid request
+    get:
+      summary: List memory links (filterable by from_path, to_path, link_type)
+      parameters:
+        - name: from_path
+          in: query
+          schema: { type: string }
+        - name: to_path
+          in: query
+          schema: { type: string }
+        - name: link_type
+          in: query
+          schema: { type: string }
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+      responses:
+        "200":
+          description: Paged link list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryLinksListResponse"
+  /v1/lineage/memory:
+    get:
+      summary: Version history and derived distillations for a memory path
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema: { type: string }
+          description: ltree path of the memory entry
+      responses:
+        "200":
+          description: Memory lineage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemoryLineageResponse"
+        "404":
+          description: Path not found
+  /v1/lineage/distilled/{id}:
+    get:
+      summary: Source memories that contributed to a distilled knowledge entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Distilled lineage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DistilledLineageResponse"
+        "404":
+          description: Not found
+  /v1/webhooks:
+    post:
+      summary: Register a new webhook endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterWebhookRequest"
+      responses:
+        "201":
+          description: Webhook registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterWebhookResponse"
+        "400":
+          description: Invalid request
+    get:
+      summary: List registered webhook endpoints for the authenticated tenant
+      parameters:
+        - $ref: "#/components/parameters/ListLimit50"
+        - $ref: "#/components/parameters/ListCursor"
+      responses:
+        "200":
+          description: Webhook endpoint list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookEndpointListResponse"
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -985,3 +1109,101 @@ components:
         count_threshold: { type: integer, minimum: 1, default: 10 }
         min_interval_secs: { type: integer, minimum: 0, default: 300 }
         max_age_secs: { type: integer, nullable: true }
+    RefineRequest:
+      type: object
+      required: [path_prefix]
+      properties:
+        path_prefix: { type: string, description: ltree path prefix to distill }
+    RefineResponse:
+      type: object
+      properties:
+        status: { type: string, enum: [queued] }
+        path_prefix: { type: string }
+    CreateLinkRequest:
+      type: object
+      required: [from_path, to_path, link_type]
+      properties:
+        from_path: { type: string }
+        to_path: { type: string }
+        link_type: { type: string }
+        metadata: { type: object, additionalProperties: true }
+    MemoryLink:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        from_path: { type: string }
+        to_path: { type: string }
+        link_type: { type: string }
+        metadata: { type: object, additionalProperties: true }
+        created_at: { type: string, format: date-time }
+    MemoryLinksListResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryLink" }
+        limit: { type: integer }
+        next_cursor: { type: string }
+        has_more: { type: boolean }
+    DistilledLineageItem:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        path: { type: string }
+        summary: { type: string }
+        version: { type: integer }
+        source_entry_ids:
+          type: array
+          items: { type: integer, format: int64 }
+        confidence_score: { type: number, format: float }
+    MemoryLineageResponse:
+      type: object
+      properties:
+        entry_id: { type: integer, format: int64 }
+        path: { type: string }
+        versions:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+        distilled:
+          type: array
+          items: { $ref: "#/components/schemas/DistilledLineageItem" }
+    DistilledLineageResponse:
+      type: object
+      properties:
+        distilled: { $ref: "#/components/schemas/DistilledLineageItem" }
+        sources:
+          type: array
+          items: { $ref: "#/components/schemas/MemoryEntry" }
+    RegisterWebhookRequest:
+      type: object
+      required: [url]
+      properties:
+        url: { type: string, format: uri }
+        event_types:
+          type: array
+          items: { type: string }
+        secret: { type: string, description: Optional HMAC signing secret }
+    RegisterWebhookResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [registered] }
+    WebhookEndpoint:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri }
+        event_types:
+          type: array
+          items: { type: string }
+        enabled: { type: boolean }
+        created_at: { type: string, format: date-time }
+    WebhookEndpointListResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/WebhookEndpoint" }
+        limit: { type: integer }
+        next_cursor: { type: string }
+        has_more: { type: boolean }

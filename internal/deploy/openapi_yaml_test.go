@@ -25,7 +25,15 @@ func TestOpenAPIYAMLValid(t *testing.T) {
 	if !ok || paths == nil {
 		t.Fatal("missing paths map")
 	}
-	for _, p := range []string{"/health", "/v1/health"} {
+	for _, p := range []string{
+		"/health",
+		"/v1/health",
+		"/v1/memories/refine",
+		"/v1/memories/links",
+		"/v1/lineage/memory",
+		"/v1/lineage/distilled/{id}",
+		"/v1/webhooks",
+	} {
 		if _, ok := paths[p]; !ok {
 			t.Errorf("missing path %q", p)
 		}

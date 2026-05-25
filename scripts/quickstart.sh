@@ -3,7 +3,7 @@
 # Usage: bash scripts/quickstart.sh
 # Requires: docker, curl, jq
 
-set -uo pipefail
+set -u
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 GREEN=$'\033[0;32m'
@@ -48,9 +48,11 @@ spinner_stop() {
 API_URL="${PCMI_API_URL:-http://localhost:8000}"
 API_KEY="${PCMI_API_KEY:-testkey123}"
 HEALTH_TIMEOUT=60
-# Shared header array — same pattern used by every PCMI CI script.
-# Using an array avoids quoting/expansion issues inside $() subshells.
-hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${API_KEY}")
+
+# Wrapper so every curl call always has the right headers without arrays.
+pcurl() {
+  curl -s -H "Content-Type: application/json" -H "X-API-Key: ${API_KEY}" "$@"
+}
 
 MEMORIES_STORED=0
 MEMORIES_RETRIEVED=0
@@ -132,8 +134,7 @@ ok "API is healthy at ${API_URL}"
 # ── Helper: store a memory ─────────────────────────────────────────────────────
 store_memory() {
   local path="$1" content="$2" tags="$3"
-  curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-    "${hdr[@]}" \
+  pcurl -f --max-time 10 -X POST "${API_URL}/v1/memories" \
     -d "{\"path\":\"${path}\",\"content\":\"${content}\",\"tags\":${tags}}" \
     >/dev/null
 }
@@ -186,10 +187,10 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 header "Retrieving memories"
 info "Querying root.security for 'critical threat'..."
 
-MEMORIES_RETRIEVED=$(curl -s --max-time 10 -X POST "${API_URL}/v1/retrieve" \
-  -H "Content-Type: application/json" -H "X-API-Key: ${API_KEY}" \
+MEMORIES_RETRIEVED=$(pcurl --max-time 10 -X POST "${API_URL}/v1/retrieve" \
   -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
-  2>/dev/null | jq -r '(.entries // []) | length' 2>/dev/null || echo 0)
+  2>/dev/null | jq -r '(.entries // []) | length' 2>/dev/null)
+MEMORIES_RETRIEVED="${MEMORIES_RETRIEVED:-0}"
 ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
 
 # ── Step 7 & 8: Distillation ──────────────────────────────────────────────────
@@ -210,9 +211,9 @@ info "Polling /v1/distilled?path_prefix=root.test (max 60s, worker fires every ~
 spinner_start "Waiting for distilled insights..."
 deadline=$(( $(date +%s) + 60 ))
 while true; do
-  dist_result=$(curl -sf --max-time 5 \
+  dist_result=$(pcurl -f --max-time 5 \
     "${API_URL}/v1/distilled?path_prefix=root.test&limit=5" \
-    "${hdr[@]}" 2>/dev/null) || dist_result='{}'
+    2>/dev/null) || dist_result='{}'
   MEMORIES_DISTILLED=$(printf '%s' "$dist_result" | jq '.entries | length // 0' 2>/dev/null || echo 0)
   if [ "$MEMORIES_DISTILLED" -gt 0 ] || [ "$(date +%s)" -ge "$deadline" ]; then
     break

@@ -6,12 +6,12 @@
 set -euo pipefail
 
 # ── Colors ────────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
-RESET='\033[0m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+RED=$'\033[0;31m'
+CYAN=$'\033[0;36m'
+BOLD=$'\033[1m'
+RESET=$'\033[0m'
 
 ok()     { printf "${GREEN}✓${RESET} %s\n" "$*"; }
 warn()   { printf "${YELLOW}⚠${RESET}  %s\n" "$*"; }
@@ -48,6 +48,9 @@ spinner_stop() {
 API_URL="${PCMI_API_URL:-http://localhost:8000}"
 API_KEY="${PCMI_API_KEY:-testkey123}"
 HEALTH_TIMEOUT=60
+# Shared header array — same pattern used by every PCMI CI script.
+# Using an array avoids quoting/expansion issues inside $() subshells.
+hdr=(-H "Content-Type: application/json" -H "X-API-Key: ${API_KEY}")
 
 MEMORIES_STORED=0
 MEMORIES_RETRIEVED=0
@@ -130,8 +133,7 @@ ok "API is healthy at ${API_URL}"
 store_memory() {
   local path="$1" content="$2" tags="$3"
   curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-    -H "Content-Type: application/json" \
-    -H "X-API-Key: ${API_KEY}" \
+    "${hdr[@]}" \
     -d "{\"path\":\"${path}\",\"content\":\"${content}\",\"tags\":${tags}}" \
     >/dev/null
 }
@@ -184,17 +186,18 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 header "Retrieving memories"
 info "Querying root.security for 'critical threat'..."
 
-response=$(curl -s --max-time 10 -X POST "${API_URL}/v1/retrieve" \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
+response=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/retrieve" \
+  "${hdr[@]}" \
   -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
   2>/dev/null) || response='{}'
 
 MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length // 0' 2>/dev/null || echo 0)
 ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
 
-printf '%s' "$response" \
-  | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
+if [ "$MEMORIES_RETRIEVED" -gt 0 ]; then
+  printf '%s' "$response" \
+    | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
+fi
 
 # ── Step 7 & 8: Poll for distillation (triggered automatically by the worker) ──
 header "Distillation"
@@ -204,9 +207,9 @@ info "Polling /v1/distilled?path_prefix=root.security (max 30s)..."
 spinner_start "Waiting for distilled insights..."
 deadline=$(( $(date +%s) + 30 ))
 while true; do
-  dist_result=$(curl -s --max-time 5 \
+  dist_result=$(curl -sf --max-time 5 \
     "${API_URL}/v1/distilled?path_prefix=root.security&limit=5" \
-    -H "X-API-Key: ${API_KEY}" 2>/dev/null) || dist_result='{}'
+    "${hdr[@]}" 2>/dev/null) || dist_result='{}'
   MEMORIES_DISTILLED=$(printf '%s' "$dist_result" | jq '.entries | length // 0' 2>/dev/null || echo 0)
   if [ "$MEMORIES_DISTILLED" -gt 0 ] || [ "$(date +%s)" -ge "$deadline" ]; then
     break

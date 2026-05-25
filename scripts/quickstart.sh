@@ -253,6 +253,9 @@ cat <<EOF
   ${CYAN}Use gRPC (high-throughput):${RESET}
     grpcurl -H "X-API-Key: ${API_KEY}" -plaintext localhost:50051 list
 
+  ${CYAN}Admin dashboard (browser):${RESET}
+    open "${API_URL}/v1/admin/ui?key=${API_KEY}"
+
   ${CYAN}Read the docs:${RESET}
     docs/USAGE.md       — full API reference
     docs/SESSIONS.md    — agent sessions

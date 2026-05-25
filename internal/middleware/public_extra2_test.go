@@ -9,7 +9,7 @@ import (
 // Wider table for IsUnauthenticatedProbe; complements public_test.go.
 
 func TestIsUnauthenticatedProbeMethodMatrix(t *testing.T) {
-	probes := []string{"/health", "/v1/health", "/metrics", "/ready", "/v1/ready"}
+	probes := []string{"/health", "/v1/health", "/metrics", "/ready", "/v1/ready", "/v1/admin/ui"}
 
 	// Only GET on probe paths is unauthenticated.
 	for _, p := range probes {

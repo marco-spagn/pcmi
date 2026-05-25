@@ -9,9 +9,9 @@ import (
 //go:embed adminui.html
 var adminHTML []byte
 
-// Register mounts GET /ui on the given router (use under /v1/admin).
-func Register(r fiber.Router) {
-	r.Get("/ui", func(c *fiber.Ctx) error {
+// Register mounts GET /v1/admin/ui on the app (no API key on page load).
+func Register(app *fiber.App) {
+	app.Get("/v1/admin/ui", func(c *fiber.Ctx) error {
 		c.Set("Content-Type", "text/html; charset=utf-8")
 		return c.Send(adminHTML)
 	})

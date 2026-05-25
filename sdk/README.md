@@ -2,6 +2,21 @@
 
 Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput store/retrieve use gRPC (`proto/pcmi/v1/memory.proto`) or call REST directly.
 
+## Installation
+
+```bash
+# Python (requires Python 3.10+)
+pip install pcmi
+
+# TypeScript / Node
+npm install @marco-spagn/pcmi-sdk
+
+# Go
+go get github.com/marco-spagn/pcmi/sdk/go@latest
+```
+
+Packages are published automatically on every GitHub Release. See [`.github/workflows/publish-sdks.yml`](../.github/workflows/publish-sdks.yml) for the pipeline.
+
 ## Layout
 
 | Path | Runtime | Notes |

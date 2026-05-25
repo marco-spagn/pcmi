@@ -4,8 +4,13 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublish": "npm run build",
     "smoke": "tsx smoke.mts",
     "admin-smoke": "tsx admin-smoke.mts"
   },

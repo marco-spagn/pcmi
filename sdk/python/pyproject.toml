@@ -1,6 +1,33 @@
 [project]
 name = "pcmi"
 version = "1.0.0"
-description = "PCMI Python SDK"
+description = "PCMI Python SDK — async HTTP client for the Persistent Cognitive Memory Infrastructure API"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["httpx", "pydantic>=2"]
+license = {text = "MIT"}
+authors = [
+  {name = "Marco Spagnuolo"},
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: MIT License",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = ["httpx>=0.27", "pydantic>=2"]
+
+[project.urls]
+Homepage      = "https://github.com/marco-spagn/pcmi"
+Repository    = "https://github.com/marco-spagn/pcmi"
+Documentation = "https://github.com/marco-spagn/pcmi/tree/main/sdk/python"
+
+[build-system]
+requires      = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pcmi"]

@@ -4,7 +4,7 @@
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
-        helm-lint helm-template helm-package admin-list-keys
+        helm-lint helm-template helm-package admin-list-keys bench
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -278,6 +278,9 @@ test-retrieval-scoring:
 
 bench-retrieval:
 	go test -bench=BenchmarkHybridScore -benchmem -benchtime=5s ./internal/repository/...
+
+bench:
+	go test -bench=. -benchmem -benchtime=3s ./internal/worker/... ./internal/model/... ./internal/crypto/...
 
 # Agent sessions and working memory (PCMI-010).
 test-sessions-integration:

@@ -151,3 +151,60 @@ groups:
           description: |
             A webhook delivery has been in 'pending' state for over 30 minutes.
             Worker may be stuck or the endpoint is consistently unreachable.
+
+  # ─── SLOs ───────────────────────────────────────────────────────────────────
+  - name: pcmi_slos
+    interval: 30s
+    rules:
+      - alert: PCMISLOStorep99High
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(pcmi_http_request_duration_seconds_bucket{handler="store"}[5m]))
+          ) > 0.045
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-api
+          slo: store_latency_p99
+        annotations:
+          summary: "Store P99 latency approaching SLO breach (>45ms)"
+          description: |
+            P99 store latency has exceeded 45ms for 5 minutes.
+            SLO threshold is 50ms — 5ms headroom remaining.
+            Current P99: {{ $value | humanizeDuration }}.
+            Runbook: docs/runbooks/store-latency.md
+
+      - alert: PCMISLORetrievep99High
+        expr: |
+          histogram_quantile(
+            0.99,
+            sum by (le) (rate(pcmi_http_request_duration_seconds_bucket{handler="retrieve"}[5m]))
+          ) > 0.090
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-api
+          slo: retrieve_latency_p99
+        annotations:
+          summary: "Retrieve P99 latency approaching SLO breach (>90ms)"
+          description: |
+            P99 retrieve latency has exceeded 90ms for 5 minutes.
+            SLO threshold is 100ms — 10ms headroom remaining.
+            Current P99: {{ $value | humanizeDuration }}.
+            Runbook: docs/runbooks/retrieve-latency.md
+
+      - alert: PCMISLODistillationLag
+        expr: pcmi_distillation_queued_jobs > 50
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-worker
+          slo: distillation_lag
+        annotations:
+          summary: "Distillation queue depth exceeds SLO threshold"
+          description: |
+            >50 distillation jobs have been queued for 5 minutes.
+            SLO requires 95% of memory.stored events to produce a result within 60s.
+            Currently queued: {{ $value }}.
+            Runbook: docs/runbooks/distillation-lag.md

@@ -186,17 +186,29 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 header "Retrieving memories"
 info "Querying root.security for 'critical threat'..."
 
-response=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/retrieve" \
-  "${hdr[@]}" \
+# Write to a temp file so curl runs outside $() — avoids any subshell
+# quoting/expansion issue that could silently drop custom headers.
+_ret_tmp=$(mktemp)
+curl -s --max-time 10 \
+  -X POST "${API_URL}/v1/retrieve" \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: ${API_KEY}" \
   -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
-  2>/dev/null) || response='{}'
+  -o "$_ret_tmp" 2>/dev/null || true
+response=$(cat "$_ret_tmp" 2>/dev/null || echo '{}')
+rm -f "$_ret_tmp"
 
-MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length // 0' 2>/dev/null || echo 0)
-ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
-
-if [ "$MEMORIES_RETRIEVED" -gt 0 ]; then
-  printf '%s' "$response" \
-    | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
+if printf '%s' "$response" | jq -e '.error' >/dev/null 2>&1; then
+  _errmsg=$(printf '%s' "$response" | jq -r '.error' 2>/dev/null || echo "unknown")
+  warn "Retrieve failed: ${_errmsg}"
+  warn "Manual check: curl -s -X POST ${API_URL}/v1/retrieve -H 'X-API-Key: ${API_KEY}' -H 'Content-Type: application/json' -d '{\"path_prefix\":\"root.security\",\"limit\":1}' | jq ."
+else
+  MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length // 0' 2>/dev/null || echo 0)
+  ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
+  if [ "$MEMORIES_RETRIEVED" -gt 0 ]; then
+    printf '%s' "$response" \
+      | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
+  fi
 fi
 
 # ── Step 7 & 8: Poll for distillation (triggered automatically by the worker) ──

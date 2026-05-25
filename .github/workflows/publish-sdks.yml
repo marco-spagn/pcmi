@@ -1,0 +1,207 @@
+# PCMI SDK Publishing Pipeline
+#
+# Triggered automatically when a GitHub Release is published (e.g. after
+# .github/workflows/release.yml creates the release for a vX.Y.Z tag).
+# Can also be run manually via workflow_dispatch with an explicit version.
+#
+# Jobs:
+#   resolve-version   → derives semver from release tag or dispatch input
+#   publish-python    → build + upload to PyPI (secret: PYPI_API_TOKEN)
+#   publish-npm       → build + publish to npm  (secret: NPM_TOKEN)
+#   tag-go-sdk        → push git tag sdk/go/vX.Y.Z for go get compatibility
+
+name: Publish SDKs
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g. v1.50.0 or 1.50.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write   # push Go SDK tag + update release body
+
+jobs:
+  # ──────────────────────────────────────────────────────────────────────────
+  # Derive semver (without leading v) and raw tag from either the release
+  # event or the manual dispatch input.
+  # ──────────────────────────────────────────────────────────────────────────
+  resolve-version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      semver: ${{ steps.v.outputs.semver }}
+      tag:    ${{ steps.v.outputs.tag }}
+    steps:
+      - name: Compute semver and tag
+        id: v
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            RAW="${{ github.event.inputs.version }}"
+          else
+            RAW="${{ github.event.release.tag_name }}"
+          fi
+          SEMVER="${RAW#v}"
+          echo "tag=${RAW}"       >> "$GITHUB_OUTPUT"
+          echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "Resolved: tag=${RAW}  semver=${SEMVER}"
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Build and publish the Python SDK to PyPI.
+  # ──────────────────────────────────────────────────────────────────────────
+  publish-python:
+    name: Publish Python SDK to PyPI
+    runs-on: ubuntu-latest
+    needs: [resolve-version]
+    permissions:
+      contents: read
+    env:
+      SEMVER: ${{ needs.resolve-version.outputs.semver }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Update version in pyproject.toml
+        working-directory: sdk/python
+        run: |
+          python3 - <<'PYEOF'
+          import re, os
+          semver = os.environ["SEMVER"]
+          path = "pyproject.toml"
+          text = open(path).read()
+          text = re.sub(r'^version\s*=\s*"[^"]*"', f'version = "{semver}"', text, flags=re.MULTILINE)
+          open(path, "w").write(text)
+          print(f"pyproject.toml version → {semver}")
+          PYEOF
+
+      - name: Install build tools
+        run: pip install --quiet build twine
+
+      - name: Build sdist + wheel
+        working-directory: sdk/python
+        run: python -m build
+
+      - name: Upload to PyPI
+        working-directory: sdk/python
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload --non-interactive dist/*
+
+      - name: Append PyPI URL to release notes
+        if: github.event_name == 'release'
+        uses: actions/github-script@v9
+        env:
+          SEMVER: ${{ needs.resolve-version.outputs.semver }}
+        with:
+          script: |
+            const semver = process.env.SEMVER;
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+            });
+            const pypiUrl = `https://pypi.org/project/pcmi/${semver}/`;
+            const addition = `\n\n📦 **Python SDK**: \`pip install pcmi==${semver}\`  →  ${pypiUrl}`;
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              body: (release.body || '') + addition,
+            });
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Build and publish the TypeScript SDK to npm.
+  # ──────────────────────────────────────────────────────────────────────────
+  publish-npm:
+    name: Publish TypeScript SDK to npm
+    runs-on: ubuntu-latest
+    needs: [resolve-version]
+    permissions:
+      contents: read
+    env:
+      SEMVER: ${{ needs.resolve-version.outputs.semver }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Update version in package.json
+        working-directory: sdk/typescript
+        run: npm version "${SEMVER}" --no-git-tag-version
+
+      - name: Install dependencies
+        working-directory: sdk/typescript
+        run: npm ci
+
+      - name: Build
+        working-directory: sdk/typescript
+        run: npm run build
+
+      - name: Publish to npm
+        working-directory: sdk/typescript
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Append npm URL to release notes
+        if: github.event_name == 'release'
+        uses: actions/github-script@v9
+        env:
+          SEMVER: ${{ needs.resolve-version.outputs.semver }}
+        with:
+          script: |
+            const semver = process.env.SEMVER;
+            const { data: release } = await github.rest.repos.getRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+            });
+            const npmUrl = `https://www.npmjs.com/package/@marco-spagn/pcmi-sdk/v/${semver}`;
+            const addition = `\n📦 **TypeScript SDK**: \`npm install @marco-spagn/pcmi-sdk@${semver}\`  →  ${npmUrl}`;
+            await github.rest.repos.updateRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: context.payload.release.id,
+              body: (release.body || '') + addition,
+            });
+
+  # ──────────────────────────────────────────────────────────────────────────
+  # Push a sdk/go/vX.Y.Z git tag so the Go SDK is importable via
+  #   go get github.com/marco-spagn/pcmi/sdk/go@vX.Y.Z
+  # Runs only when both PyPI and npm publishes succeed.
+  # ──────────────────────────────────────────────────────────────────────────
+  tag-go-sdk:
+    name: Tag Go SDK module
+    runs-on: ubuntu-latest
+    needs: [publish-python, publish-npm, resolve-version]
+    env:
+      SEMVER: ${{ needs.resolve-version.outputs.semver }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create and push sdk/go/vX.Y.Z tag
+        run: |
+          git config user.name  "pcmi-ci[bot]"
+          git config user.email "pcmi-ci@users.noreply.github.com"
+          TAG="sdk/go/v${SEMVER}"
+          # Idempotent: skip if tag already exists.
+          if git rev-parse --verify "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — skipping."
+          else
+            git tag "${TAG}"
+            git push origin "${TAG}"
+            echo "Pushed tag ${TAG}"
+          fi

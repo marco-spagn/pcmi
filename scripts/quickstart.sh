@@ -198,29 +198,41 @@ curl -s --max-time 10 \
 response=$(cat "$_ret_tmp" 2>/dev/null || echo '{}')
 rm -f "$_ret_tmp"
 
-if printf '%s' "$response" | jq -e '.error' >/dev/null 2>&1; then
-  _errmsg=$(printf '%s' "$response" | jq -r '.error' 2>/dev/null || echo "unknown")
-  warn "Retrieve failed: ${_errmsg}"
-  warn "Manual check: curl -s -X POST ${API_URL}/v1/retrieve -H 'X-API-Key: ${API_KEY}' -H 'Content-Type: application/json' -d '{\"path_prefix\":\"root.security\",\"limit\":1}' | jq ."
-else
-  MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length // 0' 2>/dev/null || echo 0)
+# Check success by presence of .entries (always in RetrieveResponse),
+# not by absence of .error (which is fragile when error is null/"").
+if printf '%s' "$response" | jq -e '.entries' >/dev/null 2>&1; then
+  MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length' 2>/dev/null || echo 0)
   ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
   if [ "$MEMORIES_RETRIEVED" -gt 0 ]; then
     printf '%s' "$response" \
       | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
   fi
+else
+  _errmsg=$(printf '%s' "$response" | jq -r '.error // "no response"' 2>/dev/null || echo "no response")
+  warn "Retrieve failed: ${_errmsg}"
+  warn "Manual check: curl -s -X POST ${API_URL}/v1/retrieve -H 'X-API-Key: ${API_KEY}' -H 'Content-Type: application/json' -d '{\"path_prefix\":\"root.security\",\"limit\":1}' | jq ."
 fi
 
-# ── Step 7 & 8: Poll for distillation (triggered automatically by the worker) ──
+# ── Step 7 & 8: Distillation ──────────────────────────────────────────────────
 header "Distillation"
-info "Distillation runs automatically in the background worker."
-info "Polling /v1/distilled?path_prefix=root.security (max 30s)..."
+# The worker's fallback timer polls root.test every ~15s. Store a couple of
+# memories there so distillation runs without needing a pre-existing DB policy.
+info "Storing distillation seed memories under root.test (worker fallback path)..."
+store_memory "root.test.quickstart.sec1" \
+  "Quickstart SOC seed: brute-force and lateral-movement alerts require immediate triage" \
+  '["quickstart","scenario:security"]'
+store_memory "root.test.quickstart.sec2" \
+  "Quickstart SOC seed: data exfiltration over TLS on 443 requires DLP rule and IOC block" \
+  '["quickstart","scenario:security"]'
+MEMORIES_STORED=$((MEMORIES_STORED + 2))
+ok "Stored 2 seed memories under root.test for distillation"
 
+info "Polling /v1/distilled?path_prefix=root.test (max 60s, worker fires every ~15s)..."
 spinner_start "Waiting for distilled insights..."
-deadline=$(( $(date +%s) + 30 ))
+deadline=$(( $(date +%s) + 60 ))
 while true; do
   dist_result=$(curl -sf --max-time 5 \
-    "${API_URL}/v1/distilled?path_prefix=root.security&limit=5" \
+    "${API_URL}/v1/distilled?path_prefix=root.test&limit=5" \
     "${hdr[@]}" 2>/dev/null) || dist_result='{}'
   MEMORIES_DISTILLED=$(printf '%s' "$dist_result" | jq '.entries | length // 0' 2>/dev/null || echo 0)
   if [ "$MEMORIES_DISTILLED" -gt 0 ] || [ "$(date +%s)" -ge "$deadline" ]; then
@@ -231,11 +243,11 @@ done
 spinner_stop
 
 if [ "$MEMORIES_DISTILLED" -gt 0 ]; then
-  ok "Found ${MEMORIES_DISTILLED} distilled insight(s) under root.security:"
+  ok "Found ${MEMORIES_DISTILLED} distilled insight(s):"
   printf '%s' "$dist_result" \
     | jq -r '.entries[]? | "    • \(.path): \(.content // .summary | .[0:100])…"' 2>/dev/null || true
 else
-  warn "No distilled results yet — the worker needs an OPENAI_API_KEY in .env to run distillation."
+  warn "No distilled results yet — worker needs OPENAI_API_KEY in .env to run distillation."
   warn "Set OPENAI_API_KEY=sk-... in .env, restart the stack, and re-run."
 fi
 

@@ -33,6 +33,19 @@ Deve coincidere con l’ordine in `docker-compose.yml` (lista volumi postgres) e
 2. Aggiornare `docker-compose.yml` (volume `.../migrations/NNN...:/docker-entrypoint-initdb.d/NNN...`).
 3. Se il volume Postgres esiste già, applicare manualmente lo stesso file (Compose non riesegue init su volume pieno).
 
+## Runner automatico (`cmd/migrate`)
+
+Per cluster o volumi già inizializzati, usare il binario **`pcmi-migrate`** (idempotente, tabella `schema_migrations`):
+
+```bash
+export DATABASE_URL=postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
+go run ./cmd/migrate
+# oppure, dall'immagine legacy:
+./pcmi-migrate
+```
+
+In Helm, abilitare `migrations.enabled=true` per eseguire le migrazioni come init-container dell'API prima dell'avvio. Richiede l'immagine con `/pcmi-migrate` e la cartella `migrations/` inclusa (Dockerfile legacy o build dedicata).
+
 ## Dipendenze estensioni
 
 Richieste prima del codice applicativo: `ltree`, `vector`, `pg_trgm`. L’immagine `pgvector/pgvector` le fornisce.

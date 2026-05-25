@@ -123,7 +123,11 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	}
 	distilledPath := distilledBranchPath(pathPrefix)
 
-	ctx := context.Background()
+	// FIX-3: use a bounded context so a slow DB or OpenAI call never blocks
+	// a semaphore slot indefinitely. 3 min is generous for batch=10 with LLM.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
 		log.Printf("❌ distillation set tenant: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
@@ -281,7 +285,13 @@ Return ONLY valid JSON:
 	}
 
 	metrics.ObserveDistillationJob(time.Since(start).Seconds(), "ok")
-	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)", distilledID, distilledPath, version, tenantID, len(sourceIDs))
+	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)",
+		distilledID, distilledPath, version, tenantID, len(sourceIDs))
+
+	// FIX-4: update distillation_runs row to 'completed' when called from
+	// the policy engine (runID > 0). Standalone Redis-triggered calls pass
+	// runID = 0 and this is a no-op.
+	w.markRunCompleted(ctx, tenantID, distilledID)
 }
 
 func (w *DistillationWorker) hasDuplicateDistillation(ctx context.Context, tenantID, distilledPath string, sourceIDs []int64) (bool, error) {
@@ -299,4 +309,30 @@ func (w *DistillationWorker) hasDuplicateDistillation(ctx context.Context, tenan
 		return false, err
 	}
 	return true, nil
+}
+
+// markRunCompleted updates the most recent distillation_runs row for this
+// tenant+path from 'running' to 'completed' and records the distilled_id.
+// FIX-4: without this, all distillation_runs rows stayed in 'running' forever
+// regardless of outcome, making the runs history table useless for monitoring.
+func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID string, distilledID int64) {
+	if w.db == nil {
+		return
+	}
+	_, err := w.db.Exec(ctx, `
+		UPDATE distillation_runs
+		SET    status       = 'completed',
+		       distilled_id = $3,
+		       completed_at = NOW()
+		WHERE  tenant_id = $1::uuid
+		  AND  status    = 'running'
+		  AND  id = (
+		       SELECT id FROM distillation_runs
+		       WHERE  tenant_id = $1::uuid AND status = 'running'
+		       ORDER BY created_at DESC LIMIT 1
+		  )`, tenantID, tenantID, distilledID)
+	if err != nil {
+		// Non-fatal: the distillate was saved; only the audit row is wrong.
+		log.Printf("⚠️ markRunCompleted: %v", err)
+	}
 }

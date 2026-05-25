@@ -52,6 +52,15 @@ worker:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8081"
     prometheus.io/path: "/metrics"
+  # Worker autoscaling — usa metrica custom pcmi_distillation_queued_jobs.
+  # Richiede prometheus-adapter con la regola custom metric documentata in
+  # deploy/helm/pcmi/templates/worker-hpa.yaml.
+  autoscaling:
+    enabled: false
+    useCustomMetric: true     # false = scala su CPU (sconsigliato per worker LLM)
+    minReplicas: 1
+    maxReplicas: 4
+    targetQueueDepth: 10      # jobs per worker prima di aggiungere una replica
 
 # Horizontal Pod Autoscaler for the API. Worker autoscaling is opinionated
 # (LLM-bound, not CPU-bound) and intentionally not exposed here.
@@ -112,3 +121,14 @@ tls:
 otel:
   endpoint: ""
   serviceName: pcmi-api
+
+# NetworkPolicy — abilita per isolare API e Worker da traffico non autorizzato.
+# Richiede un CNI che supporti NetworkPolicy (Calico, Cilium, Weave-Net).
+# In kind/minikube con CNI di default potrebbe non avere effetto — usare Calico.
+networkPolicy:
+  enabled: true
+
+# Migration init-container — esegue cmd/migrate prima dell'avvio API.
+# Richiede che il Dockerfile costruisca anche /pcmi-migrate.
+migrations:
+  enabled: true

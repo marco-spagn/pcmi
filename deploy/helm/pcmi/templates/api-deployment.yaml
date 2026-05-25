@@ -35,6 +35,28 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.migrations.enabled }}
+      initContainers:
+        - name: migrate
+          image: {{ include "pcmi.api.image" . }}
+          imagePullPolicy: {{ .Values.image.api.pullPolicy }}
+          command: ["/pcmi-migrate"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "pcmi.fullname" . }}-secret
+                  key: DATABASE_URL
+            - name: MIGRATIONS_DIR
+              value: /app/migrations
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+      {{- end }}
       containers:
         - name: api
           image: {{ include "pcmi.api.image" . }}

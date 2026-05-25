@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/marco-spagn/pcmi/internal/metrics"
 )
 
 type Dispatcher struct {
@@ -177,6 +179,8 @@ func (d *Dispatcher) processPending() {
 	}
 	defer rows.Close()
 
+	d.refreshPendingOldestAge(ctx)
+
 	var batch []pendingDelivery
 	for rows.Next() {
 		var pd pendingDelivery
@@ -232,6 +236,7 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 			SET status = 'dead_letter', attempts = $2, last_error = $3
 			WHERE id = $1::uuid`, pd.ID, attempts, errMsg)
 		log.Printf("webhook %s dead-letter after %d attempts: %v", pd.ID, attempts, err)
+		metrics.IncWebhookDeadLetter()
 		return
 	}
 	backoff := d.retryBase * time.Duration(1<<uint(attempts-1))
@@ -247,4 +252,21 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 // post delivers a webhook; kept for tests that exercise HTTP behavior without a delivery id.
 func (d *Dispatcher) post(ctx context.Context, url, secret string, body []byte) error {
 	return NewDelivery("test-delivery", url, secret, body, 0).Post(ctx, d.client)
+}
+
+func (d *Dispatcher) refreshPendingOldestAge(ctx context.Context) {
+	if d == nil || d.db == nil {
+		metrics.SetWebhookPendingOldestAge(0)
+		return
+	}
+	var age *float64
+	err := d.db.QueryRow(ctx, `
+		SELECT EXTRACT(EPOCH FROM (NOW() - MIN(created_at)))
+		FROM webhook_deliveries
+		WHERE status = 'pending'`).Scan(&age)
+	if err != nil || age == nil {
+		metrics.SetWebhookPendingOldestAge(0)
+		return
+	}
+	metrics.SetWebhookPendingOldestAge(*age)
 }

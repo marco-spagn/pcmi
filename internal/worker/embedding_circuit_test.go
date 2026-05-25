@@ -70,7 +70,10 @@ func TestEmbeddingWorker_OpenAIDown_DoesNotBlockWorkerLoop(t *testing.T) {
 }
 
 func TestEmbeddingWorker_MetricsExposed_CircuitState(t *testing.T) {
-	t.Parallel()
+	// Not parallel: reads the global WorkerRegistry gauge which is shared across
+	// all tests in this binary. Running concurrently with OpenAIDown (which also
+	// opens a circuit and later transitions to half-open) resets the "open" gauge
+	// to 0 before this test can gather it.
 
 	inner := &slowFailProvider{}
 	cfg := embedding.CircuitBreakerConfig{

@@ -55,7 +55,31 @@
         "enabled":      { "type": "boolean" },
         "replicaCount": { "type": "integer", "minimum": 0 },
         "resources":      { "$ref": "#/$defs/resources" },
-        "podAnnotations": { "type": "object", "additionalProperties": { "type": "string" } }
+        "podAnnotations": { "type": "object", "additionalProperties": { "type": "string" } },
+        "autoscaling": {
+          "type": "object",
+          "properties": {
+            "enabled":          { "type": "boolean" },
+            "useCustomMetric":  { "type": "boolean" },
+            "minReplicas":      { "type": "integer", "minimum": 1 },
+            "maxReplicas":      { "type": "integer", "minimum": 1 },
+            "targetQueueDepth": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
+      }
+    },
+
+    "migrations": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" }
       }
     },
 

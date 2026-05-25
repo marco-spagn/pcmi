@@ -127,6 +127,8 @@ func TestHelmTemplatesPresent(t *testing.T) {
 		"worker-deployment.yaml",
 		"service.yaml",
 		"hpa.yaml",
+		"worker-hpa.yaml",
+		"networkpolicy.yaml",
 		"pdb.yaml",
 	}
 	for _, fname := range want {

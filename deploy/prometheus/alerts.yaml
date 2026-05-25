@@ -107,3 +107,47 @@ groups:
           description: |
             pcmi_memory_stores_total has not increased for 30 minutes.
             Could be normal at low-traffic hours, but worth checking.
+
+  # ─── Webhook dead-letter ────────────────────────────────────────────────────
+  - name: pcmi_webhooks
+    interval: 60s
+    rules:
+      - alert: PCMIWebhookDeadLetterAccumulating
+        expr: |
+          increase(pcmi_webhook_dead_letter_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Webhook deliveries entering dead-letter queue"
+          description: |
+            {{ $value }} webhook deliveries have entered dead-letter status
+            in the last 15 minutes. Check webhook endpoint availability
+            and review /v1/webhooks/dead-letter for details.
+
+      - alert: PCMIWebhookDeadLetterHigh
+        expr: |
+          increase(pcmi_webhook_dead_letter_total[1h]) > 10
+        for: 0m
+        labels:
+          severity: critical
+          service: pcmi-worker
+        annotations:
+          summary: "High webhook dead-letter rate"
+          description: |
+            >10 webhook deliveries failed all retry attempts in the last hour.
+            Tenant integrations may be silently broken.
+
+      - alert: PCMIWebhookQueueOld
+        expr: |
+          pcmi_webhook_pending_oldest_age_seconds > 1800
+        for: 5m
+        labels:
+          severity: warning
+          service: pcmi-worker
+        annotations:
+          summary: "Webhook has been pending for >30 min"
+          description: |
+            A webhook delivery has been in 'pending' state for over 30 minutes.
+            Worker may be stuck or the endpoint is consistently unreachable.

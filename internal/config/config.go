@@ -39,6 +39,9 @@ type Config struct {
 	OpenAIBaseURL  string // optional: proxy or Azure OpenAI endpoint base
 	EmbeddingModel string
 
+	// Migrations
+	MigrationsDir string // directory containing .sql files; default "migrations"
+
 	// Distillation / Worker
 	DistillationModel            string
 	DistillationBatchSize        int
@@ -101,6 +104,8 @@ func Load() *Config {
 		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
 		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
 		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
+		MigrationsDir:    envOr("MIGRATIONS_DIR", "migrations"),
+
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
 
 		DistillationBatchSize:        envInt("DISTILLATION_BATCH_SIZE", 10),

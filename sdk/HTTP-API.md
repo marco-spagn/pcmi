@@ -34,6 +34,11 @@ OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 | `GET /v1/audit` | `list_audit` | `listAudit` |
 | `POST /v1/memories/export` | `export_memories` | `exportMemories` |
 | `POST /v1/memories/import` | `import_memories` | `importMemories` |
+| `POST /v1/sessions` | `create_session` | — |
+| `DELETE /v1/sessions/{id}` | `end_session` | — |
+| `POST /v1/sessions/{id}/memories` | `store_session_memory` | — |
+| `GET /v1/sessions/{id}/memories` | `list_session_memories` | — |
+| `POST /v1/sessions/{id}/promote` | `promote_session` | — |
 | `GET /v1/admin/tenants` | `list_tenants` | `listTenants` |
 | `POST /v1/admin/tenants` | `create_tenant` | `createTenant` |
 | `GET /v1/admin/api-keys` | `list_api_keys` | `listApiKeys` |

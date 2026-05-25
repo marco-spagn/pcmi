@@ -1,4 +1,4 @@
-.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration test-pagination bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
+.PHONY: test test-race test-cover cover-check cover-report lint test-integration test-integration-bufconn test-integration-live test-integration-handler test-integration-all test-streams-integration test-circuit-breaker test-ratelimit-integration test-idempotency test-dedup test-distillation-policy test-key-lifecycle test-retrieval-scoring test-sessions-integration test-pagination bench-retrieval sdk-smoke sdk-go-test sdk-go-smoke sdk-all distill distill-smoke distill-stress distillation-e2e distillation-policy-e2e synth-generate synth-list install-lint ci-like-github test-all test-full-real \
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
@@ -327,6 +327,13 @@ distillation-e2e:
 distill-smoke:
 	PRESET=$(PRESET) bash scripts/run_pcmi_distillation_test.sh \
 		--preset $(PRESET) --num 100 --seed $(SYNTH_SEED) --no-build
+
+# Cascade rate-limit stress demo (~1.5 min, expects 429 storm). See docs/distillation-tests.md
+distill-stress:
+	PRESET=$(PRESET) bash scripts/distillation_tests/04_cascade_rate_limit_stress.sh
+
+# Default distillation entrypoint (~1 min). Alias for distill-smoke.
+distill: distill-smoke
 
 # GitHub Actions CI runs on push/PR; manual run: gh workflow run CI
 

@@ -54,6 +54,12 @@ func NewFromConfig(cfg *config.Config) (Provider, error) {
 		prov Provider
 		err  error
 	)
+	// FIX-8: validate model dimension at provider construction time so
+	// operators see a clear error at startup rather than a confusing pgvector
+	// dimension mismatch error on the first embedding write.
+	if err := ValidateModelDimension(model); err != nil {
+		return nil, err
+	}
 	switch {
 	case isAzureEndpoint(baseURL):
 		prov, err = newAzureProvider(apiKey, baseURL, model)

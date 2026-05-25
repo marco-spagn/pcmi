@@ -352,3 +352,83 @@ class PCMIClient:
                         if not data:
                             continue
                         yield json.loads(data)
+
+    # ── Session API ─────────────────────────────────────────────────────────
+    # FIX-9: Sessions were missing from the Python SDK. The Go and TypeScript
+    # SDKs both expose session lifecycle (create / end / store / list / promote).
+    # Python agents using sessions had to fall back to raw HTTP calls.
+
+    async def create_session(
+        self,
+        agent_id: str | None = None,
+        metadata: dict | None = None,
+    ) -> dict:
+        """Start a new agent session (POST /v1/sessions)."""
+        body: dict = {}
+        if agent_id:
+            body["agent_id"] = agent_id
+        if metadata:
+            body["metadata"] = metadata
+        resp = await self.client.post("/v1/sessions", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def end_session(self, session_id: str) -> dict:
+        """End an agent session (DELETE /v1/sessions/{id})."""
+        resp = await self.client.delete(f"/v1/sessions/{session_id}")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def store_session_memory(
+        self,
+        session_id: str,
+        path: str,
+        content: str,
+        metadata: dict | None = None,
+        tags: list[str] | None = None,
+    ) -> None:
+        """Store working memory scoped to a session."""
+        body: dict = {"path": path, "content": content}
+        if metadata:
+            body["metadata"] = metadata
+        if tags:
+            body["tags"] = tags
+        resp = await self.client.post(
+            f"/v1/sessions/{session_id}/memories", json=body
+        )
+        resp.raise_for_status()
+
+    async def list_session_memories(
+        self,
+        session_id: str,
+        *,
+        limit: int = 50,
+        path_prefix: str | None = None,
+        include_long_term: bool = False,
+    ) -> dict:
+        """List working-memory entries for a session."""
+        params: dict = {"limit": limit}
+        if path_prefix:
+            params["path_prefix"] = path_prefix
+        if include_long_term:
+            params["include_long_term"] = "true"
+        resp = await self.client.get(
+            f"/v1/sessions/{session_id}/memories", params=params
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def promote_session(
+        self,
+        session_id: str,
+        target_prefix: str | None = None,
+    ) -> dict:
+        """Promote working memory to long-term paths."""
+        body: dict = {}
+        if target_prefix:
+            body["target_prefix"] = target_prefix
+        resp = await self.client.post(
+            f"/v1/sessions/{session_id}/promote", json=body
+        )
+        resp.raise_for_status()
+        return resp.json()

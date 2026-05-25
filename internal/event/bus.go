@@ -23,15 +23,19 @@ func NewBus() *Bus {
 }
 
 func (b *Bus) Publish(evt Event) {
+	// Hold RLock for the entire iteration + sends. Because Unsubscribe needs
+	// an exclusive Lock to close the channel, holding RLock here guarantees
+	// close(ch) cannot run concurrently with ch <- evt — eliminating the
+	// "send on closed channel" data race detected by -race.
+	//
+	// The sends are non-blocking (select/default), so RLock is never held
+	// for more than a handful of microseconds per subscriber.
 	b.mu.RLock()
-	channels := b.subscribers[evt.Type]
-	b.mu.RUnlock()
-
-	for _, ch := range channels {
+	defer b.mu.RUnlock()
+	for _, ch := range b.subscribers[evt.Type] {
 		select {
 		case ch <- evt:
-		default:
-			// non bloccante
+		default: // non bloccante
 		}
 	}
 }

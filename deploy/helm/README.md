@@ -43,7 +43,7 @@ alongside the existing Grafana / Prometheus alert tests.
 | File | Purpose |
 |---|---|
 | `Chart.yaml` | metadata; `appVersion` mirrors `internal/version/version.go` |
-| `values.yaml` | defaults for every tunable (image, replicas, resources, HPA, PDB, config, secrets, TLS, OTel) |
+| `values.yaml` | defaults for every tunable (image, replicas, resources, HPA, PDB, config, secrets, TLS, OTel, networkPolicy, migrations, worker autoscaling) |
 | `values-prod.yaml.example` | starting point for production overrides |
 | `templates/_helpers.tpl` | standard Helm name/label helpers |
 | `templates/configmap.yaml` | non-secret PCMI runtime config |
@@ -52,6 +52,8 @@ alongside the existing Grafana / Prometheus alert tests.
 | `templates/worker-deployment.yaml` | Worker Deployment |
 | `templates/service.yaml` | Service exposing both HTTP (:8000) and gRPC (:50051) |
 | `templates/hpa.yaml` | optional API HPA |
+| `templates/worker-hpa.yaml` | optional Worker HPA (custom distillation queue metric) |
+| `templates/networkpolicy.yaml` | optional NetworkPolicy for API + worker |
 | `templates/pdb.yaml` | API PodDisruptionBudget |
 
 ## TLS (PR #3 wiring)
@@ -60,6 +62,18 @@ When `tls.enabled=true`, the chart mounts `tls.secretName` (a standard
 `kubernetes.io/tls` Secret) at `/etc/pcmi/tls` and the rendered Secret sets
 `PCMI_TLS_CERT` / `PCMI_TLS_KEY` accordingly. `config.Load()` then turns on
 TLS for both the Fiber HTTP server and the gRPC server.
+
+## NetworkPolicy (`networkPolicy.enabled`)
+
+When enabled (default `true`), the chart isolates API and worker pods: ingress only on service ports, egress to Postgres, Redis, and DNS. Requires a CNI that enforces NetworkPolicy (Calico, Cilium, …). Disable with `--set networkPolicy.enabled=false` on kind/minikube without a compatible CNI.
+
+## Migrations init-container (`migrations.enabled`)
+
+When enabled (default `true`), an init-container runs `/pcmi-migrate` before the API starts. Requires an image that includes the migrate binary and `migrations/` (legacy combined Dockerfile or custom build). Disable if you manage schema upgrades externally.
+
+## Worker autoscaling (`worker.autoscaling`)
+
+Optional HPA on `pcmi_distillation_queued_jobs` (via Prometheus Adapter). Off by default (`worker.autoscaling.enabled=false`). See comments in `templates/worker-hpa.yaml` for the adapter rule.
 
 ## Migrating from `deploy/k8s/`
 

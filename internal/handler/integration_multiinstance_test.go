@@ -75,7 +75,8 @@ func newMultiCluster(t *testing.T, n int) *multiCluster {
 		if err != nil {
 			t.Fatalf("instance %d parse db url: %v", i, err)
 		}
-		poolCfg.MaxConns = 20
+		// Keep per-replica pools small: many tests × N replicas share one Postgres (max_connections≈100).
+		poolCfg.MaxConns = 3
 		pool, err := pgxpool.NewWithConfig(context.Background(), poolCfg)
 		if err != nil {
 			t.Fatalf("instance %d pool: %v", i, err)

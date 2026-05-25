@@ -218,8 +218,8 @@ func TestBusStress_UnsubscribeFromMultipleGoroutines(t *testing.T) {
 }
 
 // TestBusStress_PublishToFullChannels verifies that filling all subscriber
-// buffers and then publishing thousands more events completes immediately
-// (non-blocking contract) and does not panic.
+// buffers and then publishing thousands more events does not block or panic
+// (non-blocking contract). Latency is not asserted — -race slows this path.
 func TestBusStress_PublishToFullChannels(t *testing.T) {
 	t.Parallel()
 	const subs = 30
@@ -237,11 +237,7 @@ func TestBusStress_PublishToFullChannels(t *testing.T) {
 	}
 
 	// These must not block even though all buffers are now full.
-	start := time.Now()
 	for i := 0; i < 10_000; i++ {
 		bus.Publish(Event{Type: EventMemoryStored, Payload: map[string]any{"i": i}})
-	}
-	if elapsed := time.Since(start); elapsed > 500*time.Millisecond {
-		t.Errorf("10,000 publishes to full buffers took %v (expected < 500ms)", elapsed)
 	}
 }

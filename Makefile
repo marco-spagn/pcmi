@@ -4,7 +4,7 @@
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
-        helm-lint helm-template helm-package admin-list-keys bench
+        helm-lint helm-template helm-package admin-list-keys bench quickstart
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -485,3 +485,9 @@ test-mcp-smoke: build-mcp
 
 mcp-e2e: infra-up build-mcp test-mcp-smoke test-mcp-unit
 	@$(MAKE) infra-down
+
+# ───────────────────────────────────────────────────────────────────────────────
+# Quickstart — interactive end-to-end demo (store → retrieve → distill)
+# ───────────────────────────────────────────────────────────────────────────────
+quickstart: ## Run the interactive quickstart demo (requires Docker)
+	bash scripts/quickstart.sh

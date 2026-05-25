@@ -13,21 +13,25 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
-ok()      { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-warn()    { printf "${YELLOW}⚠${RESET}  %s\n" "$*"; }
-err()     { printf "${RED}✗${RESET}  %s\n" "$*" >&2; }
-info()    { printf "${CYAN}→${RESET} %s\n" "$*"; }
-header()  { printf "\n${BOLD}%s${RESET}\n" "$*"; }
+ok()     { printf "${GREEN}✓${RESET} %s\n" "$*"; }
+warn()   { printf "${YELLOW}⚠${RESET}  %s\n" "$*"; }
+err()    { printf "${RED}✗${RESET}  %s\n" "$*" >&2; }
+info()   { printf "${CYAN}→${RESET} %s\n" "$*"; }
+header() { printf "\n${BOLD}%s${RESET}\n" "$*"; }
 
 # ── Spinner ───────────────────────────────────────────────────────────────────
 _spinner_pid=""
+_spinner_msg=""
 spinner_start() {
-  local msg="$1"
-  printf "${YELLOW}  %s${RESET}" "$msg"
-  ( i=0; frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'; while true; do
-      printf '\r'"${YELLOW}%s %s${RESET}" "${frames:$((i%10)):1}" "$msg"
-      sleep 0.1; i=$((i+1))
-    done ) &
+  _spinner_msg="$1"
+  printf "${YELLOW}  %s${RESET}" "$_spinner_msg"
+  ( i=0; frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    while true; do
+      printf '\r'"${YELLOW}%s %s${RESET}" "${frames:$((i % 10)):1}" "$1"
+      sleep 0.1
+      i=$((i + 1))
+    done
+  ) &
   _spinner_pid=$!
 }
 spinner_stop() {
@@ -35,7 +39,8 @@ spinner_stop() {
     kill "$_spinner_pid" 2>/dev/null || true
     wait "$_spinner_pid" 2>/dev/null || true
     _spinner_pid=""
-    printf '\r'
+    # clear the spinner line completely before the caller prints ok/err
+    printf '\r\033[K'
   fi
 }
 
@@ -44,7 +49,6 @@ API_URL="${PCMI_API_URL:-http://localhost:8000}"
 API_KEY="${PCMI_API_KEY:-testkey123}"
 HEALTH_TIMEOUT=60
 
-# Counters for the summary table
 MEMORIES_STORED=0
 MEMORIES_RETRIEVED=0
 MEMORIES_DISTILLED=0
@@ -64,17 +68,15 @@ if ! docker info &>/dev/null 2>&1; then
   missing+=("docker-daemon (Docker is not running)")
 fi
 
+if ! docker compose version &>/dev/null 2>&1; then
+  missing+=("docker-compose-v2 (install Docker Desktop or the Compose plugin)")
+fi
+
 if [ "${#missing[@]}" -gt 0 ]; then
   err "Missing required dependencies:"
   for m in "${missing[@]}"; do
     printf "    • %s\n" "$m" >&2
   done
-  exit 1
-fi
-
-# Check docker compose (v2 plugin or standalone)
-if ! docker compose version &>/dev/null 2>&1; then
-  err "docker compose (v2) not found. Install Docker Desktop or the Compose plugin."
   exit 1
 fi
 
@@ -96,9 +98,9 @@ fi
 # ── Step 3: docker compose up ─────────────────────────────────────────────────
 header "Starting stack"
 spinner_start "Building and starting containers (this may take a minute on first run)..."
-if ! docker compose up -d --build --wait 2>&1 | grep -v "^$" >/dev/null; then
+if ! docker compose up -d --build --wait >/dev/null 2>&1; then
   spinner_stop
-  err "docker compose up failed."
+  err "docker compose up failed — check: docker compose logs"
   exit 1
 fi
 spinner_stop
@@ -109,7 +111,8 @@ header "Health check"
 spinner_start "Waiting for API to be ready (max ${HEALTH_TIMEOUT}s)..."
 deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
 while true; do
-  if curl -sf "${API_URL}/v1/health" 2>/dev/null | jq -e '.status == "ok"' >/dev/null 2>&1; then
+  if curl -sf --max-time 3 "${API_URL}/v1/health" 2>/dev/null \
+       | jq -e '.status == "ok"' >/dev/null 2>&1; then
     break
   fi
   if [ "$(date +%s)" -ge "$deadline" ]; then
@@ -126,7 +129,7 @@ ok "API is healthy at ${API_URL}"
 # ── Helper: store a memory ─────────────────────────────────────────────────────
 store_memory() {
   local path="$1" content="$2" tags="$3"
-  curl -sf -X POST "${API_URL}/v1/memories" \
+  curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
     -H "Content-Type: application/json" \
     -H "X-API-Key: ${API_KEY}" \
     -d "{\"path\":\"${path}\",\"content\":\"${content}\",\"tags\":${tags}}" \
@@ -179,57 +182,53 @@ printf "\n  Total memories stored: ${GREEN}%d${RESET}\n" "$MEMORIES_STORED"
 
 # ── Step 6: Retrieve memories ─────────────────────────────────────────────────
 header "Retrieving memories"
-info "Querying root.security for 'critical threat'"
+info "Querying root.security for 'critical threat'..."
 
-response=$(curl -sf -X GET "${API_URL}/v1/memories?path_prefix=root.security&q=critical+threat&limit=10" \
-  -H "X-API-Key: ${API_KEY}" 2>/dev/null)
-
-MEMORIES_RETRIEVED=$(echo "$response" | jq '.memories | length // 0' 2>/dev/null || echo 0)
-ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
-
-echo "$response" | jq -r '.memories[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
-
-# ── Step 7: Trigger distillation ──────────────────────────────────────────────
-header "Distillation"
-info "Requesting distillation for root.security..."
-
-dist_response=$(curl -sf -X POST "${API_URL}/v1/distillation/policies" \
+response=$(curl -s --max-time 10 -X POST "${API_URL}/v1/retrieve" \
   -H "Content-Type: application/json" \
   -H "X-API-Key: ${API_KEY}" \
-  -d '{"path":"root.security","model":"gpt-4o-mini","max_tokens":512}' 2>/dev/null || echo '{}')
+  -d '{"path_prefix":"root.security","query":"critical threat","limit":10}' \
+  2>/dev/null) || response='{}'
 
-policy_id=$(echo "$dist_response" | jq -r '.id // empty' 2>/dev/null || true)
+MEMORIES_RETRIEVED=$(printf '%s' "$response" | jq '.entries | length // 0' 2>/dev/null || echo 0)
+ok "Retrieved ${MEMORIES_RETRIEVED} memories matching 'critical threat' under root.security"
 
-if [ -n "$policy_id" ]; then
-  ok "Distillation policy created (id: ${policy_id})"
-else
-  warn "Distillation policy endpoint returned unexpected response (OpenAI key may be absent in .env)"
-  warn "Set OPENAI_API_KEY in .env and re-run to see distilled insights"
-fi
+printf '%s' "$response" \
+  | jq -r '.entries[]? | "    • \(.path): \(.content | .[0:80])…"' 2>/dev/null || true
 
-# ── Step 8: Poll distilled results ────────────────────────────────────────────
-header "Fetching distilled results"
-spinner_start "Waiting 10s for distillation to process..."
-sleep 10
+# ── Step 7 & 8: Poll for distillation (triggered automatically by the worker) ──
+header "Distillation"
+info "Distillation runs automatically in the background worker."
+info "Polling /v1/distilled?path_prefix=root.security (max 30s)..."
+
+spinner_start "Waiting for distilled insights..."
+deadline=$(( $(date +%s) + 30 ))
+while true; do
+  dist_result=$(curl -s --max-time 5 \
+    "${API_URL}/v1/distilled?path_prefix=root.security&limit=5" \
+    -H "X-API-Key: ${API_KEY}" 2>/dev/null) || dist_result='{}'
+  MEMORIES_DISTILLED=$(printf '%s' "$dist_result" | jq '.entries | length // 0' 2>/dev/null || echo 0)
+  if [ "$MEMORIES_DISTILLED" -gt 0 ] || [ "$(date +%s)" -ge "$deadline" ]; then
+    break
+  fi
+  sleep 5
+done
 spinner_stop
 
-dist_result=$(curl -sf "${API_URL}/v1/distilled?path_prefix=root.security&limit=5" \
-  -H "X-API-Key: ${API_KEY}" 2>/dev/null || echo '{}')
-
-MEMORIES_DISTILLED=$(echo "$dist_result" | jq '.distilled | length // 0' 2>/dev/null || echo 0)
-
 if [ "$MEMORIES_DISTILLED" -gt 0 ]; then
-  ok "Found ${MEMORIES_DISTILLED} distilled insight(s):"
-  echo "$dist_result" | jq -r '.distilled[]? | "    • \(.path): \(.summary // .content | .[0:100])…"' 2>/dev/null || true
+  ok "Found ${MEMORIES_DISTILLED} distilled insight(s) under root.security:"
+  printf '%s' "$dist_result" \
+    | jq -r '.entries[]? | "    • \(.path): \(.content // .summary | .[0:100])…"' 2>/dev/null || true
 else
-  info "No distilled results yet (worker may still be processing, or OpenAI key not set)"
+  warn "No distilled results yet — the worker needs an OPENAI_API_KEY in .env to run distillation."
+  warn "Set OPENAI_API_KEY=sk-... in .env, restart the stack, and re-run."
 fi
 
 # ── Step 9: Summary table ──────────────────────────────────────────────────────
 header "Summary"
 printf "  %-25s %s\n" "Metric" "Value"
 printf "  %-25s %s\n" "─────────────────────" "───────"
-printf "  %-25s ${GREEN}%d${RESET}\n" "Memories stored"    "$MEMORIES_STORED"
+printf "  %-25s ${GREEN}%d${RESET}\n" "Memories stored"     "$MEMORIES_STORED"
 printf "  %-25s ${GREEN}%d${RESET}\n" "Memories retrieved"  "$MEMORIES_RETRIEVED"
 printf "  %-25s ${GREEN}%d${RESET}\n" "Distilled insights"  "$MEMORIES_DISTILLED"
 

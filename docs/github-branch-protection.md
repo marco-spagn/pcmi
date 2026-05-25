@@ -1,57 +1,122 @@
-# GitHub branch protection and CI automation
+# Protezione branch `main` e badge CI
 
-`main` is protected so humans merge via reviewed PRs. One exception is intentional: CI updates the README coverage badge by committing a single file on `main`.
+Il workflow CI può aggiornare **`badges/coverage.json`** su `main` dopo un merge. Gli umani devono passare da **pull request** con review.
 
-## Coverage badge push (CI workflow)
+## Configurazione semplice (5 minuti) — consigliata oggi
 
-After tests on a push to `main`, the `go` job in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) may commit **`badges/coverage.json`** only when the shields.io endpoint JSON changed. The commit message includes **`[skip ci]`**, and workflow `on.push.paths-ignore` includes `badges/**`, so badge updates do not re-trigger the full CI pipeline.
+Per **`marco-spagn/pcmi`** (repo **personale**): non serve account bot né secret extra **se** il ruleset resta **non attivo**. Il badge usa già `GITHUB_TOKEN` nel workflow.
 
-This is a chore commit (one JSON file), not feature work. Human protection rules (reviews, required checks for PRs) stay unchanged.
+### Configurazione applicata (API, 2026-05-25)
 
-## Allow the push (ruleset bypass for GitHub Actions)
+1. Ruleset **`main_block`**: **Disabilitato**; eccezioni utente **rimosse** (nessun bypass per `marco-spagn`).
+2. Protezione **classica** su `main`: **Require a pull request** (1 approval, code owners).
+3. **Allow GitHub Actions to bypass required pull requests**: tentato via API (`bypass_pull_request_allowances` → `github-actions`) → **`422`** *Only organization repositories can have users and team restrictions* — su repo personale non si può impostare da API né dalla UI classica come su un’org.
 
-If badge pushes fail with **GH013** (“protected branch”), the default `GITHUB_TOKEN` cannot push to `main`. Add a bypass for the Actions app only — do **not** weaken review requirements for people.
+**Cosa fare tu:** apri sempre una **Pull request** verso `main` (il tuo account non bypassa più il ruleset). Per il badge dopo merge: se il push con `GITHUB_TOKEN` fallisce (GH013), usa il percorso bot + `BADGE_UPDATE_TOKEN` descritto sotto.
 
-### Repository rulesets (recommended)
+**Risultato:** gli umani sono vincolati dalla protezione classica; il ruleset resta disattivo per evitare doppie regole. Il badge senza PAT può ancora fallire finché non c’è bypass Actions o token dedicato.
 
-1. Open the repo on GitHub → **Settings** → **Rules** → **Rulesets** (or **Branches** → ruleset linked to `main`).
-2. Edit the ruleset that targets **`main`** (e.g. `main_block`).
-3. Find **Bypass list** (or **Allow specified actors to bypass**).
-4. Click **Add bypass** → choose **GitHub Actions** (the app; may appear as `GitHub Actions` or related to workflow runs).
-5. Save the ruleset.
+### Quando vorrai protezione «vera» (Active)
 
-Only the automation actor should be on this list. Do not add individual users or teams unless you intend to let them push without review.
+Su repo personale **non** puoi mettere GitHub Actions in eccezione. Percorso supportato (una volta sola, ~10 min):
 
-### Classic branch protection
+1. Crea un utente dedicato (es. `pcmi-badge-bot`), invitalo al repo con **Write**.
+2. Crea un token (Contents: read/write) → secret repo **`BADGE_UPDATE_TOKEN`** (il workflow lo usa già).
+3. In **`main_block`**: eccezione **Utente** = nome del bot → **Consenti sempre**; **rimuovi** `marco-spagn` dall’eccezione; poi **Stato** → **Attivo** → **Salva**.
 
-If you use legacy branch protection instead of rulesets:
+Dettaglio API e alternative: sezioni sotto.
 
-1. **Settings** → **Branches** → rule for `main`.
-2. Enable **Allow specified actors to bypass required pull requests** (wording may vary).
-3. Add **GitHub Actions** to the bypass list.
-4. Save.
+---
 
-## Optional: `BADGE_UPDATE_TOKEN` (PAT)
+## Stato verificato (`marco-spagn/pcmi`)
 
-If `GITHUB_TOKEN` still cannot bypass (org policy, custom rules), use a fine-scoped PAT stored as a repository secret:
+| Elemento | Valore |
+|----------|--------|
+| Ruleset **`main_block`** ([apri](https://github.com/marco-spagn/pcmi/rules/16786925)) | `enforcement`: **disabled** |
+| Eccezioni ruleset | **Nessuna** (`bypass_actors`: `[]`; `marco-spagn` rimosso) |
+| Regole (quando Active) | PR con 1 review + code owners; no delete / no force push |
+| Protezione **classica** su `main` | **Attiva**: PR obbligatoria, 1 approval, **code owners** (`.github/CODEOWNERS`) |
+| Bypass PR per GitHub Actions (classica) | **Non applicabile** su repo personale (API `422`) |
 
-| Secret | Value |
-|--------|--------|
-| `BADGE_UPDATE_TOKEN` | PAT with **Contents: Read and write** on this repo |
+## Perché «GitHub Actions» non si può aggiungere
 
-The workflow uses `secrets.BADGE_UPDATE_TOKEN` when set, otherwise `github.token`. Grant that PAT account the same **ruleset bypass** on `main` if the token is tied to a bot user instead of the Actions app.
+Messaggio API tipico:
 
-Create the secret: **Settings** → **Secrets and variables** → **Actions** → **New repository secret**.
+```text
+422 — Actor GitHub Actions integration must be part of the ruleset source or owner organization
+```
 
-## Verify
+Su **repo personale** né la UI del ruleset né la protezione classica permettono eccezioni per app/utenti/team come su un’**organizzazione**. La checkbox «Allow GitHub Actions…» della protezione classica **non** equivale al bypass del ruleset e, con review obbligatorie, il push diretto del badge con `GITHUB_TOKEN` **fallisce** comunque.
 
-1. Merge a change that affects coverage on `main`.
-2. In the CI run, open the `go` job → **Commit dynamic coverage badge** step.
-3. Confirm `git push` succeeds and `badges/coverage.json` on `main` updates.
+**Tentativo Path A (classica via API):** protezione con review applicabile; `bypass_pull_request_allowances` con `github-actions` → **422** («Only organization repositories…»). Non usare solo protezione classica Active senza `BADGE_UPDATE_TOKEN`.
 
-If push fails, check the step log for `GH013` and confirm the bypass actor is **GitHub Actions** (or that `BADGE_UPDATE_TOKEN` has bypass).
+## Percorsi non consigliati qui
 
-## Related
+| Percorso | Motivo |
+|----------|--------|
+| **B** — PR automatica badge (`create-pull-request`) | Una PR per ogni aggiornamento badge; non richiesto |
+| **C** — solo testo «lascia Disabled» | È già la configurazione semplice sopra |
+| Ruleset **Active** + solo `GITHUB_TOKEN` | Push badge bloccato (GH013) |
 
-- [local-ci.md](local-ci.md) — what local `make ci-like-github` does and does not run
-- [CONTRIBUTING.md](../CONTRIBUTING.md) — human PR workflow to `main`
+## Badge CI (riferimento tecnico)
+
+Dopo test su push a `main`, [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) committa solo **`badges/coverage.json`** se cambiato. Messaggio con **`[skip ci]`**; `paths-ignore: badges/**` evita loop CI.
+
+Token step: `secrets.BADGE_UPDATE_TOKEN || github.token` con `contents: write` sul job `go`.
+
+## Esempio API ruleset (solo bypass **User** bot)
+
+Sostituisci `BOT_USER_ID` con l’id numerico del bot:
+
+```bash
+gh api repos/marco-spagn/pcmi/rulesets/16786925 -X PUT --input - <<'EOF'
+{
+  "name": "main_block",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": {
+    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
+  },
+  "bypass_actors": [
+    {
+      "actor_id": BOT_USER_ID,
+      "actor_type": "User",
+      "bypass_mode": "always"
+    }
+  ],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "creation" },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "required_approving_review_count": 1,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": true,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge", "squash", "rebase"]
+      }
+    }
+  ]
+}
+EOF
+```
+
+**Non** usare `actor_id: 15368` (integrazione GitHub Actions): rifiutata su questo repo.
+
+## Protezione classica (solo org o senza bypass Actions)
+
+Se in futuro il repo fosse in un’**organizzazione**, in **Impostazioni → Branches → Add rule** su `main`:
+
+1. **Require a pull request before merging** → 1 approval, **Require review from Code Owners**.
+2. **Allow specified actors to bypass required pull requests** → aggiungi l’app **github-actions** *(solo se la UI lo mostra)*.
+3. Salva e **disattiva** o elimina il ruleset `main_block` per evitare doppie regole.
+
+Su repo personale oggi: usa la **configurazione semplice** in cima.
+
+## Vedi anche
+
+- [local-ci.md](local-ci.md)
+- [CONTRIBUTING.md](../CONTRIBUTING.md)

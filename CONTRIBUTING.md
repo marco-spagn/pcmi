@@ -17,6 +17,8 @@ Thank you for helping improve PCMI. This guide explains how to set up a developm
 
 ## Code of conduct
 
+This project follows the [Contributor Covenant Code of Conduct](CODE_OF_CONDUCT.md).
+
 Be respectful and constructive. Security issues must **not** be reported in public issues — see [SECURITY.md](SECURITY.md).
 
 ## Ways to contribute

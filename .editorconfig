@@ -1,0 +1,20 @@
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.go]
+indent_style = tab
+
+[*.{py,ts,tsx,js,jsx,yaml,yml,md,sh,sql,toml,ini}]
+indent_style = space
+indent_size = 4
+
+[*.{yaml,yml,md,sh,toml}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

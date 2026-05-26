@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"net"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/log"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -301,15 +301,15 @@ func BuildServerOptions(cfg *config.Config) []grpc.ServerOption {
 		return opts
 	}
 	if cert == "" || key == "" {
-		log.Printf("⚠️  gRPC TLS partially configured (cert=%q, key=%q) — falling back to plain TCP", cert, key)
+		log.Warn("gRPC TLS partially configured, falling back to plain TCP", "cert", cert, "key", key)
 		return opts
 	}
 	creds, err := credentials.NewServerTLSFromFile(cert, key)
 	if err != nil {
-		log.Printf("⚠️  gRPC TLS load failed (%v) — falling back to plain TCP", err)
+		log.Warn("gRPC TLS load failed, falling back to plain TCP", "err", err)
 		return opts
 	}
-	log.Printf("🔒 gRPC TLS enabled (cert=%s)", cert)
+	log.Info("gRPC TLS enabled", "cert", cert)
 	return append(opts, grpc.Creds(creds))
 }
 
@@ -322,7 +322,7 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *co
 	port := ResolveGRPCPort(cfg)
 	lis, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		log.Printf("gRPC listen failed: %v", err)
+		log.Error("gRPC listen failed", "err", err)
 		return
 	}
 	srv := grpc.NewServer(BuildServerOptions(cfg)...)
@@ -342,9 +342,9 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *co
 	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(dbWrite))
 	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(dbWrite))
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (MemoryService + AdminService + MetricsService)", port)
+		log.Info("gRPC server started", "port", port)
 		if err := srv.Serve(lis); err != nil {
-			log.Printf("gRPC serve: %v", err)
+			log.Error("gRPC serve failed", "err", err)
 		}
 	}()
 }

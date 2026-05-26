@@ -7,7 +7,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("connect: %v", err)
+		log.Fatal("database connection failed", "err", err)
 	}
 	defer pool.Close()
 
@@ -40,14 +40,14 @@ func main() {
 			filename   TEXT PRIMARY KEY,
 			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`); err != nil {
-		log.Fatalf("create schema_migrations: %v", err)
+		log.Fatal("create schema_migrations table failed", "err", err)
 	}
 
 	// Read already-applied migrations.
 	rows, err := pool.Query(ctx,
 		`SELECT filename FROM schema_migrations ORDER BY filename`)
 	if err != nil {
-		log.Fatalf("query applied: %v", err)
+		log.Fatal("query applied migrations failed", "err", err)
 	}
 	applied := map[string]bool{}
 	for rows.Next() {
@@ -60,7 +60,7 @@ func main() {
 	// Collect .sql files in lexicographic order.
 	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
-		log.Fatalf("read migrations dir %q: %v", migrationsDir, err)
+		log.Fatal("read migrations directory failed", "dir", migrationsDir, "err", err)
 	}
 	var files []string
 	for _, e := range entries {
@@ -73,30 +73,30 @@ func main() {
 	appliedCount := 0
 	for _, fname := range files {
 		if applied[fname] {
-			log.Printf("⏭  skip  %s (already applied)", fname)
+			log.Info("migration already applied, skipping", "file", fname)
 			continue
 		}
 		sql, err := os.ReadFile(filepath.Join(migrationsDir, fname))
 		if err != nil {
-			log.Fatalf("read %s: %v", fname, err)
+			log.Fatal("read migration file failed", "file", fname, "err", err)
 		}
 		tx, err := pool.Begin(ctx)
 		if err != nil {
-			log.Fatalf("begin tx for %s: %v", fname, err)
+			log.Fatal("begin transaction failed", "file", fname, "err", err)
 		}
 		if _, err := tx.Exec(ctx, string(sql)); err != nil {
 			_ = tx.Rollback(ctx)
-			log.Fatalf("❌ apply %s: %v", fname, err)
+			log.Fatal("apply migration failed", "file", fname, "err", err)
 		}
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO schema_migrations (filename) VALUES ($1)`, fname); err != nil {
 			_ = tx.Rollback(ctx)
-			log.Fatalf("record %s: %v", fname, err)
+			log.Fatal("record migration failed", "file", fname, "err", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			log.Fatalf("commit %s: %v", fname, err)
+			log.Fatal("commit migration failed", "file", fname, "err", err)
 		}
-		log.Printf("✅ applied %s", fname)
+		log.Info("applied migration", "file", fname)
 		appliedCount++
 	}
 	fmt.Printf("\n🎉 Migrations: %d applied, %d skipped.\n",

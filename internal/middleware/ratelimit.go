@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/log"
 	pcmiratelimit "github.com/marco-spagn/pcmi/internal/ratelimit"
 	"github.com/redis/go-redis/v9"
 )
@@ -38,9 +38,7 @@ func RateLimitMiddleware(cfg *config.Config) fiber.Handler {
 	// FIX-10: warn operators that in-memory rate limiting does not share
 	// counters across API replicas. With N replicas the effective limit is
 	// N × configured limit. This is silent in production — log it clearly.
-	log.Println("⚠️  Rate limiter: using in-memory backend (RATE_LIMIT_BACKEND=memory)." +
-		" Counters are NOT shared across replicas. For multi-replica deployments" +
-		" set RATE_LIMIT_BACKEND=redis to enforce accurate per-key limits.")
+	log.Warn("rate limiter using in-memory backend, counters NOT shared across replicas. Set RATE_LIMIT_BACKEND=redis for multi-replica deployments")
 
 	readonlyH := newRoleLimiter(roleRPM(cfg, "readonly"))
 	writeH := newRoleLimiter(roleRPM(cfg, "write"))

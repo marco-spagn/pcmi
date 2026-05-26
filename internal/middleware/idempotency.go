@@ -3,13 +3,13 @@ package middleware
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
@@ -49,7 +49,7 @@ func NewIdempotencyMiddleware(cache IdempotencyCache) fiber.Handler {
 
 		cached, ok, err := cache.Get(c.Context(), tenantID, key)
 		if err != nil {
-			log.Printf("❌ idempotency lookup: %v", err)
+			log.Error("idempotency lookup failed", "err", err)
 			return c.Status(500).JSON(fiber.Map{"error": "idempotency lookup failed"})
 		}
 		if ok {
@@ -69,7 +69,7 @@ func NewIdempotencyMiddleware(cache IdempotencyCache) fiber.Handler {
 			return nil
 		}
 		if putErr := cache.Put(c.Context(), tenantID, key, body); putErr != nil {
-			log.Printf("⚠️ idempotency cache store: %v", putErr)
+			log.Warn("idempotency cache store failed", "err", putErr)
 		}
 		return nil
 	}

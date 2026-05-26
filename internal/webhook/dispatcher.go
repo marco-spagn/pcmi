@@ -3,13 +3,13 @@ package webhook
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 )
 
@@ -73,7 +73,7 @@ func (d *Dispatcher) NotifyMatching(tenantID, eventType string, payload map[stri
 		defer cancel()
 		eps, err := d.listEndpoints(ctx, tenantID, eventType)
 		if err != nil {
-			log.Printf("webhook list: %v", err)
+			log.Error("webhook list endpoints failed", "err", err)
 			return
 		}
 		body, err := json.Marshal(map[string]any{
@@ -87,7 +87,7 @@ func (d *Dispatcher) NotifyMatching(tenantID, eventType string, payload map[stri
 		}
 		for _, ep := range eps {
 			if err := d.enqueue(ctx, tenantID, ep, eventType, payload, body); err != nil {
-				log.Printf("webhook enqueue %s: %v", ep.ID, err)
+				log.Error("webhook enqueue failed", "endpoint", ep.ID, "err", err)
 			}
 		}
 	}()
@@ -174,7 +174,7 @@ func (d *Dispatcher) processPending() {
 		LIMIT 20
 		FOR UPDATE SKIP LOCKED`)
 	if err != nil {
-		log.Printf("webhook pending query: %v", err)
+		log.Error("webhook pending delivery query failed", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -200,7 +200,7 @@ func (d *Dispatcher) processPending() {
 		batch = append(batch, pd)
 	}
 	if err := rows.Err(); err != nil {
-		log.Printf("webhook pending scan: %v", err)
+		log.Error("webhook pending delivery scan failed", "err", err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 	// different tenant set by the previous caller.
 	if pd.TenantID != "" {
 		if _, err := d.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", pd.TenantID); err != nil {
-			log.Printf("webhook attempt: set_tenant_context failed for delivery %s: %v", pd.ID, err)
+			log.Error("webhook set_tenant_context failed", "delivery", pd.ID, "err", err)
 			return
 		}
 	}
@@ -235,7 +235,7 @@ func (d *Dispatcher) attemptDelivery(ctx context.Context, pd pendingDelivery) {
 			UPDATE webhook_deliveries
 			SET status = 'dead_letter', attempts = $2, last_error = $3
 			WHERE id = $1::uuid`, pd.ID, attempts, errMsg)
-		log.Printf("webhook %s dead-letter after %d attempts: %v", pd.ID, attempts, err)
+		log.Error("webhook delivery dead-lettered", "id", pd.ID, "attempts", attempts, "err", err)
 		metrics.IncWebhookDeadLetter()
 		return
 	}

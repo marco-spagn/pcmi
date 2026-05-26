@@ -5,11 +5,11 @@ package telemetry
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
@@ -74,6 +74,6 @@ func Init(ctx context.Context, cfg *config.Config, defaultServiceName string) (s
 		sdktrace.WithResource(res),
 	)
 	otel.SetTracerProvider(tp)
-	log.Printf("OpenTelemetry: OTLP/HTTP traces → %s (service=%s)", endpoint, serviceName)
+	log.Info("otel configured", "endpoint", endpoint, "service", serviceName)
 	return tp.Shutdown, nil
 }

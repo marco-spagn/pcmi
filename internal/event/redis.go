@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 // ErrRedisNotInitialized is returned when RedisClient was never set (InitRedis).
@@ -46,15 +47,14 @@ func InitRedis(addr string) {
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		_, err := RedisClient.Ping(ctx).Result()
 		if err == nil {
-			log.Println("✅ Connected to Redis")
+			log.Info("connected to redis")
 			return
 		}
 		if attempt == maxAttempts {
 			// Only fatal after all retries exhausted.
-			log.Fatalf("❌ Failed to connect to Redis after %d attempts: %v", maxAttempts, err)
+			log.Fatal("failed to connect to redis", "attempts", maxAttempts, "err", err)
 		}
-		log.Printf("⏳ Redis not ready (attempt %d/%d): %v — retrying in %s",
-			attempt, maxAttempts, err, backoff)
+		log.Warn("redis not ready, retrying", "attempt", attempt, "max_attempts", maxAttempts, "err", err, "backoff", backoff)
 		time.Sleep(backoff)
 		backoff *= 2
 		if backoff > 16*time.Second {
@@ -81,10 +81,10 @@ func publishStream(eventType string, payload map[string]any) error {
 	pub := NewStreamPublisher(RedisClient, StreamKey)
 	streamID, err := pub.Publish(ctx, eventType, payload)
 	if err != nil {
-		log.Printf("❌ Failed to XADD event: %v", err)
+		log.Error("failed to XADD event", "err", err)
 		return err
 	}
-	log.Printf("📣 [REDIS STREAM] Published event: %s id=%s", eventType, streamID)
+	log.Debug("[redis stream] event published", "type", eventType, "id", streamID)
 	notifyWebhook(eventType, payload)
 	return nil
 }
@@ -102,11 +102,11 @@ func publishPubSub(eventType string, payload map[string]any) error {
 
 	err = RedisClient.Publish(ctx, "memory_events", data).Err()
 	if err != nil {
-		log.Printf("❌ Failed to publish event: %v", err)
+		log.Error("failed to publish event", "err", err)
 		return err
 	}
 
-	log.Printf("📣 [REDIS] Published event: %s", eventType)
+	log.Debug("[redis pubsub] event published", "type", eventType)
 	notifyWebhook(eventType, payload)
 	return nil
 }
@@ -141,7 +141,7 @@ func pubsubSubscribe(parent context.Context) <-chan Event {
 	pubsub := RedisClient.Subscribe(parent, "memory_events")
 
 	if _, err := pubsub.Receive(parent); err != nil {
-		log.Printf("❌ Failed to confirm Redis SUBSCRIBE: %v", err)
+		log.Error("failed to confirm redis subscribe", "err", err)
 		_ = pubsub.Close()
 		close(ch)
 		return ch
@@ -160,7 +160,7 @@ func pubsubSubscribe(parent context.Context) <-chan Event {
 				}
 				var evt Event
 				if err := json.Unmarshal([]byte(msg.Payload), &evt); err != nil {
-					log.Printf("❌ Failed to unmarshal event: %v", err)
+					log.Error("failed to unmarshal event", "err", err)
 					continue
 				}
 				select {

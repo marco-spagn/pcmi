@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/sashabaranov/go-openai"
 )
@@ -39,9 +39,9 @@ func NewDistillationWorker(db *pgxpool.Pool, cfg *config.Config) *DistillationWo
 		concurrency = distillationConcurrencyFrom(cfg.DistillationConcurrency)
 	}
 	if apiKey == "" {
-		log.Println("⚠️  OPENAI_API_KEY unset — distillation LLM calls will fail")
+		log.Warn("OPENAI_API_KEY unset, distillation LLM calls will fail")
 	}
-	log.Printf("🔧 Distillation concurrency limit: %d parallel LLM jobs", concurrency)
+	log.Info("distillation worker initialized", "concurrency", concurrency)
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
@@ -97,7 +97,7 @@ func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Printf("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", w.batchSize)
+	log.Info("distillation engine started", "batch_size", w.batchSize)
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -107,10 +107,10 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Distillation worker stopped")
+			log.Info("distillation worker stopped")
 			return
 		case <-ticker.C:
-			log.Println("⏰ Fallback timer: periodic distillation for default tenant")
+			log.Debug("distillation fallback timer tick")
 			w.runDistillationJob(defaultTenant, "root.test")
 		}
 	}
@@ -129,17 +129,17 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	defer cancel()
 
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
-		log.Printf("❌ distillation set tenant: %v", err)
+		log.Error("distillation set tenant failed", "err", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 
 	batchSize := w.batchSize
-	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
+	log.Info("distillation job started", "tenant", tenantID, "path_prefix", pathPrefix, "batch_size", batchSize)
 
 	rows, err := w.db.Query(ctx, distillationSourceEntriesSQL(), tenantID, pathPrefix, batchSize)
 	if err != nil {
-		log.Printf("❌ distillation query error: %v", err)
+		log.Error("distillation query failed", "err", err)
 		return
 	}
 	defer rows.Close()
@@ -168,7 +168,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	}
 
 	if len(entries) < 1 {
-		log.Printf("📊 No memories under %s — distillation skipped", pathPrefix)
+		log.Info("distillation skipped, no source memories", "path_prefix", pathPrefix)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
@@ -176,12 +176,12 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	metrics.ObserveDistillationSources(len(entries))
 
 	if w.apiKey == "" {
-		log.Println("⚠️  Skipping LLM distillation (no OPENAI_API_KEY)")
+		log.Warn("skipping LLM distillation, no OPENAI_API_KEY set")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
 
-	log.Printf("🧠 Distilling %d raw memories under %s...", len(entries), pathPrefix)
+	log.Info("distilling memories", "count", len(entries), "path_prefix", pathPrefix)
 
 	prompt := `Summarize these memories into higher-order knowledge.
 Return ONLY valid JSON:
@@ -207,7 +207,7 @@ Return ONLY valid JSON:
 		},
 	})
 	if err != nil {
-		log.Printf("❌ LLM distillation error: %v", err)
+		log.Error("LLM distillation error", "err", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
@@ -215,13 +215,13 @@ Return ONLY valid JSON:
 	// BUG-FIX-1: guard against empty Choices (OpenAI API can return 0 choices on
 	// content-filter or rate-limit soft errors without returning an HTTP error code).
 	if len(resp.Choices) == 0 {
-		log.Printf("❌ LLM returned 0 choices (finish_reason may be 'content_filter')")
+		log.Error("LLM returned 0 choices (finish_reason may be content_filter)")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
 	if err != nil {
-		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
+		log.Error("LLM response JSON parse failed", "err", err, "raw", resp.Choices[0].Message.Content)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
@@ -234,24 +234,24 @@ Return ONLY valid JSON:
 
 	dup, err := w.hasDuplicateDistillation(ctx, tenantID, distilledPath, sourceIDs)
 	if err != nil {
-		log.Printf("❌ distillation dedup check: %v", err)
+		log.Error("distillation dedup check failed", "err", err)
 		return
 	}
 	if dup {
-		log.Printf("⏭️  Distillation skipped (duplicate sources) path=%s tenant=%s", distilledPath, tenantID)
+		log.Info("distillation skipped, duplicate sources", "path", distilledPath, "tenant", tenantID)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "duplicate")
 		return
 	}
 
 	version, err := nextDistilledVersion(ctx, w.db, tenantID, distilledPath)
 	if err != nil {
-		log.Printf("❌ distillation version: %v", err)
+		log.Error("distillation version lookup failed", "err", err)
 		return
 	}
 
 	insightsJSON, err := json.Marshal(result.Insights)
 	if err != nil {
-		log.Printf("❌ insights marshal: %v", err)
+		log.Error("distillation insights marshal failed", "err", err)
 		return
 	}
 
@@ -270,7 +270,7 @@ Return ONLY valid JSON:
 		version,
 	).Scan(&distilledID)
 	if err != nil {
-		log.Printf("❌ insert distilled error: %v", err)
+		log.Error("insert distilled knowledge failed", "err", err)
 		return
 	}
 
@@ -281,12 +281,11 @@ Return ONLY valid JSON:
 		"version":   version,
 		"sources":   len(sourceIDs),
 	}); err != nil {
-		log.Printf("⚠️  distilled event publish: %v", err)
+		log.Warn("distilled event publish failed", "err", err)
 	}
 
 	metrics.ObserveDistillationJob(time.Since(start).Seconds(), "ok")
-	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)",
-		distilledID, distilledPath, version, tenantID, len(sourceIDs))
+	log.Info("distillation saved", "id", distilledID, "path", distilledPath, "version", version, "tenant", tenantID, "sources", len(sourceIDs))
 
 	// FIX-4: update distillation_runs row to 'completed' when called from
 	// the policy engine (runID > 0). Standalone Redis-triggered calls pass
@@ -333,6 +332,6 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 		  )`, tenantID, tenantID, distilledID)
 	if err != nil {
 		// Non-fatal: the distillate was saved; only the audit row is wrong.
-		log.Printf("⚠️ markRunCompleted: %v", err)
+		log.Warn("markRunCompleted failed", "err", err)
 	}
 }

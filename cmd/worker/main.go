@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,6 +21,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
 	"github.com/marco-spagn/pcmi/internal/version"
@@ -31,25 +31,25 @@ import (
 const workerTracerName = "github.com/marco-spagn/pcmi/cmd/worker"
 
 func main() {
-	log.Println("🚀 PCMI Worker starting...")
+	log.Info("PCMI Worker starting")
 
 	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.WorkerRequiredFields...); err != nil {
-		log.Fatalf("❌ FATAL: %v", err)
+		log.Fatal("config validation failed", "err", err)
 	}
-	log.Printf("✅ Config loaded (DB=%s, Redis=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr)
+	log.Info("config loaded", "db", log.Mask(cfg.DatabaseURL, 40), "redis", cfg.RedisAddr)
 
 	ctxTelemetry := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, cfg, "pcmi-worker")
 	if err != nil {
-		log.Fatalf("telemetry: %v", err)
+		log.Fatal("telemetry init failed", "err", err)
 	}
 	defer func() {
 		sdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if e := shutdownTelemetry(sdCtx); e != nil {
-			log.Printf("telemetry shutdown: %v", e)
+			log.Error("telemetry shutdown failed", "err", e)
 		}
 	}()
 
@@ -74,34 +74,34 @@ func main() {
 			metrics.WorkerRegistry,
 			promhttp.HandlerOpts{EnableOpenMetrics: false},
 		))
-		log.Println("💓 Worker HTTP on :8081 (/health, /metrics)")
+		log.Info("Worker HTTP listening", "addr", ":8081", "endpoints", "/health, /metrics")
 		if err := http.ListenAndServe(":8081", mux); err != nil {
-			log.Printf("Health server error: %v", err)
+			log.Error("health server error", "err", err)
 		}
 	}()
 
 	backend := event.EventBackend()
-	log.Printf("✅ Redis connected, event backend=%s", backend)
+	log.Info("redis connected", "event_backend", backend)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	prov, err := embedding.NewFromConfig(cfg)
 	if err != nil {
-		log.Fatalf("❌ FATAL embedding provider: %v", err)
+		log.Fatal("embedding provider init failed", "err", err)
 	}
 	if prov != nil {
 		ew := worker.NewEmbeddingWorker(db, prov)
 		go ew.Start(ctx)
-		log.Println("✅ Embedding worker started")
+		log.Info("embedding worker started")
 	} else {
-		log.Println("⚠️ OPENAI_API_KEY unset — embedding worker disabled")
+		log.Warn("OPENAI_API_KEY unset, embedding worker disabled")
 	}
 
 	distWorker := worker.NewDistillationWorker(db, cfg)
 	var policyEngine *worker.DistillationPolicyEngine
 	if cfg.DistillationPolicyDisabled {
-		log.Println("ℹ️  Distillation policy engine disabled (DISTILLATION_POLICY_DISABLED)")
+		log.Warn("distillation policy engine disabled", "reason", "DISTILLATION_POLICY_DISABLED")
 	} else {
 		policyEngine = worker.NewDistillationPolicyEngine(db, distWorker)
 		go policyEngine.Start(ctx)
@@ -136,13 +136,13 @@ func main() {
 		case event.EventMemoryStored, event.EventMemoryUpdated:
 			path, _ := evt.Payload["path"].(string)
 			if policyEngine != nil {
-				log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation policy", evt.Type, evt.Payload["id"], tenantID, path)
+				log.Info("redis event routed to distillation policy", "event_type", evt.Type, "id", evt.Payload["id"], "tenant", tenantID, "path", path)
 				policyEngine.OnMemoryEvent(tenantID, path)
 			}
 			consolidationWorker.TriggerForMemory(tenantID, path)
 		case event.EventMemoryRefineRequested:
 			prefix, _ := evt.Payload["path_prefix"].(string)
-			log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
+			log.Info("redis event refine requested", "tenant", tenantID, "prefix", prefix)
 			distWorker.TriggerForPrefix(tenantID, prefix)
 		}
 		span.End()
@@ -158,7 +158,7 @@ func main() {
 	} else {
 		consumer := event.NewWorkerStreamConsumer()
 		if err := consumer.EnsureGroup(ctx); err != nil {
-			log.Fatalf("❌ stream consumer group: %v", err)
+			log.Fatal("stream consumer group creation failed", "err", err)
 		}
 		streamHandler := func(_ context.Context, evt event.Event, streamID string) error {
 			handleMemoryEvent(evt, streamID)
@@ -167,20 +167,20 @@ func main() {
 		consumer.StartPendingRecovery(ctx, streamHandler)
 		go func() {
 			if err := consumer.Consume(ctx, streamHandler); err != nil && ctx.Err() == nil {
-				log.Printf("❌ stream consumer stopped: %v", err)
+				log.Error("stream consumer stopped unexpectedly", "err", err)
 			}
 		}()
-		log.Printf("✅ Subscribed to stream %s (group %s)", event.StreamKey, event.WorkerConsumerGroup)
+		log.Info("subscribed to stream", "stream", event.StreamKey, "group", event.WorkerConsumerGroup)
 	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	log.Println("🛑 Shutting down worker...")
+	log.Info("shutting down worker")
 	cancel()
 	time.Sleep(2 * time.Second)
-	log.Println("👋 Worker stopped")
+	log.Info("worker stopped")
 }
 
 func min(a, b int) int {

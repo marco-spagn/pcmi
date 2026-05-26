@@ -7,7 +7,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"strings"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/handler"
+	"github.com/marco-spagn/pcmi/internal/log"
 	metrics "github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -45,31 +45,31 @@ func skipTracePath(c *fiber.Ctx) bool {
 }
 
 func main() {
-	log.Println("🚀 PCMI API " + version.Tag + " starting...")
+	log.Info("PCMI API starting", "version", version.Tag)
 
 	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
-		log.Fatalf("❌ FATAL: %v", err)
+		log.Fatal("config validation failed", "err", err)
 	}
 	if cfg.EncryptionKey != "" {
 		if err := pcmicrypto.InitKey(cfg.EncryptionKey); err != nil {
-			log.Fatalf("❌ FATAL encryption key: %v", err)
+			log.Fatal("encryption key initialization failed", "err", err)
 		}
 	}
-	log.Printf("✅ Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
+	log.Info("config loaded", "db", log.Mask(cfg.DatabaseURL, 40), "redis", cfg.RedisAddr, "port", cfg.APIPort)
 	middleware.LogMetricsScrapeAuthState(cfg.MetricsScrapeToken)
 
 	ctx := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctx, cfg, "pcmi-api")
 	if err != nil {
-		log.Fatalf("telemetry: %v", err)
+		log.Fatal("telemetry init failed", "err", err)
 	}
 	defer func() {
 		sdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if e := shutdownTelemetry(sdCtx); e != nil {
-			log.Printf("telemetry shutdown: %v", e)
+			log.Error("telemetry shutdown failed", "err", e)
 		}
 	}()
 
@@ -85,7 +85,7 @@ func main() {
 	repo := repository.NewMemoryRepository(db, pools.Read)
 	embed, err := embedding.NewFromConfig(cfg)
 	if err != nil {
-		log.Fatalf("❌ FATAL embedding provider: %v", err)
+		log.Fatal("embedding provider init failed", "err", err)
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	memSvc := service.NewMemoryService(repo, embed, dedupMode)
@@ -107,10 +107,10 @@ func main() {
 
 	handler.RegisterReadyRoutes(app, db)
 	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
-		log.Fatalf("❌ FATAL memory routes: %v", err)
+		log.Fatal("memory routes setup failed", "err", err)
 	}
 	if err := handler.SetupSessionRoutes(app, db, pools.Read, cfg); err != nil {
-		log.Fatalf("❌ FATAL session routes: %v", err)
+		log.Fatal("session routes setup failed", "err", err)
 	}
 	handler.SetupAdminRoutes(app, db)
 	handler.SetupDistillationPolicyRoutes(app, db)
@@ -121,16 +121,16 @@ func main() {
 
 	grpcserver.Start(db, pools.Read, memSvc, cfg)
 
-	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
+	log.Info("PCMI API started", "version", version.Tag, "port", cfg.APIPort)
 	if pools.Read != nil {
-		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
+		log.Info("DATABASE_READ_URL active — read traffic routed to replica")
 	}
 	addr := ":" + cfg.APIPort
 	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-		log.Printf("🔒 TLS enabled (cert=%s)", cfg.TLSCertFile)
-		log.Fatal(app.ListenTLS(addr, cfg.TLSCertFile, cfg.TLSKeyFile))
+		log.Info("TLS enabled", "cert", cfg.TLSCertFile)
+		log.Fatal("ListenTLS failed", "err", app.ListenTLS(addr, cfg.TLSCertFile, cfg.TLSKeyFile))
 	} else {
-		log.Fatal(app.Listen(addr))
+		log.Fatal("Listen failed", "err", app.Listen(addr))
 	}
 }
 

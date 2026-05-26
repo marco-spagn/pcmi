@@ -3,12 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
@@ -37,7 +37,7 @@ func NewMemoryService(repo repository.MemoryRepo, embedder embedding.Provider, d
 
 func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tenantID string) (*StoreResult, error) {
 	path := strings.TrimSpace(req.Path)
-	log.Printf("📥 [SERVICE] Store — tenant=%s path=%s", tenantID, path)
+	log.Debug("[service] store", "tenant", tenantID, "path", path)
 
 	if res, handled, err := s.tryDedup(ctx, req, tenantID, path); handled {
 		return res, err
@@ -73,13 +73,13 @@ func (s *MemoryService) Store(ctx context.Context, req *model.StoreRequest, tena
 	if supersededID != nil {
 		eventType = event.EventMemoryUpdated
 		payload["superseded_id"] = *supersededID
-		log.Printf("📣 [REDIS] memory.updated id=%d version=%d superseded=%d", id, version, *supersededID)
+		log.Debug("[redis] memory.updated", "id", id, "version", version, "superseded", *supersededID)
 	} else {
-		log.Printf("📣 [REDIS] memory.stored id=%d version=%d", id, version)
+		log.Debug("[redis] memory.stored", "id", id, "version", version)
 	}
 
 	if err := event.PublishEvent(eventType, payload); err != nil {
-		log.Printf("❌ [REDIS] publish: %v", err)
+		log.Error("[redis] publish failed", "err", err)
 	}
 
 	return &StoreResult{
@@ -139,19 +139,19 @@ func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, t
 	switch mode {
 	case model.DedupModeSkip:
 		if samePath {
-			log.Printf("⏭️ [DEDUP] skip tenant=%s path=%s id=%d", tenantID, path, existing.ID)
+			log.Debug("[dedup] skip", "tenant", tenantID, "path", path, "id", existing.ID)
 			return makeResult(existing, model.StoreActionSkipped, ""), true, nil
 		}
 		return nil, false, nil
 	case model.DedupModeLink:
 		if samePath {
-			log.Printf("⏭️ [DEDUP] skip (link mode, same path) tenant=%s path=%s id=%d", tenantID, path, existing.ID)
+			log.Debug("[dedup] skip link mode same path", "tenant", tenantID, "path", path, "id", existing.ID)
 			return makeResult(existing, model.StoreActionSkipped, ""), true, nil
 		}
 		if err := s.repo.UpsertDedupLink(ctx, tenantID, path, existing.Path); err != nil {
 			return nil, true, err
 		}
-		log.Printf("🔗 [DEDUP] link %s -> %s tenant=%s", path, existing.Path, tenantID)
+		log.Info("[dedup] linked", "path", path, "target", existing.Path, "tenant", tenantID)
 		return makeResult(existing, model.StoreActionLinked, path), true, nil
 	case model.DedupModeMerge:
 		if !samePath {
@@ -161,7 +161,7 @@ func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, t
 		if err != nil {
 			return nil, true, err
 		}
-		log.Printf("🔀 [DEDUP] merge metadata tenant=%s path=%s id=%d", tenantID, path, merged.ID)
+		log.Info("[dedup] merged metadata", "tenant", tenantID, "path", path, "id", merged.ID)
 		return makeResult(merged, model.StoreActionMerged, ""), true, nil
 	default:
 		return nil, false, nil
@@ -173,7 +173,7 @@ func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest
 	if q := strings.TrimSpace(req.Query); q != "" && s.embedder != nil {
 		emb, err := s.embedder.Generate(ctx, q)
 		if err != nil {
-			log.Printf("⚠️ semantic retrieve fallback (embedding error): %v", err)
+			log.Warn("semantic retrieve fallback", "err", err)
 		} else {
 			queryEmbedding = emb
 		}

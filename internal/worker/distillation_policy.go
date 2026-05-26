@@ -3,13 +3,13 @@ package worker
 import (
 	"context"
 	"errors"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/marco-spagn/pcmi/internal/log"
 	"github.com/marco-spagn/pcmi/internal/model"
 )
 
@@ -61,7 +61,7 @@ func (e *DistillationPolicyEngine) Start(ctx context.Context) {
 	}
 	ticker := time.NewTicker(e.ticker)
 	defer ticker.Stop()
-	log.Println("🚀 Distillation policy engine started (periodic age/count evaluation)")
+	log.Info("distillation policy engine started")
 	for {
 		select {
 		case <-ctx.Done():
@@ -82,7 +82,7 @@ func (e *DistillationPolicyEngine) OnMemoryEvent(tenantID, memoryPath string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		if err := e.evaluatePrefix(ctx, tenantID, prefix); err != nil {
-			log.Printf("⚠️ distillation policy evaluate: %v", err)
+			log.Warn("distillation policy evaluate failed", "err", err)
 		}
 	}()
 }
@@ -187,20 +187,19 @@ func (e *DistillationPolicyEngine) maybeTrigger(ctx context.Context, p model.Dis
 	}
 	runID, err := e.beginRun(ctx, p, st.MemoryCount)
 	if err != nil {
-		log.Printf("❌ distillation policy run begin: %v", err)
+		log.Error("distillation policy run begin failed", "err", err)
 		return
 	}
 	if err := e.markPolicyTriggered(ctx, p.ID); err != nil {
-		log.Printf("⚠️ distillation policy last_triggered_at: %v", err)
+		log.Warn("distillation policy last_triggered_at update failed", "err", err)
 	}
 	if e.dist != nil {
 		e.dist.TriggerForPrefix(p.TenantID, p.PathPrefix)
 	}
 	if err := e.completeRun(ctx, runID, "completed", nil); err != nil {
-		log.Printf("⚠️ distillation policy run complete: %v", err)
+		log.Warn("distillation policy run complete update failed", "err", err)
 	}
-	log.Printf("✅ distillation policy %d triggered (%s) tenant=%s prefix=%s count=%d",
-		p.ID, reason, p.TenantID, p.PathPrefix, st.MemoryCount)
+	log.Info("distillation policy triggered", "id", p.ID, "reason", reason, "tenant", p.TenantID, "path_prefix", p.PathPrefix, "memory_count", st.MemoryCount)
 }
 
 func (e *DistillationPolicyEngine) beginRun(ctx context.Context, p model.DistillationPolicy, sourceCount int) (int64, error) {

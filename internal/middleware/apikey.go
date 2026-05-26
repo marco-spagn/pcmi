@@ -4,13 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 // apiKeyDB is satisfied by *pgxpool.Pool and pgxmock pools in tests.
@@ -74,13 +75,13 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		// a DB hiccup the request proceeds without tenant isolation, risking
 		// cross-tenant data exposure. Return 503 instead.
 		if _, err := db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
-			log.Printf("❌ set_tenant_context failed for tenant=%s: %v", tenantID, err)
+			log.Error("set_tenant_context failed", "tenant", tenantID, "err", err)
 			return c.Status(503).JSON(fiber.Map{"error": "tenant context unavailable, please retry"})
 		}
 
 		touchAPIKeyLastUsed(db, apiKeyID, c.IP())
 
-		log.Printf("🔑 API Key authenticated → tenant=%s, role=%s", tenantID, role)
+		log.Debug("api key authenticated", "tenant", tenantID, "role", role)
 		return c.Next()
 	}
 }

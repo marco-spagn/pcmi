@@ -2,10 +2,11 @@ package worker
 
 import (
 	"encoding/json"
-	"log"
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 // defaultDistillationBatchSize is the max number of raw memories per distillation job.
@@ -20,7 +21,7 @@ func distillationBatchSizeFrom(cfgBatch int) int {
 		return cfgBatch
 	}
 	if cfgBatch != 0 {
-		log.Printf("⚠️  DISTILLATION_BATCH_SIZE=%d invalid, using default %d", cfgBatch, defaultDistillationBatchSize)
+		log.Warn("distillation batch size invalid, using default", "configured", cfgBatch, "default", defaultDistillationBatchSize)
 	}
 	return defaultDistillationBatchSize
 }
@@ -30,7 +31,7 @@ func distillationConcurrencyFrom(cfgConcurrency int) int {
 		return cfgConcurrency
 	}
 	if cfgConcurrency != 0 {
-		log.Printf("⚠️  DISTILLATION_CONCURRENCY=%d invalid, using default %d", cfgConcurrency, defaultDistillationConcurrency)
+		log.Warn("distillation concurrency invalid, using default", "configured", cfgConcurrency, "default", defaultDistillationConcurrency)
 	}
 	return defaultDistillationConcurrency
 }

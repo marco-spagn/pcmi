@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"log"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 const metricsBearerPrefix = "Bearer "
@@ -12,7 +13,7 @@ const metricsBearerPrefix = "Bearer "
 // LogMetricsScrapeAuthState logs a startup warning when METRICS_SCRAPE_TOKEN is unset.
 func LogMetricsScrapeAuthState(scrapeToken string) {
 	if scrapeToken == "" {
-		log.Println("⚠️  WARNING: METRICS_SCRAPE_TOKEN not set; GET /metrics is open without authentication")
+		log.Warn("METRICS_SCRAPE_TOKEN not set, GET /metrics is open without authentication")
 	}
 }
 

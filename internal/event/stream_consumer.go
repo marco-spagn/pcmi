@@ -3,10 +3,11 @@ package event
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 const (
@@ -43,7 +44,7 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		Count:  pendingClaimBatch,
 	}).Result()
 	if err != nil {
-		log.Printf("⚠️ stream XPENDING: %v", err)
+		log.Warn("stream XPENDING failed", "err", err)
 		return
 	}
 	SetStreamPending(len(pending))
@@ -64,7 +65,7 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		Messages: ids,
 	}).Result()
 	if err != nil {
-		log.Printf("⚠️ stream XCLAIM: %v", err)
+		log.Warn("stream XCLAIM failed", "err", err)
 		return
 	}
 	for _, msg := range claimed {
@@ -74,16 +75,16 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		}
 		evt, parseErr := decodeStreamMessage(msg)
 		if parseErr != nil {
-			log.Printf("❌ pending decode %s: %v", msg.ID, parseErr)
+			log.Error("pending decode failed", "id", msg.ID, "err", parseErr)
 			_ = c.ack(ctx, msg.ID)
 			continue
 		}
 		if err := handler(ctx, evt, msg.ID); err != nil {
-			log.Printf("⚠️ pending handler %s: %v", msg.ID, err)
+			log.Warn("pending handler failed", "id", msg.ID, "err", err)
 			continue
 		}
 		if ackErr := c.ack(ctx, msg.ID); ackErr != nil {
-			log.Printf("❌ pending XACK %s: %v", msg.ID, ackErr)
+			log.Error("pending XACK failed", "id", msg.ID, "err", ackErr)
 		} else {
 			IncStreamAck()
 		}
@@ -106,11 +107,11 @@ func (c *StreamConsumer) moveToDLQ(ctx context.Context, msg redis.XMessage) {
 		Values: values,
 	}).Result()
 	if dlqErr != nil {
-		log.Printf("❌ stream DLQ XADD %s: %v", msg.ID, dlqErr)
+		log.Error("stream DLQ XADD failed", "id", msg.ID, "err", dlqErr)
 		return
 	}
 	IncStreamDLQ()
 	if ackErr := c.ack(ctx, msg.ID); ackErr != nil {
-		log.Printf("❌ stream DLQ XACK %s: %v", msg.ID, ackErr)
+		log.Error("stream DLQ XACK failed", "id", msg.ID, "err", ackErr)
 	}
 }

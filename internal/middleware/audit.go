@@ -2,11 +2,12 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 type AuditMiddleware struct {
@@ -57,10 +58,10 @@ func (m *AuditMiddleware) Middleware() fiber.Handler {
 		)
 
 		if dbErr != nil {
-			log.Printf("⚠️ Audit log failed: %v", dbErr)
+			log.Warn("audit log insert failed", "err", dbErr)
 		}
 
-		log.Printf("📊 Audit: %s %s [%d] %s", c.Method(), c.Path(), c.Response().StatusCode(), time.Since(start))
+		log.Debug("api request audited", "method", c.Method(), "path", c.Path(), "status", c.Response().StatusCode(), "duration", time.Since(start))
 		return err
 	}
 }

@@ -2,11 +2,11 @@ package worker
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/log"
 )
 
 // PruningWorker periodically deletes superseded memory rows past retention.
@@ -31,14 +31,14 @@ func NewPruningWorker(db *pgxpool.Pool, cfg *config.Config) *PruningWorker {
 }
 
 func (w *PruningWorker) Start(ctx context.Context) {
-	log.Printf("🧹 Pruning worker started (retention=%dd, interval=%s)", w.retentionDays, w.interval)
+	log.Info("pruning worker started", "retention_days", w.retentionDays, "interval", w.interval)
 	ticker := time.NewTicker(w.interval)
 	defer ticker.Stop()
 	w.runOnce()
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Pruning worker stopped")
+			log.Info("pruning worker stopped")
 			return
 		case <-ticker.C:
 			w.runOnce()
@@ -51,10 +51,10 @@ func (w *PruningWorker) runOnce() {
 	var n int
 	err := w.db.QueryRow(ctx, "SELECT prune_superseded_memories($1)", w.retentionDays).Scan(&n)
 	if err != nil {
-		log.Printf("❌ pruning: %v", err)
+		log.Error("pruning execution failed", "err", err)
 		return
 	}
 	if n > 0 {
-		log.Printf("🧹 Pruned %d superseded memory row(s)", n)
+		log.Info("superseded memories pruned", "count", n)
 	}
 }

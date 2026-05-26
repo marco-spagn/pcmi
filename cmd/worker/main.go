@@ -38,6 +38,8 @@ func main() {
 	if err := cfg.Validate(config.WorkerRequiredFields...); err != nil {
 		log.Fatal("config validation failed", "err", err)
 	}
+	addSource := cfg.LogSource == "1" || cfg.LogSource == "true"
+	log.Configure(cfg.LogFormat, cfg.LogLevel, addSource)
 	log.Info("config loaded", "db", log.Mask(cfg.DatabaseURL, 40), "redis", cfg.RedisAddr)
 
 	ctxTelemetry := context.Background()

@@ -76,6 +76,11 @@ type Config struct {
 
 	// Dedup (PCMI-011): default ingest dedup mode when tenant/request omit it.
 	DedupMode string
+
+	// Logging
+	LogFormat  string // "json" (default) or "text"
+	LogLevel   string // "info" (default) | "debug" | "warn" | "error"
+	LogSource  string // "1" | "true" to enable source file:line in every record
 }
 
 // APIConfig returns the subset of fields required by the API service.
@@ -135,6 +140,10 @@ func Load() *Config {
 		OTELServiceName:    strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME")),
 
 		DedupMode: envOr("DEDUP_MODE", "none"),
+
+		LogFormat:  envOr("PCMI_LOG_FORMAT", ""),
+		LogLevel:   envOr("PCMI_LOG_LEVEL", ""),
+		LogSource:  strings.TrimSpace(os.Getenv("PCMI_LOG_SOURCE")),
 	}
 	return cfg
 }

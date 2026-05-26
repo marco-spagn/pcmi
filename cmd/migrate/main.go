@@ -20,6 +20,8 @@ import (
 
 func main() {
 	cfg := config.Load()
+	addSource := cfg.LogSource == "1" || cfg.LogSource == "true"
+	log.Configure(cfg.LogFormat, cfg.LogLevel, addSource)
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
 	}

@@ -52,6 +52,8 @@ func main() {
 	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
 		log.Fatal("config validation failed", "err", err)
 	}
+	addSource := cfg.LogSource == "1" || cfg.LogSource == "true"
+	log.Configure(cfg.LogFormat, cfg.LogLevel, addSource)
 	if cfg.EncryptionKey != "" {
 		if err := pcmicrypto.InitKey(cfg.EncryptionKey); err != nil {
 			log.Fatal("encryption key initialization failed", "err", err)

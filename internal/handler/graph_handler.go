@@ -10,7 +10,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
-// GraphHandler exposes the v3.0 Cognitive Graph endpoints.
+// GraphHandler exposes the v2.0 Cognitive Graph endpoints.
 // EXPERIMENTAL — requires Apache AGE PostgreSQL extension.
 type GraphHandler struct {
 	client *graph.GraphClient

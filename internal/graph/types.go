@@ -1,4 +1,4 @@
-// Package graph provides an experimental Apache AGE client for v3.0 Cognitive Graph.
+// Package graph provides an experimental Apache AGE client for v2.0 Cognitive Graph.
 // SPIKE — not production-ready.
 package graph
 

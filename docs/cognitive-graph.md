@@ -1,8 +1,8 @@
-# Cognitive Graph (v3.0 Spike)
+# Cognitive Graph (v2.0 Spike)
 
-> **Status: EXPERIMENTAL** — This is a v3.0 spike. The API and schema may change
+> **Status: EXPERIMENTAL** — This is a v2.0 spike. The API and schema may change
 > significantly before the full release. See [roadmap.md](roadmap.md) for the
-> planned v3.0 timeline.
+> planned v2.0 timeline.
 
 ## What it is
 
@@ -133,7 +133,7 @@ pointing to this document.
 - The trigger is `AFTER INSERT` only; `ON CONFLICT DO UPDATE` (upsert) does not
   re-fire the trigger, so `CreateLink` calls `sync_memory_link_to_graph` explicitly.
 
-## What v3.0 will add
+## What v2.0 will add
 
 - Full Cypher passthrough endpoint: `POST /v1/graph/cypher` with tenant scoping.
 - **Contradiction detection**: surface `contradicts` chains automatically during

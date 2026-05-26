@@ -1,4 +1,4 @@
--- 019_cognitive_graph_age.sql — v3.0 spike — requires AGE extension.
+-- 019_cognitive_graph_age.sql — v2.0 spike — requires AGE extension.
 -- This migration is OPTIONAL and skipped if AGE is not installed.
 --
 -- Apache AGE (https://github.com/apache/age) adds Cypher graph query support to

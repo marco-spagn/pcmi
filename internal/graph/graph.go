@@ -12,7 +12,7 @@ import (
 // GraphClient wraps a pgxpool.Pool and issues Cypher queries via Apache AGE.
 // All methods degrade gracefully when AGE is not installed.
 //
-// EXPERIMENTAL — v3.0 spike only.
+// EXPERIMENTAL — v2.0 spike only.
 type GraphClient struct {
 	db *pgxpool.Pool
 }

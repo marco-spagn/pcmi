@@ -1,3 +1,24 @@
-# Default code owners — approval required for changes to main (ruleset main_block).
->
+#### PCMI CODEOWNERS
+
+# Default: everything requires approval from the maintainer
 * @marco-spagn
+
+# Documentation & examples
+/docs/ @marco-spagn
+/examples/ @marco-spagn
+
+# Deployment & infrastructure
+/deploy/ @marco-spagn
+/.github/workflows/ @marco-spagn
+/scripts/ci/ @marco-spagn
+
+# Core library (when more contributors arrive, these can be split further)
+/internal/ @marco-spagn
+/cmd/ @marco-spagn
+/proto/ @marco-spagn
+
+# SDKs
+/sdk/ @marco-spagn
+
+# Note: This file is used by GitHub branch protection rules.
+# For security-sensitive changes (SECURITY.md, crypto, auth), the default owner applies.

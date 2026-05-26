@@ -17,7 +17,7 @@ func TestIsUnauthenticatedProbePOSTBlocked(t *testing.T) {
 }
 
 func TestIsUnauthenticatedProbeAllProbes(t *testing.T) {
-	probes := []string{"/health", "/v1/health", "/metrics", "/ready", "/v1/ready", "/v1/admin/ui"}
+	probes := []string{"/health", "/v1/health", "/metrics", "/ready", "/v1/ready"}
 	for _, p := range probes {
 		if !IsUnauthenticatedProbe("GET", p) {
 			t.Errorf("GET %s should be unauthenticated probe", p)
@@ -27,6 +27,7 @@ func TestIsUnauthenticatedProbeAllProbes(t *testing.T) {
 
 func TestIsUnauthenticatedProbeOtherPaths(t *testing.T) {
 	others := []string{
+		"/v1/admin/ui",
 		"/v1/memories/foo",
 		"/v1/audit",
 		"/v1/distilled",

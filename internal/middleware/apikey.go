@@ -37,6 +37,9 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		}
 
 		apiKey := c.Get("X-API-Key")
+		if IsAdminUIShellGET(c.Method(), c.Path(), apiKey != "") {
+			return c.Next()
+		}
 		if apiKey == "" {
 			return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key header"})
 		}

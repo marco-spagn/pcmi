@@ -55,6 +55,32 @@ func TestCognitiveGraphDocMentionsDockerCompose(t *testing.T) {
 	}
 }
 
+func TestCognitiveGraphRoutesAlwaysRegistered(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "cmd", "api", "main.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read cmd/api/main.go: %v", err)
+	}
+	body := string(data)
+	if !strings.Contains(body, "handler.RegisterGraphRoutes(app, graphClient)") {
+		t.Error("cmd/api/main.go must call handler.RegisterGraphRoutes unconditionally")
+	}
+	if strings.Contains(body, "if graphClient.IsAvailable(ctx) {\n\t\thandler.RegisterGraphRoutes") {
+		t.Error("RegisterGraphRoutes must not be gated on IsAvailable at startup")
+	}
+}
+
+func TestCognitiveGraphTriggerSyncsOnUpdate(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "migrations", "019_cognitive_graph_age.sql")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read 019_cognitive_graph_age.sql: %v", err)
+	}
+	if !strings.Contains(string(data), "AFTER INSERT OR UPDATE") {
+		t.Error("019 trigger should fire on INSERT OR UPDATE for upserted memory_links")
+	}
+}
+
 func TestCognitiveGraphDockerComposeProfile(t *testing.T) {
 	path := filepath.Join(repoRoot(t), "docker-compose.yml")
 	data, err := os.ReadFile(path)

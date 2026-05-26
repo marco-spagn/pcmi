@@ -60,6 +60,9 @@ continues without error.
 
 ### 4. Verify
 
+`/v1/graph/health` is an unauthenticated probe (like `/v1/ready`). `/v1/graph/related`
+requires a read-capable API key.
+
 ```bash
 curl http://localhost:8000/v1/graph/health
 # {"available":true,"extension":"apache-age"}
@@ -130,8 +133,8 @@ pointing to this document.
   which has a small overhead per link insert.
 - No pagination on graph results.
 - No write endpoint — links must be created via `POST /v1/links` or `GraphClient.CreateLink`.
-- The trigger is `AFTER INSERT` only; `ON CONFLICT DO UPDATE` (upsert) does not
-  re-fire the trigger, so `CreateLink` calls `sync_memory_link_to_graph` explicitly.
+- `memory_links` sync uses an `AFTER INSERT OR UPDATE` trigger; `GraphClient.CreateLink`
+  also calls `sync_memory_link_to_graph` explicitly as a belt-and-suspenders path.
 
 ## What v2.0 will add
 

@@ -118,20 +118,24 @@ func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, t
 		return fmt.Errorf("graph CreateLink insert: %w", err)
 	}
 
-	// If AGE is available the INSERT trigger handles graph sync automatically.
-	// Call explicitly here only when AGE is present but the trigger missed it
-	// (e.g. ON CONFLICT DO UPDATE path does not fire AFTER INSERT triggers).
-	if g.IsAvailable(ctx) {
-		_, syncErr := g.db.Exec(ctx,
-			`SELECT public.sync_memory_link_to_graph($1, $2, $3, $4, $5)`,
-			fromPath, toPath, sanitizeLinkType(linkType), weight, tenantID,
-		)
-		if syncErr != nil {
-			// Best-effort: log but do not fail the caller.
-			_ = syncErr
-		}
-	}
+	g.SyncMemoryLink(ctx, tenantID, fromPath, toPath, linkType, weight)
 	return nil
+}
+
+// SyncMemoryLink merges a memory_links row into the AGE graph (best-effort).
+// No-op when AGE is unavailable. Used by CreateLink and safe to call after
+// repository upserts when triggers are not yet applied.
+func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, toPath, linkType string, weight float64) {
+	if g == nil || g.db == nil || !g.IsAvailable(ctx) {
+		return
+	}
+	if weight <= 0 {
+		weight = 1.0
+	}
+	_, _ = g.db.Exec(ctx,
+		`SELECT public.sync_memory_link_to_graph($1, $2, $3, $4, $5)`,
+		fromPath, toPath, sanitizeLinkType(linkType), weight, tenantID,
+	)
 }
 
 // parseMemoryVertexID extracts memory_entries.id from an AGE vertex id property

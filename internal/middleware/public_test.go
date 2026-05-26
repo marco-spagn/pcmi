@@ -15,6 +15,8 @@ func TestIsUnauthenticatedProbe(t *testing.T) {
 		{"GET", "/ready", true},
 		{"GET", "/v1/ready", true},
 		{"GET", "/v1/admin/ui", false},
+		{"GET", "/v1/graph/health", true},
+		{"GET", "/v1/graph/related", false},
 		{"GET", "/v1/memories/foo", false},
 		{"POST", "/health", false},
 		{"GET", "/v1/readyz", false},

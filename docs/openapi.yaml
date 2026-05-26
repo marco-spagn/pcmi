@@ -658,6 +658,53 @@ paths:
           description: Invalid request
         "503":
           description: Event bus unavailable
+  /v1/graph/health:
+    get:
+      summary: Cognitive Graph (AGE) availability probe (experimental spike; no auth)
+      description: |
+        Reports whether Apache AGE and `pcmi_memory_graph` are available.
+        See [cognitive-graph.md](cognitive-graph.md).
+      security: []
+      responses:
+        "200":
+          description: Extension status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphHealthResponse"
+  /v1/graph/related:
+    get:
+      summary: Traverse memory links via AGE (experimental spike)
+      description: |
+        Returns memories reachable within `depth` hops from `memory_id`.
+        Requires AGE; returns 501 when unavailable. See [cognitive-graph.md](cognitive-graph.md).
+      parameters:
+        - name: memory_id
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: depth
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10, default: 3 }
+        - name: link_types
+          in: query
+          schema: { type: string }
+          description: Comma-separated link types (causal, temporal, contradicts, supports, related)
+      responses:
+        "200":
+          description: Related memories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphRelatedResponse"
+        "400":
+          description: Invalid query
+        "501":
+          description: AGE not installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphUnavailableResponse"
   /v1/memories/links:
     post:
       summary: Create a typed link between two memory paths
@@ -1119,6 +1166,31 @@ components:
       properties:
         status: { type: string, enum: [queued] }
         path_prefix: { type: string }
+    GraphHealthResponse:
+      type: object
+      properties:
+        available: { type: boolean }
+        extension: { type: string, example: apache-age }
+    GraphRelatedEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        link_type: { type: string }
+        depth: { type: integer }
+    GraphRelatedResponse:
+      type: object
+      properties:
+        memory_id: { type: integer, format: int64 }
+        depth: { type: integer }
+        count: { type: integer }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/GraphRelatedEntry" }
+    GraphUnavailableResponse:
+      type: object
+      properties:
+        error: { type: string }
+        hint: { type: string }
     CreateLinkRequest:
       type: object
       required: [from_path, to_path, link_type]

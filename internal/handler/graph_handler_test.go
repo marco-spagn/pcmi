@@ -260,6 +260,25 @@ func TestGraphHandler_FindRelated_InternalError(t *testing.T) {
 	}
 }
 
+func TestRegisterGraphRoutes_UnavailableClient_RoutesRespond(t *testing.T) {
+	app := fiber.New()
+	RegisterGraphRoutes(app, graph.NewGraphClient(nil))
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/health", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != 200 {
+		t.Fatalf("health status %d want 200", resp.StatusCode)
+	}
+	resp, err = app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.StatusCode != fiber.StatusNotImplemented {
+		t.Fatalf("related without AGE: status %d want 501", resp.StatusCode)
+	}
+}
+
 // ─── RegisterGraphRoutes ─────────────────────────────────────────────────────
 
 func TestRegisterGraphRoutes_NilClient_NoRoutes(t *testing.T) {

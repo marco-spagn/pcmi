@@ -117,11 +117,11 @@ func main() {
 	handler.SetupDistillationPolicyRoutes(app, db)
 
 	graphClient := graph.NewGraphClient(db)
+	handler.RegisterGraphRoutes(app, graphClient)
 	if graphClient.IsAvailable(ctx) {
-		handler.RegisterGraphRoutes(app, graphClient)
-		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph endpoints enabled")
+		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph/related enabled")
 	} else {
-		log.Println("ℹ️  Cognitive Graph (AGE) not available — /v1/graph endpoints disabled")
+		log.Println("ℹ️  Cognitive Graph (AGE) not available — /v1/graph/health reports available=false; /v1/graph/related returns 501")
 	}
 
 	app.Get("/health", func(c *fiber.Ctx) error {

@@ -131,6 +131,11 @@ func TestSanitizeLinkType(t *testing.T) {
 	}
 }
 
+func TestSyncMemoryLink_NilDB_NoPanic(t *testing.T) {
+	gc := NewGraphClient(nil)
+	gc.SyncMemoryLink(context.Background(), "tenant-1", "memory.1", "memory.2", LinkTypeCausal, 1.0)
+}
+
 func TestCreateLink_NilDB_ReturnsError(t *testing.T) {
 	gc := NewGraphClient(nil)
 	err := gc.CreateLink(context.Background(), "tenant-1", 1, 2, LinkTypeCausal, 1.0)

@@ -86,7 +86,7 @@ $trig$;
 
 DROP TRIGGER IF EXISTS trg_memory_links_sync_graph ON public.memory_links;
 CREATE TRIGGER trg_memory_links_sync_graph
-    AFTER INSERT ON public.memory_links
+    AFTER INSERT OR UPDATE ON public.memory_links
     FOR EACH ROW EXECUTE FUNCTION public.trg_memory_links_sync_graph_fn();
 
 EXCEPTION WHEN undefined_file THEN

@@ -28,9 +28,9 @@ func NewGraphHandler(client *graph.GraphClient) *GraphHandler {
 	return &GraphHandler{client: client}
 }
 
-// RegisterGraphRoutes registers graph endpoints on app only when graphClient is
-// non-nil.  Both routes are always registered; unavailability is reported at
-// request time so callers can detect the feature flag status.
+// RegisterGraphRoutes registers graph endpoints when graphClient is non-nil.
+// Routes stay registered even when AGE is absent: Health reports available=false;
+// FindRelated returns 501.
 func RegisterGraphRoutes(app *fiber.App, graphClient *graph.GraphClient) {
 	if graphClient == nil {
 		return

@@ -19,7 +19,7 @@ Agents are ephemeral. Organizational memory should not be.
 
 - [Why PCMI](#why-pcmi)
 - [Features](#features)
-- [Quick start](#quick-start)
+- [Quickstart (2 minutes)](#quickstart-2-minutes)
   - [Docker](#docker)
 - [Usage examples](#usage-examples)
 - [Architecture](#architecture)
@@ -88,18 +88,19 @@ Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (sou
 
 ---
 
-## Quick start
-
-**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose (recommended). For local Go development: **Go 1.25+**.
+## Quickstart (2 minutes)
 
 ```bash
-git clone https://github.com/marco-spagn/pcmi.git
-cd pcmi
-cp .env.example .env
-docker compose up -d --build
-
-curl -s http://localhost:8000/v1/health | jq .
+git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
+bash scripts/quickstart.sh
 ```
+
+The script checks dependencies, starts the full Docker Compose stack, stores sample memories across three scenarios (SOC alerts, trading signals, DevOps incidents), runs a hybrid retrieval query, triggers distillation, and prints a summary — all in under 3 minutes.
+
+<!-- TODO: record and add docs/quickstart-demo.gif once the script is stable -->
+![PCMI Quickstart](docs/quickstart-demo.gif)
+
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For local Go development: **Go 1.25+**.
 
 After migrations, the dev seed API key is **`testkey123`** (admin role). See [`.env.example`](.env.example) for all configuration options.
 

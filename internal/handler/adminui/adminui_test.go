@@ -27,7 +27,7 @@ func TestEmbeddedAdminHTMLMarkers(t *testing.T) {
 
 func TestRegisterServesAdminUI(t *testing.T) {
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	Register(app.Group("/v1/admin"))
+	Register(app)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/v1/admin/ui", nil)
 	resp, err := app.Test(req)

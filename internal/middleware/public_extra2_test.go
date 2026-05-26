@@ -36,6 +36,7 @@ func TestIsUnauthenticatedProbeMethodMatrix(t *testing.T) {
 
 	// Arbitrary non-probe paths must require auth (even on GET).
 	notProbes := []string{
+		"/v1/admin/ui",
 		"/v1/memories",
 		"/v1/memories/anything",
 		"/v1/healthz",

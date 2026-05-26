@@ -27,6 +27,7 @@ func TestIsUnauthenticatedProbeAllProbes(t *testing.T) {
 
 func TestIsUnauthenticatedProbeOtherPaths(t *testing.T) {
 	others := []string{
+		"/v1/admin/ui",
 		"/v1/memories/foo",
 		"/v1/audit",
 		"/v1/distilled",

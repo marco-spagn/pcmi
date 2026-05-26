@@ -413,7 +413,7 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x test_pcmi.sh scripts/e2e/test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_finale.sh
+          chmod +x scripts/e2e/test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_finale.sh
           ./scripts/e2e/test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_finale.sh

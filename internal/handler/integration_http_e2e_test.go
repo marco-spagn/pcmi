@@ -420,8 +420,9 @@ func TestIntegrationHTTP_AdminUI(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Fatalf("unauthenticated admin ui: got %d, want 401", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("unauthenticated admin ui shell: got %d, want 200: %s", resp.StatusCode, b)
 	}
 }
 

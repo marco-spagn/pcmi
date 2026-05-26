@@ -11,9 +11,14 @@ func IsUnauthenticatedProbe(method, path string) bool {
 		return false
 	}
 	switch path {
-	case "/health", "/v1/health", "/metrics", "/ready", "/v1/ready", "/v1/admin/ui":
+	case "/health", "/v1/health", "/metrics", "/ready", "/v1/ready":
 		return true
 	default:
 		return false
 	}
+}
+
+// IsAdminUIShellGET is GET /v1/admin/ui without X-API-Key (browser HTML shell).
+func IsAdminUIShellGET(method, path string, hasAPIKey bool) bool {
+	return method == fiber.MethodGet && path == "/v1/admin/ui" && !hasAPIKey
 }

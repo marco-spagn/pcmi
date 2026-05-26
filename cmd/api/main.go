@@ -21,6 +21,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/database"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/graph"
 	grpcserver "github.com/marco-spagn/pcmi/internal/grpc"
 	"github.com/marco-spagn/pcmi/internal/handler"
 	metrics "github.com/marco-spagn/pcmi/internal/metrics"
@@ -114,6 +115,14 @@ func main() {
 	}
 	handler.SetupAdminRoutes(app, db)
 	handler.SetupDistillationPolicyRoutes(app, db)
+
+	graphClient := graph.NewGraphClient(db)
+	if graphClient.IsAvailable(ctx) {
+		handler.RegisterGraphRoutes(app, graphClient)
+		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph endpoints enabled")
+	} else {
+		log.Println("ℹ️  Cognitive Graph (AGE) not available — /v1/graph endpoints disabled")
+	}
 
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "service": "pcmi-api", "version": version.Tag})

@@ -92,5 +92,27 @@ services:
       timeout: 5s
       retries: 5  
 
+  # ─── Optional: AGE-enabled Postgres for Cognitive Graph (v3.0 spike) ───────
+  # Start with: docker compose --profile graph up
+  # API should point to DATABASE_URL=postgres://pcmi:pcmi@localhost:5433/pcmi
+  postgres-age:
+    image: apache/age:latest
+    profiles: ["graph"]
+    container_name: pcmi-postgres-age
+    environment:
+      POSTGRES_DB: pcmi
+      POSTGRES_USER: pcmi
+      POSTGRES_PASSWORD: pcmi
+    volumes:
+      - postgres_age_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcmi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  postgres_age_data:

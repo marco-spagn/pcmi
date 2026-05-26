@@ -116,6 +116,7 @@ See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/
 - **Do not** call `os.Getenv` in production code outside `internal/config` (enforced by `internal/config/getenv_audit_test.go`).
 - Register specific HTTP routes before wildcards in `memory_handler.go`.
 - Keep handlers thin; business logic belongs in `internal/service` and `internal/repository`.
+- For AI-assisted development (Cursor, Claude, Grok, etc.): see [AGENTS.md](AGENTS.md).
 
 ## Pull requests
 

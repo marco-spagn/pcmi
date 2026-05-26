@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -10,10 +11,17 @@ import (
 	"github.com/marco-spagn/pcmi/internal/middleware"
 )
 
+// graphClientIface is the surface of graph.GraphClient used by GraphHandler.
+// Defined here so tests can inject fakes without a real pgxpool.
+type graphClientIface interface {
+	IsAvailable(ctx context.Context) bool
+	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int) ([]graph.RelatedMemory, error)
+}
+
 // GraphHandler exposes the v2.0 Cognitive Graph endpoints.
 // EXPERIMENTAL — requires Apache AGE PostgreSQL extension.
 type GraphHandler struct {
-	client *graph.GraphClient
+	client graphClientIface
 }
 
 func NewGraphHandler(client *graph.GraphClient) *GraphHandler {

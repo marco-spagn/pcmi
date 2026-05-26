@@ -10,6 +10,12 @@
 DO $outer$
 BEGIN
 
+-- Skip cleanly when AGE is not installed (e.g. CI pgvector/pg16 service).
+IF NOT EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'age') THEN
+    RAISE NOTICE 'AGE extension not available — skipping cognitive graph setup';
+    RETURN;
+END IF;
+
 -- Verify AGE is present before proceeding.
 CREATE EXTENSION IF NOT EXISTS age;  -- requires Apache AGE
 
@@ -86,6 +92,8 @@ CREATE TRIGGER trg_memory_links_sync_graph
 EXCEPTION WHEN undefined_file THEN
         RAISE NOTICE 'AGE extension not available — skipping cognitive graph setup';
     WHEN SQLSTATE '58P01' THEN
+        RAISE NOTICE 'AGE extension not available — skipping cognitive graph setup';
+    WHEN SQLSTATE '0A000' THEN
         RAISE NOTICE 'AGE extension not available — skipping cognitive graph setup';
     WHEN SQLSTATE '42883' THEN
         RAISE NOTICE 'AGE create_graph not available — skipping cognitive graph setup';

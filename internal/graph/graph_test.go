@@ -40,6 +40,31 @@ func TestFindRelated_AGENotAvailable(t *testing.T) {
 	}
 }
 
+func TestParseMemoryVertexID(t *testing.T) {
+	cases := []struct {
+		in   string
+		want int64
+		ok   bool
+	}{
+		{`"memory.42"`, 42, true},
+		{"memory.7", 7, true},
+		{`"42"`, 42, true},
+		{"not-a-number", 0, false},
+	}
+	for _, tc := range cases {
+		got, err := parseMemoryVertexID(tc.in)
+		if tc.ok && err != nil {
+			t.Errorf("parseMemoryVertexID(%q): unexpected error %v", tc.in, err)
+		}
+		if !tc.ok && err == nil {
+			t.Errorf("parseMemoryVertexID(%q): expected error", tc.in)
+		}
+		if tc.ok && got != tc.want {
+			t.Errorf("parseMemoryVertexID(%q) = %d, want %d", tc.in, got, tc.want)
+		}
+	}
+}
+
 func TestLinkTypeConstants(t *testing.T) {
 	constants := []string{
 		LinkTypeCausal,

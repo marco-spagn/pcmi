@@ -58,8 +58,8 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		relPattern = fmt.Sprintf("[r:%s*1..%d]", strings.Join(quoted, "|"), maxDepth)
 	}
 
-	// memoryID was stored as the vertex id property via CreateLink.
-	idStr := strconv.FormatInt(memoryID, 10)
+	// Vertex id matches sync_memory_link_to_graph: ltree path "memory.<id>".
+	idStr := fmt.Sprintf("memory.%d", memoryID)
 
 	query := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
@@ -81,7 +81,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		if err := rows.Scan(&idRaw, &ltRaw, &depthRaw); err != nil {
 			return nil, fmt.Errorf("graph FindRelated scan: %w", err)
 		}
-		id, _ := strconv.ParseInt(strings.Trim(string(idRaw), `"`), 10, 64)
+		id, _ := parseMemoryVertexID(string(idRaw))
 		depth, _ := strconv.Atoi(strings.Trim(string(depthRaw), `"`))
 		results = append(results, RelatedMemory{
 			ID:       id,
@@ -132,6 +132,14 @@ func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, t
 		}
 	}
 	return nil
+}
+
+// parseMemoryVertexID extracts memory_entries.id from an AGE vertex id property
+// stored as "memory.<id>" (matches sync_memory_link_to_graph / ltree paths).
+func parseMemoryVertexID(raw string) (int64, error) {
+	raw = strings.Trim(raw, `"`)
+	raw = strings.TrimPrefix(raw, "memory.")
+	return strconv.ParseInt(raw, 10, 64)
 }
 
 // sanitizeLinkType strips non-word characters so the string is safe to embed

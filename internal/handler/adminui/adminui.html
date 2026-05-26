@@ -770,7 +770,7 @@ document.querySelectorAll('#sidenav a').forEach(a => {
     G('panel-'+n).classList.add('active');
     G('tb-title').textContent = titles[n]||n;
     if (n==='tenants' && apiKey) loadTenants();
-    if (n==='apikeys') loadTenantsForKeys();
+    if (n==='apikeys') loadTenantsForKeys().then(() => loadKeys());
     if (n==='audit' && apiKey) loadAudit();
     if (n==='distillation' && apiKey) loadDistilled();
     if (n==='webhooks' && apiKey) loadWebhooks();
@@ -781,13 +781,14 @@ document.querySelectorAll('#sidenav a').forEach(a => {
 // generic tab setup
 function setupTabs(containerId) {
   const c = G(containerId);
-  if (!c) return;
+  if (!c || c.dataset.tabsBound) return;
+  c.dataset.tabsBound = '1';
   c.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      const scope = tab.closest('.panel, #sess-detail, .card');
-      const pScope = tab.closest('[id]');
-      pScope.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-      pScope.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+      const scope = tab.closest('.panel, #sess-detail');
+      if (!scope) return;
+      scope.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      scope.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
       const tp = G(tab.dataset.t);
       if (tp) tp.classList.add('active');
@@ -847,8 +848,19 @@ async function refreshHealth() {
   }
 }
 
+function resetStats() {
+  ['s-act','s-sup','s-dst','s-lnk','s-ev','s-exp'].forEach(id => {
+    const e = G(id);
+    if (e) { e.textContent = '–'; e.className = 'val'; }
+  });
+}
+
+function resetPool() {
+  ['p-tot','p-idl','p-acq'].forEach(id => { const e = G(id); if (e) e.textContent = '–'; });
+}
+
 async function refreshStats() {
-  if (!apiKey) return;
+  if (!apiKey) { resetStats(); return; }
   try {
     const s = await api('/v1/stats');
     G('s-act').textContent = s.active_memories??'–';
@@ -858,19 +870,21 @@ async function refreshStats() {
     G('s-ev').textContent  = s.events_count??'–';
     G('s-exp').textContent = s.expiring_soon??'–';
     G('s-exp').className = 'val '+(s.expiring_soon>0?'warn':'');
-  } catch(_){}
+  } catch(_) { resetStats(); }
 }
 
 async function refreshPool() {
-  if (!apiKey) return;
+  if (!apiKey) { resetPool(); return; }
   try {
     const d = await api('/v1/health');
     if (d.pool) {
       G('p-tot').textContent = d.pool.total_conns??'–';
       G('p-idl').textContent = d.pool.idle_conns??'–';
       G('p-acq').textContent = d.pool.acquired_conns??'–';
+    } else {
+      resetPool();
     }
-  } catch(_){}
+  } catch(_) { resetPool(); }
 }
 
 // ── dashboard ──
@@ -1149,7 +1163,6 @@ function renderSessions() {
 
 function selectSession(id) {
   activeSessionID=id; G('sess-id').textContent=id; G('sess-detail').style.display='block';
-  setupTabs('sess-tabs');
 }
 
 async function sessStore() {
@@ -1505,11 +1518,14 @@ async function mintKey() {
     showMod('API Key — Copy Now!',`
       <div class="warn-box">Shown ONCE — PCMI stores only the sha256 hash. Copy now or you will lose it.</div>
       <p class="muted" style="margin-bottom:8px">${pill(role)} · tenant: ${shortID(tenant_id)}</p>
-      <pre style="user-select:all;cursor:text;background:var(--bg2)">${k}</pre>
+      <pre id="modal-key" style="user-select:all;cursor:text;background:var(--bg2)"></pre>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-b btn-sm" onclick="navigator.clipboard.writeText('${k}').then(()=>toast('Copied!','success'))">Copy</button>
-        <button class="btn btn-p btn-sm" onclick="gkey.value='${k}';applyKey('${k}');closeMod();toast('Key set as active','success')">Use this key now</button>
+        <button class="btn btn-b btn-sm" id="modal-copy">Copy</button>
+        <button class="btn btn-p btn-sm" id="modal-use">Use this key now</button>
       </div>`);
+    G('modal-key').textContent = k;
+    G('modal-copy').onclick = () => navigator.clipboard.writeText(k).then(() => toast('Copied!','success'));
+    G('modal-use').onclick = () => { gkey.value = k; applyKey(k); closeMod(); toast('Key set as active','success'); };
     toast('Key minted — copy from modal!','info',8000); loadKeys();
   } catch(e){toast(e.message,'error');}
 }
@@ -1547,11 +1563,14 @@ async function rotateKey(id) {
     const k=r.api_key;
     showMod('Rotated Key — Copy Now!',`
       <div class="warn-box">Old key valid for 24h grace. New key shown ONCE.</div>
-      <pre style="user-select:all;cursor:text;background:var(--bg2)">${k}</pre>
+      <pre id="modal-key" style="user-select:all;cursor:text;background:var(--bg2)"></pre>
       <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-b btn-sm" onclick="navigator.clipboard.writeText('${k}').then(()=>toast('Copied!','success'))">Copy</button>
-        <button class="btn btn-p btn-sm" onclick="gkey.value='${k}';applyKey('${k}');closeMod();toast('Key set as active','success')">Use this key now</button>
+        <button class="btn btn-b btn-sm" id="modal-copy">Copy</button>
+        <button class="btn btn-p btn-sm" id="modal-use">Use this key now</button>
       </div>`);
+    G('modal-key').textContent = k;
+    G('modal-copy').onclick = () => navigator.clipboard.writeText(k).then(() => toast('Copied!','success'));
+    G('modal-use').onclick = () => { gkey.value = k; applyKey(k); closeMod(); toast('Key set as active','success'); };
     toast('Key rotated — copy from modal!','info',8000); loadKeys();
   } catch(e){toast(e.message,'error');}
 }

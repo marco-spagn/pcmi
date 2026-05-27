@@ -12,3 +12,12 @@ func RequireAdminRole(c *fiber.Ctx) error {
 	}
 	return c.Next()
 }
+
+// RequireAdminRoleIfAPIKeyPresent enforces admin role when the client sent X-API-Key
+// (e.g. programmatic GET /v1/admin/ui). Shell loads without a header pass through.
+func RequireAdminRoleIfAPIKeyPresent(c *fiber.Ctx) error {
+	if c.Get("X-API-Key") == "" {
+		return c.Next()
+	}
+	return RequireAdminRole(c)
+}

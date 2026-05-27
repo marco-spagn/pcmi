@@ -5,255 +5,1588 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PCMI Admin</title>
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #0f1419;
-      color: #d4d7dc;
+    :root {
+      --bg:#0d1117;--bg1:#161b22;--bg2:#21262d;--bg3:#30363d;
+      --border:#30363d;--text:#c9d1d9;--muted:#8b949e;
+      --green:#238636;--green-h:#2ea043;--blue:#1f6feb;
+      --red:#da3633;--orange:#d29922;--purple:#8957e5;--accent:#58a6ff;
     }
-    header {
-      background: #1a1f24;
-      border-bottom: 1px solid #2a2f34;
-      padding: 16px 32px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    header h1 { margin: 0; font-size: 18px; color: #fff; }
-    header .badge {
-      background: #2a8c47;
-      color: #fff;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-    }
-    main {
-      max-width: 1100px;
-      margin: 24px auto;
-      padding: 0 32px;
-    }
-    section { margin-bottom: 32px; }
-    h2 { margin: 0 0 12px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; color: #8a93a0; }
-    .card {
-      background: #1a1f24;
-      border: 1px solid #2a2f34;
-      border-radius: 8px;
-      padding: 20px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 12px;
-    }
-    .stat { background: #0f1419; padding: 16px; border-radius: 6px; border: 1px solid #2a2f34; }
-    .stat .label { font-size: 11px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
-    .stat .value { font-size: 26px; color: #fff; font-weight: 600; margin-top: 4px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #2a2f34; }
-    th { font-size: 11px; color: #8a93a0; text-transform: uppercase; letter-spacing: 0.5px; }
-    button {
-      background: #2a8c47;
-      color: #fff;
-      border: 0;
-      padding: 8px 16px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    button:hover { background: #36a85b; }
-    input, select {
-      background: #0f1419;
-      border: 1px solid #2a2f34;
-      color: #d4d7dc;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-    }
-    .row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .error { background: #5a2a2a; color: #fff; padding: 12px; border-radius: 4px; margin-bottom: 16px; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
-    .pill-admin { background: #5a3a8c; color: #fff; }
-    .pill-write { background: #2a6a8c; color: #fff; }
-    .pill-readonly { background: #4a5a6a; color: #fff; }
-    code { background: #0f1419; padding: 2px 6px; border-radius: 3px; font-family: ui-monospace, "SF Mono", monospace; font-size: 12px; }
-    .note { color: #8a93a0; font-size: 12px; margin-top: 8px; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;display:flex;height:100vh;overflow:hidden}
+
+    /* sidebar */
+    #sidebar{width:220px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+    #sidebar .logo{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+    #sidebar .logo h1{font-size:15px;font-weight:700;color:#fff}
+    #sidebar .logo .ver{font-size:10px;color:var(--muted);background:var(--bg3);padding:2px 6px;border-radius:20px}
+    #sidebar nav{flex:1;padding:6px 0}
+    #sidebar nav a{display:flex;align-items:center;gap:10px;padding:8px 14px;color:var(--muted);text-decoration:none;font-size:13px;cursor:pointer;transition:background .12s,color .12s}
+    #sidebar nav a:hover{background:var(--bg2);color:var(--text)}
+    #sidebar nav a.active{background:var(--bg2);color:var(--accent);border-left:2px solid var(--accent);padding-left:12px}
+    #sidebar nav a .icon{font-size:15px;width:18px;text-align:center}
+    #sidebar nav hr{border:0;border-top:1px solid var(--border);margin:6px 0}
+    .key-zone{padding:12px;border-top:1px solid var(--border)}
+    .key-zone label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px}
+    .key-zone input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:5px;font-size:12px;font-family:ui-monospace,monospace}
+    .key-zone input:focus{border-color:var(--accent);outline:none}
+    .key-zone .key-hint{font-size:10px;color:var(--muted);margin-top:4px}
+
+    /* main */
+    #main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+    #topbar{background:var(--bg1);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+    #topbar h2{font-size:15px;font-weight:600;color:#fff;flex:1}
+    .tbadge{font-size:11px;background:var(--bg3);color:var(--muted);padding:2px 8px;border-radius:10px}
+    #content{padding:20px;flex:1}
+
+    /* panels */
+    .panel{display:none}.panel.active{display:block}
+
+    /* key banner */
+    #key-banner{background:#1a1000;border:1px solid #6a3d00;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:13px;color:#fdba74}
+    #key-banner input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:13px;font-family:ui-monospace,monospace}
+    #key-banner input:focus{border-color:var(--accent);outline:none}
+
+    /* stats grid */
+    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+    .stat-card{background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:14px}
+    .stat-card .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+    .stat-card .val{font-size:22px;font-weight:700;color:#fff}
+    .val.ok{color:#3fb950}.val.err{color:var(--red)}.val.warn{color:var(--orange)}
+
+    /* cards */
+    .card{background:var(--bg1);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px}
+    .card h4{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+
+    /* forms */
+    .form-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px}
+    .fg{display:flex;flex-direction:column;gap:3px}
+    .fg.grow{flex:1;min-width:100px}
+    .fg label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+    input,select,textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:13px;font-family:inherit;outline:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+    textarea{resize:vertical;min-height:80px}
+    select option{background:var(--bg1)}
+    .imp-row{display:flex;align-items:center;gap:8px}
+    .imp-row input[type=range]{flex:1;background:none;border:none;padding:0}
+    .imp-val{min-width:32px;text-align:right;color:var(--accent);font-weight:600;font-size:13px}
+
+    /* buttons */
+    .btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:5px;border:0;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .12s}
+    .btn:hover{opacity:.82}.btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-p{background:var(--green);color:#fff}
+    .btn-b{background:var(--blue);color:#fff}
+    .btn-r{background:var(--red);color:#fff}
+    .btn-g{background:var(--bg2);color:var(--text);border:1px solid var(--border)}
+    .btn-o{background:#6a3d00;color:#fdba74;border:1px solid #92400e}
+    .btn-xs{padding:3px 8px;font-size:11px}
+    .btn-sm{padding:5px 10px;font-size:12px}
+
+    /* tables */
+    .tw{overflow-x:auto;border-radius:6px;border:1px solid var(--border)}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th{background:var(--bg2);padding:8px 11px;text-align:left;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
+    td{padding:7px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:rgba(255,255,255,.018)}
+    .mono{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted)}
+
+    /* pills */
+    .pill{display:inline-block;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:600}
+    .p-admin{background:#4a1d96;color:#c4b5fd}
+    .p-write{background:#1e3a5f;color:#93c5fd}
+    .p-readonly{background:var(--bg3);color:var(--muted)}
+    .p-ok{background:#14532d;color:#86efac}
+    .p-err{background:#450a0a;color:#fca5a5}
+    .p-warn{background:#451a03;color:#fdba74}
+    .p-info{background:#0c2a4a;color:#93c5fd}
+
+    /* tabs */
+    .tabs{display:flex;gap:1px;border-bottom:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap}
+    .tab{padding:7px 13px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s}
+    .tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+    .tp{display:none}.tp.active{display:block}
+
+    /* toast */
+    #ta{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+    .toast{background:var(--bg1);border:1px solid var(--border);border-radius:7px;padding:10px 14px;font-size:13px;max-width:360px;animation:si .18s ease;pointer-events:all}
+    .toast.success{border-left:3px solid #3fb950}
+    .toast.error{border-left:3px solid var(--red)}
+    .toast.info{border-left:3px solid var(--accent)}
+    @keyframes si{from{transform:translateX(16px);opacity:0}to{transform:translateX(0);opacity:1}}
+
+    /* modal */
+    #mo{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:9998;display:none;align-items:center;justify-content:center}
+    #mo.open{display:flex}
+    #mb{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:22px;max-width:560px;width:92%;max-height:80vh;overflow-y:auto}
+    #mb h3{font-size:15px;font-weight:600;margin-bottom:14px;color:#fff}
+    .mc{float:right;cursor:pointer;color:var(--muted);background:none;border:none;font-size:18px;line-height:1}
+
+    /* misc */
+    pre{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:11px;font-size:12px;font-family:ui-monospace,monospace;overflow-x:auto;white-space:pre-wrap;word-break:break-all;color:var(--text)}
+    code{background:var(--bg2);padding:2px 5px;border-radius:3px;font-family:ui-monospace,monospace;font-size:12px}
+    .muted{color:var(--muted);font-size:12px}
+    .mt8{margin-top:8px}.mt12{margin-top:12px}
+    .warn-box{background:#1a1000;border:1px solid #6a3d00;border-radius:5px;padding:9px 13px;font-size:12px;color:#fdba74;margin-bottom:10px}
+    .info-box{background:#0c1f3c;border:1px solid #1d4ed8;border-radius:5px;padding:9px 13px;font-size:12px;color:#93c5fd;margin-bottom:10px}
+    .ok-box{background:#052e16;border:1px solid #166534;border-radius:5px;padding:9px 13px;font-size:12px;color:#86efac;margin-bottom:10px}
+    .pag{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .act-row{display:flex;gap:3px;flex-wrap:wrap}
+    #sse-log{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:9px;height:280px;overflow-y:auto;font-family:ui-monospace,monospace;font-size:12px;line-height:1.55}
+    .ev-line{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.035)}
+    .ev-type{color:var(--accent)}
+    .mc-card{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:12px;margin-bottom:9px}
+    .mc-path{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent);margin-bottom:3px}
+    .mc-body{font-size:13px;line-height:1.5;margin-bottom:6px}
+    .mc-meta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+    .mc-score{font-size:12px;font-weight:600;color:var(--orange)}
+    .lv-wrap{border-left:2px solid var(--border);padding-left:14px}
+    .lv-item{margin-bottom:10px;position:relative}
+    .lv-item::before{content:'';position:absolute;left:-19px;top:5px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
   </style>
 </head>
 <body>
-  <header>
-    <h1>PCMI Admin</h1>
-    <span class="badge" id="version">v?.?.?</span>
-    <span style="margin-left:auto" class="note">Authenticated as <code id="role">…</code></span>
-  </header>
 
-  <main>
-    <div id="error" class="error" style="display:none"></div>
+<div id="sidebar">
+  <div class="logo"><h1>PCMI</h1><span class="ver" id="ver-badge">…</span></div>
+  <nav id="sidenav">
+    <a class="active" data-p="dashboard"><span class="icon">🏠</span> Dashboard</a>
+    <a data-p="memories"><span class="icon">🧠</span> Memories</a>
+    <a data-p="sessions"><span class="icon">⏱</span> Sessions</a>
+    <a data-p="events"><span class="icon">⚡</span> Events</a>
+    <a data-p="distillation"><span class="icon">🔬</span> Distillation</a>
+    <a data-p="webhooks"><span class="icon">🌐</span> Webhooks</a>
+    <a data-p="audit"><span class="icon">📋</span> Audit Log</a>
+    <hr>
+    <a data-p="tenants"><span class="icon">🏢</span> Tenants</a>
+    <a data-p="apikeys"><span class="icon">🔑</span> API Keys</a>
+  </nav>
+  <div class="key-zone">
+    <label>X-API-Key</label>
+    <input type="text" id="gkey" placeholder="paste key and press Enter…" autocomplete="off" spellcheck="false">
+    <div class="key-hint" id="key-hint">–</div>
+  </div>
+</div>
 
-    <section>
-      <h2>Health</h2>
+<div id="main">
+  <div id="topbar">
+    <h2 id="tb-title">Dashboard</h2>
+    <span class="tbadge" id="tb-status">connecting…</span>
+    <button class="btn btn-g btn-sm" onclick="refreshAll()">↺ Refresh</button>
+  </div>
+  <div id="content">
+
+    <!-- key banner (shown when no key) -->
+    <div id="key-banner" style="display:none">
+      <span>⚠ Enter X-API-Key:</span>
+      <input type="text" id="banner-key" placeholder="paste key here…" autocomplete="off" spellcheck="false">
+      <button class="btn btn-o btn-sm" onclick="applyBannerKey()">Apply</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="lbl">API</div><div class="val" id="h-api">…</div></div>
+        <div class="stat-card"><div class="lbl">PostgreSQL</div><div class="val" id="h-pg">…</div></div>
+        <div class="stat-card"><div class="lbl">Redis</div><div class="val" id="h-redis">…</div></div>
+        <div class="stat-card"><div class="lbl">Version</div><div class="val" id="h-ver" style="font-size:15px">…</div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="lbl">Active Memories</div><div class="val" id="s-act">–</div></div>
+        <div class="stat-card"><div class="lbl">Superseded</div><div class="val" id="s-sup">–</div></div>
+        <div class="stat-card"><div class="lbl">Distilled</div><div class="val" id="s-dst">–</div></div>
+        <div class="stat-card"><div class="lbl">Links</div><div class="val" id="s-lnk">–</div></div>
+        <div class="stat-card"><div class="lbl">Events</div><div class="val" id="s-ev">–</div></div>
+        <div class="stat-card"><div class="lbl">Expiring Soon</div><div class="val" id="s-exp">–</div></div>
+      </div>
       <div class="card">
-        <div class="grid">
-          <div class="stat"><div class="label">API</div><div class="value" id="api-status">…</div></div>
-          <div class="stat"><div class="label">PostgreSQL</div><div class="value" id="pg-status">…</div></div>
-          <div class="stat"><div class="label">Redis</div><div class="value" id="redis-status">…</div></div>
-          <div class="stat"><div class="label">Version</div><div class="value" id="version-large">…</div></div>
+        <h4>DB Pool</h4>
+        <div class="stats-grid" style="margin-bottom:0">
+          <div class="stat-card"><div class="lbl">Total</div><div class="val" id="p-tot" style="font-size:17px">–</div></div>
+          <div class="stat-card"><div class="lbl">Idle</div><div class="val" id="p-idl" style="font-size:17px">–</div></div>
+          <div class="stat-card"><div class="lbl">Acquired</div><div class="val" id="p-acq" style="font-size:17px">–</div></div>
         </div>
       </div>
-    </section>
-
-    <section>
-      <h2>Tenants</h2>
       <div class="card">
-        <div class="row">
-          <input id="tenant-slug" placeholder="slug">
-          <input id="tenant-name" placeholder="name">
-          <button id="create-tenant">Create</button>
+        <h4>Quick Store</h4>
+        <div class="form-row">
+          <div class="fg grow"><label>Path</label><input id="qs-path" value="root.demo.note"></div>
+          <div class="fg grow"><label>Content</label><input id="qs-content" placeholder="memory content…"></div>
+          <button class="btn btn-p" onclick="quickStore()">Store</button>
         </div>
-        <table>
-          <thead><tr><th>id</th><th>slug</th><th>name</th><th>created_at</th></tr></thead>
-          <tbody id="tenants-tbody"><tr><td colspan="4" class="note">loading…</td></tr></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section>
-      <h2>API keys</h2>
-      <div class="card">
-        <div class="row">
-          <select id="key-tenant"></select>
-          <input id="key-name" placeholder="key label">
-          <select id="key-role">
-            <option value="readonly">readonly</option>
-            <option value="write">write</option>
-            <option value="admin">admin</option>
-          </select>
-          <button id="create-key">Mint</button>
+        <div class="form-row">
+          <div class="fg grow"><label>Retrieve prefix</label><input id="qs-pfx" value="root.demo"></div>
+          <button class="btn btn-b" onclick="quickRetrieve()">Retrieve</button>
         </div>
-        <table>
-          <thead><tr><th>id</th><th>tenant</th><th>name</th><th>role</th><th>created</th></tr></thead>
-          <tbody id="keys-tbody"><tr><td colspan="5" class="note">select a tenant above</td></tr></tbody>
-        </table>
-        <p class="note">⚠️ Newly minted keys are shown ONCE in an alert; copy them immediately. PCMI stores only the sha256 hash.</p>
+        <div id="qs-out"></div>
       </div>
-    </section>
+    </div>
 
-    <section>
-      <h2>Observability</h2>
+    <!-- MEMORIES -->
+    <div class="panel" id="panel-memories">
+      <div class="tabs" id="mem-tabs">
+        <div class="tab active" data-t="mem-store">Store</div>
+        <div class="tab" data-t="mem-retrieve">Retrieve</div>
+        <div class="tab" data-t="mem-get">Get / History</div>
+        <div class="tab" data-t="mem-links">Links</div>
+        <div class="tab" data-t="mem-lineage">Lineage</div>
+        <div class="tab" data-t="mem-rollback">Rollback</div>
+        <div class="tab" data-t="mem-compact">Compact</div>
+        <div class="tab" data-t="mem-summarize">Summarize</div>
+        <div class="tab" data-t="mem-refine">Refine</div>
+        <div class="tab" data-t="mem-batch">Batch</div>
+        <div class="tab" data-t="mem-export">Export / Import</div>
+      </div>
+
+      <div class="tp active" id="mem-store">
+        <div class="card">
+          <h4>Store Memory</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path (ltree)</label><input id="ms-path" placeholder="root.domain.topic"></div>
+            <div class="fg"><label>Importance <span id="ms-iv">0.5</span></label>
+              <div class="imp-row"><input type="range" id="ms-imp" min="0" max="1" step="0.05" value="0.5" oninput="G('ms-iv').textContent=this.value"><span class="imp-val"></span></div>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label>Content</label><textarea id="ms-content" rows="4" placeholder="Memory content…"></textarea></div>
+          <div class="form-row">
+            <div class="fg grow"><label>Tags (comma-sep)</label><input id="ms-tags" placeholder="tag1, tag2"></div>
+            <div class="fg grow"><label>Dedup Mode</label>
+              <select id="ms-dedup"><option value="">default</option><option>none</option><option>skip</option><option>link</option><option>merge</option></select>
+            </div>
+            <div class="fg grow"><label>Embedding Model</label><input id="ms-emodel" placeholder="optional"></div>
+          </div>
+          <div class="fg" style="margin-bottom:12px"><label>Metadata (JSON)</label><textarea id="ms-meta" rows="2" placeholder='{"key":"value"}'></textarea></div>
+          <button class="btn btn-p" onclick="storeMemory()">Store Memory</button>
+          <div id="ms-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-retrieve">
+        <div class="card">
+          <h4>Hybrid Retrieve</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix</label><input id="mr-pfx" value="root"></div>
+            <div class="fg grow"><label>Query (text / semantic)</label><input id="mr-q" placeholder="optional search query"></div>
+            <div class="fg"><label>Limit</label><input type="number" id="mr-lim" value="10" style="width:65px"></div>
+            <div class="fg grow"><label>As Of (RFC3339)</label><input id="mr-asof" placeholder="2024-01-01T00:00:00Z"></div>
+          </div>
+          <div class="form-row">
+            <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="mr-decay" checked> Temporal decay</label>
+            <button class="btn btn-b" onclick="retrieveMemories()">Retrieve</button>
+          </div>
+          <div id="mr-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-get">
+        <div class="card">
+          <h4>Get by Path</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="mg-path" placeholder="root.domain.topic"></div>
+            <div class="fg"><label>Version</label><input type="number" id="mg-ver" placeholder="latest" style="width:80px"></div>
+            <div class="fg grow"><label>As Of (RFC3339)</label><input id="mg-asof" placeholder="optional"></div>
+            <button class="btn btn-b" onclick="getMemory()">Get</button>
+          </div>
+          <div id="mg-out" class="mt8"></div>
+        </div>
+        <div class="card mt12">
+          <h4>Version History</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="mh-path" placeholder="root.domain.topic"></div>
+            <div class="fg"><label>Limit</label><input type="number" id="mh-lim" value="20" style="width:65px"></div>
+            <button class="btn btn-b" onclick="getHistory()">Load</button>
+          </div>
+          <div id="mh-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-links">
+        <div class="card">
+          <h4>Create Link</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>From Path</label><input id="ml-from" placeholder="root.source"></div>
+            <div class="fg grow"><label>To Path</label><input id="ml-to" placeholder="root.target"></div>
+            <div class="fg grow"><label>Link Type</label><input id="ml-type" placeholder="related / implies / supersedes…"></div>
+            <button class="btn btn-p" onclick="createLink()">Create</button>
+          </div>
+        </div>
+        <div class="card mt12">
+          <h4>List Links</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>From (filter)</label><input id="mlf-from" placeholder="optional"></div>
+            <div class="fg grow"><label>To (filter)</label><input id="mlf-to" placeholder="optional"></div>
+            <div class="fg grow"><label>Type (filter)</label><input id="mlf-type" placeholder="optional"></div>
+            <button class="btn btn-g" onclick="listLinks()">List</button>
+          </div>
+          <div id="ml-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-lineage">
+        <div class="card">
+          <h4>Memory Lineage</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="mln-path" placeholder="root.domain.topic"></div>
+            <button class="btn btn-b" onclick="getLineage()">Load</button>
+          </div>
+          <div id="mln-out" class="mt8"></div>
+        </div>
+        <div class="card mt12">
+          <h4>Distilled Lineage</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Distilled Knowledge ID</label><input type="number" id="mld-id" placeholder="123"></div>
+            <button class="btn btn-b" onclick="getDistilledLineage()">Load</button>
+          </div>
+          <div id="mld-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-rollback">
+        <div class="card">
+          <h4>Rollback Memory</h4>
+          <div class="warn-box">Rollback is append-only — creates a new version restoring prior content. Cannot be undone.</div>
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="rb-path" placeholder="root.domain.topic"></div>
+            <div class="fg"><label>Version</label><input type="number" id="rb-ver" placeholder="e.g. 1" style="width:80px"></div>
+            <div class="fg grow"><label>— OR — As Of (RFC3339)</label><input id="rb-asof" placeholder="2024-01-01T00:00:00Z"></div>
+            <button class="btn btn-r" onclick="rollbackMemory()">Rollback</button>
+          </div>
+          <div id="rb-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-compact">
+        <div class="card">
+          <h4>Compact History</h4>
+          <p class="muted" style="margin-bottom:10px">Deletes old superseded versions, keeping the newest N closed rows. Current row is never touched.</p>
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="cp-path" placeholder="root.domain.topic"></div>
+            <div class="fg"><label>Keep superseded</label><input type="number" id="cp-keep" value="20" style="width:90px"></div>
+            <button class="btn btn-r" onclick="compactMemory()">Compact</button>
+          </div>
+          <div id="cp-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-summarize">
+        <div class="card">
+          <h4>Summarize</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix</label><input id="sum-pfx" placeholder="root.domain"></div>
+            <div class="fg"><label>Limit</label><input type="number" id="sum-lim" value="20" style="width:65px"></div>
+            <div class="fg"><label>Style</label><select id="sum-style"><option value="brief">brief</option><option value="detailed">detailed</option></select></div>
+            <button class="btn btn-b" onclick="summarize()">Summarize</button>
+          </div>
+          <div id="sum-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-refine">
+        <div class="card">
+          <h4>Queue Refine Job</h4>
+          <p class="muted" style="margin-bottom:10px">Queues an async distillation job. Requires the worker process to be running.</p>
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix</label><input id="rf-pfx" placeholder="root.domain"></div>
+            <button class="btn btn-p" onclick="refineMemories()">Queue Job</button>
+          </div>
+          <div id="rf-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-batch">
+        <div class="card">
+          <h4>Batch Store (up to 50 items)</h4>
+          <div class="fg" style="margin-bottom:10px"><label>Items (JSON array)</label>
+            <textarea id="bat-json" rows="8" placeholder='[{"path":"root.demo.a","content":"first"},{"path":"root.demo.b","content":"second"}]'></textarea>
+          </div>
+          <button class="btn btn-p" onclick="batchStore()">Batch Store</button>
+          <div id="bat-out" class="mt8"></div>
+        </div>
+      </div>
+
+      <div class="tp" id="mem-export">
+        <div class="card">
+          <h4>Export Memories</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix</label><input id="exp-pfx" value="root"></div>
+            <div class="fg"><label>Limit</label><input type="number" id="exp-lim" value="500" style="width:80px"></div>
+            <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="exp-emb"> Include embeddings</label>
+            <button class="btn btn-b" onclick="exportMem()">Export JSON</button>
+          </div>
+          <div id="exp-out" class="mt8"></div>
+        </div>
+        <div class="card mt12">
+          <h4>Import Memories</h4>
+          <div class="warn-box">Import expects the exported JSON file, or a JSON array of StoreRequest objects with <code>path</code> and <code>content</code>.</div>
+          <div class="form-row">
+            <div class="fg"><label>Mode</label><select id="imp-mode"><option value="skip">skip existing</option><option value="overwrite">overwrite</option></select></div>
+            <div class="fg grow"><label>Upload JSON file (export bundle)</label><input type="file" id="imp-file" accept=".json" style="color:var(--muted)"></div>
+            <button class="btn btn-p" onclick="importMem()">Import</button>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label>— or paste entries array —</label><textarea id="imp-json" rows="3" placeholder='[{"path":"root.x","content":"…"}]'></textarea></div>
+          <div id="imp-out" class="mt8"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SESSIONS -->
+    <div class="panel" id="panel-sessions">
       <div class="card">
-        <p class="note">Grafana dashboard JSON: <code>deploy/grafana/pcmi-dashboard.json</code></p>
-        <p class="note">Prometheus alerts: <code>deploy/prometheus/alerts.yaml</code></p>
-        <p class="note">Prometheus scrape URL: <code>/metrics</code> (unauthenticated)</p>
+        <h4>Create Session</h4>
+        <div class="form-row">
+          <div class="fg grow"><label>Agent ID (UUID, optional)</label><input id="ss-agent" placeholder="optional"></div>
+          <div class="fg grow"><label>Metadata (JSON)</label><input id="ss-meta" value="{}" placeholder='{"run":"1"}'></div>
+          <button class="btn btn-p" onclick="createSession()">Create</button>
+        </div>
       </div>
-    </section>
-  </main>
+      <div class="card mt12">
+        <h4>Sessions (this tab)</h4>
+        <div id="sessions-list"><p class="muted">No sessions created yet.</p></div>
+      </div>
+      <div class="card mt12" id="sess-detail" style="display:none">
+        <h4>Session: <code id="sess-id">–</code></h4>
+        <div class="tabs" id="sess-tabs" style="margin-top:10px">
+          <div class="tab active" data-t="st-store">Store Memory</div>
+          <div class="tab" data-t="st-list">List Memories</div>
+          <div class="tab" data-t="st-promote">Promote / End</div>
+        </div>
+        <div class="tp active" id="st-store">
+          <div class="form-row">
+            <div class="fg grow"><label>Path</label><input id="sm-path" placeholder="key.observation"></div>
+            <div class="fg grow"><label>Content</label><input id="sm-content" placeholder="working memory…"></div>
+            <div class="fg"><label>Importance</label><input type="number" id="sm-imp" value="0.5" min="0" max="1" step="0.05" style="width:70px"></div>
+            <button class="btn btn-p" onclick="sessStore()">Store</button>
+          </div>
+          <div id="sm-out"></div>
+        </div>
+        <div class="tp" id="st-list">
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix (filter)</label><input id="sl-pfx" placeholder="optional"></div>
+            <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="sl-lt"> Include long-term</label>
+            <button class="btn btn-b" onclick="sessListMem()">Load</button>
+          </div>
+          <div id="sl-out" class="mt8"></div>
+        </div>
+        <div class="tp" id="st-promote">
+          <div class="form-row">
+            <div class="fg grow"><label>Target Prefix</label><input id="sp-pfx" value="root"></div>
+            <button class="btn btn-p" onclick="sessPromote()">Promote to Long-Term</button>
+            <button class="btn btn-r" onclick="sessEnd()">End Session</button>
+          </div>
+          <div id="sp-out" class="mt8"></div>
+        </div>
+      </div>
+    </div>
 
-  <script>
-    // PCMI Admin UI — vanilla JS, no build step.
-    // Talks to /v1/admin/* through the same X-API-Key that authenticated
-    // this page load. The cookie/header-pinning is handled by the Fiber
-    // handler at /v1/admin/ui (see internal/handler/adminui/adminui.go).
+    <!-- EVENTS -->
+    <div class="panel" id="panel-events">
+      <div class="tabs" id="ev-tabs">
+        <div class="tab active" data-t="ev-stream">Live Stream</div>
+        <div class="tab" data-t="ev-ingest">Ingest</div>
+        <div class="tab" data-t="ev-schemas">Schemas</div>
+      </div>
+      <div class="tp active" id="ev-stream">
+        <div class="card">
+          <h4>Server-Sent Events</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Filter types (comma-sep, empty=all)</label><input id="sse-types" placeholder="memory.stored,knowledge.distilled"></div>
+            <button class="btn btn-p" id="sse-btn" onclick="toggleSSE()">▶ Connect</button>
+            <button class="btn btn-g" onclick="G('sse-log').innerHTML=''">Clear</button>
+          </div>
+          <div id="sse-log"><span class="muted">Disconnected.</span></div>
+          <div class="muted mt8" id="sse-status">Status: disconnected</div>
+        </div>
+      </div>
+      <div class="tp" id="ev-ingest">
+        <div class="card">
+          <h4>Ingest Event</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Event Type</label><input id="ei-type" placeholder="agent.step.completed"></div>
+            <div class="fg grow"><label>Agent ID (optional)</label><input id="ei-agent" placeholder="uuid"></div>
+            <div class="fg grow"><label>Correlation ID (optional)</label><input id="ei-corr" placeholder="optional"></div>
+          </div>
+          <div class="fg" style="margin-bottom:10px"><label>Payload (JSON)</label><textarea id="ei-payload" rows="4" placeholder='{"key":"value"}'></textarea></div>
+          <button class="btn btn-p" onclick="ingestEvent()">Ingest</button>
+          <div id="ei-out" class="mt8"></div>
+        </div>
+      </div>
+      <div class="tp" id="ev-schemas">
+        <div class="card">
+          <h4>Schema Registry</h4>
+          <button class="btn btn-g btn-sm" onclick="loadSchemas()" style="margin-bottom:10px">Load</button>
+          <div id="schemas-out"></div>
+        </div>
+      </div>
+    </div>
 
-    const apiKey = document.cookie.split(";").map(s => s.trim()).find(s => s.startsWith("X-API-Key="))?.split("=")[1]
-      || new URLSearchParams(location.search).get("key")
-      || prompt("X-API-Key:");
+    <!-- DISTILLATION -->
+    <div class="panel" id="panel-distillation">
+      <div class="tabs" id="dist-tabs">
+        <div class="tab active" data-t="dk-list">Distilled Knowledge</div>
+        <div class="tab" data-t="dk-policies">Policies</div>
+        <div class="tab" data-t="dk-runs">Runs</div>
+      </div>
+      <div class="tp active" id="dk-list">
+        <div class="card">
+          <div class="form-row">
+            <div class="fg grow"><label>Path Prefix</label><input id="dk-pfx" value="root"></div>
+            <button class="btn btn-b" onclick="loadDistilled()">Load</button>
+          </div>
+          <div id="dk-out" class="mt8"></div>
+        </div>
+      </div>
+      <div class="tp" id="dk-policies">
+        <div class="card" style="margin-bottom:12px">
+          <h4>Create Policy</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>Name</label><input id="dp-name" placeholder="nightly-distill"></div>
+            <div class="fg grow"><label>Path Prefix</label><input id="dp-pfx" placeholder="root.domain"></div>
+            <div class="fg"><label>Count threshold</label><input type="number" id="dp-thr" value="10" style="width:85px"></div>
+            <div class="fg"><label>Min interval (s)</label><input type="number" id="dp-int" value="300" style="width:85px"></div>
+            <label style="display:flex;gap:6px;align-items:center;font-size:13px"><input type="checkbox" id="dp-ena" checked> Enabled</label>
+            <button class="btn btn-p" onclick="createPolicy()">Create</button>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Policies</h4>
+          <button class="btn btn-g btn-sm" onclick="loadPolicies()" style="margin-bottom:10px">Refresh</button>
+          <div id="dp-out"></div>
+        </div>
+      </div>
+      <div class="tp" id="dk-runs">
+        <div class="card">
+          <div class="form-row">
+            <div class="fg grow"><label>Policy ID (optional)</label><input type="number" id="dr-pol" placeholder="leave blank for all"></div>
+            <button class="btn btn-b" onclick="loadRuns()">Load Runs</button>
+          </div>
+          <div id="dr-out" class="mt8"></div>
+        </div>
+      </div>
+    </div>
 
-    const headers = { "X-API-Key": apiKey, "Content-Type": "application/json" };
+    <!-- WEBHOOKS -->
+    <div class="panel" id="panel-webhooks">
+      <div class="tabs" id="wh-tabs">
+        <div class="tab active" data-t="wh-ep">Endpoints</div>
+        <div class="tab" data-t="wh-dl">Dead Letter</div>
+      </div>
+      <div class="tp active" id="wh-ep">
+        <div class="card" style="margin-bottom:12px">
+          <h4>Register Webhook</h4>
+          <div class="form-row">
+            <div class="fg grow"><label>URL</label><input id="wh-url" placeholder="https://yourhost.com/webhook"></div>
+            <div class="fg grow"><label>Event Types (comma-sep, empty=all)</label><input id="wh-types" placeholder="memory.stored,knowledge.distilled"></div>
+            <div class="fg grow"><label>HMAC Secret (optional)</label><input type="password" id="wh-secret" placeholder="optional"></div>
+            <button class="btn btn-p" onclick="registerWebhook()">Register</button>
+          </div>
+        </div>
+        <div class="card">
+          <h4>Registered Endpoints</h4>
+          <button class="btn btn-g btn-sm" onclick="loadWebhooks()" style="margin-bottom:10px">Refresh</button>
+          <div id="wh-out"></div>
+        </div>
+      </div>
+      <div class="tp" id="wh-dl">
+        <div class="card">
+          <h4>Dead-Letter Queue</h4>
+          <button class="btn btn-g btn-sm" onclick="loadDeadLetter()" style="margin-bottom:10px">Refresh</button>
+          <div id="dl-out"></div>
+        </div>
+      </div>
+    </div>
 
-    function showError(msg) {
-      const el = document.getElementById("error");
-      el.textContent = msg;
-      el.style.display = "block";
-      setTimeout(() => { el.style.display = "none"; }, 5000);
+    <!-- AUDIT -->
+    <div class="panel" id="panel-audit">
+      <div class="card">
+        <div class="form-row">
+          <div class="fg grow"><label>Since (RFC3339)</label><input id="aud-since" placeholder="2024-01-01T00:00:00Z"></div>
+          <div class="fg"><label>Limit</label><input type="number" id="aud-lim" value="50" style="width:65px"></div>
+          <button class="btn btn-b" onclick="loadAudit()">Load</button>
+        </div>
+        <div id="aud-out" class="mt8"></div>
+        <div class="pag" id="aud-pag"></div>
+      </div>
+    </div>
+
+    <!-- TENANTS -->
+    <div class="panel" id="panel-tenants">
+      <div class="card" style="margin-bottom:12px">
+        <h4>Create Tenant</h4>
+        <div class="form-row">
+          <div class="fg grow"><label>Slug</label><input id="tn-slug" placeholder="my-tenant"></div>
+          <div class="fg grow"><label>Name</label><input id="tn-name" placeholder="My Tenant"></div>
+          <button class="btn btn-p" onclick="createTenant()">Create</button>
+        </div>
+      </div>
+      <div class="card">
+        <h4>All Tenants</h4>
+        <button class="btn btn-g btn-sm" onclick="loadTenants()" style="margin-bottom:10px">Refresh</button>
+        <div class="tw"><table><thead><tr><th>ID</th><th>Slug</th><th>Name</th><th>Created</th><th></th></tr></thead><tbody id="tenants-tbody"></tbody></table></div>
+        <div class="pag" id="tn-pag"></div>
+      </div>
+    </div>
+
+    <!-- API KEYS -->
+    <div class="panel" id="panel-apikeys">
+      <div class="card" style="margin-bottom:12px">
+        <h4>Mint API Key</h4>
+        <div class="warn-box">Keys are shown ONCE. PCMI stores only the sha256 hash — copy immediately.</div>
+        <div class="form-row">
+          <div class="fg grow"><label>Tenant</label><select id="ak-tenant"></select></div>
+          <div class="fg grow"><label>Label</label><input id="ak-name" placeholder="my-service-key"></div>
+          <div class="fg"><label>Role</label><select id="ak-role"><option value="readonly">readonly</option><option value="write">write</option><option value="admin">admin</option></select></div>
+          <button class="btn btn-p" onclick="mintKey()">Mint Key</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="form-row" style="margin-bottom:10px">
+          <div class="fg grow"><label>Filter by Tenant</label><select id="ak-filter" onchange="loadKeys()"></select></div>
+          <button class="btn btn-g btn-sm" onclick="loadKeys()">Refresh</button>
+        </div>
+        <div id="ak-out"></div>
+        <div class="pag" id="ak-pag"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="ta"></div>
+
+<div id="mo"><div id="mb">
+  <button class="mc" onclick="closeMod()">✕</button>
+  <h3 id="m-title">–</h3>
+  <div id="m-body"></div>
+</div></div>
+
+<script>
+// ── helpers ──
+const G = id => document.getElementById(id);
+const setH = (id, h) => { const e = G(id); if (e) e.innerHTML = h; };
+const addH = (id, h) => { const e = G(id); if (e) e.innerHTML += h; };
+const fmtD = s => s ? new Date(s).toLocaleString() : '–';
+const shortID = s => s ? s.slice(0,8)+'…' : '–';
+
+// ── state ──
+let apiKey = localStorage.getItem('pcmi_key') || '';
+let sseCtrl = null;
+let activeSessions = [];
+let activeSessionID = null;
+let tenantsCache = [];
+
+// ── key input (sidebar) ──
+const gkey = G('gkey');
+gkey.value = apiKey;
+gkey.addEventListener('keydown', e => { if (e.key === 'Enter') applyKey(gkey.value.trim()); });
+gkey.addEventListener('blur', () => applyKey(gkey.value.trim()));
+
+function applyKey(k) {
+  if (k === apiKey) return;
+  apiKey = k;
+  localStorage.setItem('pcmi_key', k);
+  updateKeyUI();
+  refreshAll();
+}
+
+function applyBannerKey() {
+  const k = G('banner-key').value.trim();
+  if (!k) return;
+  gkey.value = k;
+  applyKey(k);
+}
+
+function updateKeyUI() {
+  const banner = G('key-banner');
+  const hint = G('key-hint');
+  if (!apiKey) {
+    banner.style.display = 'flex';
+    hint.textContent = '⚠ No key set';
+    hint.style.color = 'var(--orange)';
+  } else {
+    banner.style.display = 'none';
+    hint.textContent = '✓ ' + apiKey.slice(0,8) + '…';
+    hint.style.color = '#3fb950';
+  }
+}
+
+// init from ?key= URL param
+const qp = new URLSearchParams(location.search);
+if (qp.get('key')) {
+  apiKey = qp.get('key');
+  gkey.value = apiKey;
+  localStorage.setItem('pcmi_key', apiKey);
+  history.replaceState(null,'',location.pathname);
+}
+updateKeyUI();
+
+function requireKey() {
+  if (!apiKey) {
+    toast('Enter your X-API-Key in the sidebar or the banner above', 'error', 5000);
+    G('key-banner').style.display = 'flex';
+    return false;
+  }
+  return true;
+}
+
+// ── API ──
+async function api(path, opts = {}) {
+  const h = {'Content-Type':'application/json'};
+  if (apiKey) h['X-API-Key'] = apiKey;
+  const res = await fetch(path, {...opts, headers:{...h,...(opts.headers||{})}});
+  if (!res.ok) {
+    let det = '';
+    try { det = (await res.json()).error || ''; } catch(_){}
+    throw new Error(`${res.status}${det ? ': '+det : ''}`);
+  }
+  const ct = res.headers.get('content-type') || '';
+  return ct.includes('application/json') ? res.json() : res.text();
+}
+
+// ── toast ──
+function toast(msg, type='info', ms=4000) {
+  const el = document.createElement('div');
+  el.className = 'toast '+type;
+  el.textContent = msg;
+  G('ta').appendChild(el);
+  setTimeout(()=>el.remove(), ms);
+}
+
+// ── modal ──
+function showMod(title, html) {
+  G('m-title').textContent = title;
+  G('m-body').innerHTML = html;
+  G('mo').classList.add('open');
+}
+function closeMod() { G('mo').classList.remove('open'); }
+G('mo').addEventListener('click', e => { if (e.target===G('mo')) closeMod(); });
+
+// ── nav ──
+const titles = {dashboard:'Dashboard',memories:'Memories',sessions:'Sessions',events:'Events',distillation:'Distillation',webhooks:'Webhooks',audit:'Audit Log',tenants:'Tenants',apikeys:'API Keys'};
+document.querySelectorAll('#sidenav a').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelectorAll('#sidenav a').forEach(x=>x.classList.remove('active'));
+    a.classList.add('active');
+    const n = a.dataset.p;
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    G('panel-'+n).classList.add('active');
+    G('tb-title').textContent = titles[n]||n;
+    if (n==='tenants' && apiKey) loadTenants();
+    if (n==='apikeys') loadTenantsForKeys().then(() => loadKeys());
+    if (n==='audit' && apiKey) loadAudit();
+    if (n==='distillation' && apiKey) loadDistilled();
+    if (n==='webhooks' && apiKey) loadWebhooks();
+    if (n==='events') loadSchemas();
+  });
+});
+
+// generic tab setup
+function setupTabs(containerId) {
+  const c = G(containerId);
+  if (!c || c.dataset.tabsBound) return;
+  c.dataset.tabsBound = '1';
+  c.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const scope = tab.closest('.panel, #sess-detail');
+      if (!scope) return;
+      scope.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      scope.querySelectorAll('.tp').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      const tp = G(tab.dataset.t);
+      if (tp) tp.classList.add('active');
+    });
+  });
+}
+['mem-tabs','ev-tabs','dist-tabs','wh-tabs','sess-tabs'].forEach(setupTabs);
+
+// ── render helpers ──
+function pill(role) {
+  const cls = {admin:'p-admin',write:'p-write',readonly:'p-readonly',active:'p-ok',ended:'p-err',ok:'p-ok',err:'p-err',warn:'p-warn',info:'p-info'}[role]||'p-readonly';
+  return `<span class="pill ${cls}">${role}</span>`;
+}
+
+function memCard(m, extra='') {
+  const score = m.relevance_score!=null ? `<span class="mc-score">score:${m.relevance_score.toFixed(3)}</span>` : '';
+  const tags = (m.tags||[]).map(t=>`<code>${t}</code>`).join(' ');
+  const imp = m.importance!=null ? `imp:${m.importance}` : '';
+  return `<div class="mc-card">
+    <div class="mc-path">${m.path} <span class="muted">v${m.version}</span></div>
+    <div class="mc-body">${m.content}</div>
+    <div class="mc-meta">${score}${tags?'<span>'+tags+'</span>':''}${imp?'<span>'+imp+'</span>':''}<span>id:${m.id}</span><span>${fmtD(m.valid_from)}</span>${extra}</div>
+  </div>`;
+}
+
+function tbl(cols, rows, empty='No results.') {
+  if (!rows.length) return `<p class="muted">${empty}</p>`;
+  return `<div class="tw"><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function fmt(o) { return `<pre>${JSON.stringify(o,null,2)}</pre>`; }
+
+// ── refresh all ──
+async function refreshAll() {
+  updateKeyUI();
+  await Promise.allSettled([refreshHealth(), refreshStats(), refreshPool()]);
+}
+
+async function refreshHealth() {
+  try {
+    const r = await fetch('/v1/ready');
+    const d = await r.json();
+    const ok = d.status==='ready';
+    G('h-api').textContent = ok ? '✓ ready' : '✗ '+d.status;
+    G('h-api').className = 'val '+(ok?'ok':'err');
+    G('h-pg').textContent = d.database_ok ? '✓ ok' : '✗ down';
+    G('h-pg').className = 'val '+(d.database_ok?'ok':'err');
+    G('h-redis').textContent = d.redis_ok ? '✓ ok' : '✗ down';
+    G('h-redis').className = 'val '+(d.redis_ok?'ok':'err');
+    G('h-ver').textContent = d.version||'?';
+    G('ver-badge').textContent = d.version||'?';
+    G('tb-status').textContent = ok ? '● ready' : '● degraded';
+    G('tb-status').style.color = ok ? '#3fb950' : '#da3633';
+  } catch(e) {
+    G('h-api').textContent='✗ offline'; G('h-api').className='val err';
+    G('tb-status').textContent='● offline'; G('tb-status').style.color='#da3633';
+  }
+}
+
+function resetStats() {
+  ['s-act','s-sup','s-dst','s-lnk','s-ev','s-exp'].forEach(id => {
+    const e = G(id);
+    if (e) { e.textContent = '–'; e.className = 'val'; }
+  });
+}
+
+function resetPool() {
+  ['p-tot','p-idl','p-acq'].forEach(id => { const e = G(id); if (e) e.textContent = '–'; });
+}
+
+async function refreshStats() {
+  if (!apiKey) { resetStats(); return; }
+  try {
+    const s = await api('/v1/stats');
+    G('s-act').textContent = s.active_memories??'–';
+    G('s-sup').textContent = s.superseded_memories??'–';
+    G('s-dst').textContent = s.distilled_count??'–';
+    G('s-lnk').textContent = s.links_count??'–';
+    G('s-ev').textContent  = s.events_count??'–';
+    G('s-exp').textContent = s.expiring_soon??'–';
+    G('s-exp').className = 'val '+(s.expiring_soon>0?'warn':'');
+  } catch(_) { resetStats(); }
+}
+
+async function refreshPool() {
+  if (!apiKey) { resetPool(); return; }
+  try {
+    const d = await api('/v1/health');
+    if (d.pool) {
+      G('p-tot').textContent = d.pool.total_conns??'–';
+      G('p-idl').textContent = d.pool.idle_conns??'–';
+      G('p-acq').textContent = d.pool.acquired_conns??'–';
+    } else {
+      resetPool();
     }
+  } catch(_) { resetPool(); }
+}
 
-    async function api(path, opts = {}) {
-      const res = await fetch(path, { ...opts, headers });
-      if (!res.ok) {
-        let detail = "";
-        try { detail = (await res.json()).error || ""; } catch (_) {}
-        throw new Error(`${path}: ${res.status} ${detail}`);
+// ── dashboard ──
+async function quickStore() {
+  if (!requireKey()) return;
+  const path=G('qs-path').value.trim(), content=G('qs-content').value.trim();
+  if (!path||!content) { toast('path and content required','error'); return; }
+  try {
+    const r = await api('/v1/memories',{method:'POST',body:JSON.stringify({path,content})});
+    setH('qs-out',`<div class="ok-box">Stored id:${r.id} v${r.version}${r.status==='deduplicated'?' (deduplicated)':''}</div>`);
+    toast('Memory stored','success'); refreshStats();
+  } catch(e) { setH('qs-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+async function quickRetrieve() {
+  if (!requireKey()) return;
+  try {
+    const r = await api('/v1/retrieve',{method:'POST',body:JSON.stringify({path_prefix:G('qs-pfx').value.trim()||'root',limit:5})});
+    const entries = r.entries||[];
+    setH('qs-out', entries.length ? entries.map(m=>memCard(m)).join('') : '<p class="muted">No entries found.</p>');
+  } catch(e) { setH('qs-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+// ── memories: store ──
+async function storeMemory() {
+  if (!requireKey()) return;
+  const path=G('ms-path').value.trim(), content=G('ms-content').value.trim();
+  if (!path||!content) { toast('path and content required','error'); return; }
+  const tags = G('ms-tags').value.trim() ? G('ms-tags').value.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  const importance = parseFloat(G('ms-imp').value);
+  const dedup_mode = G('ms-dedup').value||undefined;
+  const embedding_model = G('ms-emodel').value.trim()||undefined;
+  let metadata;
+  const rawMeta=G('ms-meta').value.trim();
+  if (rawMeta) { try{metadata=JSON.parse(rawMeta);}catch{toast('Invalid metadata JSON','error');return;} }
+  const body={path,content,importance,tags};
+  if (dedup_mode) body.dedup_mode=dedup_mode;
+  if (embedding_model) body.embedding_model=embedding_model;
+  if (metadata) body.metadata=metadata;
+  try {
+    const r = await api('/v1/memories',{method:'POST',body:JSON.stringify(body)});
+    setH('ms-out',`<div class="ok-box">id:${r.id} · v${r.version} · ${r.status}${r.dedup_action?' · dedup:'+r.dedup_action:''}</div>`);
+    toast('Stored','success'); refreshStats();
+  } catch(e) { setH('ms-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+// ── memories: retrieve ──
+async function retrieveMemories() {
+  if (!requireKey()) return;
+  const body={path_prefix:G('mr-pfx').value.trim()||'root',limit:parseInt(G('mr-lim').value)||10,decay_enabled:G('mr-decay').checked};
+  const q=G('mr-q').value.trim(); if(q) body.query=q;
+  const asof=G('mr-asof').value.trim(); if(asof) body.as_of=asof;
+  try {
+    const r = await api('/v1/retrieve',{method:'POST',body:JSON.stringify(body)});
+    const entries=r.entries||[];
+    setH('mr-out', entries.length
+      ? `<p class="muted" style="margin-bottom:8px">${entries.length} result(s)</p>`+entries.map(m=>memCard(m)).join('')
+      : '<p class="muted">No entries found.</p>');
+  } catch(e) { setH('mr-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+// ── memories: get / history ──
+async function getMemory() {
+  if (!requireKey()) return;
+  const path=G('mg-path').value.trim(); if(!path){toast('path required','error');return;}
+  const qs=new URLSearchParams();
+  const v=G('mg-ver').value.trim(), ao=G('mg-asof').value.trim();
+  if(v) qs.set('version',v); if(ao) qs.set('as_of',ao);
+  try {
+    const r=await api(`/v1/memories/${encodeURIComponent(path)}${qs.toString()?'?'+qs:''}`);
+    setH('mg-out',memCard(r));
+  } catch(e) { setH('mg-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+async function getHistory() {
+  if (!requireKey()) return;
+  const path=G('mh-path').value.trim(); if(!path){toast('path required','error');return;}
+  const limit=parseInt(G('mh-lim').value)||20;
+  try {
+    const r=await api(`/v1/memories/history?path=${encodeURIComponent(path)}&limit=${limit}`);
+    const entries=r.entries||[];
+    if(!entries.length){setH('mh-out','<p class="muted">No history.</p>');return;}
+    setH('mh-out',`<div class="lv-wrap">${entries.map(m=>`
+      <div class="lv-item">
+        <div class="muted" style="margin-bottom:2px">v${m.version} · ${fmtD(m.valid_from)}${m.valid_to?' → '+fmtD(m.valid_to):' <span style="color:#3fb950">(current)</span>'}</div>
+        <div style="font-size:13px;color:var(--text)">${m.content}</div>
+        <div class="muted" style="font-size:11px">id:${m.id} · imp:${m.importance??'–'}</div>
+      </div>`).join('')}</div>`);
+  } catch(e) { setH('mh-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error'); }
+}
+
+// ── memories: links ──
+async function createLink() {
+  if (!requireKey()) return;
+  const from_path=G('ml-from').value.trim(), to_path=G('ml-to').value.trim(), link_type=G('ml-type').value.trim();
+  if(!from_path||!to_path||!link_type){toast('all fields required','error');return;}
+  try {
+    const r=await api('/v1/memories/links',{method:'POST',body:JSON.stringify({from_path,to_path,link_type})});
+    toast('Link created id:'+r.id,'success'); listLinks(); refreshStats();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function listLinks() {
+  if (!requireKey()) return;
+  const qs=new URLSearchParams({limit:'50'});
+  const f=G('mlf-from').value.trim(), t=G('mlf-to').value.trim(), ty=G('mlf-type').value.trim();
+  if(f)qs.set('from_path',f); if(t)qs.set('to_path',t); if(ty)qs.set('link_type',ty);
+  try {
+    const r=await api(`/v1/memories/links?${qs}`);
+    const entries=r.entries||[];
+    setH('ml-out',tbl(['From','To','Type','Created'],
+      entries.map(l=>`<td class="mono">${l.from_path}</td><td class="mono">${l.to_path}</td><td>${l.link_type}</td><td class="muted">${fmtD(l.created_at)}</td>`)
+    ,'No links found.'));
+  } catch(e){setH('ml-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: lineage ──
+async function getLineage() {
+  if (!requireKey()) return;
+  const path=G('mln-path').value.trim(); if(!path){toast('path required','error');return;}
+  try {
+    const r=await api(`/v1/lineage/memory?path=${encodeURIComponent(path)}`);
+    const vers=(r.versions||[]).map(m=>memCard(m)).join('');
+    const dist=(r.distilled||[]).map(d=>`<div class="mc-card">
+      <div class="mc-path" style="color:var(--purple)">distilled #${d.id} v${d.version}</div>
+      <div class="mc-body">${d.summary||'–'}</div>
+      <div class="mc-meta"><span>confidence:${d.confidence_score??'–'}</span><span>sources:[${(d.source_entry_ids||[]).join(',')}]</span></div>
+    </div>`).join('');
+    setH('mln-out',(vers||'<p class="muted">No versions.</p>')+(dist?'<h4 style="margin:10px 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase">Derived Distillations</h4>'+dist:''));
+  } catch(e){setH('mln-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function getDistilledLineage() {
+  if (!requireKey()) return;
+  const id=G('mld-id').value.trim(); if(!id){toast('id required','error');return;}
+  try {
+    const r=await api(`/v1/lineage/distilled/${id}`);
+    const d=r.distilled||{};
+    const src=(r.sources||[]).map(m=>memCard(m)).join('');
+    setH('mld-out',`<div class="mc-card"><div class="mc-path" style="color:var(--purple)">distilled #${d.id} v${d.version}</div><div class="mc-body">${d.summary||'–'}</div></div>`+(src?'<h4 style="margin:10px 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase">Source Memories</h4>'+src:''));
+  } catch(e){setH('mld-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: rollback ──
+async function rollbackMemory() {
+  if (!requireKey()) return;
+  const path=G('rb-path').value.trim(), vr=G('rb-ver').value.trim(), ao=G('rb-asof').value.trim();
+  if(!path){toast('path required','error');return;}
+  if(!vr&&!ao){toast('version or as_of required','error');return;}
+  const body={path};
+  if(vr) body.version=parseInt(vr); else body.as_of=ao;
+  if(!confirm(`Roll back "${path}" to ${vr?'v'+vr:'@'+ao}? Creates a new version.`)) return;
+  try {
+    const r=await api('/v1/memories/rollback',{method:'POST',body:JSON.stringify(body)});
+    setH('rb-out',`<div class="ok-box">New id:${r.id} v${r.version} ← restored from v${r.restored_from_version}</div>`);
+    toast('Rollback complete','success');
+  } catch(e){setH('rb-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: compact ──
+async function compactMemory() {
+  if (!requireKey()) return;
+  const path=G('cp-path').value.trim(), keep=parseInt(G('cp-keep').value)||20;
+  if(!path){toast('path required','error');return;}
+  if(!confirm(`Compact "${path}", keep ${keep} superseded versions?`)) return;
+  try {
+    const r=await api('/v1/memories/compact',{method:'POST',body:JSON.stringify({path,keep_superseded:keep})});
+    setH('cp-out',`<div class="ok-box">Deleted ${r.deleted_count} old version(s) for "${r.path}"</div>`);
+    toast('Compact done','success');
+  } catch(e){setH('cp-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: summarize ──
+async function summarize() {
+  if (!requireKey()) return;
+  const path_prefix=G('sum-pfx').value.trim(); if(!path_prefix){toast('path_prefix required','error');return;}
+  const limit=parseInt(G('sum-lim').value)||20, style=G('sum-style').value;
+  try {
+    const r=await api('/v1/memories/summarize',{method:'POST',body:JSON.stringify({path_prefix,limit,style})});
+    setH('sum-out',`<div class="mc-card"><div class="muted" style="margin-bottom:6px">${r.path_prefix} · method:${r.method} · ${r.total} source(s)</div><p style="line-height:1.6">${r.summary||'No summary generated.'}</p></div>`);
+  } catch(e){setH('sum-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: refine ──
+async function refineMemories(pfx) {
+  if (!requireKey()) return;
+  const path_prefix = pfx || G('rf-pfx').value.trim();
+  if(!path_prefix){toast('path_prefix required','error');return;}
+  try {
+    const r=await api('/v1/memories/refine',{method:'POST',body:JSON.stringify({path_prefix})});
+    if (!pfx) setH('rf-out',`<div class="ok-box">Job ${r.status} for "${r.path_prefix}"</div>`);
+    toast('Refine job queued for '+path_prefix,'success');
+  } catch(e){
+    if (!pfx) setH('rf-out',`<div class="warn-box">${e.message}</div>`);
+    toast(e.message,'error');
+  }
+}
+
+// ── memories: batch ──
+async function batchStore() {
+  if (!requireKey()) return;
+  let items; try{items=JSON.parse(G('bat-json').value);}catch{toast('Invalid JSON','error');return;}
+  if(!Array.isArray(items)){toast('Must be an array','error');return;}
+  try {
+    const r=await api('/v1/memories/batch',{method:'POST',body:JSON.stringify({items})});
+    setH('bat-out',fmt(r)); toast('Batch store complete','success'); refreshStats();
+  } catch(e){setH('bat-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: export ──
+async function exportMem() {
+  if (!requireKey()) return;
+  const path_prefix=G('exp-pfx').value.trim()||'root', limit=parseInt(G('exp-lim').value)||500, include_embeddings=G('exp-emb').checked;
+  try {
+    const r=await api('/v1/memories/export',{method:'POST',body:JSON.stringify({path_prefix,limit,include_embeddings})});
+    const blob=new Blob([JSON.stringify(r,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`pcmi-export-${path_prefix.replace(/\./g,'_')}.json`; a.click(); URL.revokeObjectURL(url);
+    setH('exp-out',`<div class="ok-box">Exported ${r.exported} entries.</div>`);
+    toast('Export downloaded','success');
+  } catch(e){setH('exp-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── memories: import ──
+async function importMem() {
+  if (!requireKey()) return;
+  const mode=G('imp-mode').value;
+  let entries;
+  const file=G('imp-file').files[0];
+  if (file) {
+    let parsed; try{parsed=JSON.parse(await file.text());}catch{toast('Invalid JSON file','error');return;}
+    // export bundle has .entries (MemoryEntry[]); map to StoreRequest
+    const raw = parsed.entries || parsed.items || parsed;
+    if (!Array.isArray(raw)){toast('Expected array or export bundle','error');return;}
+    entries = raw.map(e=>({
+      path:e.path, content:e.content,
+      ...(e.metadata?{metadata:e.metadata}:{}),
+      ...(e.tags&&e.tags.length?{tags:e.tags}:{}),
+      ...(e.importance!=null?{importance:e.importance}:{}),
+      ...(e.embedding_model?{embedding_model:e.embedding_model}:{}),
+      ...(e.embedding_space?{embedding_space:e.embedding_space}:{}),
+    }));
+  } else {
+    const raw=G('imp-json').value.trim(); if(!raw){toast('Provide file or paste JSON','error');return;}
+    try{const parsed=JSON.parse(raw); entries=parsed.entries||parsed.items||parsed;}catch{toast('Invalid JSON','error');return;}
+    if(!Array.isArray(entries)){toast('Must be array','error');return;}
+  }
+  try {
+    const r=await api('/v1/memories/import',{method:'POST',body:JSON.stringify({mode,entries})});
+    setH('imp-out',`<div class="ok-box">Imported:${r.imported} Skipped:${r.skipped}</div>`+fmt(r));
+    toast('Import complete','success'); refreshStats();
+  } catch(e){setH('imp-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── sessions ──
+async function createSession() {
+  if (!requireKey()) return;
+  let metadata={}; try{metadata=JSON.parse(G('ss-meta').value||'{}');}catch{toast('Invalid metadata JSON','error');return;}
+  const body={};
+  const ag=G('ss-agent').value.trim(); if(ag) body.agent_id=ag;
+  if(Object.keys(metadata).length) body.metadata=metadata;
+  try {
+    const r=await api('/v1/sessions',{method:'POST',body:JSON.stringify(body)});
+    activeSessions.push({id:r.id,status:r.status,started_at:r.started_at});
+    toast('Session created '+r.id.slice(0,8),'success');
+    renderSessions(); selectSession(r.id);
+  } catch(e){toast(e.message,'error');}
+}
+
+function renderSessions() {
+  if(!activeSessions.length){setH('sessions-list','<p class="muted">No sessions.</p>');return;}
+  setH('sessions-list',tbl(['ID','Status','Started',''],
+    activeSessions.map(s=>`<td class="mono">${s.id}</td><td>${pill(s.status)}</td><td class="muted">${fmtD(s.started_at)}</td><td><button class="btn btn-g btn-xs" onclick="selectSession('${s.id}')">Select</button></td>`)
+  ));
+}
+
+function selectSession(id) {
+  activeSessionID=id; G('sess-id').textContent=id; G('sess-detail').style.display='block';
+}
+
+async function sessStore() {
+  if(!activeSessionID||!requireKey()) return;
+  const path=G('sm-path').value.trim(), content=G('sm-content').value.trim();
+  if(!path||!content){toast('path and content required','error');return;}
+  const importance=parseFloat(G('sm-imp').value);
+  try {
+    const r=await api(`/v1/sessions/${activeSessionID}/memories`,{method:'POST',body:JSON.stringify({path,content,importance})});
+    setH('sm-out',`<div class="ok-box">id:${r.id} v${r.version} path:${r.path}</div>`);
+    toast('Session memory stored','success');
+  } catch(e){setH('sm-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function sessListMem() {
+  if(!activeSessionID||!requireKey()) return;
+  const qs=new URLSearchParams({limit:'50'});
+  const p=G('sl-pfx').value.trim(); if(p) qs.set('path_prefix',p);
+  if(G('sl-lt').checked) qs.set('include_long_term','true');
+  try {
+    const r=await api(`/v1/sessions/${activeSessionID}/memories?${qs}`);
+    const entries=r.entries||[];
+    setH('sl-out',entries.length?entries.map(m=>memCard(m)).join(''):'<p class="muted">No memories.</p>');
+  } catch(e){setH('sl-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function sessPromote() {
+  if(!activeSessionID||!requireKey()) return;
+  const target_prefix=G('sp-pfx').value.trim()||'root';
+  try {
+    const r=await api(`/v1/sessions/${activeSessionID}/promote`,{method:'POST',body:JSON.stringify({target_prefix})});
+    setH('sp-out',`<div class="ok-box">Promoted ${r.promoted} memories to "${r.target_prefix}"</div>`);
+    toast('Promoted '+r.promoted+' memories','success'); refreshStats();
+  } catch(e){setH('sp-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function sessEnd() {
+  if(!activeSessionID||!requireKey()) return;
+  if(!confirm('End this session?')) return;
+  try {
+    await api(`/v1/sessions/${activeSessionID}`,{method:'DELETE'});
+    const s=activeSessions.find(x=>x.id===activeSessionID); if(s) s.status='ended';
+    G('sess-detail').style.display='none'; activeSessionID=null;
+    renderSessions(); toast('Session ended','success');
+  } catch(e){toast(e.message,'error');}
+}
+
+// ── events ──
+async function toggleSSE() {
+  if (sseCtrl) {
+    sseCtrl.abort(); sseCtrl=null;
+    G('sse-btn').textContent='▶ Connect';
+    G('sse-status').textContent='Status: disconnected'; return;
+  }
+  if (!requireKey()) return;
+  G('sse-btn').textContent='■ Disconnect';
+  G('sse-status').textContent='Status: connecting…';
+  sseCtrl=new AbortController();
+  const types=G('sse-types').value.trim();
+  const qs=types?`?types=${encodeURIComponent(types)}`:'';
+  const logEl=G('sse-log'); logEl.innerHTML='';
+  try {
+    const res=await fetch(`/v1/events${qs}`,{headers:{'X-API-Key':apiKey},signal:sseCtrl.signal});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    G('sse-status').textContent='Status: connected ✓';
+    const reader=res.body.getReader(), dec=new TextDecoder();
+    let buf='', evType='';
+    while(true) {
+      const {done,value}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n'); buf=lines.pop();
+      for(const line of lines) {
+        if(line.startsWith('event: ')){evType=line.slice(7).trim();continue;}
+        if(line.startsWith('data: ')) {
+          const data=line.slice(6);
+          let obj; try{obj=JSON.parse(data);}catch{obj=data;}
+          const el=document.createElement('div'); el.className='ev-line';
+          el.innerHTML=`<span class="muted">${new Date().toLocaleTimeString()}</span> <span class="ev-type">${evType||(obj.type||'?')}</span> ${JSON.stringify(typeof obj==='object'?(obj.payload||obj):obj)}`;
+          logEl.appendChild(el); logEl.scrollTop=logEl.scrollHeight; evType='';
+        }
       }
-      return res.json();
     }
+  } catch(e) {
+    if(e.name!=='AbortError'){G('sse-status').textContent='Status: error — '+e.message; toast('SSE: '+e.message,'error');}
+    else {G('sse-status').textContent='Status: disconnected';}
+  } finally { sseCtrl=null; G('sse-btn').textContent='▶ Connect'; }
+}
 
-    async function refreshHealth() {
-      try {
-        const r = await api("/v1/ready");
-        document.getElementById("api-status").textContent = r.status === "ready" ? "✓ ready" : "✗ " + r.status;
-        document.getElementById("pg-status").textContent = r.database_ok ? "✓ ok" : "✗ down";
-        document.getElementById("redis-status").textContent = r.redis_ok ? "✓ ok" : "✗ down";
-        document.getElementById("version").textContent = r.version;
-        document.getElementById("version-large").textContent = r.version;
-      } catch (e) { showError(e.message); }
+async function ingestEvent() {
+  if (!requireKey()) return;
+  const event_type=G('ei-type').value.trim(); if(!event_type){toast('event_type required','error');return;}
+  const body={event_type};
+  const ag=G('ei-agent').value.trim(), co=G('ei-corr').value.trim();
+  if(ag) body.agent_id=ag; if(co) body.correlation_id=co;
+  const rp=G('ei-payload').value.trim();
+  if(rp){try{body.payload=JSON.parse(rp);}catch{toast('Invalid payload JSON','error');return;}}
+  try {
+    const r=await api('/v1/events',{method:'POST',body:JSON.stringify(body)});
+    setH('ei-out',`<div class="ok-box">id:${r.id} type:${r.event_type} status:${r.status}</div>`);
+    toast('Event ingested','success'); refreshStats();
+  } catch(e){setH('ei-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function loadSchemas() {
+  try {
+    const r=await api('/v1/events/schemas');
+    const schemas=r.schemas||[];
+    if(!schemas.length){setH('schemas-out','<p class="muted">No schemas.</p>');return;}
+    setH('schemas-out', schemas.map(s=>`
+      <div class="mc-card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <code>${s.event_type}</code>
+          ${s.strict?pill('admin')+' strict':pill('readonly')+' flexible'}
+        </div>
+        ${s.description?`<p class="muted" style="margin-bottom:6px">${s.description}</p>`:''}
+        ${(s.fields||[]).length?`<div class="tw"><table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead><tbody>${(s.fields||[]).map(f=>`<tr><td><code>${f.name}</code></td><td class="muted">${f.type||'–'}</td><td>${f.required?'✓':''}</td><td class="muted">${f.description||'–'}</td></tr>`).join('')}</tbody></table></div>`:''}
+      </div>`).join(''));
+  } catch(e){setH('schemas-out',`<div class="warn-box">${e.message}</div>`);}
+}
+
+// ── distillation ──
+async function loadDistilled() {
+  if (!requireKey()) return;
+  const prefix=G('dk-pfx').value.trim()||'root';
+  try {
+    const r=await api(`/v1/distilled?path_prefix=${encodeURIComponent(prefix)}&limit=50`);
+    const entries=r.entries||[];
+    if(!entries.length){setH('dk-out','<p class="muted">No distilled knowledge found.</p>');return;}
+    setH('dk-out',entries.map(d=>`
+      <div class="mc-card">
+        <div class="mc-path" style="color:var(--purple)">distilled #${d.id} · ${d.path||'–'} · v${d.version}</div>
+        <div class="mc-body">${d.summary||d.content||'–'}</div>
+        <div class="mc-meta"><span>confidence:${d.confidence_score??'–'}</span><span>sources:[${(d.source_entry_ids||[]).join(',')}]</span><span>${fmtD(d.created_at)}</span>
+          <button class="btn btn-o btn-xs" onclick="getDistilledLineage2(${d.id})">Lineage</button>
+        </div>
+      </div>`).join(''));
+  } catch(e){setH('dk-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function getDistilledLineage2(id) {
+  try {
+    const r=await api(`/v1/lineage/distilled/${id}`);
+    const d=r.distilled||{};
+    const src=(r.sources||[]).map(m=>memCard(m)).join('');
+    showMod(`Lineage of distilled #${id}`,`<div class="mc-card"><div class="mc-path" style="color:var(--purple)">v${d.version}</div><div class="mc-body">${d.summary||'–'}</div></div>${src?'<h4 style="margin:10px 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase">Source Memories</h4>'+src:''}`);
+  } catch(e){toast(e.message,'error');}
+}
+
+async function createPolicy() {
+  if (!requireKey()) return;
+  const name=G('dp-name').value.trim(), path_prefix=G('dp-pfx').value.trim();
+  if(!name||!path_prefix){toast('name and path_prefix required','error');return;}
+  const body={name,path_prefix,enabled:G('dp-ena').checked,count_threshold:parseInt(G('dp-thr').value)||10,min_interval_secs:parseInt(G('dp-int').value)||300};
+  try {
+    await api('/v1/distillation/policies',{method:'POST',body:JSON.stringify(body)});
+    toast('Policy created','success'); loadPolicies();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function loadPolicies() {
+  if (!requireKey()) return;
+  try {
+    const r=await api('/v1/distillation/policies?limit=50');
+    const policies=r.policies||[];
+    if(!policies.length){setH('dp-out','<p class="muted">No policies.</p>');return;}
+    setH('dp-out',tbl(
+      ['ID','Name','Prefix','Threshold','Interval','Last Triggered','Status',''],
+      policies.map(p=>`
+        <td><code>${p.id}</code></td>
+        <td>${p.name}</td>
+        <td class="mono">${p.path_prefix}</td>
+        <td>${p.count_threshold}</td>
+        <td>${p.min_interval_secs}s</td>
+        <td class="muted">${fmtD(p.last_triggered_at)}</td>
+        <td>${p.enabled?pill('ok')+' enabled':pill('err')+' disabled'}</td>
+        <td><div class="act-row">
+          <button class="btn btn-o btn-xs" onclick="triggerPolicy('${p.path_prefix}')">▶ Trigger</button>
+          <button class="btn btn-g btn-xs" onclick="togglePolicy(${p.id},${!p.enabled})">${p.enabled?'Disable':'Enable'}</button>
+        </div></td>`)
+    ));
+  } catch(e){setH('dp-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function triggerPolicy(path_prefix) {
+  if (!requireKey()) return;
+  try {
+    const r=await api('/v1/memories/refine',{method:'POST',body:JSON.stringify({path_prefix})});
+    toast(`Distillation job queued for "${path_prefix}"`, 'success');
+    setTimeout(loadRuns, 1000);
+  } catch(e){toast(e.message,'error');}
+}
+
+async function togglePolicy(id, enabled) {
+  if (!requireKey()) return;
+  try {
+    await api(`/v1/distillation/policies/${id}`,{method:'PATCH',body:JSON.stringify({enabled})});
+    toast(`Policy ${enabled?'enabled':'disabled'}`,'success'); loadPolicies();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function loadRuns() {
+  if (!requireKey()) return;
+  const qs=new URLSearchParams({limit:'50'});
+  const pol=G('dr-pol').value.trim(); if(pol) qs.set('policy_id',pol);
+  try {
+    const r=await api(`/v1/distillation/runs?${qs}`);
+    const runs=r.runs||[];
+    if(!runs.length){setH('dr-out','<p class="muted">No runs found.</p>');return;}
+    setH('dr-out',tbl(
+      ['ID','Policy','Path Prefix','Status','Sources','Distilled ID','Started','Finished'],
+      runs.map(r=>`
+        <td><code>${r.id}</code></td>
+        <td>${r.policy_id??'–'}</td>
+        <td class="mono">${r.path_prefix||'–'}</td>
+        <td>${pill(r.status==='completed'?'ok':r.status==='failed'?'err':'info')} ${r.status}</td>
+        <td>${r.source_count??'–'}</td>
+        <td>${r.distilled_id?`<button class="btn btn-g btn-xs" onclick="getDistilledLineage2(${r.distilled_id})">#${r.distilled_id}</button>`:'–'}</td>
+        <td class="muted">${fmtD(r.created_at)}</td>
+        <td class="muted">${fmtD(r.completed_at)}</td>`)
+    ));
+  } catch(e){setH('dr-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── webhooks ──
+async function registerWebhook() {
+  if (!requireKey()) return;
+  const url=G('wh-url').value.trim(); if(!url){toast('URL required','error');return;}
+  const typesRaw=G('wh-types').value.trim();
+  const event_types=typesRaw?typesRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const secret=G('wh-secret').value.trim();
+  const body={url,event_types}; if(secret) body.secret=secret;
+  try {
+    const r=await api('/v1/webhooks',{method:'POST',body:JSON.stringify(body)});
+    toast('Webhook registered: '+r.id,'success'); loadWebhooks();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function loadWebhooks() {
+  if (!requireKey()) return;
+  try {
+    const r=await api('/v1/webhooks?limit=50');
+    const entries=r.entries||[];
+    setH('wh-out',tbl(
+      ['ID','URL','Types','Status','Created'],
+      entries.map(w=>`<td class="mono">${shortID(w.id)}</td><td style="word-break:break-all">${w.url}</td><td class="muted">${(w.event_types||[]).join(', ')||'all'}</td><td>${w.enabled?pill('ok')+' active':pill('err')+' disabled'}</td><td class="muted">${fmtD(w.created_at)}</td>`)
+    ,'No webhooks registered.'));
+  } catch(e){setH('wh-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+async function loadDeadLetter() {
+  if (!requireKey()) return;
+  try {
+    const r=await api('/v1/webhooks/dead-letter?limit=50');
+    const entries=r.entries||[];
+    setH('dl-out',tbl(
+      ['ID','Event Type','Endpoint','Attempts','Last Error','Created'],
+      entries.map(d=>`<td class="mono">${shortID(d.id)}</td><td>${d.event_type||'–'}</td><td style="word-break:break-all">${d.endpoint_url||'–'}</td><td>${d.attempts??'–'}</td><td class="muted">${d.last_error||'–'}</td><td class="muted">${fmtD(d.created_at)}</td>`)
+    ,'Dead-letter queue is empty.'));
+  } catch(e){setH('dl-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── audit ──
+async function loadAudit(cursor) {
+  if (!requireKey()) return;
+  const qs=new URLSearchParams({limit:G('aud-lim').value||'50'});
+  const since=G('aud-since').value.trim(); if(since) qs.set('since',since);
+  if(cursor) qs.set('cursor',cursor);
+  try {
+    const r=await api(`/v1/audit?${qs}`);
+    const entries=r.entries||[];
+    if(!entries.length&&!cursor){setH('aud-out','<p class="muted">No audit entries.</p>');return;}
+    const rows=entries.map(a=>`
+      <td>${a.event_type||'–'}</td>
+      <td><span class="pill ${a.method==='GET'?'p-readonly':'p-write'}">${a.method}</span></td>
+      <td class="mono">${a.path||'–'}</td>
+      <td>${a.status_code?`<span class="pill ${a.status_code<400?'p-ok':'p-err'}">${a.status_code}</span>`:'–'}</td>
+      <td class="muted">${a.ip_address||'–'}</td>
+      <td class="muted">${fmtD(a.created_at)}</td>`);
+    if(!cursor) setH('aud-out','');
+    addH('aud-out',tbl(['Event','Method','Path','Status','IP','Time'],rows));
+    const pag=G('aud-pag');
+    pag.innerHTML = r.has_more&&r.next_cursor ? `<button class="btn btn-g btn-sm" onclick="loadAudit('${r.next_cursor}')">Load more</button>` : '';
+  } catch(e){setH('aud-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
+
+// ── tenants ──
+async function loadTenants(cursor) {
+  if (!requireKey()) return;
+  const qs=new URLSearchParams({limit:'50'}); if(cursor) qs.set('cursor',cursor);
+  try {
+    const r=await api(`/v1/admin/tenants?${qs}`);
+    if (!cursor) tenantsCache=[];
+    tenantsCache.push(...(r.tenants||[]));
+    const tbody=G('tenants-tbody');
+    if (tbody) {
+      tbody.innerHTML=tenantsCache.map(t=>`<tr>
+        <td class="mono">${t.id}</td>
+        <td><strong>${t.slug}</strong></td>
+        <td>${t.name}</td>
+        <td class="muted">${fmtD(t.created_at)}</td>
+        <td><button class="btn btn-g btn-xs" onclick="goToKeys('${t.id}')">Keys</button></td>
+      </tr>`).join('');
     }
+    const pag=G('tn-pag');
+    pag.innerHTML = r.has_more&&r.next_cursor ? `<button class="btn btn-g btn-sm" onclick="loadTenants('${r.next_cursor}')">Load more</button>` : '';
+  } catch(e) {
+    const tbody=G('tenants-tbody');
+    if (tbody) tbody.innerHTML=`<tr><td colspan="5" style="color:var(--red);padding:10px">${e.message}</td></tr>`;
+    toast(e.message,'error');
+  }
+}
 
-    async function refreshTenants() {
-      try {
-        const r = await api("/v1/admin/tenants");
-        const tbody = document.getElementById("tenants-tbody");
-        const sel = document.getElementById("key-tenant");
-        tbody.innerHTML = "";
-        sel.innerHTML = "";
-        for (const t of r.tenants || r) {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `<td><code>${t.id}</code></td><td>${t.slug}</td><td>${t.name}</td><td class="note">${t.created_at || ""}</td>`;
-          tbody.appendChild(tr);
-          const opt = document.createElement("option");
-          opt.value = t.id; opt.textContent = `${t.slug} (${t.id.slice(0, 8)})`;
-          sel.appendChild(opt);
-        }
-      } catch (e) { showError(e.message); }
-    }
+async function createTenant() {
+  if (!requireKey()) return;
+  const slug=G('tn-slug').value.trim(), name=G('tn-name').value.trim();
+  if(!slug||!name){toast('slug and name required','error');return;}
+  try {
+    await api('/v1/admin/tenants',{method:'POST',body:JSON.stringify({slug,name})});
+    G('tn-slug').value=''; G('tn-name').value='';
+    toast('Tenant created','success'); loadTenants(); loadTenantsForKeys();
+  } catch(e){toast(e.message,'error');}
+}
 
-    async function refreshKeys() {
-      const tenantID = document.getElementById("key-tenant").value;
-      if (!tenantID) return;
-      try {
-        const r = await api(`/v1/admin/api-keys?tenant_id=${encodeURIComponent(tenantID)}`);
-        const tbody = document.getElementById("keys-tbody");
-        tbody.innerHTML = "";
-        for (const k of (r.api_keys || r.keys || r)) {
-          const tr = document.createElement("tr");
-          const role = k.role || "readonly";
-          tr.innerHTML = `<td><code>${k.id.slice(0,8)}…</code></td><td>${k.tenant_id?.slice(0,8) || ""}…</td><td>${k.name || ""}</td><td><span class="pill pill-${role}">${role}</span></td><td class="note">${k.created_at || ""}</td>`;
-          tbody.appendChild(tr);
-        }
-      } catch (e) { showError(e.message); }
-    }
+function goToKeys(tenantID) {
+  document.querySelectorAll('#sidenav a').forEach(x=>x.classList.remove('active'));
+  document.querySelector('[data-p="apikeys"]').classList.add('active');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  G('panel-apikeys').classList.add('active');
+  G('tb-title').textContent='API Keys';
+  loadTenantsForKeys().then(()=>{ G('ak-filter').value=tenantID; loadKeys(); });
+}
 
-    document.getElementById("create-tenant").addEventListener("click", async () => {
-      const slug = document.getElementById("tenant-slug").value.trim();
-      const name = document.getElementById("tenant-name").value.trim();
-      if (!slug || !name) { showError("slug and name are required"); return; }
-      try {
-        await api("/v1/admin/tenants", { method: "POST", body: JSON.stringify({ slug, name }) });
-        document.getElementById("tenant-slug").value = "";
-        document.getElementById("tenant-name").value = "";
-        await refreshTenants();
-      } catch (e) { showError(e.message); }
-    });
+// ── api keys ──
+async function loadTenantsForKeys() {
+  if (!apiKey) return;
+  try {
+    const r=await api('/v1/admin/tenants?limit=200');
+    const tenants=r.tenants||[];
+    const opts=tenants.map(t=>`<option value="${t.id}">${t.slug} (${shortID(t.id)})</option>`).join('');
+    G('ak-tenant').innerHTML=opts; G('ak-filter').innerHTML=opts;
+    tenantsCache=tenants;
+  } catch(_){}
+}
 
-    document.getElementById("create-key").addEventListener("click", async () => {
-      const tenant_id = document.getElementById("key-tenant").value;
-      const name = document.getElementById("key-name").value.trim();
-      const role = document.getElementById("key-role").value;
-      if (!tenant_id) { showError("pick a tenant first"); return; }
-      try {
-        const r = await api("/v1/admin/api-keys", { method: "POST", body: JSON.stringify({ tenant_id, name, role }) });
-        alert(`API key minted ONCE — copy now:\n\n${r.api_key}\n\n(server only stores the hash; you cannot retrieve it again.)`);
-        document.getElementById("key-name").value = "";
-        await refreshKeys();
-      } catch (e) { showError(e.message); }
-    });
+async function mintKey() {
+  if (!requireKey()) return;
+  const tenant_id=G('ak-tenant').value, name=G('ak-name').value.trim(), role=G('ak-role').value;
+  if(!tenant_id){toast('select a tenant','error');return;}
+  try {
+    const r=await api('/v1/admin/api-keys',{method:'POST',body:JSON.stringify({tenant_id,name,role})});
+    G('ak-name').value='';
+    const k=r.api_key;
+    showMod('API Key — Copy Now!',`
+      <div class="warn-box">Shown ONCE — PCMI stores only the sha256 hash. Copy now or you will lose it.</div>
+      <p class="muted" style="margin-bottom:8px">${pill(role)} · tenant: ${shortID(tenant_id)}</p>
+      <pre id="modal-key" style="user-select:all;cursor:text;background:var(--bg2)"></pre>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-b btn-sm" id="modal-copy">Copy</button>
+        <button class="btn btn-p btn-sm" id="modal-use">Use this key now</button>
+      </div>`);
+    G('modal-key').textContent = k;
+    G('modal-copy').onclick = () => navigator.clipboard.writeText(k).then(() => toast('Copied!','success'));
+    G('modal-use').onclick = () => { gkey.value = k; applyKey(k); closeMod(); toast('Key set as active','success'); };
+    toast('Key minted — copy from modal!','info',8000); loadKeys();
+  } catch(e){toast(e.message,'error');}
+}
 
-    document.getElementById("key-tenant").addEventListener("change", refreshKeys);
+async function loadKeys(cursor) {
+  if (!requireKey()) return;
+  const tenantID=G('ak-filter').value; if(!tenantID) return;
+  const qs=new URLSearchParams({tenant_id:tenantID,limit:'50'}); if(cursor) qs.set('cursor',cursor);
+  try {
+    const r=await api(`/v1/admin/api-keys?${qs}`);
+    const keys=r.api_keys||[];
+    setH('ak-out',tbl(
+      ['ID','Name','Role','Created','Last Used',''],
+      keys.map(k=>`
+        <td class="mono">${shortID(k.id)}</td>
+        <td>${k.name||'–'}</td>
+        <td>${pill(k.role||'readonly')}</td>
+        <td class="muted">${fmtD(k.created_at)}</td>
+        <td class="muted">${k.last_used_at?fmtD(k.last_used_at):'never'}</td>
+        <td><div class="act-row">
+          <button class="btn btn-g btn-xs" onclick="rotateKey('${k.id}')">↺ Rotate</button>
+          <button class="btn btn-r btn-xs" onclick="revokeKey('${k.id}')">Revoke</button>
+        </div></td>`)
+    ,'No API keys found.'));
+    const pag=G('ak-pag');
+    pag.innerHTML = r.has_more&&r.next_cursor ? `<button class="btn btn-g btn-sm" onclick="loadKeys('${r.next_cursor}')">Load more</button>` : '';
+  } catch(e){setH('ak-out',`<div class="warn-box">${e.message}</div>`); toast(e.message,'error');}
+}
 
-    document.getElementById("role").textContent = "admin (UI requires admin role)";
-    refreshHealth();
-    refreshTenants();
-  </script>
+async function rotateKey(id) {
+  if (!requireKey()) return;
+  if(!confirm('Rotate this key? Old key stays valid 24h, then is revoked.')) return;
+  try {
+    const r=await api(`/v1/admin/api-keys/${id}/rotate`,{method:'POST',body:'{}'});
+    const k=r.api_key;
+    showMod('Rotated Key — Copy Now!',`
+      <div class="warn-box">Old key valid for 24h grace. New key shown ONCE.</div>
+      <pre id="modal-key" style="user-select:all;cursor:text;background:var(--bg2)"></pre>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button class="btn btn-b btn-sm" id="modal-copy">Copy</button>
+        <button class="btn btn-p btn-sm" id="modal-use">Use this key now</button>
+      </div>`);
+    G('modal-key').textContent = k;
+    G('modal-copy').onclick = () => navigator.clipboard.writeText(k).then(() => toast('Copied!','success'));
+    G('modal-use').onclick = () => { gkey.value = k; applyKey(k); closeMod(); toast('Key set as active','success'); };
+    toast('Key rotated — copy from modal!','info',8000); loadKeys();
+  } catch(e){toast(e.message,'error');}
+}
+
+async function revokeKey(id) {
+  if (!requireKey()) return;
+  if(!confirm('Revoke this API key? Cannot be undone.')) return;
+  try {
+    await api(`/v1/admin/api-keys/${id}`,{method:'DELETE'});
+    toast('Key revoked','success'); loadKeys();
+  } catch(e){toast(e.message,'error');}
+}
+
+// ── boot ──
+refreshAll();
+setInterval(refreshAll, 30000);
+</script>
 </body>
 </html>

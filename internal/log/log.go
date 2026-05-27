@@ -76,10 +76,7 @@ func buildHandler(c *LogConfig) slog.Handler {
 		}
 	}
 
-	addSource := false
-	if c != nil && c.AddSource {
-		addSource = true
-	}
+	addSource := c != nil && c.AddSource
 
 	h := slog.HandlerOptions{
 		Level:     level,

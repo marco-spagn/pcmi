@@ -115,9 +115,10 @@ func TestMassiveRealisticMultiAgentWorkload(t *testing.T) {
 
 	wg.Wait()
 
-	// Final large retrieval (what a nightly job or human would do)
+	// Final large retrieval (what a nightly job or human would do).
+	// PathPrefix empty matches all entries in the stress mock.
 	resp, err := svc.Retrieve(ctx, &model.RetrieveRequest{
-		PathPrefix: "agent.",
+		PathPrefix: "",
 		Limit:      100,
 	}, "tenant-massive-real")
 	if err != nil {

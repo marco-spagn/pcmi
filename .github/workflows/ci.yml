@@ -263,6 +263,49 @@ jobs:
         run: |
           go test -tags=massive -count=1 -timeout=5m ./internal/service -run TestMassiveRealisticMultiAgentWorkload -v
 
+  test-massive-live:
+    name: Massive workload via HTTP (docker compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [go, golangci-lint]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create .env for compose
+        run: |
+          cat > .env <<'ENVEOF'
+          DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi?sslmode=disable
+          REDIS_ADDR=redis:6379
+          API_PORT=8000
+          RATE_LIMIT_DISABLED=true
+          EMBEDDING_MODEL=text-embedding-3-small
+          ENVEOF
+
+      - name: Install tooling
+        run: sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Start stack
+        run: docker compose up -d --build --wait
+
+      - name: Run massive curl smoke
+        env:
+          PCMI_BASE_URL: http://127.0.0.1:8000
+          PCMI_API_KEY: testkey123
+        run: |
+          chmod +x scripts/ci_massive_curl_smoke.sh
+          ./scripts/ci_massive_curl_smoke.sh
+
+      - name: Show compose logs on failure
+        if: failure()
+        run: docker compose logs --tail=200 || true
+
+      - name: Cleanup
+        if: always()
+        run: docker compose down -v --remove-orphans
+
   integration-smoke:
     name: Integration smoke (Postgres + Redis)
     runs-on: ubuntu-latest

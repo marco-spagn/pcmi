@@ -14,43 +14,6 @@ Agents are ephemeral. Organizational memory should not be.
 
 ---
 
-## Quickstart
-
-```bash
-git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
-bash scripts/quickstart.sh
-```
-
-The script starts a full Docker Compose stack, stores sample memories, runs retrieval, triggers distillation, and prints a summary — all in under 3 minutes.
-
-**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For Go development: **Go 1.25+**.
-
-After the script finishes, the dev API key is **`testkey123`** (admin role). Configuration reference: [`.env.example`](.env.example).
-
-| Service | Port | Purpose |
-|---------|------|---------|
-| HTTP API | `8000` | REST + SSE + admin UI + Prometheus `/metrics` |
-| gRPC | `50051` | High-throughput memory and admin operations |
-| PostgreSQL | `5432` | Primary store with `pgvector` |
-| Redis | `6379` | Event bus (streams) and worker coordination |
-
-### Docker images
-
-Pre-built multi-arch images (`linux/amd64`, `linux/arm64`) on every release and every push to `main`:
-
-```bash
-docker pull ghcr.io/marco-spagn/pcmi:latest     # latest release
-docker pull ghcr.io/marco-spagn/pcmi:v1.49.0     # specific version
-docker pull ghcr.io/marco-spagn/pcmi:main         # tip of main
-
-docker run --rm -p 8000:8000 \
-  -e DATABASE_URL="postgres://user:pass@host:5432/db?sslmode=disable" \
-  -e REDIS_ADDR="redis:6379" \
-  ghcr.io/marco-spagn/pcmi:latest
-```
-
----
-
 ## What PCMI does
 
 **Core memory.** Hierarchical `ltree` paths, append-only versioning, tags, TTL, optional field encryption. Content-hash deduplication at ingest.
@@ -193,6 +156,40 @@ make synth-generate PRESET=finance SYNTH_NUM=500
 
 # Distillation E2E (needs OPENAI_API_KEY)
 make distillation-e2e
+```
+
+### Quickstart
+
+```bash
+git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
+bash scripts/quickstart.sh
+```
+
+The script starts a full Docker Compose stack, stores sample memories, runs retrieval, triggers distillation, and prints a summary — all in under 3 minutes.
+
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For Go development: **Go 1.25+**.  
+After the script finishes, the dev API key is **`testkey123`** (admin role). Config reference: [`.env.example`](.env.example).
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| HTTP API | `8000` | REST + SSE + admin UI + Prometheus `/metrics` |
+| gRPC | `50051` | High-throughput memory and admin operations |
+| PostgreSQL | `5432` | Primary store with `pgvector` |
+| Redis | `6379` | Event bus (streams) and worker coordination |
+
+### Docker images
+
+Pre-built multi-arch images (`linux/amd64`, `linux/arm64`) on every release and every push to `main`:
+
+```bash
+docker pull ghcr.io/marco-spagn/pcmi:latest     # latest release
+docker pull ghcr.io/marco-spagn/pcmi:v1.49.0     # specific version
+docker pull ghcr.io/marco-spagn/pcmi:main         # tip of main
+
+docker run --rm -p 8000:8000 \
+  -e DATABASE_URL="postgres://user:pass@host:5432/db?sslmode=disable" \
+  -e REDIS_ADDR="redis:6379" \
+  ghcr.io/marco-spagn/pcmi:latest
 ```
 
 See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, conventions, and PR workflow. **[docs/local-ci.md](docs/local-ci.md)** covers reproducing CI locally.

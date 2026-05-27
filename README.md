@@ -7,125 +7,42 @@
 [![Container](https://img.shields.io/badge/ghcr.io-pcmi-blue?logo=docker)](https://ghcr.io/marco-spagn/pcmi)
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![API](https://img.shields.io/badge/API-v1.49.0-22c55e)](internal/version/version.go)
 
-**Durable, multi-tenant memory for AI agents** — outside the agent runtime, with HTTP and gRPC APIs, hybrid retrieval, background workers, and enterprise controls (RLS, RBAC, audit, observability).
+**Durable, multi-tenant memory for AI agents.** Persistent storage outside the agent runtime, with hybrid retrieval, background workers, and enterprise controls.
 
 Agents are ephemeral. Organizational memory should not be.
 
 ---
 
-## Table of contents
-
-- [Why PCMI](#why-pcmi)
-- [Features](#features)
-- [Quickstart (2 minutes)](#quickstart-2-minutes)
-  - [Docker](#docker)
-- [Usage examples](#usage-examples)
-- [Architecture](#architecture)
-- [APIs and clients](#apis-and-clients)
-- [Documentation](#documentation)
-- [Repository layout](#repository-layout)
-- [Development](#development)
-- [Contributing](#contributing)
-- [Security](#security)
-- [License](#license)
-
----
-
-## Why PCMI
-
-Production agents are replaced, upgraded, and sharded across teams. Without a shared memory layer:
-
-- Knowledge stays trapped in prompts, vector indexes, or vendor-specific chat history.
-- Deployments and model swaps force expensive re-ingestion.
-- Auditors cannot answer *what the system knew at decision time*.
-
-PCMI centralizes **versioned, path-scoped memories** in PostgreSQL, with optional embeddings, distillation, events, and webhooks — consumable from any agent framework or LLM provider.
-
-```mermaid
-flowchart LR
-  subgraph clients [Clients]
-    Agent[Agents / Apps]
-  end
-  subgraph pcmi [PCMI]
-    API[HTTP API :8000]
-    GRPC[gRPC :50051]
-    W[Worker]
-  end
-  DB[(PostgreSQL + pgvector)]
-  Redis[(Redis)]
-  Agent --> API
-  Agent --> GRPC
-  API --> DB
-  API --> Redis
-  GRPC --> DB
-  W --> DB
-  W --> Redis
-```
-
----
-
-## Features
-
-| Area | Capabilities |
-|------|----------------|
-| **Memory** | Hierarchical `ltree` paths, append-only versioning, tags, TTL, optional field encryption |
-| **Retrieve** | Hybrid ranking: BM25 + semantic + **importance** + **temporal decay**; `as_of` reads; keyset cursors |
-| **Sessions** | Agent sessions + working memory; promote to long-term (`/v1/sessions/*`) — [docs/SESSIONS.md](docs/SESSIONS.md) |
-| **Dedup** | Content-hash dedup at ingest (`none` / `skip` / `link` / `merge`) — env, tenant, or `X-Dedup-Mode` |
-| **Workers** | Embedding (circuit breaker), distillation, consolidation, pruning, compaction, expiry |
-| **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams |
-| **Integration** | Webhooks with **HMAC** (`timestamp.body`), idempotent store (`X-Idempotency-Key`), MCP stdio server |
-| **Graph** | Memory links, lineage (raw + distilled knowledge) |
-| **Security** | API-key RBAC + **rotation/lifecycle** (admin), PostgreSQL RLS, optional metrics Bearer token |
-| **Rate limit** | Per-key limits; **`RATE_LIMIT_BACKEND=redis`** for multi-instance API |
-| **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
-| **Admin** | Tenant/API-key CRUD + rotate/revoke (HTTP + gRPC), embedded UI at `GET /v1/admin/ui` |
-| **Lists** | Keyset pagination (`limit`, `cursor`, `after_id` where supported) on audit, history, distilled, webhooks, distillation, admin — see [docs/USAGE.md](docs/USAGE.md#paginazione-cursor-sulle-liste-pcmi-014) |
-
-Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (source of truth: [`internal/version/version.go`](internal/version/version.go)).
-
----
-
-## Quickstart (2 minutes)
+## Quickstart
 
 ```bash
 git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
 bash scripts/quickstart.sh
 ```
 
-The script checks dependencies, starts the full Docker Compose stack, stores sample memories across three scenarios (SOC alerts, trading signals, DevOps incidents), runs a hybrid retrieval query, triggers distillation, and prints a summary — all in under 3 minutes.
+The script starts a full Docker Compose stack, stores sample memories, runs retrieval, triggers distillation, and prints a summary — all in under 3 minutes.
 
-<!-- TODO: record and add docs/quickstart-demo.gif once the script is stable -->
-![PCMI Quickstart](docs/quickstart-demo.gif)
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For Go development: **Go 1.25+**.
 
-**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For local Go development: **Go 1.25+**.
-
-After migrations, the dev seed API key is **`testkey123`** (admin role). See [`.env.example`](.env.example) for all configuration options.
+After the script finishes, the dev API key is **`testkey123`** (admin role). Configuration reference: [`.env.example`](.env.example).
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| HTTP API | `8000` | REST + SSE + admin UI |
-| gRPC | `50051` | High-throughput memory + ops |
-| PostgreSQL | `5432` | Primary store |
-| Redis | `6379` | Events + worker coordination |
+| HTTP API | `8000` | REST + SSE + admin UI + Prometheus `/metrics` |
+| gRPC | `50051` | High-throughput memory and admin operations |
+| PostgreSQL | `5432` | Primary store with `pgvector` |
+| Redis | `6379` | Event bus (streams) and worker coordination |
 
-### Docker
+### Docker images
 
-Pre-built multi-arch images (`linux/amd64`, `linux/arm64`) are published to the GitHub Container Registry on every release and on every push to `main`:
+Pre-built multi-arch images (`linux/amd64`, `linux/arm64`) on every release and every push to `main`:
 
 ```bash
-# Latest stable release
-docker pull ghcr.io/marco-spagn/pcmi:latest
+docker pull ghcr.io/marco-spagn/pcmi:latest     # latest release
+docker pull ghcr.io/marco-spagn/pcmi:v1.49.0     # specific version
+docker pull ghcr.io/marco-spagn/pcmi:main         # tip of main
 
-# Specific version
-docker pull ghcr.io/marco-spagn/pcmi:v1.49.0
-
-# Tip of main (continuous delivery)
-docker pull ghcr.io/marco-spagn/pcmi:main
-
-# Run with your own postgres + redis
 docker run --rm -p 8000:8000 \
   -e DATABASE_URL="postgres://user:pass@host:5432/db?sslmode=disable" \
   -e REDIS_ADDR="redis:6379" \
@@ -134,20 +51,38 @@ docker run --rm -p 8000:8000 \
 
 ---
 
-## Usage examples
+## What PCMI does
 
-### HTTP (curl)
+**Core memory.** Hierarchical `ltree` paths, append-only versioning, tags, TTL, optional field encryption. Content-hash deduplication at ingest.
+
+**Hybrid retrieval.** BM25 + semantic + importance scoring + temporal decay. `as_of` point-in-time reads. Keyset cursor pagination.
+
+**Agent sessions.** Working memory scoped to a session, promote to long-term. See [docs/SESSIONS.md](docs/SESSIONS.md).
+
+**Background workers.** Embedding generation (with circuit breaker), LLM distillation, consolidation, pruning, expiry, contradiction detection.
+
+**Event system.** Redis Streams (default) or pub/sub. SSE streaming and gRPC streams for real-time consumers. Webhooks with HMAC signing.
+
+**Enterprise controls.** Multi-tenant with PostgreSQL Row-Level Security. API-key RBAC with rotation and lifecycle management. Rate limiting per key. Audit logging. Prometheus metrics and OpenTelemetry tracing.
+
+**Graph (experimental).** Memory links with typed edges (causal, temporal, contradicts, supports, related). Apache AGE-powered Cypher traversal, shortest-path chain reconstruction, and interactive graph visualization UI at `/v1/graph/ui`. See [docs/cognitive-graph.md](docs/cognitive-graph.md).
+
+---
+
+## Quick examples
+
+### Store and retrieve (curl)
 
 ```bash
 export PCMI_BASE_URL=http://localhost:8000
 export PCMI_API_KEY=testkey123
 
-# Store
+# Store a memory
 curl -s -X POST "$PCMI_BASE_URL/v1/memories" \
   -H "Content-Type: application/json" -H "X-API-Key: $PCMI_API_KEY" \
-  -d '{"path":"root.demo.note","content":"Hello PCMI","tags":["demo"],"embedding_model":"unspecified"}'
+  -d '{"path":"root.demo.note","content":"Hello PCMI","tags":["demo"]}'
 
-# Retrieve
+# Retrieve under a path prefix
 curl -s -X POST "$PCMI_BASE_URL/v1/retrieve" \
   -H "Content-Type: application/json" -H "X-API-Key: $PCMI_API_KEY" \
   -d '{"path_prefix":"root.demo","query":"","limit":10}'
@@ -180,7 +115,7 @@ curl -sN "$PCMI_BASE_URL/v1/events" \
   -H "Accept: text/event-stream"
 ```
 
-Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[sdk/README.md](sdk/README.md)**
+Full guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[sdk/README.md](sdk/README.md)**
 
 ---
 
@@ -203,149 +138,112 @@ sequenceDiagram
   W->>R: knowledge.distilled (optional)
 ```
 
-Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: **[docs/DATA-MODEL.md](docs/DATA-MODEL.md)** · Workers & events: **[docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md)**
+Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: **[docs/DATA-MODEL.md](docs/DATA-MODEL.md)** · Workers: **[docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md)**
 
 ---
 
-## APIs and clients
+## API surfaces
 
-| Surface | When to use |
-|---------|-------------|
-| **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus scrape at `GET /metrics`, admin UI |
-| **gRPC** | Agents, batch workloads, streaming retrieve/events; `MemoryService`, `AdminService`, `MetricsService` |
-| **SDKs** | Python & TypeScript thin HTTP clients — see [sdk/HTTP-API.md](sdk/HTTP-API.md) |
-| **MCP** | stdio server for Cursor / Claude — see [docs/MCP.md](docs/MCP.md) |
+| Surface | Best for |
+|---------|----------|
+| **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus, admin UI |
+| **gRPC** | Agents, batch workloads, streaming retrieve/events |
+| **Python SDK** | `pip install -e sdk/python` — async HTTP client |
+| **TypeScript SDK** | `npm install` from `sdk/typescript` — typed HTTP client |
+| **MCP** | stdio JSON-RPC for Cursor / Claude — `cmd/mcp` |
 
-| Resource | Location |
-|----------|----------|
-| OpenAPI 3 | [docs/openapi.yaml](docs/openapi.yaml) |
-| MCP server | [docs/MCP.md](docs/MCP.md) |
+| Reference | Location |
+|-----------|----------|
+| OpenAPI 3 spec | [docs/openapi.yaml](docs/openapi.yaml) |
 | gRPC protos | [proto/pcmi/v1/](proto/pcmi/v1/) |
 | gRPC ↔ HTTP matrix | [docs/grpc-vs-http.md](docs/grpc-vs-http.md) |
-
-**Note:** Official SDKs speak HTTP only. Use gRPC stubs for maximum throughput or streaming.
-
----
-
-## Documentation
-
-**Full index:** [docs/INDEX.md](docs/INDEX.md)
-
-| Document | Description |
-|----------|-------------|
-| [docs/USAGE.md](docs/USAGE.md) | End-to-end usage (HTTP, gRPC, env, paths) |
-| [docs/DATA-MODEL.md](docs/DATA-MODEL.md) | Schema, versioning, RLS |
-| [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) | Hybrid retrieve pipeline |
-| [docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md) | Background jobs, Redis, webhooks |
-| [docs/CODEBASE.md](docs/CODEBASE.md) | Go package map for contributors |
-| [docs/integration-testing.md](docs/integration-testing.md) | Integration test tags and SSE notes |
-| [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
-| [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
-| [docs/SESSIONS.md](docs/SESSIONS.md) | Agent sessions and working memory |
-| [docs/MCP.md](docs/MCP.md) | MCP stdio server for Cursor / Claude |
-| [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
-| [CHANGELOG.md](CHANGELOG.md) | Release history |
-
-Optional technical report (PDF build): [docs/papers/](docs/papers/).
-
----
-
-## Repository layout
-
-| Path | Description |
-|------|-------------|
-| [`cmd/api`](cmd/api) | HTTP + gRPC server, `/metrics`, admin UI |
-| [`cmd/mcp`](cmd/mcp) | MCP stdio server for AI agents (`pcmi-mcp`) |
-| [`cmd/worker`](cmd/worker) | Embedding, distillation, pruning, expiry |
-| [`internal/`](internal/) | Domain logic (handler, service, repository, worker, grpc) |
-| [`proto/`](proto/) | Protobuf definitions |
-| [`migrations/`](migrations/) | SQL schema (`001`–`012`) |
-| [`sdk/`](sdk/) | Python & TypeScript HTTP clients |
-| [`examples/`](examples/) | Celery, Temporal, LangChain, LlamaIndex, AutoGen, CrewAI samples |
-| [`deploy/helm/`](deploy/helm/) | Primary Kubernetes packaging |
-| [`deploy/k8s/`](deploy/k8s/) | Static manifests (non-Helm) |
-| [`k8s/`](k8s/) | **Deprecated** — use `deploy/helm/` |
-| [`scripts/`](scripts/) | CI smoke, distillation E2E, coverage |
-| [`.github/workflows/`](.github/workflows/) | CI, CodeQL |
-
-Container images: `Dockerfile.api`, `Dockerfile.worker` (root `Dockerfile` is legacy).
+| MCP setup | [docs/MCP.md](docs/MCP.md) |
 
 ---
 
 ## Development
 
 ```bash
-# Unit tests
-make test
+# Essential
+make test                          # unit tests
+make lint                          # golangci-lint v2
+make test-integration-bufconn      # gRPC integration (in-process)
 
-# Lint (golangci-lint v2)
-make lint
+# Full stack
+make infra-up                      # docker compose up
+make test-integration-live         # gRPC on :50051 (needs infra-up)
+make test-integration              # both bufconn + live
 
-# gRPC integration: in-process (bufconn) or live TCP on :50051
-make test-integration-bufconn   # Postgres only
-make infra-up && make test-integration-live   # full stack + dial :50051
-make test-integration           # both
+# CI parity
+make ci-like-github                # full CI pipeline locally
+make test-all-local                # compose + smoke + E2E
+make test-all-local-quick          # static/unit + lint only
 
-# SDK smoke (Python + TypeScript)
-make sdk-smoke
+# Feature-specific smokes (needs infra-up)
+make smoke-importance              # retrieval ranking
+make smoke-sessions                # agent sessions
+make smoke-dedup                   # ingest dedup
 
-# Full CI parity on host (~15–45+ min; auto-frees :5432 / :6379)
-make ci-like-github
-# alias: make test-all
+# SDK
+make sdk-smoke                     # Python + TypeScript
 
-# Broad local suite (compose + smoke; also auto-frees ports)
-make test-all-local
-# Faster: make test-all-local-quick
+# Synthetic data
+make synth-list                    # list presets
+make synth-generate PRESET=finance SYNTH_NUM=500
 
-# Synthetic data (JSONL only, any preset)
-make synth-list
-make synth-generate PRESET=finance SYNTH_NUM=500 SYNTH_SEED=42
-
-# Distillation end-to-end (requires OPENAI_API_KEY in .env)
+# Distillation E2E (needs OPENAI_API_KEY)
 make distillation-e2e
-make distillation-e2e PRESET=advertising SYNTH_NUM=200 SYNTH_SEED=1
-
-# Feature smokes (API on :8000 after make infra-up)
-make smoke-importance   # PCMI-009 retrieve ranking
-make smoke-sessions     # PCMI-010 sessions curl E2E
-make smoke-dedup        # PCMI-011 ingest dedup
-
-# Full local validation: CI parity + optional OpenAI E2E + smokes + MCP
-make test-full-real
-
-# Dev ops
-make admin-list-keys    # list tenants/keys from Postgres (hash prefix only)
-make free-dev-ports     # free :5432 / :6379 before compose or act
 ```
 
-| Target | What it validates |
-|--------|-------------------|
-| `make test-streams-integration` | Redis Streams bus (`EVENT_BACKEND=streams`) |
-| `make test-circuit-breaker` | Embedding circuit breaker + worker fast-fail |
-| `make test-ratelimit-integration` | `RATE_LIMIT_BACKEND=redis` (miniredis) |
-| `make test-idempotency` | `X-Idempotency-Key` middleware + repository |
-| `make test-key-lifecycle` | Admin rotate/revoke API keys |
-| `make test-retrieval-scoring` | Importance + temporal decay SQL |
-| `make test-sessions-integration` | Sessions handler (Postgres + migration 016) |
-| `make test-dedup` | Content-hash dedup at ingest |
-| `make test-integration-live` | gRPC TCP on `:50051` (after `make infra-up`) |
-| `make test-mcp-unit` / `make test-mcp-smoke` | MCP stdio server |
+See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, conventions, and PR workflow. **[docs/local-ci.md](docs/local-ci.md)** covers reproducing CI locally.
 
-**CI on GitHub:** workflows run on every push/PR (or via `gh workflow run CI`). The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
+---
 
-**Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main` (CI commits it on `main` when coverage changes; see [docs/github-branch-protection.md](docs/github-branch-protection.md) for ruleset bypass). CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
+## Documentation index
+
+| Topic | Document |
+|-------|----------|
+| End-to-end usage (HTTP, gRPC, env, paths) | [docs/USAGE.md](docs/USAGE.md) |
+| Schema, versioning, RLS | [docs/DATA-MODEL.md](docs/DATA-MODEL.md) |
+| Hybrid retrieval pipeline | [docs/retrieval-pipeline.md](docs/retrieval-pipeline.md) |
+| Background workers and events | [docs/WORKERS-AND-EVENTS.md](docs/WORKERS-AND-EVENTS.md) |
+| Agent sessions and working memory | [docs/SESSIONS.md](docs/SESSIONS.md) |
+| Cognitive Graph (AGE + Cypher) | [docs/cognitive-graph.md](docs/cognitive-graph.md) |
+| Go package map | [docs/CODEBASE.md](docs/CODEBASE.md) |
+| Integration testing | [docs/integration-testing.md](docs/integration-testing.md) |
+| MCP server for Cursor / Claude | [docs/MCP.md](docs/MCP.md) |
+| Kubernetes / Helm | [deploy/helm/README.md](deploy/helm/README.md) |
+| Release history | [CHANGELOG.md](CHANGELOG.md) |
+| Full doc index | [docs/INDEX.md](docs/INDEX.md) |
+
+---
+
+## Repository layout
+
+| Path | What |
+|------|------|
+| [`cmd/api`](cmd/api) | HTTP + gRPC server entrypoint |
+| [`cmd/worker`](cmd/worker) | Background worker entrypoint |
+| [`cmd/mcp`](cmd/mcp) | MCP stdio server |
+| [`internal/`](internal/) | Domain logic (handler, service, repository, worker, graph) |
+| [`migrations/`](migrations/) | SQL migrations |
+| [`proto/`](proto/) | Protobuf definitions |
+| [`sdk/`](sdk/) | Python and TypeScript clients |
+| [`deploy/helm/`](deploy/helm/) | Kubernetes Helm chart |
+| [`scripts/`](scripts/) | CI, smoke tests, E2E, coverage |
+| [`.github/workflows/`](.github/workflows/) | CI, CodeQL, release pipelines |
 
 ---
 
 ## Contributing
 
-We welcome issues and pull requests. Please read **[CONTRIBUTING.md](CONTRIBUTING.md)** before opening a PR (setup, tests, versioning, migrations, proto conventions).
+Issues and pull requests welcome. Read **[CONTRIBUTING.md](CONTRIBUTING.md)** before opening a PR.
 
 ---
 
 ## Security
 
-Report vulnerabilities **privately** — do not open public issues for security bugs. See **[SECURITY.md](SECURITY.md)** for disclosure process and SLAs.
+Report vulnerabilities privately — do not open public issues. See **[SECURITY.md](SECURITY.md)** for the disclosure process.
 
 ---
 

@@ -647,3 +647,169 @@ func TestRegisterGraphRoutes_CypherRouteRegistered(t *testing.T) {
 		t.Fatalf("cypher without AGE: status %d want 501", resp.StatusCode)
 	}
 }
+
+// ─── FindRelated pagination edge cases ───────────────────────────────────────
+
+func TestGraphHandler_FindRelated_LimitTooHigh(t *testing.T) {
+	related := []graph.RelatedMemory{{ID: 1, LinkType: graph.LinkTypeRelated, Depth: 1}}
+	fake := &fakeGraphClient{available: true, related: related, relatedTot: 1}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&limit=999", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	// Handler rejects limit > 200 silently → falls back to default 50.
+	if fake.lastLimit != 50 {
+		t.Errorf("limit 999 should fall back to default 50, got %d", fake.lastLimit)
+	}
+}
+
+func TestGraphHandler_FindRelated_NegativeLimit(t *testing.T) {
+	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&limit=-5", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	if fake.lastLimit != 50 {
+		t.Errorf("negative limit should use default 50, got %d", fake.lastLimit)
+	}
+}
+
+func TestGraphHandler_FindRelated_NegativeOffset(t *testing.T) {
+	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&offset=-10", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	// Negative offset is rejected → falls back to default 0.
+	if fake.lastOffset != 0 {
+		t.Errorf("negative offset should fall back to 0, got %d", fake.lastOffset)
+	}
+}
+
+func TestGraphHandler_FindRelated_WhitespaceLinkTypes(t *testing.T) {
+	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&link_types=,causal,,temporal,", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("whitespace link_types: status %d want 200", resp.StatusCode)
+	}
+}
+
+// ─── FindChain extra handler edge cases ──────────────────────────────────────
+
+func TestGraphHandler_FindChain_MaxDepthClamped(t *testing.T) {
+	fake := &fakeGraphClient{available: true, chainResult: &graph.ChainResult{FromID: 1, ToID: 2}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/chain?from=1&to=2&max_depth=999", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindChain_NegativeMaxDepth(t *testing.T) {
+	fake := &fakeGraphClient{available: true, chainResult: &graph.ChainResult{FromID: 1, ToID: 2}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/chain?from=1&to=2&max_depth=-1", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("negative max_depth: status %d want 200", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindChain_LinkTypes(t *testing.T) {
+	chainResult := &graph.ChainResult{
+		FromID: 1, ToID: 42, Connected: true, Hops: 1,
+		Path: []graph.ChainLink{{FromID: 1, ToID: 42, LinkType: graph.LinkTypeCausal, HopIndex: 0}},
+	}
+	fake := &fakeGraphClient{available: true, chainResult: chainResult}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/chain?from=1&to=42&link_types=causal,contradicts", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+}
+
+// ─── ExecuteCypher extra handler edge cases ──────────────────────────────────
+
+func TestGraphHandler_ExecuteCypher_EmptyBody(t *testing.T) {
+	req := httptest.NewRequest("POST", "/v1/graph/cypher", strings.NewReader(""))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := newGraphApp("tid", "write", &fakeGraphClient{available: true}).Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("empty body: status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_ExecuteCypher_InvalidJSON(t *testing.T) {
+	req := httptest.NewRequest("POST", "/v1/graph/cypher", strings.NewReader("{bad json"))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := newGraphApp("tid", "write", &fakeGraphClient{available: true}).Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("invalid JSON: status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_ExecuteCypher_NoContentType(t *testing.T) {
+	// Without Content-Type, Fiber's BodyParser may still try to parse.
+	resp, err := newGraphApp("tid", "write", &fakeGraphClient{available: true}).
+		Test(httptest.NewRequest("POST", "/v1/graph/cypher", strings.NewReader(`{"query":""}`)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	// Empty query is rejected
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+// ─── NewGraphHandler nil-safe ────────────────────────────────────────────────
+
+func TestNewGraphHandler_NilClient(t *testing.T) {
+	h := NewGraphHandler(nil)
+	if h == nil {
+		t.Fatal("NewGraphHandler must never return nil")
+	}
+}
+
+// ─── Health handler nil-safe ──────────────────────────────────────────────────
+// Nil client is not a valid use case — NewGraphHandler always receives a
+// non-nil client from RegisterGraphRoutes. A nil client panics (by design).

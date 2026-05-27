@@ -53,6 +53,9 @@ func (w *ContradictionWorker) OnMemoryEvent(tenantID, path string) {
 	if tenantID == "" || path == "" {
 		return
 	}
+	if w.db == nil {
+		return
+	}
 	prefix := parentPrefix(path)
 	if prefix == "" {
 		return

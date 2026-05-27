@@ -11,7 +11,7 @@ func IsUnauthenticatedProbe(method, path string) bool {
 		return false
 	}
 	switch path {
-	case "/health", "/v1/health", "/metrics", "/ready", "/v1/ready", "/v1/graph/health":
+	case "/health", "/v1/health", "/metrics", "/ready", "/v1/ready", "/v1/graph/health", "/v1/graph/ui":
 		return true
 	default:
 		return false

@@ -459,3 +459,339 @@ func TestFindRelated_NegativeOffset(t *testing.T) {
 		t.Fatalf("negative offset should not error: %v", err)
 	}
 }
+
+// ─── FindRelated link types edge cases ──────────────────────────────────────
+
+func TestFindRelated_LinkTypesWithSpecialChars(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal-injection", "has space"}, 3, 0, 50)
+	if err != nil {
+		t.Fatalf("link types with special chars: %v", err)
+	}
+}
+
+func TestFindRelated_NilClient(t *testing.T) {
+	var gc *GraphClient
+	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 50)
+	if err != nil {
+		t.Fatalf("nil receiver: unexpected error: %v", err)
+	}
+	if len(result.Memories) != 0 {
+		t.Errorf("nil receiver: expected empty, got %d", len(result.Memories))
+	}
+}
+
+// ─── parseAGEPath extra coverage ─────────────────────────────────────────────
+
+func TestParseAGEPath_MalformedVertices(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"bad-json
+	]`)
+	links := parseAGEPath(path)
+	if links != nil {
+		t.Errorf("malformed path: got %v want nil", links)
+	}
+}
+
+func TestParseAGEPath_EmptyEdgeLabel(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}}
+	]`)
+	links := parseAGEPath(path)
+	if len(links) != 1 {
+		t.Fatalf("expected 1 link even with empty label, got %d", len(links))
+	}
+	if links[0].LinkType != "" {
+		t.Errorf("expected empty link type, got %q", links[0].LinkType)
+	}
+}
+
+func TestParseAGEPath_SingleHop(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.10"}},
+		{"id": 20, "label": "supports", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.20"}}
+	]`)
+	links := parseAGEPath(path)
+	if len(links) != 1 {
+		t.Fatalf("expected 1 link, got %d", len(links))
+	}
+	if links[0].FromID != 10 || links[0].ToID != 20 {
+		t.Errorf("link: {from=%d to=%d} want {from=10 to=20}", links[0].FromID, links[0].ToID)
+	}
+	if links[0].LinkType != "supports" {
+		t.Errorf("link type: got %q want supports", links[0].LinkType)
+	}
+	if links[0].HopIndex != 0 {
+		t.Errorf("hop index: got %d want 0", links[0].HopIndex)
+	}
+}
+
+func TestParseAGEPath_MissingVertexProperties(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {}}
+	]`)
+	links := parseAGEPath(path)
+	if len(links) != 1 {
+		t.Fatalf("expected 1 link, got %d", len(links))
+	}
+	if links[0].FromID != 0 || links[0].ToID != 0 {
+		t.Errorf("expected zero IDs for missing vertex properties, got from=%d to=%d", links[0].FromID, links[0].ToID)
+	}
+}
+
+// ─── autoTenantScopeCypher extra coverage ────────────────────────────────────
+
+func TestAutoTenantScopeCypher_MultipleMemoryNodes(t *testing.T) {
+	// First :Memory alias is used for tenant scoping.
+	got, err := autoTenantScopeCypher(
+		"MATCH (a:Memory)-[r]->(b:Memory) RETURN a, b",
+		"t1",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "a.tenant_id = 't1'") {
+		t.Errorf("expected filter on first alias 'a', got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_ComplexWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher(
+		"MATCH (n:Memory) WHERE n.score > 0.5 AND n.status = 'active' RETURN n.id, n.score ORDER BY n.score DESC",
+		"my-tenant",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "n.tenant_id = 'my-tenant'") {
+		t.Errorf("tenant filter not found in: %q", got)
+	}
+	if !strings.Contains(got, "AND (") {
+		t.Errorf("existing WHERE conditions should be wrapped: %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_WhitespaceInAlias(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH ( m :Memory) RETURN m", "t1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "m.tenant_id = 't1'") {
+		t.Errorf("expected alias 'm' with whitespace handling, got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_SingleQuotesInTenantID(t *testing.T) {
+	_, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n", "tenant'DROP")
+	if err != nil {
+		t.Fatalf("should not error — tenantID injected as literal: %v", err)
+	}
+}
+
+// ─── FindChain age-not-available edge cases ──────────────────────────────────
+
+func TestFindChain_WithLinkTypes_AGENotAvailable(t *testing.T) {
+	gc := NewGraphClient(nil)
+	result, err := gc.FindChain(context.Background(), "t", 1, 42, []string{LinkTypeCausal, LinkTypeContradicts}, 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Connected {
+		t.Error("expected Connected=false")
+	}
+}
+
+func TestFindChain_NilClient(t *testing.T) {
+	var gc *GraphClient
+	result, err := gc.FindChain(context.Background(), "t", 1, 42, nil, 10)
+	if err != nil {
+		t.Fatalf("nil receiver: unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result from nil receiver")
+	}
+}
+
+// ─── ExecuteCypher extra validation ──────────────────────────────────────────
+
+func TestExecuteCypher_EmptyQuery(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "  ")
+	if err == nil {
+		t.Fatal("expected error for whitespace-only query")
+	}
+}
+
+func TestExecuteCypher_LowercaseMatch(t *testing.T) {
+	gc := NewGraphClient(nil) // nil db means AGE not available, but validation runs first
+	_, err := gc.ExecuteCypher(context.Background(), "t", "match (n:Memory) return n")
+	// Validation passes (prefix check is case-insensitive), then fails at AGE availability.
+	if err == nil {
+		t.Fatal("expected error for AGE unavailable")
+	}
+	if !strings.Contains(err.Error(), "cognitive graph not available") {
+		t.Errorf("expected AGE-unavailable error, got: %v", err)
+	}
+}
+
+func TestExecuteCypher_UpperCaseDangerousKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n) DELETE n")
+	if err == nil {
+		t.Fatal("expected error for DELETE keyword")
+	}
+}
+
+func TestExecuteCypher_MixedCaseMatch(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "Match (n:Memory) Return n Limit 5")
+	if err == nil {
+		t.Fatal("expected error for AGE unavailable after passing validation")
+	}
+}
+
+// ─── CreateLink edge cases ───────────────────────────────────────────────────
+
+func TestCreateLink_NilClient_ReturnsError(t *testing.T) {
+	var gc *GraphClient
+	err := gc.CreateLink(context.Background(), "t", 1, 2, LinkTypeCausal, 1.0)
+	if err == nil {
+		t.Fatal("nil receiver must return error")
+	}
+}
+
+func TestCreateLink_WithContradictsType(t *testing.T) {
+	gc := NewGraphClient(nil)
+	err := gc.CreateLink(context.Background(), "t", 1, 2, LinkTypeContradicts, 0.5)
+	if err == nil {
+		t.Fatal("nil db must return error")
+	}
+}
+
+func TestCreateLink_ZeroWeight(t *testing.T) {
+	gc := NewGraphClient(nil)
+	err := gc.CreateLink(context.Background(), "t", 1, 2, LinkTypeSupports, 0)
+	if err == nil {
+		t.Fatal("nil db must return error")
+	}
+}
+
+// ─── SyncMemoryLink edge cases ───────────────────────────────────────────────
+
+func TestSyncMemoryLink_ZeroWeight(t *testing.T) {
+	gc := NewGraphClient(nil)
+	// Must not panic with zero weight
+	gc.SyncMemoryLink(context.Background(), "t", "memory.1", "memory.2", LinkTypeCausal, 0)
+}
+
+func TestSyncMemoryLink_NegativeWeight(t *testing.T) {
+	gc := NewGraphClient(nil)
+	gc.SyncMemoryLink(context.Background(), "t", "memory.1", "memory.2", LinkTypeCausal, -1.0)
+}
+
+func TestSyncMemoryLink_NilClient(t *testing.T) {
+	var gc *GraphClient
+	gc.SyncMemoryLink(context.Background(), "t", "memory.1", "memory.2", LinkTypeCausal, 1.0)
+}
+
+// ─── sanitizeLinkType extended ───────────────────────────────────────────────
+
+func TestSanitizeLinkType_Unicode(t *testing.T) {
+	got := sanitizeLinkType("café")
+	if got != "caf_" {
+		t.Errorf("unicode chars should be replaced: got %q want caf_", got)
+	}
+}
+
+func TestSanitizeLinkType_AllValidChars(t *testing.T) {
+	got := sanitizeLinkType("ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789")
+	if got != "ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789" {
+		t.Errorf("all valid chars should pass through unchanged: got %q", got)
+	}
+}
+
+func TestSanitizeLinkType_SQLKeywords(t *testing.T) {
+	got := sanitizeLinkType("SELECT; DROP TABLE memory_links;--")
+	if !strings.Contains(got, "SELECT") && len(got) > 5 {
+		// Semi-colons and dashes become underscores
+		if strings.Contains(got, ";") || strings.Contains(got, "-") {
+			t.Errorf("special chars should be sanitized: %q", got)
+		}
+	}
+}
+
+// ─── IsAvailable with mock pool-like checks ──────────────────────────────────
+
+func TestIsAvailable_DefaultZeroValue(t *testing.T) {
+	gc := &GraphClient{} // db is nil (zero value)
+	if gc.IsAvailable(context.Background()) {
+		t.Error("zero-value GraphClient (db=nil) must report unavailable")
+	}
+}
+
+// ─── FindChain with link types filtering ─────────────────────────────────────
+
+func TestFindChain_DangerousLinkTypeSanitised(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.FindChain(context.Background(), "t", 1, 2, []string{"causal; DROP"}, 5)
+	if err != nil {
+		t.Fatalf("sanitised link type should not error: %v", err)
+	}
+}
+
+// ─── Roundtrip: parseMemoryVertexID + ID formatting ──────────────────────────
+
+func TestParseMemoryVertexID_ExtraQuotes(t *testing.T) {
+	id, err := parseMemoryVertexID(`""memory.99""`)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != 99 {
+		t.Errorf("expected 99, got %d", id)
+	}
+}
+
+func TestParseMemoryVertexID_LeadingWhitespace(t *testing.T) {
+	// parseMemoryVertexID does NOT trim spaces — only quotes and the "memory." prefix.
+	_, err := parseMemoryVertexID(`  memory.123`)
+	if err == nil {
+		t.Fatal("expected error for leading whitespace (not trimmed by parseMemoryVertexID)")
+	}
+}
+
+// ─── RelatedResult edge cases ────────────────────────────────────────────────
+
+func TestRelatedResult_Empty(t *testing.T) {
+	rr := &RelatedResult{}
+	if rr.Memories != nil {
+		t.Errorf("zero-value Memories should be nil, got %v", rr.Memories)
+	}
+	if rr.Total != 0 {
+		t.Errorf("zero-value Total should be 0, got %d", rr.Total)
+	}
+}
+
+// ─── ChainResult empty path ──────────────────────────────────────────────────
+
+func TestChainResult_EmptyPath(t *testing.T) {
+	cr := &ChainResult{FromID: 1, ToID: 2, Connected: false, Path: []ChainLink{}}
+	if len(cr.Path) != 0 {
+		t.Errorf("expected 0 path entries, got %d", len(cr.Path))
+	}
+}
+
+// ─── CypherResult empty rows ─────────────────────────────────────────────────
+
+func TestCypherResult_EmptyRows(t *testing.T) {
+	cr := &CypherResult{Columns: []string{"result"}, Rows: nil}
+	if cr.Rows != nil {
+		t.Error("nil rows should remain nil")
+	}
+}

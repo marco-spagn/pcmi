@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCMI Cognitive Graph Explorer</title>
+<script src="https://unpkg.com/vis-network@9.1.6/dist/vis-network.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
+.header { background: #1e293b; padding: 12px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 16px; }
+.header h1 { font-size: 18px; font-weight: 600; color: #38bdf8; }
+.header .status { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+.status.on { background: #064e3b; color: #34d399; }
+.status.off { background: #451a03; color: #fbbf24; }
+.status.err { background: #450a0a; color: #f87171; }
+.controls { background: #1e293b; padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid #334155; }
+.controls label { font-size: 12px; color: #94a3b8; }
+.controls input[type=text], .controls input[type=number] { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 120px; }
+.controls input[type=text]:focus, .controls input[type=number]:focus { outline: none; border-color: #38bdf8; }
+.controls button { background: #0284c7; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
+.controls button:hover { background: #0369a1; }
+.controls button:disabled { opacity: 0.5; cursor: default; }
+.link-types { display: flex; gap: 8px; flex-wrap: wrap; }
+.link-types label { display: flex; align-items: center; gap: 3px; font-size: 12px; cursor: pointer; }
+#graph { flex: 1; min-height: 400px; }
+.info-panel { position: absolute; bottom: 12px; right: 12px; background: #1e293bcc; backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 8px; font-size: 11px; color: #94a3b8; border: 1px solid #334155; max-width: 280px; }
+.api-key-area { display: flex; align-items: center; gap: 6px; }
+.api-key-area input { width: 260px !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🧠 Cognitive Graph Explorer</h1>
+  <span id="age-status" class="status off">checking AGE...</span>
+  <span style="font-size:11px;color:#64748b;margin-left:auto;">nodes <b id="node-count">0</b></span>
+  <span style="font-size:11px;color:#64748b;">edges <b id="edge-count">0</b></span>
+</div>
+
+<div class="controls">
+  <div class="api-key-area">
+    <label>API Key</label>
+    <input type="text" id="api-key" placeholder="sk-..." autocomplete="off">
+  </div>
+  <label>Memory ID</label>
+  <input type="number" id="mem-id" value="1" min="1">
+  <label>Depth</label>
+  <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
+  <div class="link-types" id="link-types">
+    <label><input type="checkbox" value="causal" checked> causal</label>
+    <label><input type="checkbox" value="temporal"> temporal</label>
+    <label><input type="checkbox" value="contradicts"> contradicts</label>
+    <label><input type="checkbox" value="supports"> supports</label>
+    <label><input type="checkbox" value="related"> related</label>
+  </div>
+  <button id="btn-explore" onclick="explore()">Explore</button>
+  <button id="btn-chain" onclick="findChain()" style="background:#475569;" disabled>Find Chain</button>
+  <button id="btn-clear" onclick="clearGraph()" style="background:#334155;">Clear</button>
+</div>
+
+<div id="graph"></div>
+<div class="info-panel" id="info-panel">
+  Click a node for details<br>Double-click to expand<br>Drag to rearrange
+</div>
+
+<script>
+const apiUrl = window.location.origin;
+let network = null;
+let nodesData = new vis.DataSet([]);
+let edgesData = new vis.DataSet([]);
+let selectedNode = null;
+
+// Restore API key
+const savedKey = localStorage.getItem('pcmi_graph_apikey');
+if (savedKey) document.getElementById('api-key').value = savedKey;
+document.getElementById('api-key').addEventListener('change', function() {
+  localStorage.setItem('pcmi_graph_apikey', this.value);
+});
+
+function apiKey() {
+  return document.getElementById('api-key').value.trim();
+}
+
+function authHeaders() {
+  const key = apiKey();
+  return key ? { 'Authorization': 'Bearer ' + key } : {};
+}
+
+// Check AGE on load
+(async function checkHealth() {
+  const st = document.getElementById('age-status');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/health');
+    const data = await r.json();
+    if (data.available) {
+      st.textContent = 'AGE ready';
+      st.className = 'status on';
+    } else {
+      st.textContent = 'AGE not available';
+      st.className = 'status off';
+    }
+  } catch(e) {
+    st.textContent = 'API unreachable';
+    st.className = 'status err';
+  }
+})();
+
+// Initialize vis-network
+function initNetwork() {
+  const container = document.getElementById('graph');
+  const options = {
+    nodes: {
+      shape: 'dot',
+      size: 20,
+      font: { size: 12, color: '#e2e8f0', face: 'monospace' },
+      borderWidth: 2,
+      color: {
+        background: '#1e40af',
+        border: '#3b82f6',
+        highlight: { background: '#2563eb', border: '#60a5fa' }
+      }
+    },
+    edges: {
+      arrows: { to: { enabled: true, scaleFactor: 0.7 } },
+      font: { size: 10, color: '#94a3b8', face: 'monospace', align: 'middle' },
+      color: { color: '#475569', highlight: '#38bdf8' },
+      smooth: { type: 'curvedCW', roundness: 0.2 }
+    },
+    physics: {
+      solver: 'forceAtlas2Based',
+      forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 150, springConstant: 0.08 }
+    },
+    interaction: { hover: true, tooltipDelay: 100 }
+  };
+  network = new vis.Network(container, { nodes: nodesData, edges: edgesData }, options);
+
+  network.on('click', function(params) {
+    if (params.nodes.length > 0) {
+      selectedNode = params.nodes[0];
+      document.getElementById('btn-chain').disabled = false;
+      const node = nodesData.get(selectedNode);
+      document.getElementById('info-panel').innerHTML =
+        '<b>Node:</b> memory.' + node.id + '<br>' +
+        (node.title || '') +
+        '<br><small>Double-click to expand from this node</small>';
+    } else {
+      selectedNode = null;
+      document.getElementById('btn-chain').disabled = true;
+      document.getElementById('info-panel').innerHTML = 'Click a node for details<br>Double-click to expand<br>Drag to rearrange';
+    }
+  });
+
+  network.on('doubleClick', function(params) {
+    if (params.nodes.length > 0) {
+      const nodeId = params.nodes[0];
+      document.getElementById('mem-id').value = nodeId;
+      explore();
+    }
+  });
+}
+
+// Link type colors
+const linkColors = {
+  causal: '#ef4444',
+  temporal: '#f59e0b',
+  contradicts: '#ec4899',
+  supports: '#22c55e',
+  related: '#8b5cf6'
+};
+
+async function explore() {
+  const memId = document.getElementById('mem-id').value;
+  const depth = document.getElementById('depth').value;
+  const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
+
+  if (!memId || !apiKey()) {
+    alert('Enter an API key and Memory ID');
+    return;
+  }
+
+  document.getElementById('btn-explore').disabled = true;
+  try {
+    let url = apiUrl + '/v1/graph/related?memory_id=' + memId + '&depth=' + depth + '&limit=200';
+    if (selected) url += '&link_types=' + selected;
+
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      alert('Error ' + r.status + ': ' + (err.error || err.hint || r.statusText));
+      return;
+    }
+
+    const data = await r.json();
+    if (!network) initNetwork();
+
+    // Add root node
+    const rootId = parseInt(memId);
+    if (!nodesData.get(rootId)) {
+      nodesData.add({ id: rootId, label: 'memory.' + rootId, color: { background: '#b91c1c', border: '#ef4444' } });
+    }
+
+    // Add related nodes and edges
+    for (const entry of data.entries || []) {
+      if (!nodesData.get(entry.id)) {
+        nodesData.add({
+          id: entry.id,
+          label: 'memory.' + entry.id,
+          title: 'depth: ' + entry.depth + '\nlink: ' + entry.link_type,
+          color: {
+            background: depthColor(entry.depth),
+            border: linkColors[entry.link_type] || '#64748b'
+          }
+        });
+      }
+      const edgeId = rootId + '-' + entry.id + '-' + entry.link_type;
+      if (!edgesData.get(edgeId)) {
+        edgesData.add({
+          id: edgeId,
+          from: rootId,
+          to: entry.id,
+          label: entry.link_type,
+          color: { color: linkColors[entry.link_type] || '#64748b' }
+        });
+      }
+    }
+
+    document.getElementById('node-count').textContent = nodesData.length;
+    document.getElementById('edge-count').textContent = edgesData.length;
+    network.fit({ animation: { duration: 500 } });
+
+  } catch(e) {
+    alert('Request failed: ' + e.message);
+  } finally {
+    document.getElementById('btn-explore').disabled = false;
+  }
+}
+
+async function findChain() {
+  if (!selectedNode) { alert('Click a target node first'); return; }
+  const fromId = document.getElementById('mem-id').value;
+  const toId = selectedNode;
+  const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
+
+  document.getElementById('btn-chain').disabled = true;
+  try {
+    let url = apiUrl + '/v1/graph/chain?from=' + fromId + '&to=' + toId + '&max_depth=10';
+    if (selected) url += '&link_types=' + selected;
+
+    const r = await fetch(url, { headers: authHeaders() });
+    const data = await r.json();
+
+    if (data.connected && data.path) {
+      for (const hop of data.path) {
+        const edgeId = 'chain-' + hop.from_id + '-' + hop.to_id;
+        if (!edgesData.get(edgeId)) {
+          edgesData.add({
+            id: edgeId,
+            from: hop.from_id,
+            to: hop.to_id,
+            label: hop.link_type,
+            color: { color: '#fbbf24' },
+            width: 3
+          });
+        }
+      }
+      document.getElementById('edge-count').textContent = edgesData.length;
+      network.fit({ animation: true });
+    } else {
+      alert('No path found between memory.' + fromId + ' and memory.' + toId);
+    }
+  } catch(e) {
+    alert('Chain request failed: ' + e.message);
+  } finally {
+    document.getElementById('btn-chain').disabled = false;
+  }
+}
+
+function clearGraph() {
+  nodesData.clear();
+  edgesData.clear();
+  selectedNode = null;
+  document.getElementById('node-count').textContent = '0';
+  document.getElementById('edge-count').textContent = '0';
+  document.getElementById('btn-chain').disabled = true;
+}
+
+function depthColor(d) {
+  const colors = ['#1e40af', '#0e7490', '#15803d', '#854d0e', '#6b21a8', '#9d174d'];
+  return colors[Math.min(d, colors.length - 1)] || '#475569';
+}
+
+// Initialize network on first load
+initNetwork();
+</script>
+</body>
+</html>

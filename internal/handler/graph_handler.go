@@ -44,6 +44,9 @@ func RegisterGraphRoutes(app *fiber.App, graphClient *graph.GraphClient) {
 	app.Get("/v1/graph/related", h.FindRelated)
 	app.Get("/v1/graph/chain", h.FindChain)
 	app.Post("/v1/graph/cypher", middleware.RequireWriteRole, h.ExecuteCypher)
+
+	// Graph visual explorer (no auth — same as health).
+	RegisterGraphUIRoute(app)
 }
 
 // Health returns AGE availability.

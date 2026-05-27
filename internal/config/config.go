@@ -52,6 +52,10 @@ type Config struct {
 	ExpiryIntervalSecs   int
 	WebhookMaxAttempts   int
 
+	// Cognitive Graph — Contradiction Detection
+	ContradictionDetectionEnabled     bool
+	ContradictionDetectionIntervalSecs int
+
 	// Rate limiting
 	RateLimitDisabled    bool
 	RateLimitBackend     string // memory (default) or redis
@@ -115,6 +119,9 @@ func Load() *Config {
 		PruneIntervalSecs:    envInt("PRUNE_INTERVAL_SECS", 3600),
 		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),
 		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
+
+		ContradictionDetectionEnabled:     envBool("CONTRADICTION_DETECTION_ENABLED", true),
+		ContradictionDetectionIntervalSecs: envInt("CONTRADICTION_DETECTION_INTERVAL_SECS", 120),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
 		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),

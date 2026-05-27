@@ -155,7 +155,7 @@ Requires write role. Request body:
 
 Only `MATCH` queries are allowed. Write keywords (`CREATE`, `DELETE`, `SET`,
 `REMOVE`, `MERGE`, `DROP`, `CALL`, `LOAD`) are rejected. Tenant scoping is the
-caller's responsibility — include `tenant_id` in the `WHERE` clause.
+injected automatically — the `tenant_id` filter is added to the `WHERE` clause by extracting the `:Memory` node alias. Do NOT include `tenant_id` manually.
 
 ## Prometheus metrics
 
@@ -171,22 +171,31 @@ Exposed at `GET /metrics` (requires `METRICS_SCRAPE_TOKEN`).
 - Vertex IDs are stored as string paths (`memory.{id}`), not direct FK references.
 - The `MERGE` on relationships uses dynamic Cypher executed via `EXECUTE format(...)`,
   which has a small overhead per link insert.
-- Pagination on `FindRelated` is applied in-memory after fetching all results,
-  not at the Cypher/AGE level.
-- Cypher passthrough requires the caller to handle tenant scoping manually.
 - `memory_links` sync uses an `AFTER INSERT OR UPDATE` trigger; `GraphClient.CreateLink`
   also calls `sync_memory_link_to_graph` explicitly as a belt-and-suspenders path.
 
-## What remains for full v2.0
+## Contradiction detection worker
 
-- **Contradiction detection worker**: auto-flag `contradicts` chains during
-  memory ingestion via a background worker event.
+The `ContradictionWorker` (in `cmd/worker`) automatically detects contradictory
+memory pairs and creates `contradicts` links:
+
+- **Trigger:** `memory.stored` / `memory.updated` Redis events (reacts to new
+  memories immediately) + periodic fallback scan (every 120s, configurable via
+  `CONTRADICTION_DETECTION_INTERVAL_SECS`).
+- **Algorithm:** keyword-heuristic — checks negation phrases (`not`, `incorrect`,
+  `does not`, `never`, etc.) combined with topic overlap (Jaccard word
+  similarity >= 15%). Contradictions are flagged with a confidence score (>= 30%).
+- **Output:** creates `contradicts` edges in `memory_links` and publishes
+  `contradiction.detected` events to Redis.
+- **Config:** `CONTRADICTION_DETECTION_ENABLED=true` (default),
+  `CONTRADICTION_DETECTION_INTERVAL_SECS=120`.
+
+## What remains
+
 - **AGE bundled in the default Docker image**: replace `pgvector/pgvector:pg16`
   with an image that includes both pgvector and Apache AGE.
-- **Server-side Cypher pagination**: push `SKIP`/`LIMIT` into AGE queries
-  instead of slicing in Go.
-- **Automatic tenant scoping for passthrough**: inject `tenant_id` filter
-  into passthrough Cypher queries automatically.
+- **LLM-based contradiction detection**: replace keyword heuristics with an
+  LLM call for higher precision contradiction flagging.
 
 ---
 

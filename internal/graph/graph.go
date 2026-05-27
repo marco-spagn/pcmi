@@ -42,14 +42,20 @@ func (g *GraphClient) IsAvailable(ctx context.Context) bool {
 // When linkTypes is empty all edge types are matched.
 // Returns an empty slice (not an error) when AGE is unavailable.
 //
-// offset/limit enable pagination (applied in-memory for now).
-// Total is the count before pagination.
+// offset/limit are pushed to the Cypher query (SKIP/LIMIT).  Total is obtained
+// via a separate COUNT query for accurate pagination metadata.
 func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth, offset, limit int) (*RelatedResult, error) {
 	if !g.IsAvailable(ctx) {
 		return &RelatedResult{Memories: []RelatedMemory{}}, nil
 	}
 	if maxDepth < 1 {
 		maxDepth = 1
+	}
+	if limit <= 0 {
+		limit = 50
+	}
+	if offset < 0 {
+		offset = 0
 	}
 
 	// Build the Cypher path pattern, optionally filtering by relationship type.
@@ -62,18 +68,34 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		relPattern = fmt.Sprintf("[r:%s*1..%d]", strings.Join(quoted, "|"), maxDepth)
 	}
 
-	// Vertex id matches sync_memory_link_to_graph: ltree path "memory.<id>".
 	idStr := fmt.Sprintf("memory.%d", memoryID)
 
-	query := fmt.Sprintf(`
+	// Count query — lightweight, returns a single integer.
+	countQuery := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
 			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-`+relPattern+`->(n:Memory)
-			RETURN n.id, type(r[0]), length(r)
-		$cypher$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
+			RETURN count(n)
+		$cypher$) AS (cnt ag_catalog.agtype)`,
 		idStr, tenantID,
 	)
 
-	rows, err := g.db.Query(ctx, query)
+	var total int
+	var cntRaw []byte
+	if err := g.db.QueryRow(ctx, countQuery).Scan(&cntRaw); err == nil {
+		total, _ = strconv.Atoi(strings.Trim(string(cntRaw), `"`))
+	}
+
+	// Data query with server-side SKIP/LIMIT.
+	dataQuery := fmt.Sprintf(`
+		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
+			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-`+relPattern+`->(n:Memory)
+			RETURN n.id, type(r[0]), length(r)
+			SKIP %d LIMIT %d
+		$cypher$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
+		idStr, tenantID, offset, limit,
+	)
+
+	rows, err := g.db.Query(ctx, dataQuery)
 	if err != nil {
 		return nil, fmt.Errorf("graph FindRelated: %w", err)
 	}
@@ -95,17 +117,6 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("graph FindRelated rows: %w", err)
-	}
-
-	total := len(all)
-	if offset > 0 {
-		if offset >= len(all) {
-			return &RelatedResult{Memories: []RelatedMemory{}, Total: total}, nil
-		}
-		all = all[offset:]
-	}
-	if limit > 0 && limit < len(all) {
-		all = all[:limit]
 	}
 
 	return &RelatedResult{Memories: all, Total: total}, nil
@@ -226,13 +237,16 @@ func parseAGEPath(raw []byte) []ChainLink {
 
 // ExecuteCypher runs a read-only Cypher query against pcmi_memory_graph.
 // The query must start with MATCH and must not contain write keywords.
-// Tenant scoping is the caller's responsibility — include tenant_id in the query.
+// Tenant scoping is injected automatically: each :Memory node reference gets
+// filtered with alias.tenant_id = '<tenantID>'.  The caller must NOT include
+// tenant_id manually — it will be double-escaped if already present.
 func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string) (*CypherResult, error) {
 	if !g.IsAvailable(ctx) {
 		return nil, fmt.Errorf("cognitive graph not available")
 	}
 
-	upper := strings.ToUpper(strings.TrimSpace(query))
+	trimmed := strings.TrimSpace(query)
+	upper := strings.ToUpper(trimmed)
 	if !strings.HasPrefix(upper, "MATCH") {
 		return nil, fmt.Errorf("only MATCH queries are allowed in Cypher passthrough")
 	}
@@ -243,9 +257,14 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 		}
 	}
 
+	scopedQuery, err := autoTenantScopeCypher(trimmed, tenantID)
+	if err != nil {
+		return nil, err
+	}
+
 	fullQuery := fmt.Sprintf(
 		`SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$ %s $cypher$) AS (result ag_catalog.agtype)`,
-		query,
+		scopedQuery,
 	)
 
 	rows, err := g.db.Query(ctx, fullQuery)
@@ -274,6 +293,55 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 		Columns: []string{"result"},
 		Rows:    jsonRows,
 	}, nil
+}
+
+// autoTenantScopeCypher injects a tenant_id filter into a read-only Cypher query.
+// It finds the first :Memory node alias and adds `alias.tenant_id = '<tenantID>'`
+// to the WHERE clause.  Returns an error if no :Memory node is found.
+func autoTenantScopeCypher(query, tenantID string) (string, error) {
+	// Extract the alias of the first :Memory node — e.g. (n:Memory...) → "n".
+	alias := ""
+	upper := strings.ToUpper(query)
+	memIdx := strings.Index(upper, ":MEMORY")
+	if memIdx < 0 {
+		return "", fmt.Errorf("query must reference at least one :Memory node for tenant scoping")
+	}
+
+	// Walk backward from :MEMORY to find the opening paren and alias.
+	parenIdx := strings.LastIndex(query[:memIdx], "(")
+	if parenIdx < 0 {
+		return "", fmt.Errorf("invalid MATCH pattern: missing ( before :Memory")
+	}
+	aliasPart := strings.TrimSpace(query[parenIdx+1 : memIdx])
+	if idx := strings.IndexAny(aliasPart, " :{"); idx >= 0 {
+		alias = aliasPart[:idx]
+	} else {
+		alias = aliasPart
+	}
+	if alias == "" {
+		return "", fmt.Errorf("could not determine Memory node alias for tenant scoping")
+	}
+
+	// Find RETURN position (must exist).
+	returnIdx := strings.Index(upper, "RETURN")
+	if returnIdx < 0 {
+		return "", fmt.Errorf("query must contain a RETURN clause")
+	}
+
+	tenantFilter := fmt.Sprintf("%s.tenant_id = '%s'", alias, tenantID)
+
+	// Check for existing WHERE between MATCH start and RETURN.
+	whereIdx := strings.Index(upper, "WHERE")
+	if whereIdx >= 0 && whereIdx < returnIdx {
+		// Existing WHERE — inject tenant_id predicate at the front.
+		suffix := query[whereIdx+5:]
+		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + suffix + ")"
+	} else {
+		// No WHERE — insert one before RETURN.
+		query = query[:returnIdx] + "WHERE " + tenantFilter + " " + query[returnIdx:]
+	}
+
+	return query, nil
 }
 
 // CreateLink inserts a link into memory_links and syncs it to the AGE graph.

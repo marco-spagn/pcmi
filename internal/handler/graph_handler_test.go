@@ -525,7 +525,7 @@ func TestGraphHandler_ExecuteCypher_Success(t *testing.T) {
 		},
 	}
 	fake := &fakeGraphClient{available: true, cypherResult: cypherResult}
-	reqBody := strings.NewReader(`{"query": "MATCH (n:Memory) WHERE n.tenant_id = 'tid' RETURN n.id LIMIT 1"}`)
+	reqBody := strings.NewReader(`{"query": "MATCH (n:Memory) RETURN n.id LIMIT 1"}`)
 	req := httptest.NewRequest("POST", "/v1/graph/cypher", reqBody)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := newGraphApp("tid", "write", fake).Test(req)

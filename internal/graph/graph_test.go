@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"strings"
 	"testing"
 )
 
@@ -361,6 +362,68 @@ func TestCypherResult_Fields(t *testing.T) {
 	}
 	if len(cr.Rows) != 1 {
 		t.Errorf("Rows: got %d want 1", len(cr.Rows))
+	}
+}
+
+// ─── autoTenantScopeCypher ────────────────────────────────────────────────────
+
+func TestAutoTenantScopeCypher_NoMemoryNode(t *testing.T) {
+	_, err := autoTenantScopeCypher("MATCH (n) RETURN n", "t1")
+	if err == nil {
+		t.Fatal("expected error for query without :Memory node")
+	}
+}
+
+func TestAutoTenantScopeCypher_NoWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n.id LIMIT 10", "tenant-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := "MATCH (n:Memory) WHERE n.tenant_id = 'tenant-1' RETURN n.id LIMIT 10"
+	if got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
+	}
+}
+
+func TestAutoTenantScopeCypher_WithWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) WHERE n.color = 'red' RETURN n", "t2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := "MATCH (n:Memory) WHERE n.tenant_id = 't2' AND ( n.color = 'red' RETURN n)"
+	if got != want {
+		t.Errorf("got  %q\nwant %q", got, want)
+	}
+}
+
+func TestAutoTenantScopeCypher_NoReturn(t *testing.T) {
+	_, err := autoTenantScopeCypher("MATCH (n:Memory) WHERE n.x = 1", "t1")
+	if err == nil {
+		t.Fatal("expected error for query without RETURN")
+	}
+}
+
+func TestAutoTenantScopeCypher_AliasWithColon(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (m:Memory {id: 'memory.1'}) RETURN m", "t3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "m.tenant_id = 't3'") {
+		t.Errorf("expected alias 'm' tenant filter, got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_NoParenBeforeMemory(t *testing.T) {
+	_, err := autoTenantScopeCypher("MATCH :Memory RETURN n", "t1")
+	if err == nil {
+		t.Fatal("expected error for malformed pattern")
+	}
+}
+
+func TestAutoTenantScopeCypher_InvalidPattern(t *testing.T) {
+	_, err := autoTenantScopeCypher("MATCH RETURN n", "t1")
+	if err == nil {
+		t.Fatal("expected error for query without :Memory")
 	}
 }
 

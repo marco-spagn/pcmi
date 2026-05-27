@@ -38,14 +38,20 @@ api() {
 }
 
 # ── Health check ───────────────────────────────────────────────────────────
-hdr "Health check"
-RESP=$(api GET "/v1/health")
-HTTP_CODE=$(echo "$RESP" | tail -1)
-BODY=$(echo "$RESP" | sed '$d')
-if [ "$HTTP_CODE" != "200" ]; then
-  fail "API not healthy (HTTP $HTTP_CODE): $BODY"
-fi
-pass "API healthy — $(echo "$BODY" | jq -r '.version // "unknown"')"
+hdr "Health check — waiting for API"
+MAX_RETRIES=30
+for i in $(seq 1 $MAX_RETRIES); do
+  RESP=$(curl -s -o /dev/null -w '%{http_code}' "$PCMI_BASE_URL/v1/health" 2>/dev/null || echo "000")
+  if [ "$RESP" = "200" ]; then
+    break
+  fi
+  if [ "$i" -eq "$MAX_RETRIES" ]; then
+    fail "API not healthy after ${MAX_RETRIES} attempts (last status: $RESP)"
+  fi
+  sleep 2
+done
+API_VERSION=$(curl -s "$PCMI_BASE_URL/v1/health" | jq -r '.version // "unknown"')
+pass "API healthy — version $API_VERSION"
 
 # ── Massive agent workload ─────────────────────────────────────────────────
 hdr "Massive multi-agent workload (4 agents × 200 ops = 800 stores + 160 retrieves)"
@@ -77,12 +83,19 @@ for agent in "${AGENTS[@]}"; do
 
     path="agent.${agent}.${component}.${op}"
 
-    RESP=$(api POST "/v1/memories" "{\"path\":\"$path\",\"content\":\"$content\",\"tags\":$tags}")
-    HTTP_CODE=$(echo "$RESP" | tail -1)
+    # Retry up to 3 times on rate-limit (429)
+    for retry in 1 2 3; do
+      RESP=$(api POST "/v1/memories" "{\"path\":\"$path\",\"content\":\"$content\",\"tags\":$tags}")
+      HTTP_CODE=$(echo "$RESP" | tail -1)
+      [ "$HTTP_CODE" != "429" ] && break
+      sleep 0.2
+    done
 
     if [ "$HTTP_CODE" = "200" ]; then
       agent_stores=$((agent_stores + 1))
     fi
+    # Small pause to avoid overwhelming the API even with rate-limit off
+    [ $((op % 10)) -eq 0 ] && sleep 0.05
 
     # Every ~5th op: retrieve for this agent
     if [ $((op % 5)) -eq 0 ]; then
@@ -114,7 +127,7 @@ fi
 # ── Final retrieval verification ────────────────────────────────────────────
 hdr "Final retrieval verification"
 
-RESP=$(api POST "/v1/retrieve" "{\"path_prefix\":\"agent.\",\"limit\":100}")
+RESP=$(api POST "/v1/retrieve" "{\"path_prefix\":\"agent\",\"limit\":100}")
 HTTP_CODE=$(echo "$RESP" | tail -1)
 BODY=$(echo "$RESP" | sed '$d')
 
@@ -123,16 +136,16 @@ if [ "$HTTP_CODE" != "200" ]; then
 fi
 
 TOTAL=$(echo "$BODY" | jq -r '.total // 0')
-COUNT=$(echo "$BODY" | jq -r '.count // 0')
+ENTRY_COUNT=$(echo "$BODY" | jq -r '(.entries | length) // 0')
 
-info "Final retrieve: total=$TOTAL entries=$COUNT"
+info "Final retrieve: total=$TOTAL entries=$ENTRY_COUNT"
 
-if [ "$COUNT" -eq 0 ]; then
+if [ "$ENTRY_COUNT" -eq 0 ]; then
   fail "Final retrieve returned 0 entries — workload may not have persisted"
 fi
 
-if [ "$COUNT" -lt 10 ]; then
-  fail "Final retrieve returned only $COUNT entries — expected ≥ 10"
+if [ "$ENTRY_COUNT" -lt 10 ]; then
+  fail "Final retrieve returned only $ENTRY_COUNT entries — expected ≥ 10"
 fi
 
 # ── gRPC health check (optional) ────────────────────────────────────────────
@@ -148,5 +161,5 @@ hdr "Massive curl smoke PASSED"
 echo "  Agents:      ${#AGENTS[@]}"
 echo "  Stores:      $TOTAL_STORES"
 echo "  Retrieves:   $TOTAL_RETRIEVES"
-echo "  Final count: $COUNT"
+echo "  Final entries: $ENTRY_COUNT"
 echo "  Duration:    ${ELAPSED}s"

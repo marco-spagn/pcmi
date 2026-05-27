@@ -88,21 +88,7 @@ Current API version: see `version` on [`GET /v1/health`](docs/openapi.yaml) (sou
 
 ---
 
-## Quickstart (2 minutes)
 
-```bash
-git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
-bash scripts/quickstart.sh
-```
-
-The script checks dependencies, starts the full Docker Compose stack, stores sample memories across three scenarios (SOC alerts, trading signals, DevOps incidents), runs a hybrid retrieval query, triggers distillation, and prints a summary — all in under 3 minutes.
-
-<!-- TODO: record and add docs/quickstart-demo.gif once the script is stable -->
-![PCMI Quickstart](docs/quickstart-demo.gif)
-
-**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For local Go development: **Go 1.25+**.
-
-After migrations, the dev seed API key is **`testkey123`** (admin role). See [`.env.example`](.env.example) for all configuration options.
 
 | Service | Port | Purpose |
 |---------|------|---------|
@@ -334,6 +320,23 @@ make free-dev-ports     # free :5432 / :6379 before compose or act
 **CI on GitHub:** workflows run on every push/PR (or via `gh workflow run CI`). The `go` job runs integration tests against Postgres only (live gRPC skipped); **`integration-smoke`** starts the API and runs gRPC on `:50051`. See [CONTRIBUTING.md](CONTRIBUTING.md) and [docs/local-ci.md](docs/local-ci.md).
 
 **Coverage:** the badge reads [`badges/coverage.json`](badges/coverage.json) on `main` (CI commits it on `main` when coverage changes; see [docs/github-branch-protection.md](docs/github-branch-protection.md) for ruleset bypass). CI enforces a minimum total in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) (`COVERAGE_MIN_TOTAL`, currently **39%**). Local `make cover-check` defaults to a lower threshold for fast iteration.
+
+
+## Quickstart (2 minutes)
+
+```bash
+git clone https://github.com/marco-spagn/pcmi.git && cd pcmi
+bash scripts/quickstart.sh
+```
+
+The script checks dependencies, starts the full Docker Compose stack, stores sample memories across three scenarios (SOC alerts, trading signals, DevOps incidents), runs a hybrid retrieval query, triggers distillation, and prints a summary — all in under 3 minutes.
+
+<!-- TODO: record and add docs/quickstart-demo.gif once the script is stable -->
+![PCMI Quickstart](docs/quickstart-demo.gif)
+
+**Requirements:** [Docker](https://docs.docker.com/get-docker/) and Docker Compose. For local Go development: **Go 1.25+**.
+
+After migrations, the dev seed API key is **`testkey123`** (admin role). See [`.env.example`](.env.example) for all configuration options.
 
 ---
 

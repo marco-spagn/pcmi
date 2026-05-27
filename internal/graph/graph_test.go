@@ -154,10 +154,7 @@ func TestFindRelated_MaxDepthZero_Normalised(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// AGE unavailable → graceful degradation: empty results, no panic.
-	if result == nil {
-		t.Error("nil result pointer returned; want non-nil result struct")
-	}
+	// AGE unavailable → graceful degradation: FindRelated always returns non-nil result.
 	if result.Memories == nil {
 		t.Error("nil Memories slice returned; want empty non-nil slice")
 	}

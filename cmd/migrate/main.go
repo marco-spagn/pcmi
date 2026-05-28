@@ -23,7 +23,6 @@ func main() {
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")
 	}
-	migrationsDir := cfg.MigrationsDir
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -34,33 +33,39 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Ensure tracking table exists.
+	n, skipped, err := runMigrations(ctx, pool, cfg.MigrationsDir)
+	if err != nil {
+		log.Fatalf("❌ migrations: %v", err)
+	}
+	fmt.Printf("\n🎉 Migrations: %d applied, %d skipped.\n", n, skipped)
+}
+
+// runMigrations applies all .sql files in dir that haven't been applied yet.
+func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) (applied, skipped int, err error) {
 	if _, err = pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
 			filename   TEXT PRIMARY KEY,
 			applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		)`); err != nil {
-		log.Fatalf("create schema_migrations: %v", err)
+		return 0, 0, fmt.Errorf("create schema_migrations: %w", err)
 	}
 
-	// Read already-applied migrations.
 	rows, err := pool.Query(ctx,
 		`SELECT filename FROM schema_migrations ORDER BY filename`)
 	if err != nil {
-		log.Fatalf("query applied: %v", err)
+		return 0, 0, fmt.Errorf("query applied: %w", err)
 	}
-	applied := map[string]bool{}
+	alreadyApplied := map[string]bool{}
 	for rows.Next() {
 		var name string
 		_ = rows.Scan(&name)
-		applied[name] = true
+		alreadyApplied[name] = true
 	}
 	rows.Close()
 
-	// Collect .sql files in lexicographic order.
-	entries, err := os.ReadDir(migrationsDir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		log.Fatalf("read migrations dir %q: %v", migrationsDir, err)
+		return 0, 0, fmt.Errorf("read dir %q: %w", dir, err)
 	}
 	var files []string
 	for _, e := range entries {
@@ -70,35 +75,34 @@ func main() {
 	}
 	sort.Strings(files)
 
-	appliedCount := 0
 	for _, fname := range files {
-		if applied[fname] {
+		if alreadyApplied[fname] {
 			log.Printf("⏭  skip  %s (already applied)", fname)
+			skipped++
 			continue
 		}
-		sql, err := os.ReadFile(filepath.Join(migrationsDir, fname))
+		sql, err := os.ReadFile(filepath.Join(dir, fname))
 		if err != nil {
-			log.Fatalf("read %s: %v", fname, err)
+			return applied, skipped, fmt.Errorf("read %s: %w", fname, err)
 		}
 		tx, err := pool.Begin(ctx)
 		if err != nil {
-			log.Fatalf("begin tx for %s: %v", fname, err)
+			return applied, skipped, fmt.Errorf("begin tx for %s: %w", fname, err)
 		}
 		if _, err := tx.Exec(ctx, string(sql)); err != nil {
 			_ = tx.Rollback(ctx)
-			log.Fatalf("❌ apply %s: %v", fname, err)
+			return applied, skipped, fmt.Errorf("apply %s: %w", fname, err)
 		}
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO schema_migrations (filename) VALUES ($1)`, fname); err != nil {
 			_ = tx.Rollback(ctx)
-			log.Fatalf("record %s: %v", fname, err)
+			return applied, skipped, fmt.Errorf("record %s: %w", fname, err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			log.Fatalf("commit %s: %v", fname, err)
+			return applied, skipped, fmt.Errorf("commit %s: %w", fname, err)
 		}
 		log.Printf("✅ applied %s", fname)
-		appliedCount++
+		applied++
 	}
-	fmt.Printf("\n🎉 Migrations: %d applied, %d skipped.\n",
-		appliedCount, len(files)-appliedCount)
+	return applied, skipped, nil
 }

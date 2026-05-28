@@ -180,7 +180,7 @@ func startRedis(t *testing.T) *miniredis.Miniredis {
 // redisAddr returns the address to use: miniredis when available, otherwise REDIS_ADDR.
 func redisAddr(mr *miniredis.Miniredis) string {
 	if mr != nil {
-		return redisAddr(mr)
+		return mr.Addr()
 	}
 	return os.Getenv("REDIS_ADDR")
 }

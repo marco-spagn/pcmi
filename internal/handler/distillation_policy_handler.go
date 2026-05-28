@@ -10,7 +10,6 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -18,7 +17,7 @@ import (
 )
 
 // SetupDistillationPolicyRoutes registers distillation policy CRUD and run history.
-func SetupDistillationPolicyRoutes(app *fiber.App, db *pgxpool.Pool) {
+func SetupDistillationPolicyRoutes(app *fiber.App, db handlerDB) {
 	h := NewDistillationPolicyHandler(db)
 	api := app.Group("/v1")
 	api.Post("/distillation/policies", middleware.RequireWriteRole, h.Create)
@@ -28,10 +27,10 @@ func SetupDistillationPolicyRoutes(app *fiber.App, db *pgxpool.Pool) {
 }
 
 type DistillationPolicyHandler struct {
-	db *pgxpool.Pool
+	db handlerDB
 }
 
-func NewDistillationPolicyHandler(db *pgxpool.Pool) *DistillationPolicyHandler {
+func NewDistillationPolicyHandler(db handlerDB) *DistillationPolicyHandler {
 	return &DistillationPolicyHandler{db: db}
 }
 

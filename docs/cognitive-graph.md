@@ -23,29 +23,31 @@ weighted edges in the `pcmi_memory_graph` AGE graph.
 
 ### 1. Start the AGE-enabled Postgres instance
 
-The default `docker-compose.yml` uses `pgvector/pgvector:pg16` which does not
-include AGE.  A separate `postgres-age` service is available under the `graph`
-profile:
+The `docker/postgres-age/Dockerfile.postgres-age` builds a custom image on top of
+`pgvector/pgvector:pg16` that bundles **both pgvector and Apache AGE** v1.5.0.
+A `postgres-age` service is available under the `graph` profile:
 
 ```bash
 docker compose --profile graph up postgres-age
 ```
 
-Point the API at the AGE instance:
+This instance supports embedding AND graph features simultaneously — no
+trade-offs. Point the API at the AGE instance:
 
 ```bash
 export DATABASE_URL=postgres://pcmi:pcmi@localhost:5433/pcmi
 ```
 
-### 2. Install AGE locally (alternative)
+### 2. Build the custom image (alternative)
 
 ```bash
+docker build -f docker/postgres-age/Dockerfile.postgres-age -t pcmi-postgres-age .
 docker run --name pcmi-pg-age \
   -e POSTGRES_DB=pcmi \
   -e POSTGRES_USER=pcmi \
   -e POSTGRES_PASSWORD=pcmi \
   -p 5433:5432 \
-  apache/age:latest
+  pcmi-postgres-age
 ```
 
 ### 3. Apply migration 019
@@ -127,11 +129,13 @@ pointing to this document.
 | `memory_id`  | —       | **Required.** `memory_entries.id` of the start node            |
 | `depth`      | `3`     | Max hop depth (1–10)                                           |
 | `link_types` | all     | Comma-separated subset of link type constants                  |
-| `offset`     | `0`     | Pagination offset (0-based)                                    |
+| `cursor`     | `0`     | Keyset pagination cursor (last memory ID from previous page)   |
 | `limit`      | `50`    | Page size (1–200)                                              |
 
 Response includes `total` (matching entries before pagination), `count` (entries
-in this page), `offset`, and `limit`.
+in this page), `next_cursor` (pass as `?cursor=` for the next page), and `limit`.
+Keyset pagination via `memory_entries.id` is used internally — no `SKIP`/`OFFSET`
+overhead.
 
 ### `GET /v1/graph/chain`
 
@@ -171,31 +175,17 @@ Exposed at `GET /metrics` (requires `METRICS_SCRAPE_TOKEN`).
 - Vertex IDs are stored as string paths (`memory.{id}`), not direct FK references.
 - The `MERGE` on relationships uses dynamic Cypher executed via `EXECUTE format(...)`,
   which has a small overhead per link insert.
-- `memory_links` sync uses an `AFTER INSERT OR UPDATE` trigger; `GraphClient.CreateLink`
-  also calls `sync_memory_link_to_graph` explicitly as a belt-and-suspenders path.
-
-## Contradiction detection worker
-
-The `ContradictionWorker` (in `cmd/worker`) automatically detects contradictory
-memory pairs and creates `contradicts` links:
-
-- **Trigger:** `memory.stored` / `memory.updated` Redis events (reacts to new
-  memories immediately) + periodic fallback scan (every 120s, configurable via
-  `CONTRADICTION_DETECTION_INTERVAL_SECS`).
-- **Algorithm:** keyword-heuristic — checks negation phrases (`not`, `incorrect`,
-  `does not`, `never`, etc.) combined with topic overlap (Jaccard word
-  similarity >= 15%). Contradictions are flagged with a confidence score (>= 30%).
-- **Output:** creates `contradicts` edges in `memory_links` and publishes
-  `contradiction.detected` events to Redis.
-- **Config:** `CONTRADICTION_DETECTION_ENABLED=true` (default),
-  `CONTRADICTION_DETECTION_INTERVAL_SECS=120`.
+- Graph queries have a configurable timeout (`GRAPH_QUERY_TIMEOUT_SECS`, default 30s)
+  to prevent runaway traversals from blocking the connection pool.
+- AGE sync to the graph is handled by a database trigger (`trg_memory_links_sync_graph`)
+  on `memory_links`, which fires on INSERT and UPDATE (including `ON CONFLICT DO UPDATE`).
 
 ## What remains
 
-- **AGE bundled in the default Docker image**: replace `pgvector/pgvector:pg16`
-  with an image that includes both pgvector and Apache AGE.
 - **LLM-based contradiction detection**: replace keyword heuristics with an
   LLM call for higher precision contradiction flagging.
+- **Cypher query result streaming**: for very large result sets, stream rows
+  incrementally rather than buffering the entire result in memory.
 
 ---
 
@@ -281,7 +271,7 @@ go test ./internal/metrics/ -v -count=1
 
    ```bash
    curl -s -H "Authorization: Bearer $API_KEY" \
-     "$BASE/graph/related?memory_id=1&depth=3&link_types=causal&offset=0&limit=10" | jq .
+     "$BASE/graph/related?memory_id=1&depth=3&link_types=causal&limit=10" | jq .
    ```
 
    Expected: entries for memories 2 and 3, with depths 1 and 2.

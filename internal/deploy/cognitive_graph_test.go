@@ -81,6 +81,35 @@ func TestCognitiveGraphTriggerSyncsOnUpdate(t *testing.T) {
 	}
 }
 
+func TestCognitiveGraphDockerfileExists(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "docker", "postgres-age", "Dockerfile.postgres-age")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("docker/postgres-age/Dockerfile.postgres-age not found: %v", err)
+	}
+	body := string(data)
+	if !strings.Contains(body, "pgvector/pgvector:pg16") {
+		t.Error("Dockerfile.postgres-age must be based on pgvector/pgvector:pg16")
+	}
+	if !strings.Contains(body, "apache/age") {
+		t.Error("Dockerfile.postgres-age must build Apache AGE")
+	}
+}
+
+func TestCognitiveGraphMigrationMountedDefaultPostgres(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "docker-compose.yml")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read docker-compose.yml: %v", err)
+	}
+	body := string(data)
+	// The default postgres service should mount 019 so the migration is applied
+	// even without the graph profile. The migration degrades gracefully when AGE is missing.
+	if !strings.Contains(body, "019_cognitive_graph_age.sql") {
+		t.Error("docker-compose.yml default postgres service should mount 019_cognitive_graph_age.sql")
+	}
+}
+
 func TestCognitiveGraphDockerComposeProfile(t *testing.T) {
 	path := filepath.Join(repoRoot(t), "docker-compose.yml")
 	data, err := os.ReadFile(path)
@@ -93,5 +122,8 @@ func TestCognitiveGraphDockerComposeProfile(t *testing.T) {
 	}
 	if !strings.Contains(body, `profiles: ["graph"]`) {
 		t.Error(`docker-compose.yml postgres-age service should have profiles: ["graph"]`)
+	}
+	if !strings.Contains(body, "Dockerfile.postgres-age") {
+		t.Error("docker-compose.yml postgres-age should use the custom Dockerfile.postgres-age image")
 	}
 }

@@ -52,6 +52,9 @@ type Config struct {
 	ExpiryIntervalSecs   int
 	WebhookMaxAttempts   int
 
+	// Cognitive Graph
+	GraphQueryTimeoutSecs int // max seconds for any Cypher query (default 30)
+
 	// Cognitive Graph — Contradiction Detection
 	ContradictionDetectionEnabled     bool
 	ContradictionDetectionIntervalSecs int
@@ -120,6 +123,7 @@ func Load() *Config {
 		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),
 		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
 
+		GraphQueryTimeoutSecs:             envInt("GRAPH_QUERY_TIMEOUT_SECS", 30),
 		ContradictionDetectionEnabled:     envBool("CONTRADICTION_DETECTION_ENABLED", true),
 		ContradictionDetectionIntervalSecs: envInt("CONTRADICTION_DETECTION_INTERVAL_SECS", 120),
 

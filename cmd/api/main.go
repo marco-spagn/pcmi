@@ -117,6 +117,7 @@ func main() {
 	handler.SetupDistillationPolicyRoutes(app, db)
 
 	graphClient := graph.NewGraphClient(db)
+	graphClient.SetQueryTimeout(time.Duration(cfg.GraphQueryTimeoutSecs) * time.Second)
 	handler.RegisterGraphRoutes(app, graphClient)
 	if graphClient.IsAvailable(ctx) {
 		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph/related enabled")

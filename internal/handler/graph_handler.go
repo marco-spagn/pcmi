@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 // Defined here so tests can inject fakes without a real pgxpool.
 type graphClientIface interface {
 	IsAvailable(ctx context.Context) bool
-	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth, offset, limit int) (*graph.RelatedResult, error)
+	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*graph.RelatedResult, error)
 	FindChain(ctx context.Context, tenantID string, fromID, toID int64, linkTypes []string, maxDepth int) (*graph.ChainResult, error)
 	ExecuteCypher(ctx context.Context, tenantID, query string) (*graph.CypherResult, error)
 }
@@ -62,7 +63,7 @@ func (h *GraphHandler) Health(c *fiber.Ctx) error {
 // FindRelated returns memories causally/semantically connected to a given
 // memory within a configurable hop depth.
 //
-// GET /v1/graph/related?memory_id=123&depth=3&link_types=causal,temporal&offset=0&limit=50
+// GET /v1/graph/related?memory_id=123&depth=3&link_types=causal,temporal&cursor=0&limit=50
 func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 	if !h.client.IsAvailable(c.Context()) {
 		return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
@@ -98,10 +99,10 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 		}
 	}
 
-	offset := 0
-	if o := c.Query("offset"); o != "" {
-		if n, err := strconv.Atoi(o); err == nil && n >= 0 {
-			offset = n
+	cursor := int64(0)
+	if cur := c.Query("cursor"); cur != "" {
+		if n, err := strconv.ParseInt(cur, 10, 64); err == nil && n >= 0 {
+			cursor = n
 		}
 	}
 	limit := 50
@@ -112,25 +113,31 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 	}
 
 	start := time.Now()
-	result, err := h.client.FindRelated(c.Context(), tenantID, memID, linkTypes, depth, offset, limit)
+	result, err := h.client.FindRelated(c.Context(), tenantID, memID, linkTypes, depth, cursor, limit)
 	elapsed := time.Since(start).Seconds()
 	metrics.IncGraphTraversal()
 	metrics.ObserveGraphTraversal(elapsed)
 
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+				"error": "graph query timed out",
+				"hint":  "try reducing depth or narrowing link_types",
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	if result.Memories == nil {
 		result.Memories = []graph.RelatedMemory{}
 	}
 	return c.JSON(fiber.Map{
-		"memory_id": memID,
-		"depth":     depth,
-		"entries":   result.Memories,
-		"count":     len(result.Memories),
-		"total":     result.Total,
-		"offset":    offset,
-		"limit":     limit,
+		"memory_id":   memID,
+		"depth":       depth,
+		"entries":     result.Memories,
+		"count":       len(result.Memories),
+		"total":       result.Total,
+		"next_cursor": result.NextCursor,
+		"limit":       limit,
 	})
 }
 
@@ -185,6 +192,12 @@ func (h *GraphHandler) FindChain(c *fiber.Ctx) error {
 	metrics.ObserveGraphTraversal(elapsed)
 
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+				"error": "graph query timed out",
+				"hint":  "try reducing max_depth or narrowing link_types",
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 	if result.Path == nil {
@@ -221,6 +234,12 @@ func (h *GraphHandler) ExecuteCypher(c *fiber.Ctx) error {
 	metrics.ObserveGraphTraversal(elapsed)
 
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+				"error": "graph query timed out",
+				"hint":  "try simplifying the Cypher query or adding a LIMIT clause",
+			})
+		}
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}
 	if result.Rows == nil {

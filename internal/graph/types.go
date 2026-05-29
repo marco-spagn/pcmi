@@ -20,8 +20,9 @@ type RelatedMemory struct {
 
 // RelatedResult holds paginated traversal results.
 type RelatedResult struct {
-	Memories []RelatedMemory `json:"-"`
-	Total    int             `json:"-"`
+	Memories   []RelatedMemory `json:"-"`
+	Total      int             `json:"-"`
+	NextCursor int64           `json:"-"` // last memory ID in this page; 0 when no more pages
 }
 
 // ChainLink is one hop in a reconstructed path between two memories.

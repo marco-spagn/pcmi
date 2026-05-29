@@ -429,7 +429,7 @@ func TestAutoTenantScopeCypher_InvalidPattern(t *testing.T) {
 
 // ─── FindRelated pagination edge cases ────────────────────────────────────────
 
-func TestFindRelated_OffsetBeyondTotal(t *testing.T) {
+func TestFindRelated_CursorBeyondTotal(t *testing.T) {
 	gc := NewGraphClient(nil)
 	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 1000, 50)
 	if err != nil {
@@ -452,7 +452,7 @@ func TestFindRelated_ZeroLimit(t *testing.T) {
 	}
 }
 
-func TestFindRelated_NegativeOffset(t *testing.T) {
+func TestFindRelated_NegativeCursor(t *testing.T) {
 	gc := NewGraphClient(nil)
 	_, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, -5, 50)
 	if err != nil {

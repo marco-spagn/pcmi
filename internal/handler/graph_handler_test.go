@@ -21,7 +21,7 @@ type fakeGraphClient struct {
 	relatedTot int
 	findErr    error
 	lastDepth  int
-	lastOffset int
+	lastCursor int64
 	lastLimit  int
 
 	chainResult *graph.ChainResult
@@ -33,11 +33,17 @@ type fakeGraphClient struct {
 
 func (f *fakeGraphClient) IsAvailable(_ context.Context) bool { return f.available }
 
-func (f *fakeGraphClient) FindRelated(_ context.Context, _ string, _ int64, _ []string, depth, offset, limit int) (*graph.RelatedResult, error) {
+func (f *fakeGraphClient) FindRelated(_ context.Context, _ string, _ int64, _ []string, depth int, cursor int64, limit int) (*graph.RelatedResult, error) {
 	f.lastDepth = depth
-	f.lastOffset = offset
+	f.lastCursor = cursor
 	f.lastLimit = limit
-	return &graph.RelatedResult{Memories: f.related, Total: f.relatedTot}, f.findErr
+	// Compute next_cursor: if there are results, the last ID is the next cursor;
+	// zero means last page.
+	var nextCursor int64
+	if len(f.related) > 0 {
+		nextCursor = f.related[len(f.related)-1].ID
+	}
+	return &graph.RelatedResult{Memories: f.related, Total: f.relatedTot, NextCursor: nextCursor}, f.findErr
 }
 
 func (f *fakeGraphClient) FindChain(_ context.Context, _ string, _, _ int64, _ []string, _ int) (*graph.ChainResult, error) {
@@ -170,7 +176,7 @@ func TestGraphHandler_FindRelated_EmptyResults_ReturnsArray(t *testing.T) {
 		Depth    int                  `json:"depth"`
 		Count    int                  `json:"count"`
 		Total    int                  `json:"total"`
-		Offset   int                  `json:"offset"`
+		NextCursor int64                `json:"next_cursor"`
 		Limit    int                  `json:"limit"`
 		Entries  []graph.RelatedMemory `json:"entries"`
 	}
@@ -306,7 +312,7 @@ func TestGraphHandler_FindRelated_PaginationParams(t *testing.T) {
 	}
 	fake := &fakeGraphClient{available: true, related: related, relatedTot: 25}
 	app := newGraphApp("tid", "user", fake)
-	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&offset=10&limit=2", nil))
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&cursor=10&limit=2", nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,16 +320,16 @@ func TestGraphHandler_FindRelated_PaginationParams(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("status %d want 200", resp.StatusCode)
 	}
-	if fake.lastOffset != 10 {
-		t.Errorf("offset: got %d want 10", fake.lastOffset)
+	if fake.lastCursor != 10 {
+		t.Errorf("cursor: got %d want 10", fake.lastCursor)
 	}
 	if fake.lastLimit != 2 {
 		t.Errorf("limit: got %d want 2", fake.lastLimit)
 	}
 	var body struct {
-		Total  int `json:"total"`
-		Offset int `json:"offset"`
-		Limit  int `json:"limit"`
+		Total      int   `json:"total"`
+		NextCursor int64 `json:"next_cursor"`
+		Limit      int   `json:"limit"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 		t.Fatal(err)
@@ -331,8 +337,8 @@ func TestGraphHandler_FindRelated_PaginationParams(t *testing.T) {
 	if body.Total != 25 {
 		t.Errorf("total: got %d want 25", body.Total)
 	}
-	if body.Offset != 10 {
-		t.Errorf("offset in response: got %d want 10", body.Offset)
+	if body.NextCursor != 8 {
+		t.Errorf("next_cursor in response: got %d want 8 (last ID in page)", body.NextCursor)
 	}
 	if body.Limit != 2 {
 		t.Errorf("limit in response: got %d want 2", body.Limit)
@@ -684,10 +690,10 @@ func TestGraphHandler_FindRelated_NegativeLimit(t *testing.T) {
 	}
 }
 
-func TestGraphHandler_FindRelated_NegativeOffset(t *testing.T) {
+func TestGraphHandler_FindRelated_NegativeCursor(t *testing.T) {
 	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
 	app := newGraphApp("tid", "user", fake)
-	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&offset=-10", nil))
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&cursor=-10", nil))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -695,9 +701,9 @@ func TestGraphHandler_FindRelated_NegativeOffset(t *testing.T) {
 	if resp.StatusCode != 200 {
 		t.Fatalf("status %d want 200", resp.StatusCode)
 	}
-	// Negative offset is rejected → falls back to default 0.
-	if fake.lastOffset != 0 {
-		t.Errorf("negative offset should fall back to 0, got %d", fake.lastOffset)
+	// Negative cursor is rejected → falls back to default 0.
+	if fake.lastCursor != 0 {
+		t.Errorf("negative cursor should fall back to 0, got %d", fake.lastCursor)
 	}
 }
 

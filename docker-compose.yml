@@ -26,6 +26,7 @@ services:
       - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
       - ./migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql
       - ./migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql
+      - ./migrations/019_cognitive_graph_age.sql:/docker-entrypoint-initdb.d/019_cognitive_graph_age.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -92,15 +93,16 @@ services:
       timeout: 5s
       retries: 5  
 
-  # ─── Optional: AGE-enabled Postgres for Cognitive Graph (v2.0 spike) ───────
+  # ─── Optional: AGE-enabled Postgres for Cognitive Graph (v2.0) ────────────
   # Start with: docker compose --profile graph up
   # API should point to DATABASE_URL=postgres://pcmi:pcmi@localhost:5433/pcmi
   #
-  # NOTE: apache/age:latest does not bundle pgvector.  Migration 001 creates
-  # the vector extension; if it is missing the init will emit a WARNING and
-  # continue.  Embedding features will be disabled on this instance.
+  # Uses a custom image that bundles pgvector + Apache AGE so both embedding
+  # and graph features work on a single instance.
   postgres-age:
-    image: apache/age:latest
+    build:
+      context: .
+      dockerfile: docker/postgres-age/Dockerfile.postgres-age
     profiles: ["graph"]
     container_name: pcmi-postgres-age
     environment:

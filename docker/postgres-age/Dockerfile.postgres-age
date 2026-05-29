@@ -8,8 +8,8 @@
 #   CREATE EXTENSION IF NOT EXISTS vector;
 #   CREATE EXTENSION IF NOT EXISTS age;
 #
-# Based on pgvector/pgvector:pg16 (Debian Bookworm) with AGE v1.5.0
-# built from source via PGXS.
+# Based on pgvector/pgvector:pg16 (Debian Bookworm) with Apache AGE
+# built from master via PGXS.
 
 FROM pgvector/pgvector:pg16
 
@@ -20,7 +20,7 @@ RUN apt-get update && \
         postgresql-server-dev-16 \
         git \
         ca-certificates \
-    && git clone --depth 1 --branch v1.5.0 \
+    && git clone --depth 1 \
         https://github.com/apache/age.git /tmp/age \
     && cd /tmp/age \
     && make USE_PGXS=1 install \

@@ -1,23 +1,23 @@
 #!/bin/bash
 
-echo "PCMI Test Automation Script v1.1 - Stable Version"
+echo " PCMI Test Automation Script v1.1 - Stable Version"
 echo "===================================================="
 echo "Date: $(date)"
 echo
 
-echo "1. Full container cleanup..."
+echo " 1. Full container cleanup..."
 docker compose down -v --remove-orphans
 
-echo "2. Fresh build and start..."
+echo "  2. Fresh build and start..."
 docker compose up -d --build
 
-echo "⏳ 3. Waiting for services to start (15 seconds)..."
+echo " 3. Waiting for services to start (15 seconds)..."
 sleep 15
 
-echo "4. Health Check..."
-curl -s -f http://localhost:8000/v1/health > /dev/null && echo "API healthy"|| { echo "API not reachable"; exit 1; }
+echo " 4. Health Check..."
+curl -s -f http://localhost:8000/v1/health > /dev/null && echo " API healthy" || { echo " API not reachable"; exit 1; }
 
-echo "5. Store a new test memory..."
+echo " 5. Store a new test memory..."
 cat > /tmp/pcmi_test_payload.json << JSON
 {
   "path": "root.test.autotest.$(date +%s)",
@@ -29,19 +29,19 @@ cat > /tmp/pcmi_test_payload.json << JSON
 JSON
 
 curl -s -X POST http://localhost:8000/v1/memories \
-  -H "Content-Type: application/json"\
-  -H "X-API-Key: testkey123"\
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d @/tmp/pcmi_test_payload.json | jq -r '.'
 
 echo
 
-echo "⏳ 6. Waiting 30 seconds for the worker to generate the embedding..."
+echo " 6. Waiting 30 seconds for the worker to generate the embedding..."
 sleep 30
 
-echo "7. Retrieve with path_prefix root.test..."
+echo " 7. Retrieve with path_prefix root.test..."
 curl -s -X POST http://localhost:8000/v1/retrieve \
-  -H "Content-Type: application/json"\
-  -H "X-API-Key: testkey123"\
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: testkey123" \
   -d '{
     "path_prefix": "root.test",
     "limit": 10
@@ -49,9 +49,9 @@ curl -s -X POST http://localhost:8000/v1/retrieve \
 
 echo
 
-echo "8. Last Embedding Worker logs:"
+echo " 8. Last Embedding Worker logs:"
 docker compose logs worker --tail=20
 
 echo
-echo "Tests completed."
+echo " Tests completed."
 echo "To see live worker logs: docker compose logs -f worker"

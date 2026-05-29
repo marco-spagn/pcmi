@@ -1,154 +1,154 @@
 **Persistent Cognitive Memory Infrastructure (PCMI)**  
-**Documento di Architettura Ufficiale – v1.0**  
-**Obiettivi, Logica di Sistema, Invecchiamento dei Dati e Processo di Raffinamento**  
+**Official Architecture Document – v1.0**  
+**Goals, System Logic, Data Aging, and Refinement Process**
 
-**Autori:** Team Senior Software Architects & AI Infrastructure Engineers  
-**Data:** 03 Maggio 2026  
-**Stato:** Approvato per lo sviluppo successivo  
+**Authors:** Senior Software Architects & AI Infrastructure Engineers Team  
+**Date:** 03 May 2026  
+**Status:** Approved for further development
 
 ---
 
-### 1. Obiettivi del Sistema PCMI
+### 1. PCMI System Goals
 
-PCMI non è una semplice “memoria per chatbot”.  
-È **l’equivalente di Redis + Git + Vector Search + Cognitive Event Bus** per agenti AI distribuiti.
+PCMI is not a simple "chatbot memory".  
+It is **the equivalent of Redis + Git + Vector Search + Cognitive Event Bus** for distributed AI agents.
 
-**Obiettivi primari:**
-- Fornire una **memoria persistente, versionata e indipendente dal runtime** degli agenti.
-- Sopravvivere a: riavvii di container, upgrade di modelli, migrazioni di framework, sostituzione di agenti.
-- Consentire **continuità cognitiva** tra agenti effimeri (ephemeral agents).
-- Trasformare esperienze grezze in **conoscenza distillata di ordine superiore** nel tempo.
-- Garantire **auditabilità totale** e possibilità di rollback temporale.
-- Essere completamente **runtime-agnostic**, LLM-agnostic e framework-agnostic.
+**Primary goals:**
+- Provide **persistent, versioned, runtime-independent memory** for agents.
+- Survive: container restarts, model upgrades, framework migrations, agent replacement.
+- Enable **cognitive continuity** across ephemeral agents.
+- Transform raw experiences into **higher-order distilled knowledge** over time.
+- Guarantee **full auditability** and temporal rollback capability.
+- Be completely **runtime-agnostic**, LLM-agnostic, and framework-agnostic.
 
-**Principio fondante:**
+**Founding principle:**
 > **Agents are ephemeral. Memory is persistent.**
 
 ---
 
-### 2. Logica Fondamentale del Sistema
+### 2. Core System Logic
 
-PCMI adotta un modello **append-only + temporal**:
+PCMI adopts an **append-only + temporal** model:
 
-- Nessun dato viene mai sovrascritto (`UPDATE` proibito sulle tabelle di memoria).
-- Ogni inserimento è una nuova versione con timestamp `valid_from`.
-- La versione corrente è quella con `valid_to IS NULL`.
-- Il sistema supporta query “as-of” per ricostruire lo stato cognitivo in qualsiasi momento del passato.
+- No data is ever overwritten (`UPDATE` prohibited on memory tables).
+- Every insert is a new version with a `valid_from` timestamp.
+- The current version is the one with `valid_to IS NULL`.
+- The system supports "as-of" queries to reconstruct cognitive state at any point in the past.
 
-Questa logica garantisce:
-- **Immutabilità** (impossibile corrompere la storia cognitiva).
-- **Temporal queries** (rollback, audit, ricostruzione storica).
-- **Distribuzione** (più agenti possono leggere/scrivere simultaneamente senza conflitti).
+This logic guarantees:
+- **Immutability** (impossible to corrupt the cognitive history).
+- **Temporal queries** (rollback, audit, historical reconstruction).
+- **Distribution** (multiple agents can read/write simultaneously without conflicts).
 
 ---
 
-### 3. Meccanismo di “Invecchiamento” dei Dati (Temporal Versioning)
+### 3. Data "Aging" Mechanism (Temporal Versioning)
 
-L’**invecchiamento** non è una cancellazione, ma una **transizione di validità**.
+**Aging** is not a deletion, but a **validity transition**.
 
-#### Come funziona nel dettaglio
+#### How it works in detail
 
-Quando un nuovo ricordo viene inserito con lo stesso `path`:
+When a new memory is inserted with the same `path`:
 
-1. Viene creata una **nuova riga** (append-only).
-2. La riga precedente (quella con `valid_to IS NULL`) viene **soft-closed** impostando `valid_to = NOW()` sulla versione precedente.
-3. La nuova riga diventa la versione corrente (`valid_from = NOW()`, `valid_to = NULL`).
+1. A **new row** is created (append-only).
+2. The previous row (the one with `valid_to IS NULL`) is **soft-closed** by setting `valid_to = NOW()` on the previous version.
+3. The new row becomes the current version (`valid_from = NOW()`, `valid_to = NULL`).
 
-**Colonne chiave nello schema:**
+**Key columns in the schema:**
 
-| Colonna          | Tipo              | Ruolo nell’invecchiamento                              |
+| Column           | Type              | Role in aging                                          |
 |------------------|-------------------|---------------------------------------------------------|
-| `valid_from`     | TIMESTAMPTZ       | Quando questa versione diventa attiva                   |
-| `valid_to`       | TIMESTAMPTZ (NULL)| Quando questa versione viene “invecchiata” / chiusa   |
-| `version`        | INTEGER           | Numero di versione incrementale (per debug)            |
-| `created_at`     | TIMESTAMPTZ       | Timestamp di inserimento reale                         |
+| `valid_from`     | TIMESTAMPTZ       | When this version becomes active                        |
+| `valid_to`       | TIMESTAMPTZ (NULL)| When this version is "aged" / closed                   |
+| `version`        | INTEGER           | Incremental version number (for debugging)             |
+| `created_at`     | TIMESTAMPTZ       | Actual insertion timestamp                             |
 
-**Query di esempio per “stato attuale”** (view `current_memories`):
+**Example query for "current state"** (view `current_memories`):
 ```sql
 SELECT * FROM memory_entries 
 WHERE valid_to IS NULL 
   AND path <@ 'root.test';
 ```
 
-**Query storica (“as-of” al 2026-04-30 20:00)**:
+**Historical query ("as-of" at 2026-04-30 20:00)**:
 ```sql
 SELECT * FROM memory_entries 
 WHERE valid_from <= '2026-04-30 20:00:00' 
   AND (valid_to IS NULL OR valid_to > '2026-04-30 20:00:00');
 ```
 
-Questo meccanismo garantisce che **non si perda mai conoscenza storica** e che gli agenti possano sempre ricostruire lo stato cognitivo in qualsiasi punto temporale.
+This mechanism ensures that **historical knowledge is never lost** and that agents can always reconstruct cognitive state at any point in time.
 
 ---
 
-### 4. Processo di Raffinamento / Distillation
+### 4. Refinement / Distillation Process
 
-La **distillation** è il cuore cognitivo di PCMI.
+**Distillation** is the cognitive core of PCMI.
 
-#### Logica di raffinamento
+#### Refinement logic
 
-- **Raw memories** → esperienze atomiche grezze (tool calls, ragionamenti, alert, ecc.).
-- **Distilled knowledge** → conoscenza di ordine superiore aggregata, sintetizzata e generalizzata.
+- **Raw memories** → atomic raw experiences (tool calls, reasoning, alerts, etc.).
+- **Distilled knowledge** → higher-order aggregated, synthesized, and generalized knowledge.
 
-**Flusso completo:**
+**Complete flow:**
 
 1. **Event-driven trigger**  
-   Ogni `memory.stored` o job schedulato (cron) lancia un workflow di distillation.
+   Every `memory.stored` or scheduled job (cron) launches a distillation workflow.
 
-2. **Aggregazione**  
-   Il worker seleziona un sotto-albero (`root.security.*`) in un intervallo temporale.
+2. **Aggregation**  
+   The worker selects a subtree (`root.security.*`) within a time interval.
 
 3. **LLM-agnostic summarization** (adapter)  
-   - Aggrega 100+ raw entries.  
-   - Estrae pattern ricorrenti, falsi positivi, euristiche, regole generali.
+   - Aggregates 100+ raw entries.  
+   - Extracts recurring patterns, false positives, heuristics, general rules.
 
-4. **Salvataggio in tabella separata**  
-   Viene creata una riga in `distilled_knowledge` con:
-   - `path` (es. `root.security.alerts.summary`)
+4. **Save to separate table**  
+   A row is created in `distilled_knowledge` with:
+   - `path` (e.g. `root.security.alerts.summary`)
    - `summary`, `insights` (JSONB)
    - `confidence_score`
-   - `source_entry_ids` (array di ID raw → **tracciabilità completa**)
+   - `source_entry_ids` (array of raw IDs → **full traceability**)
 
 5. **Event emission**  
-   Viene emesso `knowledge.distilled` → gli agenti possono sottoscriverlo.
+   `knowledge.distilled` is emitted → agents can subscribe to it.
 
-**Tabella distilled_knowledge** (schema):
+**`distilled_knowledge` table** (schema):
 
-| Colonna                | Tipo          | Scopo |
-|------------------------|---------------|-------|
-| `source_entry_ids`     | BIGINT[]      | Tracciabilità completa (non si perde mai la fonte) |
-| `distilled_at`         | TIMESTAMPTZ   | Quando è stata generata la conoscenza distillata |
-| `confidence_score`     | FLOAT         | Livello di affidabilità del raffinamento |
+| Column                 | Type          | Purpose |
+|------------------------|---------------|---------|
+| `source_entry_ids`     | BIGINT[]      | Full traceability (source is never lost) |
+| `distilled_at`         | TIMESTAMPTZ   | When the distilled knowledge was generated |
+| `confidence_score`     | FLOAT         | Confidence level of the refinement |
 
-**Politica di raffinamento configurabile** (in `tenants.settings`):
-- Soglia minima di raw entries prima di distillare.
-- Frequenza di job (ogni 5 min, ogni ora, daily).
-- Modelli LLM preferiti per distillation.
+**Configurable refinement policy** (in `tenants.settings`):
+- Minimum raw entries threshold before distilling.
+- Job frequency (every 5 min, every hour, daily).
+- Preferred LLM models for distillation.
 
 ---
 
-### 5. Mappatura Completa sullo Schema del Database
+### 5. Full Mapping to the Database Schema
 
-**Tabella principale: `memory_entries`**
-- Tutto il sistema ruota attorno a questa tabella.
-- È **append-only** per design.
-- `ltree path` permette navigazione gerarchica e scoping.
-- `valid_from / valid_to` implementa l’invecchiamento.
-- `embedding` è nullable (per generazione asincrona).
+**Main table: `memory_entries`**
+- The entire system revolves around this table.
+- It is **append-only** by design.
+- `ltree path` enables hierarchical navigation and scoping.
+- `valid_from / valid_to` implements aging.
+- `embedding` is nullable (for async generation).
 
-**Tabella di raffinamento: `distilled_knowledge`**
-- Contiene solo conoscenza di ordine superiore.
-- Collegata 1:N alle raw entries tramite `source_entry_ids`.
+**Refinement table: `distilled_knowledge`**
+- Contains only higher-order knowledge.
+- Linked 1:N to raw entries via `source_entry_ids`.
 
-**Eventi (`events`)**  
-- Backbone per trigger di distillation e notifiche.
+**Events (`events`)**  
+- Backbone for distillation triggers and notifications.
 
-**View di comodo:**
-- `current_memories` → stato attuale (usato internamente dal Retrieve).
+**Convenience views:**
+- `current_memories` → current state (used internally by Retrieve).
 
-**Regole di integrità:**
-- Foreign key su `tenant_id` (con default tenant pre-inserito).
-- Nessun `ON DELETE CASCADE` sulle raw memories (immutabilità).
+**Integrity rules:**
+- Foreign key on `tenant_id` (with pre-inserted default tenant).
+- No `ON DELETE CASCADE` on raw memories (immutability).
 
 ---
 
@@ -161,16 +161,14 @@ La **distillation** è il cuore cognitivo di PCMI.
 
 ---
 
-**Conclusione del documento**
+**Document conclusion**
 
-PCMI è progettato come **substrato cognitivo persistente** per sistemi AI distribuiti del futuro.  
-L’invecchiamento è gestito tramite temporal versioning (valid_from/valid_to).  
-Il raffinamento avviene tramite distillation asincrona con tracciabilità completa.
+PCMI is designed as a **persistent cognitive substrate** for future distributed AI systems.  
+Aging is managed via temporal versioning (valid_from/valid_to).  
+Refinement occurs via async distillation with full traceability.
 
-Il sistema è pronto per l’evoluzione verso:
+The system is ready to evolve toward:
 - Multi-vector spaces
 - Graph memory
 - On-chain memory
-- Meta-cognition (distillation che usa se stessa)
-
-
+- Meta-cognition (distillation that uses itself)

@@ -1,148 +1,148 @@
-# Guida al codice PCMI
+# PCMI Codebase Guide
 
-Documento di orientamento per chi legge o modifica il repository: cosa fa ogni area, dipendenze consapevoli e convenzioni.
+Orientation document for readers and contributors: what each area does, deliberate dependencies, and conventions.
 
-## Entry point
+## Entry points
 
-| Percorso | Ruolo |
-|----------|--------|
-| `cmd/api/main.go` | Pool `database.NewPools(DATABASE_URL, DATABASE_READ_URL)`, readiness sul primario, middleware su primario, `handler.SetupMemoryRoutes(app, primary, readReplica)`; gRPC e admin sul primario. |
+| Path | Role |
+|------|------|
+| `cmd/api/main.go` | Pool `database.NewPools(DATABASE_URL, DATABASE_READ_URL)`, readiness on primary, middleware on primary, `handler.SetupMemoryRoutes(app, primary, readReplica)`; gRPC and admin on primary. |
 | `cmd/worker/main.go` | Worker: embedding (circuit breaker), distillation, pruning, consolidation, expiry, consume Redis Streams/pubsub. |
 | `cmd/mcp/main.go` | MCP stdio server → HTTP API (`PCMI_BASE_URL`, `PCMI_API_KEY`). |
-| `cmd/pcmi-admin/main.go` | CLI ops: `list` tenant/API keys (`make admin-list-keys`). |
+| `cmd/pcmi-admin/main.go` | CLI ops: `list` tenants/API keys (`make admin-list-keys`). |
 
-**Ordine middleware API** (Fiber: il primo `Use` registrato è il più esterno): `otelfiber` (tracing, salta `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Le probe senza chiave sono definite in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
+**API middleware order** (Fiber: the first `Use` registered is outermost): `otelfiber` (tracing, skips `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Unauthenticated probes are defined in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 
-**Registrazione route**: in `memory_handler.go` le route specifiche (`/memories/history`, batch, lineage sotto `/lineage/*`) vanno **prima** del wildcard `GET /memories/*` per evitare che Fiber catturi segmenti come nomi di path.
+**Route registration**: in `memory_handler.go` specific routes (`/memories/history`, batch, lineage under `/lineage/*`) must go **before** the wildcard `GET /memories/*` to prevent Fiber from capturing segments as path names.
 
 ## `internal/handler`
 
-HTTP handlers Fiber; leggono tenant da `middleware.TenantContextKey`, chiamano repository o service.
+Fiber HTTP handlers; read tenant from `middleware.TenantContextKey`, call repository or service.
 
-- `memory_handler.go` — routing principale memorie, retrieve, history, refine, links, stats, get-by-path wildcard, **`POST /memories/compact`**.
-- `batch_handler.go`, `admin_handler.go` — batch API e admin tenant/chiavi.
-- `events_handler.go` — SSE stream, ingest eventi, lista schemi.
-- `lineage_handler.go` — `/v1/lineage/memory`, `/v1/lineage/distilled/:id` (fuori da `/memories/*`).
-- `refine_handler.go` — `POST /v1/memories/refine` pubblica su Redis per il worker.
-- `links_handler.go`, `stats_handler.go` — grafo link e statistiche tenant.
-- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `audit_handler.go`, `history_handler.go` — come da nome.
-- `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis per readiness (503 se una dipendenza è giù).
+- `memory_handler.go` — main memory routing, retrieve, history, refine, links, stats, get-by-path wildcard, **`POST /memories/compact`**.
+- `batch_handler.go`, `admin_handler.go` — batch API and admin tenant/keys.
+- `events_handler.go` — SSE stream, event ingest, schema list.
+- `lineage_handler.go` — `/v1/lineage/memory`, `/v1/lineage/distilled/:id` (outside `/memories/*`).
+- `refine_handler.go` — `POST /v1/memories/refine` publishes to Redis for the worker.
+- `links_handler.go`, `stats_handler.go` — link graph and tenant statistics.
+- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `audit_handler.go`, `history_handler.go` — as named.
+- `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis for readiness (503 if a dependency is down).
 
 ## `internal/service`
 
-Logica applicativa riutilizzabile da REST e gRPC:
+Reusable application logic from both REST and gRPC:
 
-- `memory_service.go` — store/retrieve, pubblicazione eventi Redis dopo store.
+- `memory_service.go` — store/retrieve, Redis event publication after store.
 - `batch_service.go`, `admin_service.go`, `event_service.go`, `summarize_service.go`.
 
-Non importare framework UI qui: solo modelli, repository, embedding.
+Do not import UI frameworks here: only models, repositories, embedding.
 
 ## `internal/repository`
 
-Accesso dati PostgreSQL (`pgxpool`). Pattern: impostare tenant via `set_tenant_context` dal middleware prima delle query RLS. `NewMemoryRepository(writePool, readPool)` instrada le SELECT su `readPool` quando `DATABASE_READ_URL` è impostato (replica); transazioni e `GetHistoricalVersion` usano il primario.
+PostgreSQL data access (`pgxpool`). Pattern: set tenant via `set_tenant_context` from middleware before RLS queries. `NewMemoryRepository(writePool, readPool)` routes SELECTs to `readPool` when `DATABASE_READ_URL` is set (replica); transactions and `GetHistoricalVersion` use the primary.
 
-- `memory_repository.go` — store append-only, retrieve con filtri temporali, agent, embedding space, **tag** (`tagFilters` in `retrieve_sql.go`); write vs read pool come sopra.
-- `retrieve_sql.go` — clausole SQL condivise (`temporalClause`, `scopeFilters`, `tagFilters`).
-- `history.go`, `rollback.go`, `get_by_path.go` — versioni, rollback, get singolo path.
-- `export_import.go` — export/import tenant-scoped.
-- `lineage.go` — join versioni memoria + `distilled_knowledge` per lineage.
-- `links.go` — tabella `memory_links`.
-- `stats.go` — aggregati per `/v1/stats`.
-- `admin_repository.go`, `audit_repository.go`, `event_repository.go` — admin, audit, eventi ingest.
+- `memory_repository.go` — append-only store, retrieve with temporal filters, agent, embedding space, **tags** (`tagFilters` in `retrieve_sql.go`); write vs read pool as above.
+- `retrieve_sql.go` — shared SQL clauses (`temporalClause`, `scopeFilters`, `tagFilters`).
+- `history.go`, `rollback.go`, `get_by_path.go` — versions, rollback, single path get.
+- `export_import.go` — tenant-scoped export/import.
+- `lineage.go` — join memory versions + `distilled_knowledge` for lineage.
+- `links.go` — `memory_links` table.
+- `stats.go` — aggregates for `/v1/stats`.
+- `admin_repository.go`, `audit_repository.go`, `event_repository.go` — admin, audit, event ingest.
 
 ## `internal/worker`
 
-Processi asincroni; condividono DB e Redis con l’API.
+Async processes; share DB and Redis with the API.
 
-- `embedding.go` — generazione embedding dopo eventi (se OpenAI configurato).
-- `distillation.go` — job su prefisso path; pubblica `knowledge.distilled`; dedup su sorgenti (`distillation_helpers.go`, `distillation_version.go`).
-- `consolidation.go` — merge ricordi correlati sotto prefisso.
-- `pruning.go` — chiamata a funzione SQL `prune_superseded_memories`.
-- `expiry.go` — chiama periodicamente `expire_memory_entries()` per TTL.
+- `embedding.go` — embedding generation after events (if OpenAI is configured).
+- `distillation.go` — job on path prefix; publishes `knowledge.distilled`; dedup on sources (`distillation_helpers.go`, `distillation_version.go`).
+- `consolidation.go` — merge related memories under a prefix.
+- `pruning.go` — calls SQL function `prune_superseded_memories`.
+- `expiry.go` — periodically calls `expire_memory_entries()` for TTL.
 
-**Eventi Redis** consumati in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested` — ogni gestione è wrappata in uno span OpenTelemetry (`redis.memory_event`) se OTLP è configurato.
+**Redis events** consumed in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested` — every handler is wrapped in an OpenTelemetry span (`redis.memory_event`) if OTLP is configured.
 
 ## `internal/event`
 
 - `backend.go` — `EVENT_BACKEND`: `streams` (XADD `pcmi:events`) vs `pubsub` (`memory_events`).
 - `stream.go` / `redis.go` — publish/consume, consumer group `pcmi-workers`, DLQ.
-- `schema.go` — costanti tipi evento.
+- `schema.go` — event type constants.
 
 ## `internal/ratelimit`
 
-Limiter Redis distribuito quando `RATE_LIMIT_BACKEND=redis` (chiave per tenant+API key).
+Distributed Redis limiter when `RATE_LIMIT_BACKEND=redis` (key per tenant+API key).
 
 ## `internal/embedding`
 
-`CircuitBreakerProvider` (gobreaker) wrappa OpenAI e altri provider; metriche `pcmi_embedding_*`.
+`CircuitBreakerProvider` (gobreaker) wraps OpenAI and other providers; metrics `pcmi_embedding_*`.
 
 ## `internal/middleware`
 
-- `apikey.go` — risolve chiave → tenant, ruolo; `set_tenant_context`.
-- `public.go` — `IsUnauthenticatedProbe`: elenco unico path GET esenti da chiave, rate limit e audit.
-- `ratelimit.go` — limiter per API key (`RATE_LIMIT_BACKEND=memory|redis`); probe esenti.
-- `idempotency.go` — cache `POST /v1/memories` per `X-Idempotency-Key` (24h).
-- `metrics_auth.go` — Bearer su `GET /metrics` se `METRICS_SCRAPE_TOKEN` è impostato.
-- `audit.go` — scrittura `audit_log`.
-- `admin.go`, `rbac.go`, `tenant.go` — ruoli admin e vincoli scrittura.
+- `apikey.go` — resolves key → tenant, role; `set_tenant_context`.
+- `public.go` — `IsUnauthenticatedProbe`: single list of GET paths exempt from key, rate limit, and audit.
+- `ratelimit.go` — limiter per API key (`RATE_LIMIT_BACKEND=memory|redis`); probes exempt.
+- `idempotency.go` — cache `POST /v1/memories` for `X-Idempotency-Key` (24h).
+- `metrics_auth.go` — Bearer on `GET /metrics` if `METRICS_SCRAPE_TOKEN` is set.
+- `audit.go` — writes `audit_log`.
+- `admin.go`, `rbac.go`, `tenant.go` — admin roles and write constraints.
 
 ## `internal/version`
 
-Costanti `Tag` (`vX.Y.Z`) e `Semver` (`X.Y.Z` per OpenAPI) — unico punto per health API, gRPC, worker e aggiornamento smoke CI.
+Constants `Tag` (`vX.Y.Z`) and `Semver` (`X.Y.Z` for OpenAPI) — single source of truth for health API, gRPC, worker, and CI smoke updates.
 
 ## `internal/metrics`
 
-Registry Prometheus dedicato (`metrics.Registry`) per **API**, contatori `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Registry separato **`WorkerRegistry`** per **pcmi-worker** (`cmd/worker`), con `pcmi_worker_redis_events_total{event_type=…}` e collector Go/process. Il middleware HTTP RED è stato rimosso per evitare errori di gather duplicati in scrape ad alto traffico. Le metriche HTTP server di **OpenTelemetry** (histogram da `otelfiber`) sono separate e richiedono un collector OTLP se si vogliono aggregare lato backend.
+Dedicated Prometheus registry (`metrics.Registry`) for the **API**, counters `pcmi_memory_stores_total` / `pcmi_memory_retrieves_total`. Separate registry **`WorkerRegistry`** for **pcmi-worker** (`cmd/worker`), with `pcmi_worker_redis_events_total{event_type=…}` and Go/process collectors. HTTP RED middleware was removed to avoid duplicate gather errors under high-traffic scrapes. **OpenTelemetry** HTTP server metrics (histograms from `otelfiber`) are separate and require an OTLP collector to aggregate on the backend side.
 
 ## `internal/telemetry`
 
-Inizializzazione tracer OTLP/HTTP opzionale: `telemetry.Init(ctx, defaultServiceName)` da **`cmd/api`** (`pcmi-api`) e **`cmd/worker`** (`pcmi-worker`); `OTEL_SERVICE_NAME` ha priorità sul default. Propagatori W3C globali; senza endpoint OTLP, tracer **noop**. Variabili: `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`.
+Optional OTLP/HTTP tracer initialization: `telemetry.Init(ctx, defaultServiceName)` from **`cmd/api`** (`pcmi-api`) and **`cmd/worker`** (`pcmi-worker`); `OTEL_SERVICE_NAME` takes priority over the default. Global W3C propagators; without an OTLP endpoint, tracer is **noop**. Variables: `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`.
 
 ## `internal/grpc`
 
-Server gRPC: `MemoryService`, `AdminService`, `MetricsService` (see `internal/grpc/server.go`). Auth via metadata `x-api-key` or proto request fields. RPC core + operational (refine, links, stats, events stream, webhooks, …) — see `docs/grpc-vs-http.md`. **HTTP-only:** embedded admin UI (`GET /v1/admin/ui`). Prometheus scrape: `GET /metrics` (HTTP) or `MetricsService.Scrape` (gRPC). Writes reject `readonly` role (`PermissionDenied`). Integration tests: `go test -tags=integration ./internal/grpc/...` with API+gRPC running.
+gRPC server: `MemoryService`, `AdminService`, `MetricsService` (see `internal/grpc/server.go`). Auth via metadata `x-api-key` or proto request fields. Core + operational RPCs (refine, links, stats, events stream, webhooks, …) — see `docs/grpc-vs-http.md`. **HTTP-only:** embedded admin UI (`GET /v1/admin/ui`). Prometheus scrape: `GET /metrics` (HTTP) or `MetricsService.Scrape` (gRPC). Writes reject `readonly` role (`PermissionDenied`). Integration tests: `go test -tags=integration ./internal/grpc/...` with API+gRPC running.
 
 ## `internal/webhook`
 
-Delivery HTTP verso URL registrati, retry, dead-letter.
+HTTP delivery to registered URLs, retry, dead-letter.
 
 ## `internal/eventschema`
 
-Registry validazione payload per ingest eventi universali.
+Payload validation registry for universal event ingest.
 
 ## `internal/crypto`
 
-Cifratura campo `content` at-rest quando richiesto (`encrypt_content` / `metadata.sensitive`).
+Field-level encryption for `content` at-rest when requested (`encrypt_content` / `metadata.sensitive`).
 
 ## `internal/embedding`
 
-Provider embedding (OpenAI); interfaccia usata da service/worker.
+Embedding provider (OpenAI); interface used by service/worker.
 
 ## `internal/model`
 
-Struct JSON per API e persistenza; nessuna logica.
+JSON structs for API and persistence; no business logic.
 
 ## `internal/database`
 
-- `db.go` / `pools.go` — `New(url)` per un singolo pool; `NewPools(primaryURL, readReplicaURL)` per primario + replica di lettura opzionale (`ReadOrPrimary`, `Close`).
+- `db.go` / `pools.go` — `New(url)` for a single pool; `NewPools(primaryURL, readReplicaURL)` for primary + optional read replica (`ReadOrPrimary`, `Close`).
 
 ## `migrations`
 
-Ordine **lessicografico** in `docker-compose` e in CI: `001`, `002`, … Non rinumerare file già applicati in produzione; aggiungere sempre `0NN_...sql` successivi. Dettaglio in `docs/MIGRATIONS.md`.
+**Lexicographic** order in `docker-compose` and CI: `001`, `002`, … Do not renumber files already applied in production; always add successive `0NN_...sql` files. Detail in `docs/MIGRATIONS.md`.
 
 ## `sdk/`
 
-Client HTTP thin; vedere `sdk/README.md`, mapping API solo-HTTP in `sdk/HTTP-API.md`, trasporti in `docs/grpc-vs-http.md`.
+Thin HTTP clients; see `sdk/README.md`, HTTP-only API mapping in `sdk/HTTP-API.md`, transports in `docs/grpc-vs-http.md`.
 
 ## `scripts/`
 
-Smoke/E2E per CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**), `scripts/e2e/test_pcmi.sh` + `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` quando c’è OpenAI. Feature smokes: `scripts/smoke_importance_retrieve.sh`, `scripts/smoke_sessions.sh`, `scripts/smoke_dedup.sh`. Validazione completa host: `scripts/run_full_validation.sh` (`make test-full-real`). Port cleanup: `scripts/free_dev_ports.sh`. Distillation: `scripts/pcmi_synth/`, `scripts/distill_e2e.sh`, `scripts/run_pcmi_distillation_test.sh`. Legacy: `scripts/e2e/legacy/`.
+Smoke/E2E for CI: `scripts/ci_integration_smoke.sh` (job **integration-smoke**), `scripts/e2e/test_pcmi.sh` + `ci_e2e_sse_dedup.sh` / `ci_e2e_finale.sh` when OpenAI is available. Feature smokes: `scripts/smoke_importance_retrieve.sh`, `scripts/smoke_sessions.sh`, `scripts/smoke_dedup.sh`. Full host validation: `scripts/run_full_validation.sh` (`make test-full-real`). Port cleanup: `scripts/free_dev_ports.sh`. Distillation: `scripts/pcmi_synth/`, `scripts/distill_e2e.sh`, `scripts/run_pcmi_distillation_test.sh`. Legacy: `scripts/e2e/legacy/`.
 
 ## `examples/`
 
-Celery, Temporal e esempi AI framework (LangChain, LlamaIndex, AutoGen, CrewAI) che chiamano l’API HTTP; vedi `examples/README.md`.
+Celery, Temporal, and AI framework examples (LangChain, LlamaIndex, AutoGen, CrewAI) that call the HTTP API; see `examples/README.md`.
 
-## Test
+## Tests
 
 - `make test` — unit tests (`go test ./...`)
 - `make lint` — golangci-lint v2 (install with `make install-lint`; config requires `version: "2"` in `.golangci.yml`)
@@ -152,22 +152,22 @@ Celery, Temporal e esempi AI framework (LangChain, LlamaIndex, AutoGen, CrewAI) 
 - `make sdk-smoke` — Python + TypeScript HTTP SDK smoke (`scripts/ci_sdk_smoke.sh`; API on :8000)
 - `make sdk-go-test` / `make sdk-go-smoke` — Go HTTP SDK (`sdk/go/`; smoke needs API on :8000)
 - `make sdk-all` — Python/TS smoke + Go unit tests
-- CI: `integration-smoke` (API+worker locali + Postgres/Redis servizi), `integration-e2e` (compose + OpenAI se secret)
+- CI: `integration-smoke` (local API+worker + Postgres/Redis services), `integration-e2e` (compose + OpenAI if secret)
 
-## Convezioni utili in futuro
+## Useful conventions for the future
 
-1. **Nuove route memoria**: aggiungere sotto `/v1` in `SetupMemoryRoutes` **prima** del wildcard `/memories/*` se il path rischia conflitto.
-2. **Nuove migration**: includere il file in `docker-compose.yml` sotto `postgres.volumes` e in ogni path che applica migrazioni manualmente.
-3. **Eventi worker**: estendere `internal/event/schema.go` e sottoscrittore in `cmd/worker/main.go`.
-4. **Versione API**: costanti in `internal/version` (`Tag` / `Semver`); smoke CI `PCMI_EXPECT_VERSION`. Dopo modifiche a `proto/pcmi/v1/memory.proto`: `protoc --proto_path=proto --go_out=. --go_opt=module=github.com/marco-spagn/pcmi --go-grpc_out=. --go-grpc_opt=module=github.com/marco-spagn/pcmi pcmi/v1/memory.proto`.
+1. **New memory routes**: add under `/v1` in `SetupMemoryRoutes` **before** the wildcard `/memories/*` if the path risks conflict.
+2. **New migrations**: include the file in `docker-compose.yml` under `postgres.volumes` and in every path that applies migrations manually.
+3. **Worker events**: extend `internal/event/schema.go` and subscriber in `cmd/worker/main.go`.
+4. **API version**: constants in `internal/version` (`Tag` / `Semver`); CI smoke `PCMI_EXPECT_VERSION`. After changes to `proto/pcmi/v1/memory.proto`: `protoc --proto_path=proto --go_out=. --go_opt=module=github.com/marco-spagn/pcmi --go-grpc_out=. --go-grpc_opt=module=github.com/marco-spagn/pcmi pcmi/v1/memory.proto`.
 
-## Riferimenti
+## References
 
-- Indice documentazione: `docs/INDEX.md`
-- Guida uso: `docs/USAGE.md`
-- API HTTP: `docs/openapi.yaml`
+- Documentation index: `docs/INDEX.md`
+- Usage guide: `docs/USAGE.md`
+- HTTP API: `docs/openapi.yaml`
 - gRPC vs HTTP: `docs/grpc-vs-http.md`
-- Architettura: `docs/architecture.md`
+- Architecture: `docs/architecture.md`
 - Migrations: `docs/MIGRATIONS.md`
 - Failure / scale: `docs/failure-modes.md`, `docs/scalability.md`
 - Retrieval: `docs/retrieval-pipeline.md`

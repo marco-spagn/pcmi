@@ -44,7 +44,7 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key header"})
 		}
 
-		// Calcola hash della chiave
+		// Compute key hash
 		hash := sha256.Sum256([]byte(apiKey))
 		keyHash := hex.EncodeToString(hash[:])
 
@@ -66,7 +66,7 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "Invalid or expired API key"})
 		}
 
-		// Imposta tutto nel contesto
+		// Set everything in the context
 		c.Locals(APIKeyContextKey, apiKey)
 		c.Locals(APIKeyIDContextKey, apiKeyID)
 		c.Locals(RoleContextKey, role)

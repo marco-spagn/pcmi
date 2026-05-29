@@ -1,8 +1,8 @@
-// Programma pcmi-api: server HTTP (Fiber), stream SSE, eventuale gRPC MemoryService e endpoint
-// Prometheus. Avvio da cmd/api; configurazione via variabili d'ambiente (vedi .env.example e docs/CODEBASE.md).
-// Readiness: GET /ready e GET /v1/ready (ping Postgres + Redis, senza API key).
-// Optional DATABASE_READ_URL: PostgreSQL read replica per query di lettura (retrieve, stats, ecc.).
-// Optional OpenTelemetry: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT / OTEL_EXPORTER_OTLP_ENDPOINT (vedi .env.example).
+// Program pcmi-api: HTTP server (Fiber), SSE streams, optional gRPC MemoryService and
+// Prometheus endpoint. Started from cmd/api; configured via environment variables (see .env.example and docs/CODEBASE.md).
+// Readiness: GET /ready and GET /v1/ready (ping Postgres + Redis, no API key required).
+// Optional DATABASE_READ_URL: PostgreSQL read replica for read queries (retrieve, stats, etc.).
+// Optional OpenTelemetry: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT / OTEL_EXPORTER_OTLP_ENDPOINT (see .env.example).
 package main
 
 import (
@@ -47,7 +47,7 @@ func skipTracePath(c *fiber.Ctx) bool {
 func main() {
 	log.Println("🚀 PCMI API " + version.Tag + " starting...")
 
-	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
+	// --- Fail-fast: load and validate config before opening any connection ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
 		log.Fatalf("❌ FATAL: %v", err)
@@ -123,7 +123,7 @@ func main() {
 
 	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
 	if pools.Read != nil {
-		log.Println("📖 DATABASE_READ_URL attivo: carico di lettura su replica")
+		log.Println("📖 DATABASE_READ_URL active: read load routed to replica")
 	}
 	addr := ":" + cfg.APIPort
 	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {

@@ -1,39 +1,39 @@
-# Federazione multi-tenant e read replica PostgreSQL
+# Multi-tenant federation and PostgreSQL read replicas
 
-PCMI è **multi-tenant** su un unico database: ogni riga è legata a `tenant_id` e le policy RLS dipendono da `set_tenant_context`, impostato dal middleware dopo la validazione di `X-API-Key`.
+PCMI is **multi-tenant** on a single database: every row is tied to `tenant_id` and RLS policies depend on `set_tenant_context`, set by middleware after `X-API-Key` validation.
 
-## Obiettivo operativo
+## Operational goal
 
-In carichi **read-heavy** (molti agenti o orchestratori che leggono memoria in parallelo), si può aggiungere una **streaming replica** PostgreSQL e instradare le query di sola lettura verso la replica, lasciando **scritture, transaction e probe di readiness** sul primario.
+Under **read-heavy** workloads (many agents or orchestrators reading memory in parallel), you can add a PostgreSQL **streaming replica** and route read-only queries to the replica, keeping **writes, transactions, and readiness probes** on the primary.
 
-Variabile d’ambiente sull’API:
+Environment variable on the API:
 
-- **`DATABASE_URL`** — connessione al **primario** (obbligatoria).
-- **`DATABASE_READ_URL`** — connessione alla **replica di lettura** (opzionale). Se assente, tutto resta sul primario.
+- **`DATABASE_URL`** — connection to the **primary** (required).
+- **`DATABASE_READ_URL`** — connection to the **read replica** (optional). If absent, everything stays on the primary.
 
-## Cosa viene instradato
+## What is routed
 
-| Percorso | Pool |
-|----------|------|
-| `Store`, batch store, import, rollback, event ingest, admin, audit insert, webhook, link **create** | Primario |
-| `Retrieve`, export query, history, stats, lineage, link **list**, `GetByPath` “current” | Replica se configurata |
-| `GetHistoricalVersion` (versione / `as_of`, usata anche nel rollback) | **Primario** (coerenza con scritture) |
+| Path | Pool |
+|------|------|
+| `Store`, batch store, import, rollback, event ingest, admin, audit insert, webhook, link **create** | Primary |
+| `Retrieve`, export query, history, stats, lineage, link **list**, `GetByPath` "current" | Replica if configured |
+| `GetHistoricalVersion` (version / `as_of`, also used in rollback) | **Primary** (consistency with writes) |
 
-gRPC **Retrieve** eredita lo stesso `MemoryService` → usa la replica per le SELECT come l’HTTP.
+gRPC **Retrieve** inherits the same `MemoryService` → uses the replica for SELECTs like HTTP.
 
-## Limiti e buone pratiche
+## Limitations and best practices
 
-1. **Lag di replica**: subito dopo una `POST /v1/memories`, una `POST /v1/retrieve` sulla replica può non vedere ancora la riga. Per “read-your-writes”, ripeti la lettura sul primario (non esiste header dedicato; pattern consigliato: breve retry o accetta eventual consistency).
-2. **RLS**: la replica deve ripetere le stesse policy del primario (stesso schema e ruolo applicativo); su Postgres le hot standby eseguono le stesse policy sulle righe replicate.
-3. **Readiness**: `GET /v1/ready` continua a fare ping del **primario** e Redis; il mero stato della replica non blocca il probe (se la replica è giù, valuta monitoring separato o health check custom).
-4. **Worker**: il processo worker usa solo il primario (`DATABASE_URL`), per evitare job di scrittura/distillazione su copie in ritardo.
+1. **Replication lag**: immediately after a `POST /v1/memories`, a `POST /v1/retrieve` on the replica may not yet see the row. For "read-your-writes", repeat the read on the primary (no dedicated header exists; recommended pattern: brief retry or accept eventual consistency).
+2. **RLS**: the replica must repeat the same policies as the primary (same schema and application role); in Postgres, hot standbys apply the same policies to replicated rows.
+3. **Readiness**: `GET /v1/ready` continues to ping the **primary** and Redis; the replica's mere state does not block the probe (if the replica is down, consider separate monitoring or a custom health check).
+4. **Worker**: the worker process uses only the primary (`DATABASE_URL`), to avoid write/distillation jobs on lagged copies.
 
-## Kubernetes (schizzo)
+## Kubernetes (sketch)
 
-- Service interno al primario per `DATABASE_URL`.
-- Service (o URI) separato per la replica in `DATABASE_READ_URL` nel `ConfigMap` dell’API.
-- Non esporre la replica come endpoint pubblico se non necessario.
+- Internal service to the primary for `DATABASE_URL`.
+- Separate service (or URI) for the replica in `DATABASE_READ_URL` in the API `ConfigMap`.
+- Do not expose the replica as a public endpoint unless necessary.
 
-## Esempi orchestrazione
+## Orchestration examples
 
-Per avviare job che chiamano PCMI via HTTP da Celery o Temporal, vedi [`examples/README.md`](../examples/README.md).
+To start jobs that call PCMI via HTTP from Celery or Temporal, see [`examples/README.md`](../examples/README.md).

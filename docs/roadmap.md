@@ -26,91 +26,91 @@
 
 ## v1.31.0
 
-- **Distillation E2E**: `scripts/run_pcmi_distillation_test.sh` + `generate_soc_incidents_enterprise_v2.py`; report fix (`/v1/distilled` → `entries`); batch distill **LIMIT 100**; `.gitignore` per `.venv_e2e/` e `.pcmi_test_out/`.
-- Versione API `v1.31.0`.
+- **Distillation E2E**: `scripts/run_pcmi_distillation_test.sh` + `generate_soc_incidents_enterprise_v2.py`; report fix (`/v1/distilled` → `entries`); batch distill **LIMIT 100**; `.gitignore` for `.venv_e2e/` and `.pcmi_test_out/`.
+- API version `v1.31.0`.
 
 ## v1.30.0
 
-- **Documentazione**: README con guide d’uso, diagrammi Mermaid, [docs/INDEX.md](INDEX.md), [USAGE.md](USAGE.md), [DATA-MODEL.md](DATA-MODEL.md), [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md); `architecture.md` aggiornato.
-- Versione API `v1.30.0` (solo documentazione; comportamento invariato).
+- **Documentation**: README with usage guides, Mermaid diagrams, [docs/INDEX.md](INDEX.md), [USAGE.md](USAGE.md), [DATA-MODEL.md](DATA-MODEL.md), [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md); `architecture.md` updated.
+- API version `v1.30.0` (documentation only; behavior unchanged).
 
 ## v1.29.0
 
-- **gRPC operational parity**: refine, links, stats, events (ingest + schemas + **StreamEvents**), webhooks, migrate embeddings, rollback, summarize, history, lineage, distilled, audit, export/import. Admin e `/metrics` restano HTTP-only.
-- Versione API `v1.29.0`.
+- **gRPC operational parity**: refine, links, stats, events (ingest + schemas + **StreamEvents**), webhooks, migrate embeddings, rollback, summarize, history, lineage, distilled, audit, export/import. Admin and `/metrics` remain HTTP-only.
+- API version `v1.29.0`.
 
 ## v1.28.0
 
-- **gRPC operational**: `GetMemory` (GET `/v1/memories/*`) e `Compact` (POST `/v1/memories/compact`).
+- **gRPC operational**: `GetMemory` (GET `/v1/memories/*`) and `Compact` (POST `/v1/memories/compact`).
 - **SDK admin**: `create_tenant`, `list_api_keys`, `create_api_key`, `rotate_api_key` (Python + TypeScript).
-- **CI/DX**: `make sdk-smoke`, `scripts/ci_sdk_smoke.sh` in integration-smoke; smoke admin read-only.
-- Versione API `v1.28.0`.
+- **CI/DX**: `make sdk-smoke`, `scripts/ci_sdk_smoke.sh` in integration-smoke; read-only admin smoke.
+- API version `v1.28.0`.
 
 ## v1.27.0
 
-- **SDK HTTP-only**: `sdk/HTTP-API.md` — tabella mapping endpoint → metodi Python/TypeScript; client allineati (store/retrieve completi, `compact`, webhooks, `migrate_embeddings`, `list_links`, …).
-- **Polish SDK**: TypeScript `StoreOptions` / `RetrieveOptions` (`embedding`, `tags`, `encrypt_content`, `expires_at`, `tags_match`); Python `async with`, stessi campi e metodi mancanti.
-- Versione API `v1.27.0`.
+- **HTTP-only SDK**: `sdk/HTTP-API.md` — endpoint-to-method mapping table for Python/TypeScript; clients aligned (full store/retrieve, `compact`, webhooks, `migrate_embeddings`, `list_links`, …).
+- **SDK polish**: TypeScript `StoreOptions` / `RetrieveOptions` (`embedding`, `tags`, `encrypt_content`, `expires_at`, `tags_match`); Python `async with`, same missing fields and methods.
+- API version `v1.27.0`.
 
 ## v1.26.0
 
-- **Parità risposta retrieve gRPC ↔ REST**: `RetrieveEntry` espone `tenant_id`, `metadata_json`, `tags`, `embedding_model` / `embedding_space`, timestamp RFC3339 (`valid_from`, `valid_to`, `created_at`), `source_agent_id` / `source_event_id`, `content_encrypted`, `embedding` (se presente). Vale per `Retrieve`, `BatchRetrieve`, `RetrieveStream`.
-- Versione API `v1.26.0`.
+- **gRPC retrieve response parity ↔ REST**: `RetrieveEntry` exposes `tenant_id`, `metadata_json`, `tags`, `embedding_model` / `embedding_space`, RFC3339 timestamps (`valid_from`, `valid_to`, `created_at`), `source_agent_id` / `source_event_id`, `content_encrypted`, `embedding` (if present). Applies to `Retrieve`, `BatchRetrieve`, `RetrieveStream`.
+- API version `v1.26.0`.
 
 ## v1.25.0
 
-- **Embedding vettoriale su gRPC store**: `StoreRequest` / `BatchStoreItem` con `repeated float embedding` (parità con REST `embedding`); worker backfill se assente.
-- **Documentazione API solo-HTTP**: `docs/grpc-vs-http.md` (compact, refine, links, stats, admin, webhooks, SSE, …).
-- Versione API `v1.25.0`.
+- **Vector embedding on gRPC store**: `StoreRequest` / `BatchStoreItem` with `repeated float embedding` (parity with REST `embedding`); worker backfill if absent.
+- **HTTP-only API documentation**: `docs/grpc-vs-http.md` (compact, refine, links, stats, admin, webhooks, SSE, …).
+- API version `v1.25.0`.
 
 ## v1.24.0
 
-- **Parità store gRPC ↔ REST**: `StoreRequest` / `BatchStoreItem` con `tags`, `embedding_model`, `embedding_space`, `source_agent_id`, `encrypt_content`, `expires_at_rfc3339`; `StoreResponse` con `superseded_id` opzionale. Test integrazione gRPC (`go test -tags=integration`) e smoke store+retrieve con tag.
-- Versione API `v1.24.0`.
+- **gRPC store parity ↔ REST**: `StoreRequest` / `BatchStoreItem` with `tags`, `embedding_model`, `embedding_space`, `source_agent_id`, `encrypt_content`, `expires_at_rfc3339`; `StoreResponse` with optional `superseded_id`. gRPC integration tests (`go test -tags=integration`) and store+retrieve smoke with tags.
+- API version `v1.24.0`.
 
 ## v1.23.0
 
-- **Osservabilità worker**: `cmd/worker` inizializza `telemetry.Init` (OTLP/HTTP opzionale, default `service.name=pcmi-worker`), shutdown ordinato; span **consumer** per ogni messaggio Redis `memory_events`; **`GET :8081/metrics`** Prometheus (`WorkerRegistry`, `pcmi_worker_redis_events_total`). `telemetry.Init` accetta un `defaultServiceName` (`pcmi-api` vs `pcmi-worker`).
-- Versione API `v1.23.0`.
+- **Worker observability**: `cmd/worker` initializes `telemetry.Init` (optional OTLP/HTTP, default `service.name=pcmi-worker`), graceful shutdown; **consumer** span for every Redis `memory_events` message; **`GET :8081/metrics`** Prometheus (`WorkerRegistry`, `pcmi_worker_redis_events_total`). `telemetry.Init` accepts a `defaultServiceName` (`pcmi-api` vs `pcmi-worker`).
+- API version `v1.23.0`.
 
 ## v1.22.0
 
-- **Parità retrieve gRPC ↔ REST**: `RetrieveRequest` e `BatchRetrieveQuery` espongono gli stessi filtri del body JSON REST: `tags`, `tags_match`, `as_of_rfc3339` (RFC3339/RFC3339Nano), `source_agent_id`, `embedding_space`. Valori `as_of` non validi → `InvalidArgument`.
-- Versione API `v1.22.0`.
+- **gRPC retrieve parity ↔ REST**: `RetrieveRequest` and `BatchRetrieveQuery` expose the same filters as the REST JSON body: `tags`, `tags_match`, `as_of_rfc3339` (RFC3339/RFC3339Nano), `source_agent_id`, `embedding_space`. Invalid `as_of` values → `InvalidArgument`.
+- API version `v1.22.0`.
 
 ## v1.21.0
 
-- **gRPC batch store**: `BatchStore` RPC (stessi limiti di `POST /v1/memories/batch`, max 50 item). Chiavi **readonly** ricevono `PermissionDenied` su `Store` e `BatchStore`, allineato a REST.
-- **Versione centralizzata**: `internal/version` (`Tag` / `Semver`) per health REST/gRPC, worker e smoke CI.
-- Versione API `v1.21.0`.
+- **gRPC batch store**: `BatchStore` RPC (same limits as `POST /v1/memories/batch`, max 50 items). **readonly** keys receive `PermissionDenied` on `Store` and `BatchStore`, aligned with REST.
+- **Centralized version**: `internal/version` (`Tag` / `Semver`) for REST/gRPC health, worker, and CI smoke.
+- API version `v1.21.0`.
 
 ## v1.20.0
 
-- **gRPC retrieve**: `BatchRetrieve` (fino a 20 query, stessi limiti di `POST /v1/retrieve/batch`) e `RetrieveStream` (header con `total` poi un messaggio per entry, stessi dati di `Retrieve`).
-- **OpenTelemetry**: propagazione W3C (`tracecontext` + `baggage`); export OTLP/HTTP quando `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` o `OTEL_EXPORTER_OTLP_ENDPOINT` è valorizzato; altrimenti tracer noop. **Prometheus** resta su `GET /metrics` (registry dedicato). HTTP instrumentato con `otelfiber`; gRPC con `otelgrpc` (`grpc.StatsHandler`).
-- Versione API `v1.20.0`.
+- **gRPC retrieve**: `BatchRetrieve` (up to 20 queries, same limits as `POST /v1/retrieve/batch`) and `RetrieveStream` (header with `total` then one message per entry, same data as `Retrieve`).
+- **OpenTelemetry**: W3C propagation (`tracecontext` + `baggage`); OTLP/HTTP export when `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` or `OTEL_EXPORTER_OTLP_ENDPOINT` is set; otherwise noop tracer. **Prometheus** remains on `GET /metrics` (dedicated registry). HTTP instrumented with `otelfiber`; gRPC with `otelgrpc` (`grpc.StatsHandler`).
+- API version `v1.20.0`.
 
 ## v1.19.0
 
-- **Compaction per path**: `POST /v1/memories/compact` + SQL `compact_memory_path_history` — rimuove versioni **chiuse** (`valid_to` valorizzato) oltre le ultime `keep_superseded` per un path; la riga corrente resta intatta. Complementare al **pruning** globale per età (`prune_superseded_memories`).
-- **CI**: smoke HTTP unificato in `scripts/ci_integration_smoke.sh`; job `go` e `golangci-lint` in parallelo; E2E compose alleggerito (niente duplicati `ci_e2e_v1_14` / `v1_15` / `ci_e2e_embedding` già coperti dallo smoke).
-- Versione API `v1.19.0`.
+- **Per-path compaction**: `POST /v1/memories/compact` + SQL `compact_memory_path_history` — removes **closed** versions (`valid_to` set) beyond the last `keep_superseded` for a path; the current row is left untouched. Complements global age-based **pruning** (`prune_superseded_memories`).
+- **CI**: unified HTTP smoke in `scripts/ci_integration_smoke.sh`; `go` and `golangci-lint` jobs in parallel; lighter E2E compose (no duplicates `ci_e2e_v1_14` / `v1_15` / `ci_e2e_embedding` already covered by smoke).
+- API version `v1.19.0`.
 
 ## v1.18.0
 
-- **Esempi orchestratori**: `examples/celery` e `examples/temporal` — task/activity HTTP verso PCMI.
-- **Read replica opzionale**: `DATABASE_READ_URL` instrada SELECT pesanti (retrieve, stats, lineage, …) su una streaming replica; federazione multi-tenant invariata (stesso cluster PG). Dettaglio in `docs/federation-read-replicas.md`.
-- Versione API `v1.18.0` allineata su health REST/gRPC, worker e CI.
+- **Orchestrator examples**: `examples/celery` and `examples/temporal` — HTTP task/activity toward PCMI.
+- **Optional read replica**: `DATABASE_READ_URL` routes heavy SELECTs (retrieve, stats, lineage, …) to a streaming replica; multi-tenant federation unchanged (same PG cluster). Detail in `docs/federation-read-replicas.md`.
+- API version `v1.18.0` aligned on REST/gRPC health, worker, and CI.
 
 ## v1.17.0
 
-- **Readiness**: `GET /ready`, `GET /v1/ready` (HTTP) e RPC `pcmi.v1.MemoryService/Ready` — ping PostgreSQL + Redis; 503 / `not_ready` se una dipendenza non risponde. Kubernetes sample usa `/v1/ready` per `readinessProbe`.
-- Versione API `v1.17.0` allineata su health REST/gRPC, worker e CI.
+- **Readiness**: `GET /ready`, `GET /v1/ready` (HTTP) and RPC `pcmi.v1.MemoryService/Ready` — ping PostgreSQL + Redis; 503 / `not_ready` if a dependency does not respond. Kubernetes sample uses `/v1/ready` for `readinessProbe`.
+- API version `v1.17.0` aligned on REST/gRPC health, worker, and CI.
 
 ## v1.16.0
 
-- Documentazione centralizzata: `docs/CODEBASE.md`, `docs/MIGRATIONS.md`, Godoc (`internal/*/doc.go`), `sdk/README.md`
-- Indice documentazione in README e allineamento versione API `v1.16.0`
+- Centralized documentation: `docs/CODEBASE.md`, `docs/MIGRATIONS.md`, Godoc (`internal/*/doc.go`), `sdk/README.md`
+- Documentation index in README and API version alignment `v1.16.0`
 
 ## v1.15.0
 

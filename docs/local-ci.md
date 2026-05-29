@@ -52,7 +52,7 @@ API version for smoke (`/v1/health`): resolved at runtime from `internal/version
 | Goal | Command |
 |---|---|
 | **All tests / full CI on host** (auto-frees `:5432` / `:6379`; alias `make test-all`) | `make ci-like-github` or `./scripts/ci_like_github.sh` |
-| **Simulazione completa** (CI + E2E OpenAI opz. + MCP + feature smokes) | `make test-full-real` |
+| **Full simulation** (CI + optional OpenAI E2E + MCP + feature smokes) | `make test-full-real` |
 | Broad local suite (compose + HTTP/gRPC smoke; auto-frees ports) | `make test-all-local` |
 | See what jobs exist | `make act-list` |
 | Free `:5432` / `:6379` manually (compose down + stop act service containers) | `make free-dev-ports` or `make act-preflight` |
@@ -149,74 +149,74 @@ More detail: [integration-testing.md](integration-testing.md), [USAGE.md](USAGE.
 
 ---
 
-## Simulazione completa (tutte le funzionalità)
+## Full simulation (all features)
 
-Per **una sola sequenza** che replica il massimo della pipeline GitHub in locale (job `go` + `integration-smoke` +, se possibile, `integration-e2e` + MCP + smoke feature), usa:
+For **a single sequence** that replicates the maximum of the GitHub pipeline locally (job `go` + `integration-smoke` + optionally `integration-e2e` + MCP + feature smokes), use:
 
 ```bash
 make test-full-real
 ```
 
-Equivalente: `./scripts/run_full_validation.sh`
+Equivalent: `./scripts/run_full_validation.sh`
 
-### Prerequisiti
+### Prerequisites
 
-| Requisito | Obbligatorio | Note |
-|-----------|--------------|------|
-| Go toolchain | Sì | Come per `make ci-like-github` |
-| Docker daemon | Sì | Compose per Postgres/Redis e E2E |
-| `curl`, `jq`, `git` | Sì | Smoke HTTP e script CI |
-| `psql` sul host | Sì | Phase 1 (`act_integration_smoke_host.sh`) — macOS: `brew install libpq && brew link --force libpq` |
-| `golangci-lint` o Docker | Consigliato | Altrimenti Phase 1 salta lint con avviso |
-| `helm` / Docker | Consigliato | Altrimenti Phase 1 salta Helm con avviso |
-| `OPENAI_API_KEY` | No | Se assente: **Phase 2 saltata con WARN** (non fallisce il target); resto della suite gira |
-| `python3` | Solo se `FULL_VALIDATION_E2E=distill` | `make distillation-e2e` |
+| Requirement | Required | Notes |
+|-------------|----------|-------|
+| Go toolchain | Yes | Same as `make ci-like-github` |
+| Docker daemon | Yes | Compose for Postgres/Redis and E2E |
+| `curl`, `jq`, `git` | Yes | HTTP smoke and CI scripts |
+| `psql` on host | Yes | Phase 1 (`act_integration_smoke_host.sh`) — macOS: `brew install libpq && brew link --force libpq` |
+| `golangci-lint` or Docker | Recommended | Otherwise Phase 1 skips lint with a warning |
+| `helm` / Docker | Recommended | Otherwise Phase 1 skips Helm with a warning |
+| `OPENAI_API_KEY` | No | If absent: **Phase 2 skipped with WARN** (target does not fail); rest of the suite runs |
+| `python3` | Only if `FULL_VALIDATION_E2E=distill` | `make distillation-e2e` |
 
-Crea `.env` da `.env.example` se mancante (`make env`). Per l’E2E embedding/distillation, esporta la chiave o mettila in `.env`:
+Create `.env` from `.env.example` if missing (`make env`). For embedding/distillation E2E, export the key or put it in `.env`:
 
 ```bash
 export OPENAI_API_KEY=sk-…
 make test-full-real
 ```
 
-### Tempi indicativi (laptop, prima esecuzione)
+### Indicative times (laptop, first run)
 
-| Fase | Cosa valida | Tempo tipico |
-|------|-------------|--------------|
-| 0 — `act-preflight` | Libera `:5432` / `:6379` | &lt; 1 min |
-| 1 — `ci_like_github.sh` | Lint, govulncheck, Helm, `go test -race -tags=integration`, coverage gate, integration-smoke (HTTP/gRPC/SDK) | **20–45 min** con `-race`; **10–25 min** con `CI_LIKE_NO_RACE=1` |
-| 2 — E2E OpenAI (opz.) | Trio CI: store+embedding, SSE/dedup, distillation finale — oppure `distillation-e2e` sintetico | **5–20 min** (saltata senza chiave) |
-| 3 — smokes + MCP | Un solo `infra-up` se serve: `smoke-importance`, `smoke-sessions`, `smoke-dedup` (curl), `build-mcp`, `test-mcp-unit`, `test-mcp-smoke` | 2–4 min |
-| 4 — `test-sessions-integration` | Go test sessioni / working memory (PCMI-010) | 2–5 min |
+| Phase | What it validates | Typical time |
+|-------|-------------------|--------------|
+| 0 — `act-preflight` | Free `:5432` / `:6379` | < 1 min |
+| 1 — `ci_like_github.sh` | Lint, govulncheck, Helm, `go test -race -tags=integration`, coverage gate, integration-smoke (HTTP/gRPC/SDK) | **20–45 min** with `-race`; **10–25 min** with `CI_LIKE_NO_RACE=1` |
+| 2 — E2E OpenAI (opt.) | CI trio: store+embedding, SSE/dedup, final distillation — or synthetic `distillation-e2e` | **5–20 min** (skipped without key) |
+| 3 — smokes + MCP | Single `infra-up` if needed: `smoke-importance`, `smoke-sessions`, `smoke-dedup` (curl), `build-mcp`, `test-mcp-unit`, `test-mcp-smoke` | 2–4 min |
+| 4 — `test-sessions-integration` | Go test sessions / working memory (PCMI-010) | 2–5 min |
 
-Dopo la Phase 3, lo stack Compose avviato da `test-full-real` viene fermato con `make infra-down` (salvo `SKIP_INFRA_DOWN=1`).
+After Phase 3, the Compose stack started by `test-full-real` is stopped with `make infra-down` (unless `SKIP_INFRA_DOWN=1`).
 
-**Totale:** ~30–70 min con OpenAI e race; ~15–35 min con `CI_LIKE_NO_RACE=1` e senza Phase 2.
+**Total:** ~30–70 min with OpenAI and race; ~15–35 min with `CI_LIKE_NO_RACE=1` and without Phase 2.
 
-### Accelerare senza perdere troppo segnale
+### Speed up without losing too much signal
 
 ```bash
-# Più veloce su laptop (Phase 1 senza -race; GitHub CI usa ancora -race)
+# Faster on laptop (Phase 1 without -race; GitHub CI still uses -race)
 CI_LIKE_NO_RACE=1 PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make test-full-real
 ```
 
-### Varianti Phase 2 (OpenAI)
+### Phase 2 variants (OpenAI)
 
-Default (come job `integration-e2e` su GitHub):
+Default (like the `integration-e2e` job on GitHub):
 
 ```bash
 make test-full-real
 # → test_pcmi.sh, ci_e2e_sse_dedup.sh, ci_e2e_finale.sh
 ```
 
-Pipeline distillation su dati sintetici (alternativa locale):
+Distillation pipeline on synthetic data (local alternative):
 
 ```bash
 FULL_VALIDATION_E2E=distill make test-full-real
 # → make distillation-e2e PRESET=soc SYNTH_NUM=100
 ```
 
-Smoke sessioni e MCP singoli (con API su `:8000`):
+Single sessions and MCP smokes (with API on `:8000`):
 
 ```bash
 make infra-up
@@ -224,21 +224,21 @@ make smoke-sessions      # POST session → memories → promote → DELETE
 make smoke-dedup         # ingest dedup skip/link/merge
 make test-mcp-unit
 make test-mcp-smoke
-# oppure tutto MCP + infra: make mcp-e2e
+# or all MCP + infra: make mcp-e2e
 ```
 
-Tenere lo stack attivo dopo `test-full-real`:
+Keep the stack running after `test-full-real`:
 
 ```bash
 SKIP_INFRA_DOWN=1 make test-full-real
 ```
 
-### Cosa non include
+### What it does not include
 
-- Job `integration-e2e` se `OPENAI_API_KEY` mancante (WARN esplicito, exit 0).
-- CodeQL (analisi su `cmd/`, `internal/`, SDK — vedi `.github/codeql/codeql-config.yml`; esclude `*_test.go`, protobuf generati, `docs/`), badge su `main` (CI fa push diretto di `badges/coverage.json` — vedi [github-branch-protection.md](github-branch-protection.md)), scan Trivy (usa `RUN_TRIVY=1` dentro `ci_like_github.sh` se serve).
+- Job `integration-e2e` if `OPENAI_API_KEY` is missing (explicit WARN, exit 0).
+- CodeQL (analysis on `cmd/`, `internal/`, SDK — see `.github/codeql/codeql-config.yml`; excludes `*_test.go`, generated protobuf, `docs/`), badge on `main` (CI pushes `badges/coverage.json` directly — see [github-branch-protection.md](github-branch-protection.md)), Trivy scan (use `RUN_TRIVY=1` inside `ci_like_github.sh` if needed).
 
-Per solo parità CI senza MCP/sessions/E2E: `make ci-like-github`. Per suite “manuale” con più tweak `.env`: `make test-all-local`.
+For CI parity only without MCP/sessions/E2E: `make ci-like-github`. For “manual” suite with more `.env` tweaks: `make test-all-local`.
 
 ---
 

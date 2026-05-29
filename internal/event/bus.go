@@ -35,7 +35,7 @@ func (b *Bus) Publish(evt Event) {
 	for _, ch := range b.subscribers[evt.Type] {
 		select {
 		case ch <- evt:
-		default: // non bloccante
+		default: // non-blocking
 		}
 	}
 }

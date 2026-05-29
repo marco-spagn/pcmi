@@ -2,38 +2,38 @@
 # =============================================================================
 # run_pcmi_distillation_test.sh
 # -----------------------------------------------------------------------------
-# End-to-end test del PCMI Distillation Pipeline:
-#   1) Avvia l'infrastruttura via docker compose (postgres + redis + api + worker)
-#   2) Aspetta che API e worker siano healthy
-#   3) Installa il PCMI Python SDK (in editable) in un venv locale
-#   4) Lancia `generate_soc_incidents_enterprise_v2.py` (100 incidenti default, seed 42)
-#   5) Pubblica l'evento Redis `memory.refine.requested`
-#   6) Verifica che il worker abbia generato distilled memories (GET /v1/distilled)
-#   7) Report finale: per ogni metrica mostra x → y con atteso z (OK se y == z)
+# End-to-end test of the PCMI Distillation Pipeline:
+#   1) Start infrastructure via docker compose (postgres + redis + api + worker)
+#   2) Wait for API and worker to be healthy
+#   3) Install the PCMI Python SDK (editable) in a local venv
+#   4) Run `generate_soc_incidents_enterprise_v2.py` (100 incidents default, seed 42)
+#   5) Publish the Redis event `memory.refine.requested`
+#   6) Verify that the worker has generated distilled memories (GET /v1/distilled)
+#   7) Final report: for each metric show x → y with expected z (OK if y == z)
 #
-# Modello di verifica (x → y, atteso z):
-#   - active_memories:     x=baseline,  y=dopo ingest,  z=x+NUM_INCIDENTS
-#   - distilled_count:     x=baseline,  y=dopo refine,  z=x+NUM_REFINE_EVENTS
-#   - eventi Redis refine: x=0,         y=pubblicati,   z=ceil(NUM_INCIDENTS/10) (uno per shard)
-#   - raw in distillati:   somma source_entry_ids ≈ NUM_INCIDENTS
+# Verification model (x → y, expected z):
+#   - active_memories:     x=baseline,  y=after ingest,  z=x+NUM_INCIDENTS
+#   - distilled_count:     x=baseline,  y=after refine,  z=x+NUM_REFINE_EVENTS
+#   - Redis refine events: x=0,         y=published,     z=ceil(NUM_INCIDENTS/10) (one per shard)
+#   - raw in distilled:    sum source_entry_ids ≈ NUM_INCIDENTS
 #
-# Idempotente: si può rilanciare quante volte si vuole.
+# Idempotent: can be re-run as many times as needed.
 #
-# Uso:
+# Usage:
 #   ./scripts/run_pcmi_distillation_test.sh                 # full e2e
-#   ./scripts/run_pcmi_distillation_test.sh --no-build      # salta `docker compose build`
-#   ./scripts/run_pcmi_distillation_test.sh --no-teardown   # lascia i container su
+#   ./scripts/run_pcmi_distillation_test.sh --no-build      # skip `docker compose build`
+#   ./scripts/run_pcmi_distillation_test.sh --no-teardown   # leave containers running
 #   ./scripts/run_pcmi_distillation_test.sh --preset finance --num 500 --seed 1
-#   ./scripts/run_pcmi_distillation_test.sh --num 200       # meno record (default preset soc)
+#   ./scripts/run_pcmi_distillation_test.sh --num 200       # fewer records (default preset soc)
 #   ./scripts/run_pcmi_distillation_test.sh --llm --domain "retail fraud cases"
-#   ./scripts/run_pcmi_distillation_test.sh --skip-distill  # salta il check finale
+#   ./scripts/run_pcmi_distillation_test.sh --skip-distill  # skip final check
 #
-# Env utili:
-#   PCMI_API_KEY   (default: testkey123, seedata nella migration 003)
+# Useful env:
+#   PCMI_API_KEY   (default: testkey123, seeded in migration 003)
 #   PCMI_BASE_URL  (default: http://localhost:8000)
 #   PCMI_REDIS_URL (default: redis://localhost:6379/0)
-#   EVENT_BACKEND  (default streams) — lo script pubblica su pcmi:events (XADD) o memory_events (PUBLISH)
-#   DISTILLATION_POLICY_DISABLED  (default 1 per questo script) — niente auto-distill su memory.stored
+#   EVENT_BACKEND  (default streams) — script publishes to pcmi:events (XADD) or memory_events (PUBLISH)
+#   DISTILLATION_POLICY_DISABLED  (default 1 for this script) — no auto-distill on memory.stored
 # =============================================================================
 
 set -Eeuo pipefail
@@ -42,7 +42,7 @@ set -Eeuo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-# Stesso .env usato da docker compose (OPENAI_API_KEY, EVENT_BACKEND, …)
+# Same .env used by docker compose (OPENAI_API_KEY, EVENT_BACKEND, ...)
 if [[ -f "${ROOT}/.env" ]]; then
   set -a
   # shellcheck disable=SC1091
@@ -50,20 +50,20 @@ if [[ -f "${ROOT}/.env" ]]; then
   set +a
 fi
 EVENT_BACKEND="${EVENT_BACKEND:-streams}"
-# Smoke: distillazione solo via memory.refine.requested (non policy / backlog stored)
+# Smoke: distillation only via memory.refine.requested (not policy / stored backlog)
 DISTILLATION_POLICY_DISABLED="${DISTILLATION_POLICY_DISABLED:-1}"
 export DISTILLATION_POLICY_DISABLED
 
 PCMI_BASE_URL="${PCMI_BASE_URL:-http://localhost:8000}"
-# Admin key seedata via migration 003 → tenant default 00000000-…
+# Admin key seeded via migration 003 → default tenant 00000000-...
 ADMIN_API_KEY="${PCMI_ADMIN_API_KEY:-testkey123}"
-# Bootstrap: PCMI_API_KEY parte come admin key, poi viene riassegnato
-# alla key dedicata del tenant SOC dopo il provisioning (Step 3.5).
+# Bootstrap: PCMI_API_KEY starts as admin key, then gets reassigned
+# to the dedicated SOC tenant key after provisioning (Step 3.5).
 PCMI_API_KEY="${PCMI_API_KEY:-${ADMIN_API_KEY}}"
 PCMI_REDIS_URL="${PCMI_REDIS_URL:-redis://localhost:6379/0}"
 
-# Tenant dedicato per il test SOC: lo creiamo con UUID forzato via SQL,
-# poi generiamo una API key admin per lui via /v1/admin/api-keys.
+# Dedicated SOC test tenant: created with forced UUID via direct SQL,
+# then an admin API key is generated for it via /v1/admin/api-keys.
 PRESET="${PRESET:-soc}"
 TENANT_ID="${TENANT_ID:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}"
 TENANT_SLUG="${TENANT_SLUG:-}"
@@ -75,19 +75,19 @@ CUSTOM_DOMAIN=""
 SKIP_BUILD=0
 SKIP_TEARDOWN=0
 SKIP_DISTILL=0
-# DISTILLATION_BATCH_SIZE (LIMIT della query del worker). Modificabile via flag
-# --distill-batch-size oppure env DISTILLATION_BATCH_SIZE.
-# Lo shard size del generator viene tenuto sincronizzato con questo valore così
-# che ogni refine prenda esattamente un intero shard.
+# DISTILLATION_BATCH_SIZE (LIMIT of the worker query). Changeable via flag
+# --distill-batch-size or env DISTILLATION_BATCH_SIZE.
+# The generator's shard size is kept in sync with this value so
+# each refine covers exactly one complete shard.
 DISTILL_BATCH_SIZE="${DISTILLATION_BATCH_SIZE:-10}"
-# Throttle: praticamente irrilevante se fermiamo il worker durante l'ingest,
-# perché gli eventi memory.stored non vengono mai consumati (Redis pub/sub
-# non è persistente). Lo manteniamo basso giusto per non rompere il pool DB.
+# Throttle: practically irrelevant if we stop the worker during ingest,
+# because memory.stored events are never consumed (Redis pub/sub
+# is not persistent). Kept low just to avoid breaking the DB pool.
 THROTTLE_MS=0
 BATCH_SIZE=50
 PATH_PREFIX=""
-# Strategia "no LLM cascade": stop worker durante l'ingest, riparte solo per
-# il singolo refine event manuale → 1 sola chiamata LLM totale.
+# "no LLM cascade" strategy: stop worker during ingest, restart only for
+# the single manual refine event → 1 total LLM call.
 STOP_WORKER_DURING_INGEST=1
 
 OUTPUT_DIR="${ROOT}/.pcmi_test_out"
@@ -106,12 +106,12 @@ err()  { echo -e "${RED}[ERR]${NC} $*" >&2; }
 
 TEST_FAILED=0
 
-# Sharding: ogni shard ha DISTILL_BATCH_SIZE record (= LIMIT della query worker).
-# Numero refine events = ceil(NUM_INCIDENTS / DISTILL_BATCH_SIZE).
-# Esempi:
-#   1000 incidenti / batch=10  → 100 shard → 100 distilled
-#   1000 incidenti / batch=100 →  10 shard →  10 distilled (con summary più ricchi)
-#   1000 incidenti / batch=50  →  20 shard →  20 distilled
+# Sharding: each shard has DISTILL_BATCH_SIZE records (= LIMIT of the worker query).
+# Number of refine events = ceil(NUM_INCIDENTS / DISTILL_BATCH_SIZE).
+# Examples:
+#   1000 incidents / batch=10  → 100 shards → 100 distilled
+#   1000 incidents / batch=100 →  10 shards →  10 distilled (with richer summaries)
+#   1000 incidents / batch=50  →  20 shards →  20 distilled
 SHARD_SIZE="$DISTILL_BATCH_SIZE"
 NUM_REFINE_EVENTS=$(( (NUM_INCIDENTS + SHARD_SIZE - 1) / SHARD_SIZE ))
 
@@ -131,14 +131,14 @@ fetch_sources_used() {
   | jq '[(.entries // .items // .results // [])[] | (.source_entry_ids // .sources // []) | length] | add // 0' 2>/dev/null || echo 0
 }
 
-# grep -c con 0 match stampa "0" ma exit 1: NON usare "|| echo 0" (produce "0\n0").
+# grep -c with 0 matches prints "0" but exits 1: do NOT use "|| echo 0" (produces "0\n0").
 count_worker_429() {
   local n
   n=$("${COMPOSE[@]}" logs --no-color worker 2>/dev/null | grep -c 'status code: 429' || true)
   echo "${n:-0}"
 }
 
-# Pubblica un evento PCMI sul backend configurato (streams = default dal worker).
+# Publishes a PCMI event on the configured backend (streams = default from worker).
 publish_memory_event() {
   local payload="$1"
   if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
@@ -151,26 +151,26 @@ publish_memory_event() {
   printf '%s' "$data" | "${COMPOSE[@]}" exec -T -i redis redis-cli -x XADD pcmi:events '*' type "$etype" data >/dev/null
 }
 
-# Dopo ingest con worker fermo, l'API ha XADDato memory.stored sullo stream: svuota prima del refine.
+# After ingest with worker stopped, the API has XADDed memory.stored to the stream: flush before refine.
 flush_event_stream_backlog() {
   if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
     return 0
   fi
-  log "  → DEL pcmi:events (rimuove backlog memory.stored dall'ingest)"
+  log "  → DEL pcmi:events (removes memory.stored backlog from ingest)"
   "${COMPOSE[@]}" exec -T redis redis-cli DEL pcmi:events >/dev/null 2>&1 || true
 }
 
-# Stampa riga metrica: partenza x, atteso z, (opzionale) valore attuale y
+# Print metric row: start x, expected z, (optional) current value y
 metric_row() {
   local label="$1" x="$2" z="$3" y="${4:-—}"
   local mark=" "
   if [[ "$y" != "—" && "$y" == "$z" ]]; then mark="${GREEN}✓${NC}"
   elif [[ "$y" != "—" && "$y" != "$z" ]]; then mark="${RED}✗${NC}"
   fi
-  printf "  ${mark} %-28s  x=%-6s  →  y=%-6s  (atteso z=%s)\n" "$label" "$x" "$y" "$z"
+  printf "  ${mark} %-28s  x=%-6s  →  y=%-6s  (expected z=%s)\n" "$label" "$x" "$y" "$z"
 }
 
-# Verifica y == z; incrementa TEST_FAILED se diverso
+# Verify y == z; increment TEST_FAILED if different
 assert_eq() {
   local label="$1" y="$2" z="$3" hint="${4:-}"
   if [[ "$y" == "$z" ]]; then
@@ -188,19 +188,19 @@ print_test_plan() {
   local z_distilled=$(( x_distilled + NUM_REFINE_EVENTS ))
   echo
   echo -e "${CYAN}══════════════════════════════════════════════════════════════════════${NC}"
-  echo -e "${CYAN}  PIANO TEST — ogni riga: partenza x → valore finale y, atteso z${NC}"
+  echo -e "${CYAN}  TEST PLAN — each row: start x → final value y, expected z${NC}"
   echo -e "${CYAN}══════════════════════════════════════════════════════════════════════${NC}"
-  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Memorie raw (active_memories)" "$x_active" "$z_active"
-  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Record distillati (distilled_count)" "$x_distilled" "$z_distilled"
-  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Eventi Redis refine pubblicati" "0" "$NUM_REFINE_EVENTS"
-  printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Record sintetici generati" "0" "$NUM_INCIDENTS"
+  printf "  %-28s  x=%-6s  →  y=???     (expected z=%s)\n" "Raw memories (active_memories)" "$x_active" "$z_active"
+  printf "  %-28s  x=%-6s  →  y=???     (expected z=%s)\n" "Distilled records (distilled_count)" "$x_distilled" "$z_distilled"
+  printf "  %-28s  x=%-6s  →  y=???     (expected z=%s)\n" "Redis refine events published" "0" "$NUM_REFINE_EVENTS"
+  printf "  %-28s  x=%-6s  →  y=???     (expected z=%s)\n" "Synthetic records generated" "0" "$NUM_INCIDENTS"
   if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
-    printf "  %-28s  x=%-6s  →  y=???     (atteso z=%s)\n" "Eventi memory.stored consumati" "0" "0"
-    echo "      (worker fermo in ingest: gli store non triggerano distillazione automatica)"
+    printf "  %-28s  x=%-6s  →  y=???     (expected z=%s)\n" "memory.stored events consumed" "0" "0"
+    echo "      (worker stopped during ingest: stores do not trigger automatic distillation)"
   fi
   echo -e "${CYAN}──────────────────────────────────────────────────────────────────────${NC}"
-  echo "  Eventi Redis che invieremo: ${NUM_REFINE_EVENTS}× memory.refine.requested"
-  echo "    (uno per shard: shard_000..shard_$(printf "%03d" $((NUM_REFINE_EVENTS-1))), ${SHARD_SIZE} record/shard)"
+  echo "  Redis events we will send: ${NUM_REFINE_EVENTS}× memory.refine.requested"
+  echo "    (one per shard: shard_000..shard_$(printf "%03d" $((NUM_REFINE_EVENTS-1))), ${SHARD_SIZE} records/shard)"
   echo
 }
 
@@ -308,14 +308,14 @@ trap cleanup EXIT INT TERM
 # =============================================================================
 # 1) Bootstrap infra
 # =============================================================================
-log "Step 1/6 — Bootstrap infrastruttura (postgres + redis + api + worker)"
+log "Step 1/6 — Bootstrap infrastructure (postgres + redis + api + worker)"
 
 if [[ "$SKIP_BUILD" -eq 0 ]]; then
   log "  docker compose build (api + worker)…"
   "${COMPOSE[@]}" build >/dev/null
 fi
 
-# Stop residui idempotente
+# Idempotent stop of leftover containers
 "${COMPOSE[@]}" down -v --remove-orphans >/dev/null 2>&1 || true
 
 log "  docker compose up -d (DISTILLATION_BATCH_SIZE=${DISTILL_BATCH_SIZE}, EVENT_BACKEND=${EVENT_BACKEND}, DISTILLATION_POLICY_DISABLED=${DISTILLATION_POLICY_DISABLED})…"
@@ -325,7 +325,7 @@ export DISTILLATION_BATCH_SIZE="$DISTILL_BATCH_SIZE"
 # =============================================================================
 # 2) Health wait
 # =============================================================================
-log "Step 2/6 — Attesa healthcheck (postgres, redis, api)"
+log "Step 2/6 — Waiting for healthcheck (postgres, redis, api)"
 
 wait_url() {
   local url="$1" tries="${2:-60}" name="${3:-endpoint}"
@@ -357,7 +357,7 @@ if [[ "$("${COMPOSE[@]}" ps --format json worker 2>/dev/null \
         | jq -r 'if type=="array" then .[0].State else .State end' 2>/dev/null)" == "running" ]]; then
   ok "worker container running"
 else
-  warn "worker container not in 'running' state — distillation potrebbe non triggerare"
+  warn "worker container not in 'running' state — distillation may not trigger"
 fi
 
 # =============================================================================
@@ -372,24 +372,24 @@ source "${VENV}/bin/activate"
 python -m pip install -q --upgrade pip
 # install SDK in editable + redis client async
 python -m pip install -q -e "${ROOT}/sdk/python" "redis>=5.0,<6"
-ok "PCMI SDK + redis installati in ${VENV}"
+ok "PCMI SDK + redis installed in ${VENV}"
 
 # =============================================================================
 # 3.5) Provisioning tenant SOC dedicato + API key admin per quel tenant
 # =============================================================================
-log "Step 3.5/6 — Provisioning tenant ${TENANT_ID} + API key dedicata"
+log "Step 3.5/6 — Provisioning tenant ${TENANT_ID} + dedicated API key"
 
-# (a) crea il tenant con UUID forzato via SQL diretto sul postgres del compose,
-#     perché l'endpoint admin/tenants genera UUID random.
+# (a) create the tenant with forced UUID via direct SQL on compose postgres,
+#     because the admin/tenants endpoint generates a random UUID.
 "${COMPOSE[@]}" exec -T postgres psql -U pcmi -d pcmi -v ON_ERROR_STOP=1 -q <<SQL
 INSERT INTO tenants (id, slug, name, settings)
 VALUES ('${TENANT_ID}', '${TENANT_SLUG}', 'SOC Test Tenant', '{}'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 SQL
-ok "tenant ${TENANT_SLUG} (${TENANT_ID}) presente"
+ok "tenant ${TENANT_SLUG} (${TENANT_ID}) present"
 
-# (b) crea (o riusa) una API key admin per quel tenant.
-#     Riuso: cerco una chiave esistente con name='soc-bulk-loader'.
+# (b) create (or reuse) an admin API key for that tenant.
+#     Reuse: look for an existing key with name='soc-bulk-loader'.
 KEY_NAME="soc-bulk-loader"
 EXISTING_KEY_ID="$(
   curl -fsS -H "X-API-Key: ${ADMIN_API_KEY}" \
@@ -398,13 +398,13 @@ EXISTING_KEY_ID="$(
 )"
 
 if [[ -n "$EXISTING_KEY_ID" ]]; then
-  log "  trovata API key esistente (id=${EXISTING_KEY_ID}) → rotate per riavere la plaintext"
+  log "  found existing API key (id=${EXISTING_KEY_ID}) → rotate to get plaintext back"
   ROTATE_JSON="$(curl -fsS -X POST -H "X-API-Key: ${ADMIN_API_KEY}" -H "Content-Type: application/json" \
     -d "$(jq -nc --arg n "$KEY_NAME" '{name:$n}')" \
     "${PCMI_BASE_URL}/v1/admin/api-keys/${EXISTING_KEY_ID}/rotate")"
   PCMI_API_KEY="$(echo "$ROTATE_JSON" | jq -r '.api_key')"
 else
-  log "  creo API key admin per il tenant"
+  log "  creating admin API key for tenant"
   CREATE_JSON="$(curl -fsS -X POST -H "X-API-Key: ${ADMIN_API_KEY}" -H "Content-Type: application/json" \
     -d "$(jq -nc --arg t "$TENANT_ID" --arg n "$KEY_NAME" '{tenant_id:$t, name:$n, role:"admin"}')" \
     "${PCMI_BASE_URL}/v1/admin/api-keys")"
@@ -412,16 +412,16 @@ else
 fi
 
 if [[ -z "$PCMI_API_KEY" || "$PCMI_API_KEY" == "null" ]]; then
-  err "Impossibile ottenere l'API key per ${TENANT_ID}"
+  err "Unable to obtain API key for ${TENANT_ID}"
   exit 1
 fi
-ok "API key per tenant SOC: ${PCMI_API_KEY:0:14}…"
+ok "API key for SOC tenant: ${PCMI_API_KEY:0:14}..."
 export PCMI_API_KEY
 
 # =============================================================================
-# 4) Baseline (valori x) sul tenant SOC
+# 4) Baseline (x values) for SOC tenant
 # =============================================================================
-log "Step 4/6 — Valori iniziali x (tenant=${TENANT_ID})"
+log "Step 4/6 — Initial values x (tenant=${TENANT_ID})"
 X_ACTIVE="$(fetch_active_memories)"
 X_DISTILLED="$(fetch_distilled_count)"
 EXPECT_ACTIVE=$(( X_ACTIVE + NUM_INCIDENTS ))
@@ -433,11 +433,11 @@ print_test_plan "$X_ACTIVE" "$X_DISTILLED"
 # =============================================================================
 # 5) Genera + ingest + trigger refine
 # =============================================================================
-log "Step 5/6 — Ingest ${NUM_INCIDENTS} record (preset=${PRESET}, seed=${SEED}; atteso active_memories: x=${X_ACTIVE} → z=${EXPECT_ACTIVE})"
+log "Step 5/6 — Ingest ${NUM_INCIDENTS} records (preset=${PRESET}, seed=${SEED}; expected active_memories: x=${X_ACTIVE} → z=${EXPECT_ACTIVE})"
 
-# --- 5a) Stop worker per evitare la cascata di distillation per ogni store ---
+# --- 5a) Stop worker to avoid distillation cascade on every store ---
 if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
-  log "  → stop worker: ${NUM_INCIDENTS} store HTTP senza consumare eventi memory.stored su Redis"
+  log "  → stop worker: ${NUM_INCIDENTS} HTTP stores without consuming memory.stored events on Redis"
   "${COMPOSE[@]}" stop worker >/dev/null
 fi
 
@@ -462,45 +462,45 @@ if [[ "$USE_LLM" -eq 1 ]]; then
 fi
 PYTHONPATH="${ROOT}/scripts" python3 -m pcmi_synth "${SYNTH_ARGS[@]}"
 
-ok "Generatore completato — JSONL backup: $JSONL_OUT"
+ok "Generator completed — JSONL backup: $JSONL_OUT"
 
-# --- Verifica ingest subito: active_memories x → y, atteso z ---
+# --- Immediate ingest check: active_memories x → y, expected z ---
 Y_ACTIVE="$(fetch_active_memories)"
 DELTA_ACTIVE=$(( Y_ACTIVE - X_ACTIVE ))
 metric_row "active_memories (post-ingest)" "$X_ACTIVE" "$EXPECT_ACTIVE" "$Y_ACTIVE"
-assert_eq "active_memories dopo ingest" "$Y_ACTIVE" "$EXPECT_ACTIVE" \
-  "generatore ha scritto ${NUM_INCIDENTS} record; controlla log API" || {
+assert_eq "active_memories after ingest" "$Y_ACTIVE" "$EXPECT_ACTIVE" \
+  "generator wrote ${NUM_INCIDENTS} records; check API logs" || {
   "${COMPOSE[@]}" logs --no-color --tail=60 api || true
 }
 
-# --- 5c) Riavvio worker: flush stream backlog, poi attesa consumer ------------
+# --- 5c) Restart worker: flush stream backlog, then wait for consumer ---
 if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
   flush_event_stream_backlog
-  log "  → start worker per processare i refine event"
+  log "  → start worker to process refine events"
   "${COMPOSE[@]}" start worker >/dev/null
   for i in $(seq 1 30); do
     if [[ "${EVENT_BACKEND}" == "pubsub" ]]; then
       if "${COMPOSE[@]}" logs --no-color --tail=80 worker 2>/dev/null \
            | grep -qE 'Redis connected|event backend=pubsub'; then
-        ok "worker pronto (pubsub, tentativo ${i}/30)"
+        ok "worker ready (pubsub, attempt ${i}/30)"
         break
       fi
     elif "${COMPOSE[@]}" logs --no-color --tail=80 worker 2>/dev/null \
          | grep -q "Subscribed to stream pcmi:events"; then
-      ok "worker sottoscritto a stream pcmi:events (tentativo ${i}/30)"
+      ok "worker subscribed to stream pcmi:events (attempt ${i}/30)"
       break
     fi
     sleep 1
   done
 fi
 
-# --- 5d) Publish UN refine event PER OGNI shard (path: …soc.shard_NNN) -------
-# Il worker fa LIMIT 10 per refine. Pubblicando 1 refine per shard
-# otteniamo COPERTURA TOTALE dei raw incidents (1000 → 100 distilled).
-# Rate-limit gpt-4o-mini = 500 RPM / 200k TPM, ogni call ≈ 1500 token:
-# spacing 1.2s ≈ 50 RPM, ~75k TPM → ampio margine.
-log "  → pubblicazione ${NUM_REFINE_EVENTS} eventi Redis memory.refine.requested"
-log "     (atteso distilled_count: x=${X_DISTILLED} → z=${EXPECT_DISTILLED})"
+# --- 5d) Publish ONE refine event PER SHARD (path: ...soc.shard_NNN) ---
+# Worker does LIMIT 10 per refine. Publishing 1 refine per shard gives
+# FULL COVERAGE of raw incidents (1000 → 100 distilled).
+# Rate-limit gpt-4o-mini = 500 RPM / 200k TPM, each call ≈ 1500 tokens:
+# spacing 1.2s ≈ 50 RPM, ~75k TPM → ample margin.
+log "  → publishing ${NUM_REFINE_EVENTS} Redis memory.refine.requested events"
+log "     (expected distilled_count: x=${X_DISTILLED} → z=${EXPECT_DISTILLED})"
 REFINE_PUBLISHED=0
 for ((sh=0; sh<NUM_REFINE_EVENTS; sh++)); do
   PREFIX_SH="$(printf "%s.shard_%03d" "$PATH_PREFIX" "$sh")"
@@ -516,33 +516,33 @@ for ((sh=0; sh<NUM_REFINE_EVENTS; sh++)); do
   fi
   sleep 1.2
 done
-ok "Pubblicati ${REFINE_PUBLISHED} refine events"
+ok "Published ${REFINE_PUBLISHED} refine events"
 
 # =============================================================================
-# 6) Verifica distillation: distilled_count x → y, atteso z
+# 6) Verify distillation: distilled_count x → y, expected z
 # =============================================================================
 if [[ "$SKIP_DISTILL" -eq 1 ]]; then
-  warn "--skip-distill: salto verifica distilled_count."
+  warn "--skip-distill: skipping distilled_count check."
   Y_DISTILLED="$X_DISTILLED"
 else
-  log "Step 6/6 — Attesa distillazione (x=${X_DISTILLED} → z=${EXPECT_DISTILLED}, ${NUM_REFINE_EVENTS} job LLM in parallelo)"
+  log "Step 6/6 — Waiting for distillation (x=${X_DISTILLED} → z=${EXPECT_DISTILLED}, ${NUM_REFINE_EVENTS} LLM jobs in parallel)"
   Y_DISTILLED="$X_DISTILLED"
   for i in $(seq 1 40); do
     Y_DISTILLED="$(fetch_distilled_count)"
     if (( Y_DISTILLED >= EXPECT_DISTILLED )); then
-      ok "distilled_count raggiunto z=${EXPECT_DISTILLED} al poll ${i}/40 (y=${Y_DISTILLED})"
+      ok "distilled_count reached z=${EXPECT_DISTILLED} at poll ${i}/40 (y=${Y_DISTILLED})"
       break
     fi
-    log "  poll ${i}/40: distilled_count y=${Y_DISTILLED} (atteso z=${EXPECT_DISTILLED})…"
+    log "  poll ${i}/40: distilled_count y=${Y_DISTILLED} (expected z=${EXPECT_DISTILLED})..."
     sleep 3
   done
   metric_row "distilled_count" "$X_DISTILLED" "$EXPECT_DISTILLED" "$Y_DISTILLED"
-  assert_eq "distilled_count dopo refine" "$Y_DISTILLED" "$EXPECT_DISTILLED" \
+  assert_eq "distilled_count after refine" "$Y_DISTILLED" "$EXPECT_DISTILLED" \
     "OPENAI_API_KEY in .env? docker compose logs worker | tail -80"
 fi
 
 # =============================================================================
-# Report finale — riepilogo x → y (atteso z), OK se y == z
+# Final report — summary x → y (expected z), OK if y == z
 # =============================================================================
 EXPECT_SOURCES="$NUM_INCIDENTS"
 Y_SOURCES="$(fetch_sources_used)"
@@ -552,32 +552,32 @@ RATE_LIMIT_HITS="$(count_worker_429)"
 EXPECT_RATE_LIMIT=0
 
 echo
-echo -e "${GREEN}══════════════════════ RIEPILOGO x → y (atteso z) ══════════════════════${NC}"
-echo "  Legenda: x=valore iniziale, y=valore finale, z=atteso. Test OK se y == z."
+echo -e "${GREEN}══════════════════════ SUMMARY x → y (expected z) ══════════════════════${NC}"
+echo "  Legend: x=initial value, y=final value, z=expected. Test OK if y == z."
 echo
-metric_row "Memorie raw (active_memories)" "$X_ACTIVE" "$EXPECT_ACTIVE" "$Y_ACTIVE"
-metric_row "Record distillati (distilled_count)" "$X_DISTILLED" "$EXPECT_DISTILLED" "$Y_DISTILLED"
-metric_row "Eventi Redis refine inviati" "0" "$NUM_REFINE_EVENTS" "$REFINE_PUBLISHED"
-metric_row "Raw referenziati nei distillati" "0" "$EXPECT_SOURCES" "$Y_SOURCES"
-metric_row "Errori rate-limit OpenAI (429)" "0" "$EXPECT_RATE_LIMIT" "$RATE_LIMIT_HITS"
+metric_row "Raw memories (active_memories)" "$X_ACTIVE" "$EXPECT_ACTIVE" "$Y_ACTIVE"
+metric_row "Distilled records (distilled_count)" "$X_DISTILLED" "$EXPECT_DISTILLED" "$Y_DISTILLED"
+metric_row "Redis refine events sent" "0" "$NUM_REFINE_EVENTS" "$REFINE_PUBLISHED"
+metric_row "Raw referenced in distilled" "0" "$EXPECT_SOURCES" "$Y_SOURCES"
+metric_row "OpenAI rate-limit errors (429)" "0" "$EXPECT_RATE_LIMIT" "$RATE_LIMIT_HITS"
 echo
-echo -e "  ${BLUE}── EVENTI (cosa è successo) ──${NC}"
-printf "  • %s POST batch → %s memorie raw in DB (path sotto %s.*)\n" "$NUM_INCIDENTS" "$NUM_INCIDENTS" "$PATH_PREFIX"
+echo -e "  ${BLUE}── EVENTS (what happened) ──${NC}"
+printf "  • %s POST batch → %s raw memories in DB (path under %s.*)\n" "$NUM_INCIDENTS" "$NUM_INCIDENTS" "$PATH_PREFIX"
 if [[ "$STOP_WORKER_DURING_INGEST" -eq 1 ]]; then
-  printf "  • Worker spento in ingest: ~%s eventi memory.stored su Redis non consumati\n" "$NUM_INCIDENTS"
+  printf "  • Worker stopped during ingest: ~%s memory.stored events on Redis not consumed\n" "$NUM_INCIDENTS"
 fi
-printf "  • %s× PUBLISH memory.refine.requested → worker avvia %s job LLM (1 distilled/shard)\n" \
+printf "  • %s× PUBLISH memory.refine.requested → worker starts %s LLM jobs (1 distilled/shard)\n" \
   "$NUM_REFINE_EVENTS" "$NUM_REFINE_EVENTS"
-printf "  • Coverage raw→distillati: %s / %s (%.1f%%)\n" "$Y_SOURCES" "$Y_ACTIVE" "$COVERAGE_PCT"
+printf "  • Coverage raw→distilled: %s / %s (%.1f%%)\n" "$Y_SOURCES" "$Y_ACTIVE" "$COVERAGE_PCT"
 printf "  • JSONL backup: %s\n" "$JSONL_OUT"
 echo
 
 # Verifiche finali (fail esplicito)
 assert_eq "active_memories (finale)" "$Y_ACTIVE" "$EXPECT_ACTIVE"
 assert_eq "distilled_count (finale)" "$Y_DISTILLED" "$EXPECT_DISTILLED"
-assert_eq "refine events pubblicati" "$REFINE_PUBLISHED" "$NUM_REFINE_EVENTS"
-assert_eq "raw sources nei distillati" "$Y_SOURCES" "$EXPECT_SOURCES" \
-  "ogni shard contiene esattamente ${SHARD_SIZE} record → ogni distillato ha ${SHARD_SIZE} source_entry_ids"
+assert_eq "refine events published" "$REFINE_PUBLISHED" "$NUM_REFINE_EVENTS"
+assert_eq "raw sources in distilled" "$Y_SOURCES" "$EXPECT_SOURCES" \
+  "each shard contains exactly ${SHARD_SIZE} records → each distilled has ${SHARD_SIZE} source_entry_ids"
 assert_eq "worker 429 hits" "$RATE_LIMIT_HITS" "$EXPECT_RATE_LIMIT"
 
 # Sample delle distilled
@@ -610,18 +610,18 @@ echo
 log "Stats tenant (/v1/stats):"
 curl -fsS -H "X-API-Key: ${PCMI_API_KEY}" "${PCMI_BASE_URL}/v1/stats" | jq .
 
-log "Ultime 30 righe del worker:"
+log "Last 30 worker lines:"
 "${COMPOSE[@]}" logs --no-color --tail=30 worker || true
 
 echo
 echo -e "${GREEN}══════════════════════════════════════════════════════════════════════${NC}"
 if [[ "$TEST_FAILED" -eq 0 ]]; then
-  ok "TEST PASS — tutte le metriche: y == z"
+  ok "TEST PASS — all metrics: y == z"
   echo "  active_memories: ${X_ACTIVE} → ${Y_ACTIVE} (z=${EXPECT_ACTIVE})"
   echo "  distilled_count: ${X_DISTILLED} → ${Y_DISTILLED} (z=${EXPECT_DISTILLED})"
   echo "  refine events:   0 → ${REFINE_PUBLISHED} (z=${NUM_REFINE_EVENTS})"
 else
-  err "TEST FAIL — almeno una metrica ha y ≠ z (vedi righe ✗ sopra)"
+  err "TEST FAIL — at least one metric has y ≠ z (see ✗ rows above)"
   exit 1
 fi
 echo -e "${GREEN}══════════════════════════════════════════════════════════════════════${NC}"

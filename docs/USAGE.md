@@ -1,13 +1,13 @@
-# Guida all’uso di PCMI
+# PCMI Usage Guide
 
-Come collegare agenti, servizi e orchestratori a **Persistent Cognitive Memory Infrastructure**.
+How to connect agents, services, and orchestrators to **Persistent Cognitive Memory Infrastructure**.
 
-## Prerequisiti
+## Prerequisites
 
-1. **PostgreSQL** con estensioni `ltree` e `pgvector` (vedi `docker-compose.yml`).
-2. **Redis** per eventi e worker.
-3. **API key** tenant (`X-API-Key` o campo `api_key` gRPC) — in dev: `testkey123` (migration `003_rbac_api_keys.sql`, ruolo `admin`).
-4. Opzionale: **`OPENAI_API_KEY`** per embedding automatici, retrieve semantico e summarize LLM.
+1. **PostgreSQL** with extensions `ltree` and `pgvector` (see `docker-compose.yml`).
+2. **Redis** for events and workers.
+3. **API key** tenant (`X-API-Key` header or `api_key` gRPC field) — in dev: `testkey123` (migration `003_rbac_api_keys.sql`, role `admin`).
+4. Optional: **`OPENAI_API_KEY`** for automatic embeddings, semantic retrieval, and LLM summarization.
 
 ```bash
 cp .env.example .env
@@ -15,14 +15,14 @@ docker compose up -d --build
 curl -s http://localhost:8000/v1/health
 ```
 
-## Scegliere il trasporto
+## Choosing a transport
 
 ```mermaid
 flowchart LR
   subgraph clients [Client]
     A[Agent / App]
   end
-  subgraph transports [Trasporti]
+  subgraph transports [Transports]
     H[HTTP REST + SSE]
     G[gRPC]
   end
@@ -37,116 +37,116 @@ flowchart LR
   F --> R[(Redis)]
 ```
 
-| Esigenza | Consigliato |
-|----------|-------------|
+| Need | Recommended |
+|------|-------------|
 | Browser, curl, OpenAPI | **HTTP** |
-| Throughput, batch, stream retrieve/eventi | **gRPC** |
-| SDK ufficiali Python/TS | **HTTP** (wrapper in `sdk/`) |
-| Bootstrap tenant / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) o **gRPC** `AdminService` |
-| Elenco tenant/chiavi in dev (senza curl) | **`make admin-list-keys`** (CLI `cmd/pcmi-admin`) |
-| Metriche Prometheus | **HTTP** `GET /metrics` o **gRPC** `MetricsService.Scrape` (vedi autenticazione sotto) |
+| Throughput, batch, stream retrieve/events | **gRPC** |
+| Official Python/TS SDKs | **HTTP** (wrappers in `sdk/`) |
+| Tenant bootstrap / admin UI | **HTTP** (`/v1/admin/*`, `GET /v1/admin/ui`) or **gRPC** `AdminService` |
+| List tenants/keys in dev (without curl) | **`make admin-list-keys`** (CLI `cmd/pcmi-admin`) |
+| Prometheus metrics | **HTTP** `GET /metrics` or **gRPC** `MetricsService.Scrape` (see authentication below) |
 
-Dettaglio RPC: [grpc-vs-http.md](grpc-vs-http.md).
+RPC detail: [grpc-vs-http.md](grpc-vs-http.md).
 
-### MCP (agenti in Cursor / Claude)
+### MCP (agents in Cursor / Claude)
 
-Server stdio **`pcmi-mcp`** (`cmd/mcp`): tool `pcmi_store`, `pcmi_retrieve`, … — vedi **[MCP.md](MCP.md)**.
+stdio server **`pcmi-mcp`** (`cmd/mcp`): tools `pcmi_store`, `pcmi_retrieve`, … — see **[MCP.md](MCP.md)**.
 
 ```bash
 make build-mcp
-make test-mcp-smoke    # handshake JSON-RPC
+make test-mcp-smoke    # JSON-RPC handshake
 ```
 
 ---
 
-## HTTP — operazioni base
+## HTTP — basic operations
 
-### Autenticazione
+### Authentication
 
-Header su ogni richiesta (tranne `/health`, `/metrics`, `/ready`):
+Header on every request (except `/health`, `/metrics`, `/ready`):
 
 ```http
 X-API-Key: testkey123
 Content-Type: application/json
 ```
 
-Ruoli: `readonly` (solo lettura), `write`, `admin` (gestione tenant/chiavi).
+Roles: `readonly` (read-only), `write`, `admin` (tenant/key management).
 
-### Admin — ciclo di vita API key (ruolo `admin`)
+### Admin — API key lifecycle (role `admin`)
 
-| Azione | HTTP |
+| Action | HTTP |
 |--------|------|
-| Crea tenant | `POST /v1/admin/tenants` |
-| Elenco tenant | `GET /v1/admin/tenants` |
-| Crea chiave | `POST /v1/admin/api-keys` |
-| Elenco chiavi | `GET /v1/admin/api-keys` |
-| Rotazione | `POST /v1/admin/api-keys/{id}/rotate` → nuovo secret (una sola volta in risposta) |
-| Revoca | `DELETE /v1/admin/api-keys/{id}` |
+| Create tenant | `POST /v1/admin/tenants` |
+| List tenants | `GET /v1/admin/tenants` |
+| Create key | `POST /v1/admin/api-keys` |
+| List keys | `GET /v1/admin/api-keys` |
+| Rotate | `POST /v1/admin/api-keys/{id}/rotate` → new secret (returned once in response) |
+| Revoke | `DELETE /v1/admin/api-keys/{id}` |
 
-gRPC equivalente: `AdminService` (`CreateAPIKey`, `RotateAPIKey`, …). In dev, senza curl admin:
+gRPC equivalent: `AdminService` (`CreateAPIKey`, `RotateAPIKey`, …). In dev, without curl admin:
 
 ```bash
 make admin-list-keys
-# Filtro tenant: go run ./cmd/pcmi-admin list --tenant default
+# Filter by tenant: go run ./cmd/pcmi-admin list --tenant default
 ```
 
-Test integrazione: `make test-key-lifecycle`.
+Integration test: `make test-key-lifecycle`.
 
-### Paginazione cursor sulle liste (PCMI-014)
+### Cursor-based pagination on list endpoints (PCMI-014)
 
-Gli endpoint che restituiscono liste lunghe usano **keyset pagination** (non `OFFSET`). Query comuni:
+Endpoints that return long lists use **keyset pagination** (not `OFFSET`). Common query parameters:
 
-| Parametro | Descrizione |
+| Parameter | Description |
 |-----------|-------------|
-| `limit` | Righe per pagina, **1–200** (default dipende dall’endpoint: es. `50` su audit/history, `100` su `GET /v1/admin/tenants`) |
-| `cursor` | Stringa opaca da `next_cursor` della risposta precedente |
-| `after_id` | Alias legacy: costruisce un cursor quando `cursor` è assente. **Non** usare insieme a `cursor` (400) |
+| `limit` | Rows per page, **1–200** (default depends on endpoint, e.g. `50` on audit/history, `100` on `GET /v1/admin/tenants`) |
+| `cursor` | Opaque string from `next_cursor` in the previous response |
+| `after_id` | Legacy alias: builds a cursor when `cursor` is absent. **Do not** use together with `cursor` (400) |
 
-Campi di risposta comuni: `limit`, `next_cursor` (vuoto se fine lista), `has_more`.
+Common response fields: `limit`, `next_cursor` (empty if end of list), `has_more`.
 
-| Endpoint | Chiave array | `total` | Note |
-|----------|--------------|---------|------|
-| `GET /v1/audit` | `entries` | Conteggio **globale** (con filtro `since`) | `offset` restituito sempre `0` (deprecato) |
-| `GET /v1/admin/tenants` | `tenants` | Conteggio **globale** tenant | `after_id` non supportato — solo `cursor` |
-| `GET /v1/admin/api-keys` | `api_keys` | assente | `after_id` non supportato |
-| `GET /v1/memories/history` | `entries` | Righe **in questa pagina** | `path` obbligatorio |
-| `GET /v1/distilled` | `entries` | Righe **in questa pagina** | `path_prefix` obbligatorio |
-| `GET /v1/distillation/policies` | `policies` | assente | |
-| `GET /v1/distillation/runs` | `runs` | assente | opz. `policy_id` |
-| `GET /v1/webhooks`, `GET /v1/webhooks/dead-letter` | `entries` | assente | webhook: solo `cursor` |
-| `GET /v1/memories/links` | `entries` | assente | filtri `from_path`, `to_path`, `link_type` |
+| Endpoint | Array key | `total` | Notes |
+|----------|-----------|---------|-------|
+| `GET /v1/audit` | `entries` | **Global** count (with `since` filter) | `offset` always returned as `0` (deprecated) |
+| `GET /v1/admin/tenants` | `tenants` | **Global** tenant count | `after_id` not supported — use `cursor` only |
+| `GET /v1/admin/api-keys` | `api_keys` | absent | `after_id` not supported |
+| `GET /v1/memories/history` | `entries` | Rows **in this page** | `path` required |
+| `GET /v1/distilled` | `entries` | Rows **in this page** | `path_prefix` required |
+| `GET /v1/distillation/policies` | `policies` | absent | |
+| `GET /v1/distillation/runs` | `runs` | absent | optional `policy_id` |
+| `GET /v1/webhooks`, `GET /v1/webhooks/dead-letter` | `entries` | absent | webhooks: `cursor` only |
+| `GET /v1/memories/links` | `entries` | absent | filters `from_path`, `to_path`, `link_type` |
 
-Esempio (audit):
+Example (audit):
 
 ```bash
 curl -s "${PCMI_BASE_URL}/v1/audit?limit=10" -H "X-API-Key: ${PCMI_API_KEY}" | jq '{total, has_more, next_cursor}'
-# pagina successiva:
+# next page:
 CUR=$(curl -s "${PCMI_BASE_URL}/v1/audit?limit=10" -H "X-API-Key: ${PCMI_API_KEY}" | jq -r .next_cursor)
 curl -s "${PCMI_BASE_URL}/v1/audit?limit=10&cursor=${CUR}" -H "X-API-Key: ${PCMI_API_KEY}"
 ```
 
-Il smoke CI [`scripts/ci_integration_smoke.sh`](../scripts/ci_integration_smoke.sh) verifica `audit.total`, `admin/tenants.total` e la presenza di array su distilled; per la dead-letter usa `entries | length` (non `total`).
+The CI smoke [`scripts/ci_integration_smoke.sh`](../scripts/ci_integration_smoke.sh) verifies `audit.total`, `admin/tenants.total`, and the presence of arrays on distilled; for dead-letter uses `entries | length` (not `total`).
 
-Contratto OpenAPI: [openapi.yaml](openapi.yaml). Test: `make test-pagination`.
+OpenAPI contract: [openapi.yaml](openapi.yaml). Test: `make test-pagination`.
 
-### Metriche Prometheus (`GET /metrics`)
+### Prometheus metrics (`GET /metrics`)
 
-L’endpoint non usa `X-API-Key`. In produzione imposta **`METRICS_SCRAPE_TOKEN`** sull’API e configura Prometheus con lo stesso segreto:
+The endpoint does not use `X-API-Key`. In production set **`METRICS_SCRAPE_TOKEN`** on the API and configure Prometheus with the same secret:
 
-| `METRICS_SCRAPE_TOKEN` | Comportamento |
-|------------------------|---------------|
-| non impostato | `GET /metrics` aperto; all’avvio l’API logga un **WARNING** |
-| impostato | richiede `Authorization: Bearer <token>` |
+| `METRICS_SCRAPE_TOKEN` | Behavior |
+|------------------------|----------|
+| not set | `GET /metrics` is open; at startup the API logs a **WARNING** |
+| set | requires `Authorization: Bearer <token>` |
 
 ```bash
-# Esempio scrape con token
+# Example scrape with token
 export METRICS_SCRAPE_TOKEN="$(openssl rand -hex 32)"
 curl -s -H "Authorization: Bearer ${METRICS_SCRAPE_TOKEN}" http://localhost:8000/metrics
 ```
 
-Esempio `deploy/prometheus/prometheus.yml`: `authorization.credentials` o `bearer_token` allineati al token dell’API.
+Example `deploy/prometheus/prometheus.yml`: `authorization.credentials` or `bearer_token` aligned with the API token.
 
-### Store e retrieve
+### Store and retrieve
 
 ```bash
 export PCMI_BASE_URL=http://localhost:8000
@@ -155,15 +155,15 @@ export PCMI_API_KEY=testkey123
 # Store
 curl -s -X POST "$PCMI_BASE_URL/v1/memories" \
   -H "X-API-Key: $PCMI_API_KEY" \
-  -d '{"path":"root.project.note","content":"Decisione X","tags":["decision"],"embedding_model":"unspecified"}'
+  -d '{"path":"root.project.note","content":"Decision X","tags":["decision"],"embedding_model":"unspecified"}'
 
-# Retrieve (ibrido: prefix + testo + opzionale semantica)
+# Retrieve (hybrid: prefix + text + optional semantics)
 curl -s -X POST "$PCMI_BASE_URL/v1/retrieve" \
   -H "X-API-Key: $PCMI_API_KEY" \
-  -d '{"path_prefix":"root.project","query":"decisione","limit":10,"tags":["decision"],"tags_match":"all"}'
+  -d '{"path_prefix":"root.project","query":"decision","limit":10,"tags":["decision"],"tags_match":"all"}'
 ```
 
-### Eventi live (SSE)
+### Live events (SSE)
 
 ```bash
 curl -sN "$PCMI_BASE_URL/v1/events" \
@@ -172,9 +172,9 @@ curl -sN "$PCMI_BASE_URL/v1/events" \
   -d '?types=memory.stored,memory.updated'
 ```
 
-### Idempotenza store (`X-Idempotency-Key`)
+### Store idempotency (`X-Idempotency-Key`)
 
-Su `POST /v1/memories` puoi inviare un UUID nel header **`X-Idempotency-Key`**. La prima risposta `200` viene memorizzata per **24 ore** per tenant+chiave; i retry restituiscono lo stesso JSON con **`X-Idempotency-Replayed: true`**. Solo le risposte di successo vengono cachate.
+On `POST /v1/memories` you can send a UUID in the **`X-Idempotency-Key`** header. The first `200` response is cached for **24 hours** per tenant+key; retries return the same JSON with **`X-Idempotency-Replayed: true`**. Only successful responses are cached.
 
 ```bash
 KEY=$(uuidgen)
@@ -182,80 +182,80 @@ curl -s -X POST "$PCMI_BASE_URL/v1/memories" \
   -H "X-API-Key: $PCMI_API_KEY" \
   -H "X-Idempotency-Key: $KEY" \
   -d '{"path":"root.demo.idem","content":"once"}'
-# Ripeti la stessa richiesta → stesso body, header X-Idempotency-Replayed: true
+# Repeat the same request → same body, header X-Idempotency-Replayed: true
 ```
 
 Test: `make test-idempotency`.
 
-### Dedup ingest (`DEDUP_MODE`)
+### Ingest dedup (`DEDUP_MODE`)
 
-Evita duplicati per **hash del contenuto** sulla versione corrente dello stesso path (PCMI-011). Precedenza: body `dedup_mode` → header **`X-Dedup-Mode`** → `tenants.settings.dedup_mode` → env **`DEDUP_MODE`**.
+Avoids duplicates by **content hash** against the current version of the same path (PCMI-011). Precedence: body `dedup_mode` → header **`X-Dedup-Mode`** → `tenants.settings.dedup_mode` → env **`DEDUP_MODE`**.
 
-| Modalità | Comportamento |
-|----------|----------------|
-| `none` | Nessun dedup (default) |
-| `skip` | `409` o risposta con `status: deduplicated`, `dedup_action: skipped` |
-| `link` | Nuova versione collegata alla sorgente esistente |
-| `merge` | Aggiorna la versione esistente |
+| Mode | Behavior |
+|------|----------|
+| `none` | No dedup (default) |
+| `skip` | `409` or response with `status: deduplicated`, `dedup_action: skipped` |
+| `link` | New version linked to the existing source |
+| `merge` | Updates the existing version |
 
 ```bash
-export DEDUP_MODE=skip   # in .env o compose
-make smoke-dedup         # curl E2E con API su :8000
+export DEDUP_MODE=skip   # in .env or compose
+make smoke-dedup         # curl E2E with API on :8000
 ```
 
 Test: `make test-dedup`.
 
-### Sessioni agente
+### Agent sessions
 
-Working memory legata a una sessione; promozione verso memoria a lungo termine. Vedi **[SESSIONS.md](SESSIONS.md)** e `make smoke-sessions`.
+Working memory bound to a session; promotion to long-term memory. See **[SESSIONS.md](SESSIONS.md)** and `make smoke-sessions`.
 
-### Operazioni avanzate (HTTP)
+### Advanced HTTP operations
 
-| Azione | Metodo e path |
+| Action | Method and path |
 |--------|----------------|
-| Storia versioni | `GET /v1/memories/history?path=...` |
+| Version history | `GET /v1/memories/history?path=...` |
 | Rollback | `POST /v1/memories/rollback` |
-| Refine (distillazione) | `POST /v1/memories/refine` |
-| Importanza | `PATCH /v1/memories/{path}/importance` |
-| Link tra path | `POST/GET /v1/memories/links` |
-| Stats tenant | `GET /v1/stats` |
+| Refine (distillation) | `POST /v1/memories/refine` |
+| Importance | `PATCH /v1/memories/{path}/importance` |
+| Links between paths | `POST/GET /v1/memories/links` |
+| Tenant stats | `GET /v1/stats` |
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |
-| Sessioni | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
+| Sessions | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
 
-Contratto completo: [openapi.yaml](openapi.yaml).
+Full contract: [openapi.yaml](openapi.yaml).
 
 ---
 
-## gRPC — stesso backend
+## gRPC — same backend
 
-Host: `localhost:50051` (env `GRPC_PORT`). API key nel messaggio o metadata `x-api-key`.
+Host: `localhost:50051` (env `GRPC_PORT`). API key in message or `x-api-key` metadata.
 
 ```bash
-# Health (senza chiave)
+# Health (no key required)
 grpcurl -plaintext localhost:50051 pcmi.v1.MemoryService/Health
 
-# Test integrazione Go (tag integration):
-#   bufconn — solo Postgres migrato (:5432), server in-process, nessun :50051
-#   live    — dial TCP su GRPC_HOST (:50051); serve pcmi-api in ascolto
+# Go integration test (tag integration):
+#   bufconn — migrated Postgres only (:5432), in-process server, no :50051
+#   live    — TCP dial on GRPC_HOST (:50051); requires pcmi-api listening
 make infra-up                  # postgres :5432, redis :6379, api :8000 + :50051
-make infra-wait                # opzionale se infra-up ha già atteso /v1/ready
+make infra-wait                # optional if infra-up already waited for /v1/ready
 make test-integration-bufconn
-make test-integration-live     # fallisce se :50051 non risponde (Makefile imposta GRPC_TEST_API_KEY)
+make test-integration-live     # fails if :50051 does not respond (Makefile sets GRPC_TEST_API_KEY)
 
-# Streams Redis (miniredis in-process, senza Docker):
+# Redis Streams (miniredis in-process, without Docker):
 make test-streams-integration
 
-# Oppure equivalente manuale:
+# Or manual equivalent:
 DATABASE_URL=postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable \
   make test-integration-bufconn
 GRPC_HOST=localhost:50051 GRPC_TEST_API_KEY=testkey123 \
   go test -tags=integration -count=1 ./internal/grpc -run '^TestGRPC|^TestResolveTenantIntegration$$'
 ```
 
-Su **GitHub**, i test gRPC live girano nel job **`integration-smoke`**, non nel job `go` (dove `GRPC_TEST_API_KEY` non è impostata e i test live vengono saltati). Vedi [local-ci.md](local-ci.md) e [integration-testing.md](integration-testing.md).
+On **GitHub**, gRPC live tests run in the **`integration-smoke`** job, not in the `go` job (where `GRPC_TEST_API_KEY` is not set and live tests are skipped). See [local-ci.md](local-ci.md) and [integration-testing.md](integration-testing.md).
 
-Esempio concettuale (Go):
+Conceptual example (Go):
 
 ```go
 conn, _ := grpc.Dial("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -266,11 +266,11 @@ _, err := client.Store(ctx, &pcmiv1.StoreRequest{
 })
 ```
 
-RPC disponibili: store/retrieve/batch/stream, get memory, compact, refine, links, stats, eventi, webhooks, export/import, … — vedi [grpc-vs-http.md](grpc-vs-http.md).
+Available RPCs: store/retrieve/batch/stream, get memory, compact, refine, links, stats, events, webhooks, export/import, … — see [grpc-vs-http.md](grpc-vs-http.md).
 
 ---
 
-## SDK ufficiali
+## Official SDKs
 
 ### Python
 
@@ -306,115 +306,115 @@ cd sdk/typescript
 npm ci && npm run smoke
 ```
 
-Usa `smoke.mts` / `npm run smoke` — **non** heredoc `tsx` su Node 23 (vedi [sdk/README.md](../sdk/README.md)).
+Use `smoke.mts` / `npm run smoke` — **not** heredoc `tsx` on Node 23 (see [sdk/README.md](../sdk/README.md)).
 
 ---
 
-## Test di integrazione Go (`-tags=integration`)
+## Go integration tests (`-tags=integration`)
 
-Richiedono Postgres (`DATABASE_URL`). I test HTTP in `internal/handler` usano miniredis in-process.
+Require Postgres (`DATABASE_URL`). HTTP tests in `internal/handler` use miniredis in-process.
 
-**Attenzione — SSE:** `TestIntegrationHTTP_EventStreamMemoryStored` (httptest + Fiber SSE) può **bloccare ~10 minuti** e far fallire tutto il pacchetto `handler` per timeout. `newIntegrationHTTPApp` imposta di default `PCMI_SKIP_SSE_HTTPTEST=1`; la copertura SSE reale è in `scripts/ci_integration_smoke.sh`.
+**Note — SSE:** `TestIntegrationHTTP_EventStreamMemoryStored` (httptest + Fiber SSE) can **block ~10 minutes** and fail the entire `handler` package on timeout. `newIntegrationHTTPApp` sets `PCMI_SKIP_SSE_HTTPTEST=1` by default; real SSE coverage is in `scripts/ci_integration_smoke.sh`.
 
 ```bash
 export DATABASE_URL='postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable'
 PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
 ```
 
-Dettagli, sintomi e variabili: **[integration-testing.md](integration-testing.md)**.
+Details, symptoms, and variables: **[integration-testing.md](integration-testing.md)**.
 
 ---
 
 ## Makefile (repo root)
 
-| Target | Descrizione |
+| Target | Description |
 |--------|-------------|
-| `make test` | Unit test Go |
+| `make test` | Go unit tests |
 | `make lint` | golangci-lint v2 |
-| `make test-integration` | Bufconn (DB migrato) + test TCP su API già avviata |
-| `make test-integration-bufconn` | Solo test in-process (Postgres + migrazioni) |
-| `make test-integration-live` | gRPC TCP su `GRPC_HOST` (:50051); dopo `make infra-up` o API su host |
-| `make test-streams-integration` | Bus Redis Streams in `internal/event` (miniredis, senza stack) |
-| `make test-integration-handler` | Test HTTP handler (`-tags=integration`); imposta `PCMI_SKIP_SSE_HTTPTEST=1` |
-| `make infra-up` / `make infra-wait` | Stack Compose + attesa `/v1/ready` (:8000) |
-| `make admin-list-keys` | Tabella tenant + API key da Postgres (`DATABASE_URL`; mostra prefisso hash, non la chiave in chiaro). Filtro: `go run ./cmd/pcmi-admin list --tenant default` |
-| `make free-dev-ports` / `make act-preflight` | Libera `:5432` / `:6379` (compose + container `act-*`) |
-| `make test-full-real` | CI host + E2E OpenAI opz. + smoke importance/sessions/dedup + MCP — [local-ci.md](local-ci.md) |
-| `make smoke-importance` | Ranking retrieve con importance/decay (curl) |
-| `make smoke-sessions` | Sessioni agente curl E2E |
-| `make smoke-dedup` | Dedup ingest curl E2E |
-| `make test-streams-integration` | Bus Redis Streams (`internal/event`) |
-| `make test-circuit-breaker` | Circuit breaker embedding |
-| `make test-ratelimit-integration` | Rate limit Redis distribuito |
+| `make test-integration` | Bufconn (migrated DB) + TCP tests on already-running API |
+| `make test-integration-bufconn` | In-process tests only (Postgres + migrations) |
+| `make test-integration-live` | gRPC TCP on `GRPC_HOST` (:50051); after `make infra-up` or API on host |
+| `make test-streams-integration` | Redis Streams bus in `internal/event` (miniredis, without stack) |
+| `make test-integration-handler` | HTTP handler tests (`-tags=integration`); sets `PCMI_SKIP_SSE_HTTPTEST=1` |
+| `make infra-up` / `make infra-wait` | Compose stack + wait for `/v1/ready` (:8000) |
+| `make admin-list-keys` | Tenant + API key table from Postgres (`DATABASE_URL`; shows hash prefix, not plaintext key). Filter: `go run ./cmd/pcmi-admin list --tenant default` |
+| `make free-dev-ports` / `make act-preflight` | Free `:5432` / `:6379` (compose + `act-*` containers) |
+| `make test-full-real` | Host CI + optional OpenAI E2E + importance/sessions/dedup smokes + MCP — [local-ci.md](local-ci.md) |
+| `make smoke-importance` | Retrieve ranking with importance/decay (curl) |
+| `make smoke-sessions` | Agent sessions curl E2E |
+| `make smoke-dedup` | Ingest dedup curl E2E |
+| `make test-streams-integration` | Redis Streams bus (`internal/event`) |
+| `make test-circuit-breaker` | Embedding circuit breaker |
+| `make test-ratelimit-integration` | Distributed Redis rate limiter |
 | `make test-idempotency` | `X-Idempotency-Key` |
 | `make test-key-lifecycle` | Admin rotate/revoke |
 | `make test-retrieval-scoring` | Importance + decay in SQL retrieve |
-| `make test-sessions-integration` | Handler sessioni (`-tags=integration`) |
+| `make test-sessions-integration` | Sessions handler (`-tags=integration`) |
 | `make test-dedup` | Dedup unit + handler |
 | `make build-mcp` / `make test-mcp-unit` | MCP stdio server |
-| `make act-integration-smoke` | Job CI `integration-smoke`: compose PG/Redis + binari host + `ci_integration_smoke.sh` + gRPC + SDK |
-| `make ci-like-github` | Parità ampia con workflow CI: lint/vuln/helm, test `-race -tags=integration`, coverage gate, poi smoke |
-| `make sdk-smoke` | Smoke Python + TS (API su :8000) |
+| `make act-integration-smoke` | CI job `integration-smoke`: compose PG/Redis + host binaries + `ci_integration_smoke.sh` + gRPC + SDK |
+| `make ci-like-github` | Broad parity with CI workflow: lint/vuln/helm, test `-race -tags=integration`, coverage gate, then smoke |
+| `make sdk-smoke` | Python + TS smoke (API on :8000) |
 
 ---
 
-## Worker e cosa succede dopo lo store
+## Worker and what happens after store
 
-Dopo `POST /v1/memories`, l’API pubblica su Redis `memory.stored` / `memory.updated`. Il **worker** (`cmd/worker`):
+After `POST /v1/memories`, the API publishes `memory.stored` / `memory.updated` on Redis. The **worker** (`cmd/worker`):
 
-1. Genera **embedding** se mancante e `OPENAI_API_KEY` è impostata.
-2. Può **distillare** su eventi / refine.
-3. **Prune** versioni chiuse vecchie, **compact** per path (API), **expiry** su `expires_at`.
+1. Generates **embedding** if missing and `OPENAI_API_KEY` is set.
+2. May **distill** on events / refine.
+3. **Prunes** old closed versions, **compacts** by path (API), **expires** on `expires_at`.
 
-Diagramma: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
+Diagram: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 
 ---
 
-## Variabili d’ambiente principali
+## Main environment variables
 
-| Variabile | Default | Effetto |
-|-----------|---------|---------|
-| `DATABASE_URL` | compose | Postgres primario |
-| `DATABASE_READ_URL` | — | Replica letture |
-| `REDIS_ADDR` | `localhost:6379` | Redis (eventi + rate limit) |
-| `EVENT_BACKEND` | `streams` | `streams` = Redis Streams `pcmi:events`; `pubsub` = canale legacy `memory_events` |
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `DATABASE_URL` | compose | Primary Postgres |
+| `DATABASE_READ_URL` | — | Read replica |
+| `REDIS_ADDR` | `localhost:6379` | Redis (events + rate limit) |
+| `EVENT_BACKEND` | `streams` | `streams` = Redis Streams `pcmi:events`; `pubsub` = legacy channel `memory_events` |
 | `API_PORT` | `8000` | HTTP |
 | `GRPC_PORT` | `50051` | gRPC |
-| `METRICS_SCRAPE_TOKEN` | — | Se impostato, `GET /metrics` richiede `Authorization: Bearer …` |
-| `RATE_LIMIT_DISABLED` | `false` | Disabilita rate limit (dev/CI) |
-| `RATE_LIMIT_BACKEND` | `memory` | `memory` = limiter in-process; `redis` = contatori condivisi tra repliche API |
-| `RATE_LIMIT_RPM` / `_READONLY` / `_WRITE` / `_ADMIN` | 120 / 200 / 100 / 30 | RPM per ruolo (backend redis o memory) |
-| `DEDUP_MODE` | `none` | Default dedup ingest se tenant/richiesta non specificano |
+| `METRICS_SCRAPE_TOKEN` | — | If set, `GET /metrics` requires `Authorization: Bearer …` |
+| `RATE_LIMIT_DISABLED` | `false` | Disables rate limiting (dev/CI) |
+| `RATE_LIMIT_BACKEND` | `memory` | `memory` = in-process limiter; `redis` = shared counters across API replicas |
+| `RATE_LIMIT_RPM` / `_READONLY` / `_WRITE` / `_ADMIN` | 120 / 200 / 100 / 30 | RPM per role (redis or memory backend) |
+| `DEDUP_MODE` | `none` | Default ingest dedup if tenant/request does not specify |
 | `OPENAI_API_KEY` | — | Embedding + semantic retrieve + LLM summarize/distill |
 | `DISTILLATION_MODEL` / `DISTILLATION_BATCH_SIZE` | `gpt-4o-mini` / `10` | Worker distillation |
-| `PCMI_ENCRYPTION_KEY` | — | Cifratura contenuti |
-| `PCMI_BASE_URL` / `PCMI_API_KEY` | — | Solo **`cmd/mcp`** (non api/worker) |
+| `PCMI_ENCRYPTION_KEY` | — | Content encryption |
+| `PCMI_BASE_URL` / `PCMI_API_KEY` | — | Only **`cmd/mcp`** (not api/worker) |
 
-Elenco completo: `.env.example`.
+Full list: `.env.example`.
 
-### Webhook in uscita (verifica HMAC)
+### Outgoing webhooks (HMAC verification)
 
-Alla registrazione webhook imposta un `secret`. Ogni delivery POST include:
+At webhook registration set a `secret`. Every delivery POST includes:
 
-- `X-PCMI-Timestamp` — epoch secondi (stringa)
+- `X-PCMI-Timestamp` — epoch seconds (string)
 - `X-PCMI-Signature` — `sha256={hex(HMAC-SHA256(secret, timestamp + "." + body))}`
 
-Verifica lato consumer con tolleranza clock (~5 min). Dettaglio: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
+Consumer-side verification with clock tolerance (~5 min). Detail: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 
 ---
 
-## Percorsi consigliati (`ltree`)
+## Recommended paths (`ltree`)
 
-- Usa prefissi gerarchici: `root.<tenant>.<project>.<topic>`.
-- Un **path** identifica una “linea” di memoria; nuove versioni condividono lo stesso path.
-- **Retrieve** con `path_prefix` restituisce tutto il sotto-albero.
+- Use hierarchical prefixes: `root.<tenant>.<project>.<topic>`.
+- A **path** identifies a "memory line"; new versions share the same path.
+- **Retrieve** with `path_prefix` returns the entire subtree.
 
-Vedi [DATA-MODEL.md](DATA-MODEL.md).
+See [DATA-MODEL.md](DATA-MODEL.md).
 
 ---
 
-## Prossimi passi
+## Next steps
 
-- [retrieval-pipeline.md](retrieval-pipeline.md) — come funziona il ranking.
-- [failure-modes.md](failure-modes.md) — resilienza.
+- [retrieval-pipeline.md](retrieval-pipeline.md) — how ranking works.
+- [failure-modes.md](failure-modes.md) — resilience.
 - [examples/README.md](../examples/README.md) — Celery / Temporal / LangChain / LlamaIndex / AutoGen / CrewAI.

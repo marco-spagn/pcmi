@@ -1,6 +1,6 @@
-// Programma pcmi-worker: job di embedding, distillation, pruning, consolidation ed expiry, più
-// subscribe al canale Redis memory_events. Health e Prometheus su :8081 (`/health`, `/metrics`).
-// OpenTelemetry: stesse variabili OTLP dell'API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
+// Program pcmi-worker: embedding, distillation, pruning, consolidation, and expiry jobs, plus
+// subscribing to the Redis memory_events channel. Health and Prometheus on :8081 (`/health`, `/metrics`).
+// OpenTelemetry: same OTLP variables as the API; default service name `pcmi-worker` if OTEL_SERVICE_NAME is empty.
 package main
 
 import (
@@ -33,7 +33,7 @@ const workerTracerName = "github.com/marco-spagn/pcmi/cmd/worker"
 func main() {
 	log.Println("🚀 PCMI Worker starting...")
 
-	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
+	// --- Fail-fast: load and validate config before opening any connection ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.WorkerRequiredFields...); err != nil {
 		log.Fatalf("❌ FATAL: %v", err)

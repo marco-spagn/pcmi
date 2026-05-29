@@ -34,7 +34,9 @@ jobs:
     steps:
       - name: Resolve tag
         id: tag
-        run: echo "value=${GITHUB_REF#refs/tags/}">> "$GITHUB_OUTPUT"- uses: actions/checkout@v6
+        run: echo "value=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: ${{ steps.tag.outputs.value }}
@@ -51,11 +53,13 @@ jobs:
           set -euo pipefail
           # shellcheck source=scripts/ci/resolve_version.sh
           source scripts/ci/resolve_version.sh
-          if [[ "$RELEASE_TAG"!= "$PCMI_EXPECT_VERSION"]]; then
-            echo "Tag $RELEASE_TAG does not match version.go Tag $PCMI_EXPECT_VERSION">&2
+          if [[ "$RELEASE_TAG" != "$PCMI_EXPECT_VERSION" ]]; then
+            echo "Tag $RELEASE_TAG does not match version.go Tag $PCMI_EXPECT_VERSION" >&2
             exit 1
           fi
-          echo "version.go Tag matches tag $RELEASE_TAG "- name: Install git-cliff
+          echo "version.go Tag matches tag $RELEASE_TAG "
+
+      - name: Install git-cliff
         uses: taiki-e/install-action@v2
         with:
           tool: git-cliff
@@ -66,18 +70,24 @@ jobs:
           RELEASE_TAG: ${{ steps.tag.outputs.value }}
         run: |
           set -euo pipefail
-          git cliff --config cliff.toml --strip header --tag "$RELEASE_TAG"> release-notes.md
-          echo "--- release-notes.md (first 40 lines) ---"head -40 release-notes.md
+          git cliff --config cliff.toml --strip header --tag "$RELEASE_TAG" > release-notes.md
+          echo "--- release-notes.md (first 40 lines) ---"
+          head -40 release-notes.md
 
       - name: Build binaries (linux/amd64, linux/arm64, darwin/arm64)
         run: |
           set -euo pipefail
           mkdir -p dist
-          for target in "linux/amd64""linux/arm64""darwin/arm64"; do
-            goos="${target%%/*}"goarch="${target##*/}"for bin in api worker migrate; do
-              out="dist/pcmi-${bin}_${goos}_${goarch}"echo "→ building ${out}"CGO_ENABLED=0 GOOS="${goos}"GOARCH="${goarch}"\
-                go build -trimpath -ldflags="-s -w"\
-                -o "${out}""./cmd/${bin}"done
+          for target in "linux/amd64" "linux/arm64" "darwin/arm64"; do
+            goos="${target%%/*}"
+            goarch="${target##*/}"
+            for bin in api worker migrate; do
+              out="dist/pcmi-${bin}_${goos}_${goarch}"
+              echo "→ building ${out}"
+              CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
+                go build -trimpath -ldflags="-s -w" \
+                -o "${out}" "./cmd/${bin}"
+            done
           done
 
       - name: Compress & generate SHA256 checksums
@@ -85,7 +95,10 @@ jobs:
           set -euo pipefail
           cd dist
           for f in pcmi-*; do
-            tar czf "${f}.tar.gz""${f}"sha256sum "${f}.tar.gz"> "${f}.tar.gz.sha256"rm "${f}"done
+            tar czf "${f}.tar.gz" "${f}"
+            sha256sum "${f}.tar.gz" > "${f}.tar.gz.sha256"
+            rm "${f}"
+          done
           ls -lh .
 
       - name: Create GitHub Release
@@ -125,9 +138,15 @@ jobs:
         id: meta
         run: |
           set -euo pipefail
-          REPO="ghcr.io/marco-spagn/pcmi"if [[ "${GITHUB_REF}"== refs/tags/* ]]; then
-            TAG="${GITHUB_REF#refs/tags/}"echo "tags=${REPO}:latest,${REPO}:${TAG}">> "$GITHUB_OUTPUT"echo "label=${TAG}">> "$GITHUB_OUTPUT"else
-            echo "tags=${REPO}:main">> "$GITHUB_OUTPUT"echo "label=main">> "$GITHUB_OUTPUT"fi
+          REPO="ghcr.io/marco-spagn/pcmi"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            echo "tags=${REPO}:latest,${REPO}:${TAG}" >> "$GITHUB_OUTPUT"
+            echo "label=${TAG}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tags=${REPO}:main" >> "$GITHUB_OUTPUT"
+            echo "label=main" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Set up QEMU (multi-arch emulation)
         uses: docker/setup-qemu-action@v3

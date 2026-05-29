@@ -32,6 +32,14 @@ RUN apt-get update && \
     && apt-get autoremove -y --purge \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Preload AGE into all connections ────────────────────────────────────────
+# Without shared_preload_libraries, pgxpool sessions may lose the LOAD 'age'
+# effect between Exec calls, causing "operator does not exist: @>" errors.
+# ALTER SYSTEM writes to postgresql.auto.conf which takes effect after the
+# initdb-mandated restart, so AGE is available to every connection by default.
+RUN echo "ALTER SYSTEM SET shared_preload_libraries = 'age';" \
+    > /docker-entrypoint-initdb.d/000_preload_age.sql
+
 # ── Verify both extensions are installed ─────────────────────────────────────
 RUN ls -la /usr/lib/postgresql/16/lib/age.so \
          /usr/share/postgresql/16/extension/age.control \

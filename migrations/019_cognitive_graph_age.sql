@@ -41,7 +41,9 @@ CREATE OR REPLACE FUNCTION public.sync_memory_link_to_graph(
     p_link_type text,
     p_weight    float8,
     p_tenant_id uuid
-) RETURNS void LANGUAGE plpgsql AS $fn$
+) RETURNS void
+SET search_path = ag_catalog, "$user", public
+LANGUAGE plpgsql AS $fn$
 DECLARE
     safe_type text;
 BEGIN

@@ -47,6 +47,25 @@ func (g *GraphClient) IsAvailable(ctx context.Context) bool {
 	return rows.Err() == nil
 }
 
+// ageConn acquires a dedicated connection from the pool and sets search_path
+// so that AGE operators (e.g. @>) are resolvable.  AGE itself is preloaded via
+// shared_preload_libraries (configured in the Docker image).  Caller must
+// release the connection via conn.Release().
+func (g *GraphClient) ageConn(ctx context.Context) (*pgxpool.Conn, error) {
+	if g == nil || g.db == nil {
+		return nil, fmt.Errorf("graph: db not initialised")
+	}
+	conn, err := g.db.Acquire(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("graph: acquire conn: %w", err)
+	}
+	if _, err := conn.Exec(ctx, `SET search_path = ag_catalog, "$user", public`); err != nil {
+		conn.Release()
+		return nil, fmt.Errorf("graph: set search_path: %w", err)
+	}
+	return conn, nil
+}
+
 // FindRelated traverses the pcmi_memory_graph starting from memoryID and
 // returns nodes reachable within maxDepth hops via any of the given linkTypes.
 // When linkTypes is empty all edge types are matched.
@@ -54,8 +73,6 @@ func (g *GraphClient) IsAvailable(ctx context.Context) bool {
 //
 // cursor/limit implement keyset pagination over memory IDs.  Pass cursor=0 for
 // the first page; subsequent pages pass the last ID from the previous page.
-// SKIP/OFFSET is NOT used — the Cypher query filters n.id > 'memory.{cursor}'
-// for O(1) per-page cost regardless of how deep into the result set you go.
 func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*RelatedResult, error) {
 	if !g.IsAvailable(ctx) {
 		return &RelatedResult{Memories: []RelatedMemory{}}, nil
@@ -70,56 +87,60 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		cursor = 0
 	}
 
-	// Enforce per-query timeout to prevent runaway traversals from blocking the pool.
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
 	defer cancel()
 
-	// Build the Cypher path pattern, optionally filtering by relationship type.
+	conn, err := g.ageConn(queryCtx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
 	relPattern := fmt.Sprintf("[r*1..%d]", maxDepth)
+	typeFilter := ""
 	if len(linkTypes) > 0 {
-		quoted := make([]string, len(linkTypes))
+		parts := make([]string, len(linkTypes))
 		for i, lt := range linkTypes {
-			quoted[i] = sanitizeLinkType(lt)
+			parts[i] = fmt.Sprintf("type(r[0]) = '%s'", sanitizeLinkType(lt))
 		}
-		relPattern = fmt.Sprintf("[r:%s*1..%d]", strings.Join(quoted, "|"), maxDepth)
+		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
 	}
 
 	idStr := fmt.Sprintf("memory.%d", memoryID)
 
-	// Count query — lightweight, returns a single integer.
+	// Count query.
 	countQuery := fmt.Sprintf(`
-		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
+		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
-			WHERE n.tenant_id = '%s'
+			WHERE n.id IS NOT NULL%s
 			RETURN count(n)
-		$cypher$) AS (cnt ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, tenantID,
+		$$) AS (cnt ag_catalog.agtype)`,
+		idStr, tenantID, relPattern, typeFilter,
 	)
 
 	var total int
 	var cntRaw []byte
-	if err := g.db.QueryRow(queryCtx, countQuery).Scan(&cntRaw); err == nil {
+	if err := conn.QueryRow(queryCtx, countQuery).Scan(&cntRaw); err == nil {
 		total, _ = strconv.Atoi(strings.Trim(string(cntRaw), `"`))
 	}
 
-	// Data query with keyset pagination (cursor = last memory ID from previous page).
-	// Fetch limit+1 rows to detect has_more.
+	// Data query with keyset pagination. Fetch limit+1 to detect has_more.
 	cursorClause := ""
 	if cursor > 0 {
 		cursorClause = fmt.Sprintf(" AND n.id > 'memory.%d'", cursor)
 	}
 	dataQuery := fmt.Sprintf(`
-		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
+		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
-			WHERE n.tenant_id = '%s'%s
+			WHERE n.id IS NOT NULL%s%s
 			RETURN n.id, type(r[0]), length(r)
 			ORDER BY n.id
 			LIMIT %d
-		$cypher$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, tenantID, cursorClause, limit+1,
+		$$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
+		idStr, tenantID, relPattern, typeFilter, cursorClause, limit+1,
 	)
 
-	rows, err := g.db.Query(queryCtx, dataQuery)
+	rows, err := conn.Query(queryCtx, dataQuery)
 	if err != nil {
 		return nil, fmt.Errorf("graph FindRelated: %w", err)
 	}
@@ -143,13 +164,10 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		return nil, fmt.Errorf("graph FindRelated rows: %w", err)
 	}
 
-	// Determine next cursor: if we got limit+1 rows, there are more pages.
 	var nextCursor int64
 	if len(all) > limit {
-		nextCursor = all[limit-1].ID // cursor is the last ID in the actual page
+		nextCursor = all[limit-1].ID
 		all = all[:limit]
-	} else if len(all) > 0 {
-		nextCursor = 0 // last page
 	}
 
 	return &RelatedResult{Memories: all, Total: total, NextCursor: nextCursor}, nil
@@ -170,29 +188,37 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
 	defer cancel()
 
+	conn, err := g.ageConn(queryCtx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
 	relPattern := fmt.Sprintf("[e*1..%d]", maxDepth)
+	typeFilter := ""
 	if len(linkTypes) > 0 {
-		quoted := make([]string, len(linkTypes))
+		parts := make([]string, len(linkTypes))
 		for i, lt := range linkTypes {
-			quoted[i] = sanitizeLinkType(lt)
+			parts[i] = fmt.Sprintf("type(e[0]) = '%s'", sanitizeLinkType(lt))
 		}
-		relPattern = fmt.Sprintf("[e:%s*1..%d]", strings.Join(quoted, "|"), maxDepth)
+		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
 	}
 
 	fromStr := fmt.Sprintf("memory.%d", fromID)
 	toStr := fmt.Sprintf("memory.%d", toID)
 
 	query := fmt.Sprintf(`
-		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
+		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH p=(a:Memory {id: '%s', tenant_id: '%s'})-%s->(b:Memory {id: '%s', tenant_id: '%s'})
+			WHERE a.id IS NOT NULL%s
 			RETURN p, length(p)
 			ORDER BY length(p) ASC
 			LIMIT 1
-		$cypher$) AS (path ag_catalog.agtype, hops ag_catalog.agtype)`,
-		fromStr, tenantID, relPattern, toStr, tenantID,
+		$$) AS (path ag_catalog.agtype, hops ag_catalog.agtype)`,
+		fromStr, tenantID, relPattern, toStr, tenantID, typeFilter,
 	)
 
-	rows, err := g.db.Query(queryCtx, query)
+	rows, err := conn.Query(queryCtx, query)
 	if err != nil {
 		return nil, fmt.Errorf("graph FindChain: %w", err)
 	}
@@ -213,8 +239,6 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 	result.Connected = true
 	result.Hops, _ = strconv.Atoi(strings.Trim(string(hopsRaw), `"`))
 
-	// Parse the AGE path: a JSON array alternating vertices and edges.
-	// [v0, e0, v1, e1, ..., vN]
 	chainLinks := parseAGEPath(pathRaw)
 	result.Path = chainLinks
 
@@ -222,7 +246,6 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 }
 
 // parseAGEPath parses an AGE agtype path into ChainLink entries.
-// The path format is a JSON array: [vertex, edge, vertex, edge, ..., vertex].
 func parseAGEPath(raw []byte) []ChainLink {
 	var path []json.RawMessage
 	if err := json.Unmarshal(raw, &path); err != nil || len(path) < 3 {
@@ -232,16 +255,15 @@ func parseAGEPath(raw []byte) []ChainLink {
 	var links []ChainLink
 	for i := 1; i < len(path); i += 2 {
 		var edge struct {
-			Label    string `json:"label"`
-			StartID  int64  `json:"start_id"`
-			EndID    int64  `json:"end_id"`
+			Label      string                     `json:"label"`
+			StartID    int64                      `json:"start_id"`
+			EndID      int64                      `json:"end_id"`
 			Properties map[string]json.RawMessage `json:"properties"`
 		}
 		if err := json.Unmarshal(path[i], &edge); err != nil {
 			continue
 		}
 
-		// Parse vertex IDs from the surrounding vertices.
 		var prevV, nextV struct {
 			Properties struct {
 				ID string `json:"id"`
@@ -273,9 +295,7 @@ func parseAGEPath(raw []byte) []ChainLink {
 
 // ExecuteCypher runs a read-only Cypher query against pcmi_memory_graph.
 // The query must start with MATCH and must not contain write keywords.
-// Tenant scoping is injected automatically: each :Memory node reference gets
-// filtered with alias.tenant_id = '<tenantID>'.  The caller must NOT include
-// tenant_id manually — it will be double-escaped if already present.
+// Tenant scoping is injected automatically.
 func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string) (*CypherResult, error) {
 	if !g.IsAvailable(ctx) {
 		return nil, fmt.Errorf("cognitive graph not available")
@@ -283,6 +303,12 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
 	defer cancel()
+
+	conn, err := g.ageConn(queryCtx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
 
 	trimmed := strings.TrimSpace(query)
 	upper := strings.ToUpper(trimmed)
@@ -302,11 +328,11 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 	}
 
 	fullQuery := fmt.Sprintf(
-		`SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$ %s $cypher$) AS (result ag_catalog.agtype)`,
+		`SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$ %s $$) AS (result ag_catalog.agtype)`,
 		scopedQuery,
 	)
 
-	rows, err := g.db.Query(queryCtx, fullQuery)
+	rows, err := conn.Query(queryCtx, fullQuery)
 	if err != nil {
 		return nil, fmt.Errorf("graph ExecuteCypher: %w", err)
 	}
@@ -335,10 +361,7 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 }
 
 // autoTenantScopeCypher injects a tenant_id filter into a read-only Cypher query.
-// It finds the first :Memory node alias and adds `alias.tenant_id = '<tenantID>'`
-// to the WHERE clause.  Returns an error if no :Memory node is found.
 func autoTenantScopeCypher(query, tenantID string) (string, error) {
-	// Extract the alias of the first :Memory node — e.g. (n:Memory...) → "n".
 	alias := ""
 	upper := strings.ToUpper(query)
 	memIdx := strings.Index(upper, ":MEMORY")
@@ -346,7 +369,6 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 		return "", fmt.Errorf("query must reference at least one :Memory node for tenant scoping")
 	}
 
-	// Walk backward from :MEMORY to find the opening paren and alias.
 	parenIdx := strings.LastIndex(query[:memIdx], "(")
 	if parenIdx < 0 {
 		return "", fmt.Errorf("invalid MATCH pattern: missing ( before :Memory")
@@ -361,7 +383,6 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 		return "", fmt.Errorf("could not determine Memory node alias for tenant scoping")
 	}
 
-	// Find RETURN position (must exist).
 	returnIdx := strings.Index(upper, "RETURN")
 	if returnIdx < 0 {
 		return "", fmt.Errorf("query must contain a RETURN clause")
@@ -369,14 +390,11 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 
 	tenantFilter := fmt.Sprintf("%s.tenant_id = '%s'", alias, tenantID)
 
-	// Check for existing WHERE between MATCH start and RETURN.
 	whereIdx := strings.Index(upper, "WHERE")
 	if whereIdx >= 0 && whereIdx < returnIdx {
-		// Existing WHERE — inject tenant_id predicate at the front.
 		suffix := query[whereIdx+5:]
 		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + suffix + ")"
 	} else {
-		// No WHERE — insert one before RETURN.
 		query = query[:returnIdx] + "WHERE " + tenantFilter + " " + query[returnIdx:]
 	}
 
@@ -384,13 +402,7 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 }
 
 // CreateLink inserts a link into memory_links and syncs it to the AGE graph.
-// fromID and toID are memory_entries.id values.
-// The graph vertex id property is set to the string form of the integer ID so
-// that FindRelated can parse it back.
-//
-// The DB trigger trg_memory_links_sync_graph (AFTER INSERT OR UPDATE on
-// memory_links) handles syncing to the AGE graph, so no explicit SyncMemoryLink
-// call is needed here.
+// The DB trigger trg_memory_links_sync_graph handles syncing to the AGE graph.
 func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, toID int64, linkType string, weight float64) error {
 	if g == nil || g.db == nil {
 		return fmt.Errorf("graph: db not initialised")
@@ -414,8 +426,6 @@ func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, t
 }
 
 // SyncMemoryLink merges a memory_links row into the AGE graph (best-effort).
-// No-op when AGE is unavailable. Used by CreateLink and safe to call after
-// repository upserts when triggers are not yet applied.
 func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, toPath, linkType string, weight float64) {
 	if g == nil || g.db == nil || !g.IsAvailable(ctx) {
 		return
@@ -429,16 +439,12 @@ func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, to
 	)
 }
 
-// parseMemoryVertexID extracts memory_entries.id from an AGE vertex id property
-// stored as "memory.<id>" (matches sync_memory_link_to_graph / ltree paths).
 func parseMemoryVertexID(raw string) (int64, error) {
 	raw = strings.Trim(raw, `"`)
 	raw = strings.TrimPrefix(raw, "memory.")
 	return strconv.ParseInt(raw, 10, 64)
 }
 
-// sanitizeLinkType strips non-word characters so the string is safe to embed
-// as a Cypher relationship label.
 func sanitizeLinkType(lt string) string {
 	var b strings.Builder
 	for _, r := range lt {

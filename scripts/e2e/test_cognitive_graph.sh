@@ -61,10 +61,18 @@ cleanup() {
     kill "$API_PID" 2>/dev/null || true
     wait "$API_PID" 2>/dev/null || true
   fi
-  # Optional: stop and remove the AGE container.
+  if [ -n "$API_STD_PID" ] && kill -0 "$API_STD_PID" 2>/dev/null; then
+    kill "$API_STD_PID" 2>/dev/null || true
+    wait "$API_STD_PID" 2>/dev/null || true
+  fi
+  # Optional: stop and remove the containers.
   if docker ps -q -f name="pcmi-postgres-age" | grep -q .; then
     docker rm -f pcmi-postgres-age >/dev/null 2>&1 || true
   fi
+  if docker ps -q -f name="pcmi-postgres-std" | grep -q .; then
+    docker rm -f pcmi-postgres-std >/dev/null 2>&1 || true
+  fi
+  rm -f /tmp/pcmi-api-e2e
 }
 trap cleanup EXIT
 
@@ -101,7 +109,18 @@ wait_for_pg() {
 # shellcheck disable=SC2028
 curl_api() {
   # All API calls use X-API-Key header.
-  curl -s -f --max-time 15 -H "X-API-Key: ${API_KEY}" "$@"
+  # If curl fails (non-2xx), print the response body before exiting.
+  local resp
+  resp=$(curl -s -w '\n%{http_code}' --max-time 15 -H "X-API-Key: ${API_KEY}" "$@") || true
+  local http_code
+  http_code=$(echo "$resp" | tail -1)
+  local body
+  body=$(echo "$resp" | sed '$d')
+  if [ "$http_code" -ge 400 ] 2>/dev/null; then
+    echo "curl_api FAILED: HTTP $http_code — $body" >&2
+    return 22
+  fi
+  echo "$body"
 }
 
 assert_eq() {
@@ -260,14 +279,23 @@ fi
 
 hr
 
-# ── Step 4: Start PCMI API pointed at AGE ───────────────────────────────────
-header "Step 4: Start PCMI API (port $API_PORT)"
+# ── Step 4: Build & Start PCMI API pointed at AGE ─────────────────────────
+header "Step 4: Build and start PCMI API (port $API_PORT)"
+
+# Build once to avoid Go module cache contention between two go-run instances.
+API_BIN="/tmp/pcmi-api-e2e"
+info "Building API binary..."
+go build -o "$API_BIN" "$PROJECT_ROOT/cmd/api" > /tmp/graph-api-build.log 2>&1 || {
+  fail "API build failed — see /tmp/graph-api-build.log"
+  exit 1
+}
+ok "API binary built"
 
 info "Starting API with DATABASE_URL=$AGE_DB on port $API_PORT"
 DATABASE_URL="$AGE_RAW" \
   API_PORT="$API_PORT" \
   REDIS_ADDR="${REDIS_ADDR:-localhost:6379}" \
-  go run "$PROJECT_ROOT/cmd/api" > /tmp/graph-api.log 2>&1 &
+  "$API_BIN" > /tmp/graph-api.log 2>&1 &
 API_PID=$!
 
 if wait_for_http "${API_URL}/v1/ready" 30 "API /v1/ready"; then
@@ -474,7 +502,7 @@ REJECT=$(curl -s --max-time 10 \
   -H "Content-Type: application/json" \
   -d '{"query":"CREATE (n:Memory {id: \"memory.99\"})"}' \
   | jq -r '.error // "no error"')
-assert_contains "$REJECT" "not allowed" "Cypher CREATE rejected by allowlist"
+assert_contains "$REJECT" "only MATCH" "Cypher CREATE rejected by allowlist"
 
 hr
 
@@ -482,20 +510,26 @@ hr
 header "Step 11: Test graceful degradation (standard Postgres)"
 
 # Start a standard postgres (no AGE) on port 5434.
+# Mount critical migrations so api_keys and RLS exist for auth.
 docker rm -f pcmi-postgres-std >/dev/null 2>&1 || true
 docker run -d --name pcmi-postgres-std \
   -e POSTGRES_DB=pcmi \
   -e POSTGRES_USER=pcmi \
   -e POSTGRES_PASSWORD=pcmi \
   -p 5434:5432 \
+  -v "$PROJECT_ROOT/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/002_multi_tenant.sql:/docker-entrypoint-initdb.d/002_multi_tenant.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/003_rbac_api_keys.sql:/docker-entrypoint-initdb.d/003_rbac_api_keys.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/014_key_lifecycle.sql:/docker-entrypoint-initdb.d/014_key_lifecycle.sql:ro" \
   pgvector/pgvector:pg16 >/dev/null 2>&1
 
-# Apply ONLY migration 019 (simulates running migration without AGE).
-docker cp "$MIGRATION_019" pcmi-postgres-std:/tmp/019.sql >/dev/null
-docker exec pcmi-postgres-std psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration-std.log 2>&1 || true
-docker exec pcmi-postgres-std rm /tmp/019.sql >/dev/null 2>&1
+info "Waiting for standard Postgres on port 5434..."
+wait_for_pg pcmi-postgres-std 45
 
-wait_for_pg pcmi-postgres-std 30
+# Apply ONLY migration 019 (simulates running migration without AGE).
+docker cp "$MIGRATION_019" pcmi-postgres-std:/tmp/019.sql >/dev/null || true
+docker exec pcmi-postgres-std psql -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration-std.log 2>&1 || true
+docker exec pcmi-postgres-std rm /tmp/019.sql >/dev/null 2>&1 || true
 
 # Start a second API instance on a different port, pointed at standard PG.
 API_STD_PORT=8002
@@ -503,10 +537,12 @@ info "Starting API on port $API_STD_PORT (no AGE)..."
 API_STD_PID=""
 DATABASE_URL="postgres://pcmi:pcmi@localhost:5434/pcmi?sslmode=disable" \
   API_PORT="$API_STD_PORT" \
-  go run "$PROJECT_ROOT/cmd/api" > /tmp/graph-api-std.log 2>&1 &
+  REDIS_ADDR="${REDIS_ADDR:-localhost:6379}" \
+  GRPC_PORT="0" \
+  "$API_BIN" > /tmp/graph-api-std.log 2>&1 &
 API_STD_PID=$!
 
-if wait_for_http "http://localhost:${API_STD_PORT}/v1/ready" 30 "API(no-AGE) /v1/ready"; then
+if wait_for_http "http://localhost:${API_STD_PORT}/v1/ready" 60 "API(no-AGE) /v1/ready"; then
   ok "API without AGE is ready on port $API_STD_PORT"
 else
   fail "API without AGE did not start"

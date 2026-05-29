@@ -133,7 +133,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
 			WHERE n.id IS NOT NULL%s%s
-			RETURN n.id, type(r[0]), length(r)
+			RETURN n.id, type(r[0]), size(r)
 			ORDER BY n.id
 			LIMIT %d
 		$$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
@@ -246,9 +246,21 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 }
 
 // parseAGEPath parses an AGE agtype path into ChainLink entries.
+// AGE represents paths as JSON arrays with ::vertex / ::edge suffixes, e.g.:
+//
+//	[{...}::vertex, {...}::edge, {...}::vertex]::path
+//
+// We strip the suffixes before JSON unmarshaling.
 func parseAGEPath(raw []byte) []ChainLink {
+	// Strip ::vertex, ::edge, and ::path suffixes — they are not valid JSON.
+	s := string(raw)
+	s = strings.ReplaceAll(s, "::vertex", "")
+	s = strings.ReplaceAll(s, "::edge", "")
+	s = strings.ReplaceAll(s, "::path", "")
+	cleaned := []byte(s)
+
 	var path []json.RawMessage
-	if err := json.Unmarshal(raw, &path); err != nil || len(path) < 3 {
+	if err := json.Unmarshal(cleaned, &path); err != nil || len(path) < 3 {
 		return nil
 	}
 

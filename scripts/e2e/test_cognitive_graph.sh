@@ -43,7 +43,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 AGE_PORT="${AGE_PORT:-5433}"
 AGE_DB="postgres://pcmi:pcmi@localhost:${AGE_PORT}/pcmi?sslmode=disable"
 AGE_RAW="postgres://pcmi:pcmi@localhost:${AGE_PORT}/pcmi"
-API_PORT="${API_PORT:-8001}"
+API_PORT="${API_PORT:-8000}"
 API_URL="http://localhost:${API_PORT}"
 API_KEY="${API_KEY:-testkey123}"
 DOCKERFILE="docker/postgres-age/Dockerfile.postgres-age"
@@ -99,9 +99,9 @@ wait_for_pg() {
 }
 
 # shellcheck disable=SC2028
-curl_graph() {
-  # All graph read endpoints use the same auth header.
-  curl -s -f --max-time 15 -H "Authorization: Bearer ${API_KEY}" "$@"
+curl_api() {
+  # All API calls use X-API-Key header.
+  curl -s -f --max-time 15 -H "X-API-Key: ${API_KEY}" "$@"
 }
 
 assert_eq() {
@@ -165,15 +165,47 @@ docker run -d --name pcmi-postgres-age \
   -e POSTGRES_USER=pcmi \
   -e POSTGRES_PASSWORD=pcmi \
   -p "${AGE_PORT}:5432" \
+  -v "$PROJECT_ROOT/migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/002_multi_tenant.sql:/docker-entrypoint-initdb.d/002_multi_tenant.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/003_rbac_api_keys.sql:/docker-entrypoint-initdb.d/003_rbac_api_keys.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/004_audit_encryption.sql:/docker-entrypoint-initdb.d/004_audit_encryption.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/005_worker_helpers.sql:/docker-entrypoint-initdb.d/005_worker_helpers.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/006_fts_hybrid.sql:/docker-entrypoint-initdb.d/006_fts_hybrid.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/007_v1_11_embedding_space.sql:/docker-entrypoint-initdb.d/007_v1_11_embedding_space.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/008_v1_12_distilled_webhooks_encrypt.sql:/docker-entrypoint-initdb.d/008_v1_12_distilled_webhooks_encrypt.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/009_v1_13_event_schemas_webhook_dlq.sql:/docker-entrypoint-initdb.d/009_v1_13_event_schemas_webhook_dlq.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/010_v1_14_consolidation_bm25_admin.sql:/docker-entrypoint-initdb.d/010_v1_14_consolidation_bm25_admin.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/011_v1_15_links_expiry_tags.sql:/docker-entrypoint-initdb.d/011_v1_15_links_expiry_tags.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/012_v1_19_memory_compaction.sql:/docker-entrypoint-initdb.d/012_v1_19_memory_compaction.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/013_idempotency.sql:/docker-entrypoint-initdb.d/013_idempotency.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/014_key_lifecycle.sql:/docker-entrypoint-initdb.d/014_key_lifecycle.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/015_importance_decay.sql:/docker-entrypoint-initdb.d/015_importance_decay.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql:ro" \
+  -v "$PROJECT_ROOT/migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql:ro" \
   "$IMAGE_TAG" >/dev/null 2>&1
 
 info "Waiting for Postgres to become healthy..."
-if wait_for_pg pcmi-postgres-age 45; then
+if wait_for_pg pcmi-postgres-age 60; then
   ok "Postgres is ready on port $AGE_PORT"
 else
-  fail "Postgres did not become healthy within 45s"
+  fail "Postgres did not become healthy within 60s"
   exit 1
 fi
+
+# Wait until base tables exist (init scripts may still be running even after pg_isready).
+info "Waiting for migrations to be applied (memory_links table)..."
+for i in $(seq 1 30); do
+  if docker exec pcmi-postgres-age psql -U pcmi -d pcmi -c "SELECT 1 FROM public.memory_links LIMIT 0" >/dev/null 2>&1; then
+    ok "Base migrations applied (memory_links exists)"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    fail "Base migrations not applied after 30 attempts"
+    exit 1
+  fi
+  sleep 1
+done
 
 hr
 
@@ -184,15 +216,26 @@ MIGRATION_019="$PROJECT_ROOT/migrations/019_cognitive_graph_age.sql"
 
 # Copy migration into the container and run it.
 docker cp "$MIGRATION_019" pcmi-postgres-age:/tmp/019.sql >/dev/null
-# Use TCP connection — some images don't expose a Unix socket at the default path.
-if ! docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
-  warn "Migration had non-zero exit — checking if AGE is still available..."
-  cat /tmp/graph-migration.log | tail -5
+# Try Unix socket first, then TCP fallback.
+DOCKER_PSQL="docker exec pcmi-postgres-age psql -U pcmi -d pcmi"
+if ! $DOCKER_PSQL -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
+  # Try with TCP
+  if ! docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
+    warn "Migration had non-zero exit — checking if AGE is still available..."
+    cat /tmp/graph-migration.log | tail -5
+  fi
 fi
 docker exec pcmi-postgres-age rm /tmp/019.sql >/dev/null 2>&1 || true
 
 # Verify AGE extension was created.
-if docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" >/dev/null 2>&1; then
+AGEOK=false
+for psql_cmd in "psql -U pcmi -d pcmi" "psql -h 127.0.0.1 -U pcmi -d pcmi"; do
+  if docker exec pcmi-postgres-age $psql_cmd -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" >/dev/null 2>&1; then
+    AGEOK=true
+    break
+  fi
+done
+if $AGEOK; then
   ok "Migration applied — AGE extension and pcmi_memory_graph exist"
 else
   fail "Migration did not create AGE graph"
@@ -200,19 +243,19 @@ else
 fi
 
 # Verify pgvector is also available.
-if docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -c "CREATE EXTENSION IF NOT EXISTS vector" >/dev/null 2>&1; then
+if docker exec pcmi-postgres-age psql -U pcmi -d pcmi -c "CREATE EXTENSION IF NOT EXISTS vector" >/dev/null 2>&1; then
   ok "pgvector extension available (bundled image)"
 else
   warn "pgvector extension not available — embedding features disabled on this instance"
 fi
 
 # Verify the trigger exists.
-TRIGGER_CHECK=$(docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -t -c \
+TRIGGER_CHECK=$(docker exec pcmi-postgres-age psql -U pcmi -d pcmi -t -c \
   "SELECT count(*) FROM information_schema.triggers WHERE trigger_name = 'trg_memory_links_sync_graph'" 2>/dev/null | tr -d ' ')
-if [ "$TRIGGER_CHECK" = "1" ]; then
+if [ "$TRIGGER_CHECK" -ge 1 ]; then
   ok "Trigger trg_memory_links_sync_graph exists on memory_links"
 else
-  fail "Trigger trg_memory_links_sync_graph is missing"
+  fail "Trigger trg_memory_links_sync_graph is missing (count=$TRIGGER_CHECK)"
 fi
 
 hr
@@ -220,8 +263,9 @@ hr
 # ── Step 4: Start PCMI API pointed at AGE ───────────────────────────────────
 header "Step 4: Start PCMI API (port $API_PORT)"
 
-info "Starting API with DATABASE_URL=$AGE_DB"
+info "Starting API with DATABASE_URL=$AGE_DB on port $API_PORT"
 DATABASE_URL="$AGE_RAW" \
+  API_PORT="$API_PORT" \
   REDIS_ADDR="${REDIS_ADDR:-localhost:6379}" \
   go run "$PROJECT_ROOT/cmd/api" > /tmp/graph-api.log 2>&1 &
 API_PID=$!
@@ -241,35 +285,35 @@ header "Step 5: Insert fake test data (memories + links)"
 
 # Store 5 memories — these form a chain: 1 → 2 → 3 (causal), 4 → 5 (temporal)
 MEM_1=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"path":"root.cognitive.e2e.a","content":"The server crashes on startup after upgrading to v2.3.1","tags":["e2e","cognitive"]}' \
   | jq -r '.id')
 info "  Memory 1 (root cause): id=$MEM_1"
 
 MEM_2=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"path":"root.cognitive.e2e.b","content":"The crash is caused by a null-pointer dereference in config.c line 142","tags":["e2e","cognitive"]}' \
   | jq -r '.id')
 info "  Memory 2 (diagnosis): id=$MEM_2"
 
 MEM_3=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"path":"root.cognitive.e2e.c","content":"Fixed the null pointer bug, deployed in v2.3.2, crash resolved","tags":["e2e","cognitive"]}' \
   | jq -r '.id')
 info "  Memory 3 (fix): id=$MEM_3"
 
 MEM_4=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"path":"root.cognitive.e2e.d","content":"User reported slow response times after the config fix deployment","tags":["e2e","cognitive"]}' \
   | jq -r '.id')
 info "  Memory 4 (side-effect): id=$MEM_4"
 
 MEM_5=$(curl -sf --max-time 10 -X POST "${API_URL}/v1/memories" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"path":"root.cognitive.e2e.e","content":"The slow responses are unrelated — caused by a DNS misconfiguration in the load balancer","tags":["e2e","cognitive"]}' \
   | jq -r '.id')
@@ -283,7 +327,7 @@ info "Creating links..."
 link() {
   local from_path="$1" to_path="$2" link_type="$3"
   curl -sf --max-time 10 -X POST "${API_URL}/v1/memories/links" \
-    -H "Authorization: Bearer ${API_KEY}" \
+    -H "X-API-Key: ${API_KEY}" \
     -H "Content-Type: application/json" \
     -d "{\"from_path\":\"${from_path}\",\"to_path\":\"${to_path}\",\"link_type\":\"${link_type}\"}" \
     >/dev/null 2>&1
@@ -331,7 +375,7 @@ hr
 # ── Step 7: Test GET /v1/graph/related (single page) ────────────────────────
 header "Step 7: Test GET /v1/graph/related (traversal)"
 
-RELATED=$(curl_graph "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal")
+RELATED=$(curl_api "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal")
 REL_COUNT=$(echo "$RELATED" | jq -r '.count')
 REL_TOTAL=$(echo "$RELATED" | jq -r '.total')
 REL_DEPTH=$(echo "$RELATED" | jq -r '.depth')
@@ -354,7 +398,7 @@ hr
 header "Step 8: Test keyset cursor pagination"
 
 # First page — get up to 2 entries.
-PAGE1=$(curl_graph "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal&limit=2")
+PAGE1=$(curl_api "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal&limit=2")
 P1_COUNT=$(echo "$PAGE1" | jq -r '.count')
 P1_NEXT=$(echo "$PAGE1" | jq -r '.next_cursor')
 P1_IDS=$(echo "$PAGE1" | jq -r '[.entries[].id] | join(",")')
@@ -364,7 +408,7 @@ assert_eq "$P1_COUNT" "2" "Page 1: exactly 2 entries (limit=2)"
 # Second page using the cursor from page 1.
 if [ "$P1_NEXT" != "0" ] && [ "$P1_NEXT" != "null" ]; then
   info "Fetching page 2 with cursor=$P1_NEXT"
-  PAGE2=$(curl_graph "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal&cursor=${P1_NEXT}&limit=2")
+  PAGE2=$(curl_api "${API_URL}/v1/graph/related?memory_id=${MEM_1}&depth=3&link_types=causal,temporal&cursor=${P1_NEXT}&limit=2")
   P2_COUNT=$(echo "$PAGE2" | jq -r '.count')
   P2_IDS=$(echo "$PAGE2" | jq -r '[.entries[].id] | join(",")')
 
@@ -388,7 +432,7 @@ header "Step 9: Test GET /v1/graph/chain (shortest path)"
 
 # The causal chain 1→2→3 should be found.
 # NOTE: chain uses memory_entries.id, not ltree paths.
-CHAIN=$(curl_graph "${API_URL}/v1/graph/chain?from=${MEM_1}&to=${MEM_3}&link_types=causal&max_depth=5")
+CHAIN=$(curl_api "${API_URL}/v1/graph/chain?from=${MEM_1}&to=${MEM_3}&link_types=causal&max_depth=5")
 CHAIN_CONNECTED=$(echo "$CHAIN" | jq -r '.connected')
 CHAIN_HOPS=$(echo "$CHAIN" | jq -r '.hops')
 CHAIN_LEN=$(echo "$CHAIN" | jq -r '.path | length')
@@ -398,12 +442,12 @@ assert_eq "$CHAIN_HOPS" "2"        "Chain $MEM_1 → $MEM_3: 2 hops"
 assert_eq "$CHAIN_LEN" "2"         "Chain $MEM_1 → $MEM_3: 2 path edges"
 
 # Test a path that should NOT exist (going the wrong direction).
-CHAIN_REV=$(curl_graph "${API_URL}/v1/graph/chain?from=${MEM_3}&to=${MEM_1}&link_types=causal&max_depth=5")
+CHAIN_REV=$(curl_api "${API_URL}/v1/graph/chain?from=${MEM_3}&to=${MEM_1}&link_types=causal&max_depth=5")
 CHAIN_REV_CONN=$(echo "$CHAIN_REV" | jq -r '.connected')
 assert_eq "$CHAIN_REV_CONN" "false" "Chain $MEM_3 → $MEM_1 (reverse): not connected"
 
 # Test with no path between unrelated memories.
-CHAIN_NONE=$(curl_graph "${API_URL}/v1/graph/chain?from=${MEM_1}&to=${MEM_5}&link_types=causal&max_depth=5")
+CHAIN_NONE=$(curl_api "${API_URL}/v1/graph/chain?from=${MEM_1}&to=${MEM_5}&link_types=causal&max_depth=5")
 CHAIN_NONE_CONN=$(echo "$CHAIN_NONE" | jq -r '.connected')
 info "  $MEM_1 --[causal]--> $MEM_5: connected=$CHAIN_NONE_CONN (paths via contradicts may not match)"
 
@@ -414,7 +458,7 @@ header "Step 10: Test POST /v1/graph/cypher (passthrough)"
 
 CYPHER=$(curl -sf --max-time 15 \
   -X POST "${API_URL}/v1/graph/cypher" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d "{\"query\":\"MATCH (n:Memory) RETURN n.id ORDER BY n.id LIMIT 10\"}")
 CYPHER_ROWS=$(echo "$CYPHER" | jq -r '.rows | length')
@@ -426,7 +470,7 @@ assert_eq "$CYPHER_COLS" "result" "Cypher passthrough: columns"
 # Test that dangerous queries are rejected.
 REJECT=$(curl -s --max-time 10 \
   -X POST "${API_URL}/v1/graph/cypher" \
-  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-API-Key: ${API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"query":"CREATE (n:Memory {id: \"memory.99\"})"}' \
   | jq -r '.error // "no error"')
@@ -458,6 +502,7 @@ API_STD_PORT=8002
 info "Starting API on port $API_STD_PORT (no AGE)..."
 API_STD_PID=""
 DATABASE_URL="postgres://pcmi:pcmi@localhost:5434/pcmi?sslmode=disable" \
+  API_PORT="$API_STD_PORT" \
   go run "$PROJECT_ROOT/cmd/api" > /tmp/graph-api-std.log 2>&1 &
 API_STD_PID=$!
 
@@ -477,13 +522,13 @@ if [ -n "$API_STD_PID" ]; then
 
   # Related must return 501.
   STATUS=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
-    -H "Authorization: Bearer ${API_KEY}" \
+    -H "X-API-Key: ${API_KEY}" \
     "http://localhost:${API_STD_PORT}/v1/graph/related?memory_id=1")
   assert_eq "$STATUS" "501" "Related(no AGE): HTTP 501"
 
   # Chain must also return 501.
   STATUS_CHAIN=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 \
-    -H "Authorization: Bearer ${API_KEY}" \
+    -H "X-API-Key: ${API_KEY}" \
     "http://localhost:${API_STD_PORT}/v1/graph/chain?from=1&to=2")
   assert_eq "$STATUS_CHAIN" "501" "Chain(no AGE): HTTP 501"
 

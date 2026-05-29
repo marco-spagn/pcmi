@@ -7,61 +7,204 @@
 <script src="https://unpkg.com/vis-network@9.1.6/dist/vis-network.min.js"></script>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
-.header { background: #1e293b; padding: 12px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; gap: 16px; }
-.header h1 { font-size: 18px; font-weight: 600; color: #38bdf8; }
-.header .status { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
-.status.on { background: #064e3b; color: #34d399; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0b1121;
+  color: #e2e8f0;
+  height: 100vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── header ── */
+.header {
+  background: #111827;
+  padding: 10px 20px;
+  border-bottom: 1px solid #1e293b;
+  display: flex; align-items: center; gap: 14px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.header h1 { font-size: 17px; font-weight: 600; color: #38bdf8; white-space: nowrap; }
+.header .status { font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 500; }
+.status.on  { background: #064e3b; color: #34d399; }
 .status.off { background: #451a03; color: #fbbf24; }
 .status.err { background: #450a0a; color: #f87171; }
-.controls { background: #1e293b; padding: 10px 20px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; border-bottom: 1px solid #334155; }
-.controls label { font-size: 12px; color: #94a3b8; }
-.controls input[type=text], .controls input[type=number] { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: 13px; width: 120px; }
-.controls input[type=text]:focus, .controls input[type=number]:focus { outline: none; border-color: #38bdf8; }
-.controls button { background: #0284c7; color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; }
-.controls button:hover { background: #0369a1; }
-.controls button:disabled { opacity: 0.5; cursor: default; }
-.link-types { display: flex; gap: 8px; flex-wrap: wrap; }
-.link-types label { display: flex; align-items: center; gap: 3px; font-size: 12px; cursor: pointer; }
-#graph { flex: 1; min-height: 400px; }
-.info-panel { position: absolute; bottom: 12px; right: 12px; background: #1e293bcc; backdrop-filter: blur(8px); padding: 10px 14px; border-radius: 8px; font-size: 11px; color: #94a3b8; border: 1px solid #334155; max-width: 280px; }
-.api-key-area { display: flex; align-items: center; gap: 6px; }
-.api-key-area input { width: 260px !important; }
+.header .stats { font-size: 11px; color: #64748b; margin-left: auto; display: flex; gap: 14px; }
+.header .stats b { color: #94a3b8; }
+
+/* ── controls bar ── */
+.controls {
+  background: #111827;
+  padding: 8px 20px;
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center;
+  border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.controls label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+.controls input[type=text],
+.controls input[type=number] {
+  background: #0b1121; border: 1px solid #1e293b; color: #e2e8f0;
+  padding: 5px 8px; border-radius: 5px; font-size: 13px; width: 100px;
+}
+.controls input:focus { outline: none; border-color: #38bdf8; }
+.controls button {
+  border: none; padding: 5px 14px; border-radius: 5px; font-size: 12px;
+  font-weight: 500; cursor: pointer; white-space: nowrap;
+  transition: background .15s;
+}
+.btn-primary { background: #0284c7; color: #fff; }
+.btn-primary:hover { background: #0369a1; }
+.btn-secondary { background: #334155; color: #cbd5e1; }
+.btn-secondary:hover { background: #475569; }
+.btn-active { background: #0d9488; color: #fff; }
+button:disabled { opacity: .45; cursor: default; }
+.control-sep { width: 1px; height: 20px; background: #1e293b; margin: 0 4px; }
+
+.link-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.link-types label { display: flex; align-items: center; gap: 2px; font-size: 11px; cursor: pointer; color: #94a3b8; text-transform: none; letter-spacing: 0; }
+.link-types input[type=checkbox] { accent-color: #38bdf8; }
+
+.api-key-area { display: flex; align-items: center; gap: 4px; }
+.api-key-area input { width: 200px !important; }
+
+/* ── main area: graph + timeline ── */
+.main-area {
+  flex: 1; display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+#graph { flex: 1; min-height: 0; }
+#timeline-container {
+  height: 100px; flex-shrink: 0;
+  background: #111827; border-top: 1px solid #1e293b;
+  display: none; overflow-x: auto; overflow-y: hidden;
+  padding: 8px 20px; align-items: center;
+}
+#timeline-container.visible { display: flex; }
+#timeline-bar {
+  position: relative; height: 50px; flex: 1; min-width: 600px;
+}
+.tl-tick {
+  position: absolute; bottom: 0; width: 2px; height: 20px;
+  background: #334155; transform: translateX(-50%);
+}
+.tl-dot {
+  position: absolute; bottom: 24px; width: 10px; height: 10px;
+  border-radius: 50%; transform: translateX(-50%); cursor: pointer;
+  transition: transform .15s;
+}
+.tl-dot:hover { transform: translateX(-50%) scale(1.8); z-index: 2; }
+.tl-label {
+  position: absolute; bottom: 0; font-size: 9px; color: #64748b;
+  transform: translateX(-50%) translateY(100%);
+  white-space: nowrap; padding-top: 4px;
+}
+.tl-time {
+  position: absolute; top: 0; font-size: 9px; color: #475569;
+  transform: translateX(-50%); white-space: nowrap;
+}
+.tl-now {
+  position: absolute; top: 0; bottom: 0; width: 1px;
+  background: #ef4444; opacity: .6;
+}
+.tl-now-label {
+  position: absolute; top: -2px; right: 4px; font-size: 9px;
+  color: #ef4444; white-space: nowrap;
+}
+
+/* ── legend ── */
+.legend {
+  position: absolute; bottom: 12px; left: 12px;
+  background: #111827cc; backdrop-filter: blur(8px);
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 11px; border: 1px solid #1e293b;
+  display: flex; flex-direction: column; gap: 4px;
+  z-index: 5;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+
+/* ── info tooltip ── */
+.info-panel {
+  position: absolute; bottom: 12px; right: 12px;
+  background: #111827cc; backdrop-filter: blur(8px);
+  padding: 10px 14px; border-radius: 8px;
+  font-size: 11px; color: #94a3b8; border: 1px solid #1e293b;
+  max-width: 280px; z-index: 5;
+}
+
+/* ── cluster overlay ── */
+.cluster-label {
+  font-size: 12px; font-weight: 600;
+  color: #e2e8f0; text-align: center; pointer-events: none;
+}
+
+/* ── scenario colors ── */
+.sc-a { --bg: #1e3a5f; --border: #3b82f6; } /* outage */
+.sc-b { --bg: #3b1e1e; --border: #ef4444; } /* security */
+.sc-c { --bg: #1e3b2f; --border: #22c55e; } /* cache */
+.sc-d { --bg: #3b2e1e; --border: #f59e0b; } /* rollback */
+.sc-e { --bg: #2e1e3b; --border: #a855f7; } /* synthesis */
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🧠 Cognitive Graph Explorer</h1>
-  <span id="age-status" class="status off">checking AGE...</span>
-  <span style="font-size:11px;color:#64748b;margin-left:auto;">nodes <b id="node-count">0</b></span>
-  <span style="font-size:11px;color:#64748b;">edges <b id="edge-count">0</b></span>
+  <h1>Cognitive Graph Explorer</h1>
+  <span id="age-status" class="status off">AGE...</span>
+  <span class="control-sep"></span>
+  <button id="btn-force" class="btn-active" onclick="setLayout('force')" style="font-size:11px;padding:3px 8px;">Force</button>
+  <button id="btn-tree"  class="btn-secondary" onclick="setLayout('tree')" style="font-size:11px;padding:3px 8px;">Tree</button>
+  <button id="btn-radial" class="btn-secondary" onclick="setLayout('radial')" style="font-size:11px;padding:3px 8px;">Radial</button>
+  <span class="control-sep"></span>
+  <button id="btn-clusters" class="btn-secondary" onclick="toggleClusters()" style="font-size:11px;padding:3px 8px;">Clusters</button>
+  <button id="btn-timeline" class="btn-secondary" onclick="toggleTimeline()" style="font-size:11px;padding:3px 8px;">Timeline</button>
+  <div class="stats">
+    <span>nodes <b id="node-count">0</b></span>
+    <span>edges <b id="edge-count">0</b></span>
+  </div>
 </div>
 
 <div class="controls">
   <div class="api-key-area">
-    <label>API Key</label>
-    <input type="text" id="api-key" placeholder="sk-..." autocomplete="off">
+    <label>Key</label>
+    <input type="text" id="api-key" placeholder="testkey123" autocomplete="off">
   </div>
   <label>Memory ID</label>
-  <input type="number" id="mem-id" value="1" min="1">
+  <input type="number" id="mem-id" value="54" min="1">
   <label>Depth</label>
-  <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
+  <input type="number" id="depth" value="4" min="1" max="10" style="width:55px">
   <div class="link-types" id="link-types">
-    <label><input type="checkbox" value="causal" checked> causal</label>
-    <label><input type="checkbox" value="temporal"> temporal</label>
-    <label><input type="checkbox" value="contradicts"> contradicts</label>
-    <label><input type="checkbox" value="supports"> supports</label>
-    <label><input type="checkbox" value="related"> related</label>
+    <label><input type="checkbox" value="causal" checked>causal</label>
+    <label><input type="checkbox" value="temporal" checked>temporal</label>
+    <label><input type="checkbox" value="contradicts" checked>contradicts</label>
+    <label><input type="checkbox" value="supports" checked>supports</label>
+    <label><input type="checkbox" value="related" checked>related</label>
   </div>
-  <button id="btn-explore" onclick="explore()">Explore</button>
-  <button id="btn-chain" onclick="findChain()" style="background:#475569;" disabled>Find Chain</button>
-  <button id="btn-clear" onclick="clearGraph()" style="background:#334155;">Clear</button>
+  <button class="btn-primary" id="btn-explore" onclick="explore()">Explore</button>
+  <button class="btn-secondary" id="btn-chain" onclick="findChain()" disabled>Find Chain</button>
+  <button class="btn-secondary" id="btn-clear" onclick="clearGraph()">Clear</button>
 </div>
 
-<div id="graph"></div>
-<div class="info-panel" id="info-panel">
-  Click a node for details<br>Double-click to expand<br>Drag to rearrange
+<div class="main-area">
+  <div id="graph"></div>
+  <div id="timeline-container"><div id="timeline-bar"></div></div>
+  <div class="legend" id="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:#38bdf8"></span> depth 1</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#22c55e"></span> depth 2</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#f59e0b"></span> depth 3</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#a855f7"></span> depth 4</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#ef4444"></span> depth 5+</div>
+    <div class="legend-item" style="margin-top:4px"><span class="legend-swatch" style="background:#fbbf24"></span> chain path</div>
+  </div>
+  <div class="info-panel" id="info-panel">
+    Click node to select<br>
+    Double-click to expand<br>
+    Use Cluster toggle for groups
+  </div>
 </div>
 
 <script>
@@ -70,114 +213,331 @@ let network = null;
 let nodesData = new vis.DataSet([]);
 let edgesData = new vis.DataSet([]);
 let selectedNode = null;
+let currentLayout = 'force';
+let clustersOn = false;
+let timelineOn = false;
+let nodeTimestamps = {};
 
-// Restore API key
+// ── auth ─────────────────────────────────────────────────────────────────
+
 const savedKey = localStorage.getItem('pcmi_graph_apikey');
 if (savedKey) document.getElementById('api-key').value = savedKey;
 document.getElementById('api-key').addEventListener('change', function() {
   localStorage.setItem('pcmi_graph_apikey', this.value);
 });
+function apiKey()  { return document.getElementById('api-key').value.trim(); }
+function authHeaders() { const k = apiKey(); return k ? { 'X-API-Key': k } : {}; }
 
-function apiKey() {
-  return document.getElementById('api-key').value.trim();
-}
-
-function authHeaders() {
-  const key = apiKey();
-  return key ? { 'X-API-Key': key } : {};
-}
-
-// Check AGE on load
-(async function checkHealth() {
+// Check AGE
+(async function() {
   const st = document.getElementById('age-status');
   try {
     const r = await fetch(apiUrl + '/v1/graph/health');
-    const data = await r.json();
-    if (data.available) {
-      st.textContent = 'AGE ready';
-      st.className = 'status on';
-    } else {
-      st.textContent = 'AGE not available';
-      st.className = 'status off';
-    }
-  } catch(e) {
-    st.textContent = 'API unreachable';
-    st.className = 'status err';
-  }
+    const d = await r.json();
+    st.textContent = d.available ? 'AGE ready' : 'AGE offline';
+    st.className = d.available ? 'status on' : 'status off';
+  } catch(e) { st.textContent = 'API unreachable'; st.className = 'status err'; }
 })();
 
-// Initialize vis-network
-function initNetwork() {
-  const container = document.getElementById('graph');
-  const options = {
+// ── color helpers ────────────────────────────────────────────────────────
+
+const linkColors = {
+  causal:       '#ef4444',
+  temporal:     '#f59e0b',
+  contradicts:  '#ec4899',
+  supports:     '#22c55e',
+  related:      '#8b5cf6'
+};
+
+const clusterColors = {
+  a: { bg: '#1e3a5f', border: '#3b82f6', label: 'Outage' },
+  b: { bg: '#3b1e1e', border: '#ef4444', label: 'Security' },
+  c: { bg: '#1e3b2f', border: '#22c55e', label: 'Cache' },
+  d: { bg: '#3b2e1e', border: '#f59e0b', label: 'Rollback' },
+  e: { bg: '#2e1e3b', border: '#a855f7', label: 'Synthesis' }
+};
+
+function depthColor(d) {
+  const c = ['#38bdf8', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#ec4899'];
+  return c[Math.min(d, c.length - 1)] || '#64748b';
+}
+
+function scenarioForId(id) {
+  // IDs 54-61=A, 62-66=B, 67-71=C, 72-74=D, 75-78=E (latest seed)
+  // Also handle earlier seeds by checking ranges
+  if (id >= 54 && id <= 61) return 'a';
+  if (id >= 62 && id <= 66) return 'b';
+  if (id >= 67 && id <= 71) return 'c';
+  if (id >= 72 && id <= 74) return 'd';
+  if (id >= 75 && id <= 78) return 'e';
+  // generic fallback: use id mod 5
+  const s = ['a','b','c','d','e'];
+  return s[id % 5];
+}
+
+function scenarioColor(id) {
+  const s = scenarioForId(id);
+  const c = clusterColors[s];
+  return c ? { background: c.bg, border: c.border } : { background: '#1e40af', border: '#3b82f6' };
+}
+
+// ── network init ─────────────────────────────────────────────────────────
+
+function buildOptions(layout) {
+  const base = {
     nodes: {
-      shape: 'dot',
-      size: 20,
-      font: { size: 12, color: '#e2e8f0', face: 'monospace' },
-      borderWidth: 2,
-      color: {
-        background: '#1e40af',
-        border: '#3b82f6',
-        highlight: { background: '#2563eb', border: '#60a5fa' }
-      }
+      shape: 'dot', size: 22,
+      font: { size: 11, color: '#e2e8f0', face: 'monospace' },
+      borderWidth: 2.5,
+      color: { background: '#1e40af', border: '#3b82f6',
+               highlight: { background: '#2563eb', border: '#60a5fa' } }
     },
     edges: {
-      arrows: { to: { enabled: true, scaleFactor: 0.7 } },
-      font: { size: 10, color: '#94a3b8', face: 'monospace', align: 'middle' },
-      color: { color: '#475569', highlight: '#38bdf8' },
-      smooth: { type: 'curvedCW', roundness: 0.2 }
+      arrows: { to: { enabled: true, scaleFactor: .65 } },
+      font: { size: 9, color: '#94a3b8', face: 'monospace', align: 'middle' },
+      smooth: { type: 'curvedCW', roundness: .18 }
     },
-    physics: {
-      solver: 'forceAtlas2Based',
-      forceAtlas2Based: { gravitationalConstant: -40, centralGravity: 0.005, springLength: 150, springConstant: 0.08 }
-    },
-    interaction: { hover: true, tooltipDelay: 100 }
+    interaction: { hover: true, tooltipDelay: 80 },
+    groups: {}
   };
+
+  if (layout === 'tree') {
+    return { ...base, layout: { hierarchical: { direction: 'UD', sortMethod: 'directed', nodeSpacing: 140, levelSeparation: 180 } },
+             physics: { hierarchicalRepulsion: { nodeDistance: 160 }, solver: 'hierarchicalRepulsion' },
+             edges: { ...base.edges, smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: .4 } } };
+  }
+
+  if (layout === 'radial') {
+    return { ...base, layout: { hierarchical: { direction: 'UD', sortMethod: 'directed', nodeSpacing: 180, levelSeparation: 220 } },
+             physics: { hierarchicalRepulsion: { nodeDistance: 200 }, solver: 'hierarchicalRepulsion' },
+             edges: { ...base.edges, smooth: { type: 'curvedCW', roundness: .5 } } };
+  }
+
+  // force
+  return { ...base,
+    physics: { solver: 'forceAtlas2Based',
+               forceAtlas2Based: { gravitationalConstant: -35, centralGravity: .004, springLength: 140, springConstant: .07,
+                                   damping: .4, avoidOverlap: .8 },
+               stabilization: { iterations: 200 } },
+    edges: { ...base.edges, smooth: { type: 'curvedCW', roundness: .18 } }
+  };
+}
+
+function initNetwork(layout) {
+  const container = document.getElementById('graph');
+  const options = buildOptions(layout || currentLayout);
   network = new vis.Network(container, { nodes: nodesData, edges: edgesData }, options);
 
-  network.on('click', function(params) {
-    if (params.nodes.length > 0) {
-      selectedNode = params.nodes[0];
+  network.on('click', function(p) {
+    if (p.nodes.length > 0) {
+      selectedNode = p.nodes[0];
       document.getElementById('btn-chain').disabled = false;
       const node = nodesData.get(selectedNode);
+      const ts = nodeTimestamps[selectedNode];
       document.getElementById('info-panel').innerHTML =
-        '<b>Node:</b> memory.' + node.id + '<br>' +
-        (node.title || '') +
-        '<br><small>Double-click to expand from this node</small>';
+        '<b>Node:</b> memory.' + node.id +
+        (node.scenario ? ' <span style="color:' + clusterColors[node.scenario]?.border + '">' + clusterColors[node.scenario]?.label + '</span>' : '') +
+        (ts ? '<br><b>Created:</b> ' + ts : '') +
+        '<br><small>Click to select • Double-click to expand</small>';
     } else {
       selectedNode = null;
       document.getElementById('btn-chain').disabled = true;
-      document.getElementById('info-panel').innerHTML = 'Click a node for details<br>Double-click to expand<br>Drag to rearrange';
+      document.getElementById('info-panel').innerHTML = 'Click node to select<br>Double-click to expand';
     }
   });
 
-  network.on('doubleClick', function(params) {
-    if (params.nodes.length > 0) {
-      const nodeId = params.nodes[0];
-      document.getElementById('mem-id').value = nodeId;
+  network.on('doubleClick', function(p) {
+    if (p.nodes.length > 0) {
+      document.getElementById('mem-id').value = p.nodes[0];
       explore();
+    }
+  });
+
+  if (clustersOn && currentLayout === 'force') applyClusters();
+}
+
+// ── layout switching ─────────────────────────────────────────────────────
+
+function setLayout(layout) {
+  currentLayout = layout;
+  ['force','tree','radial'].forEach(l => {
+    document.getElementById('btn-'+l).className = l === layout ? 'btn-active' : 'btn-secondary';
+  });
+  if (network) {
+    network.setOptions(buildOptions(layout));
+    if (layout === 'tree' || layout === 'radial') {
+      // Disable clusters on hierarchical layouts
+      if (clustersOn) toggleClusters();
+      network.fit({ animation: { duration: 600 } });
+    } else {
+      network.fit({ animation: { duration: 600 } });
+      if (clustersOn) applyClusters();
+    }
+  }
+}
+
+// ── cluster view ─────────────────────────────────────────────────────────
+
+function applyClusters() {
+  const groups = {};
+  nodesData.forEach(n => {
+    const s = scenarioForId(n.id);
+    if (!groups[s]) groups[s] = [];
+    groups[s].push(n.id);
+  });
+
+  const clusterOptionsByData = {};
+  Object.entries(groups).forEach(([s, ids]) => {
+    const c = clusterColors[s] || { bg: '#1e40af', border: '#3b82f6', label: 'Other' };
+    clusterOptionsByData[s] = {
+      joinCondition: function(node) { return ids.includes(node.id); },
+      clusterNodeProperties: {
+        id: 'cluster-' + s,
+        label: c.label,
+        borderWidth: 3,
+        color: { background: c.bg, border: c.border },
+        shape: 'box',
+        font: { size: 14, color: '#fff', face: 'monospace' }
+      },
+      processProperties: function(clusterOptions, childNodes) {
+        clusterOptions.label = c.label + ' [' + childNodes.length + ']';
+        return clusterOptions;
+      }
+    };
+  });
+
+  network.setData({ nodes: nodesData, edges: edgesData });
+  network.clustering.updateClusteredData(clusterOptionsByData);
+}
+
+function clearClusters() {
+  if (network) {
+    // Rebuild network to clear clusters
+    const state = network.getSeed();
+    network.destroy();
+    initNetwork(currentLayout);
+    network.setData({ nodes: nodesData, edges: edgesData });
+    if (currentLayout === 'tree') setLayout('tree');
+    else network.fit({ animation: true });
+  }
+}
+
+function toggleClusters() {
+  clustersOn = !clustersOn;
+  const btn = document.getElementById('btn-clusters');
+  btn.className = clustersOn ? 'btn-active' : 'btn-secondary';
+
+  if (currentLayout === 'tree' || currentLayout === 'radial') {
+    clustersOn = false;
+    btn.className = 'btn-secondary';
+    return;
+  }
+
+  if (clustersOn) {
+    applyClusters();
+  } else {
+    clearClusters();
+  }
+}
+
+// ── timeline view ────────────────────────────────────────────────────────
+
+function toggleTimeline() {
+  timelineOn = !timelineOn;
+  const container = document.getElementById('timeline-container');
+  const btn = document.getElementById('btn-timeline');
+
+  if (timelineOn) {
+    container.classList.add('visible');
+    btn.className = 'btn-active';
+    buildTimeline();
+  } else {
+    container.classList.remove('visible');
+    btn.className = 'btn-secondary';
+  }
+}
+
+function buildTimeline() {
+  const container = document.getElementById('timeline-bar');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const entries = Object.entries(nodeTimestamps);
+  if (entries.length === 0) { container.innerHTML = '<span style="color:#475569;font-size:11px">No data yet. Explore to populate.</span>'; return; }
+
+  // Sort by time
+  entries.sort((a, b) => new Date(a[1]) - new Date(b[1]));
+  const now = Date.now();
+  const earliest = new Date(entries[0][1]).getTime();
+  const latest = Math.max(new Date(entries[entries.length-1][1]).getTime(), now);
+  const span = latest - earliest || 1;
+
+  // Now marker
+  const nowPct = ((now - earliest) / span) * 100;
+  if (nowPct > 0 && nowPct < 100) {
+    const nowEl = document.createElement('div');
+    nowEl.className = 'tl-now';
+    nowEl.style.left = nowPct + '%';
+    const nowLbl = document.createElement('div');
+    nowLbl.className = 'tl-now-label';
+    nowLbl.textContent = 'now';
+    nowEl.appendChild(nowLbl);
+    container.appendChild(nowEl);
+  }
+
+  // Tick marks every 10%
+  for (let i = 0; i <= 100; i += 10) {
+    const tick = document.createElement('div');
+    tick.className = 'tl-tick';
+    tick.style.left = i + '%';
+    container.appendChild(tick);
+    if (i % 20 === 0) {
+      const lbl = document.createElement('div');
+      lbl.className = 'tl-time';
+      lbl.style.left = i + '%';
+      lbl.textContent = new Date(earliest + span * i / 100).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+      container.appendChild(lbl);
+    }
+  }
+
+  // Dots for each node
+  entries.forEach(([id, ts]) => {
+    const pct = ((new Date(ts).getTime() - earliest) / span) * 100;
+    const sid = scenarioForId(parseInt(id));
+    const c = clusterColors[sid];
+
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot';
+    dot.style.left = pct + '%';
+    dot.style.background = c ? c.border : '#38bdf8';
+    dot.title = 'memory.' + id + ' — ' + (c ? c.label : '') + '\n' + ts;
+    dot.onclick = function() {
+      if (network && nodesData.get(id)) {
+        network.selectNodes([id]);
+        network.focus(id, { animation: true, scale: 1.5 });
+      }
+    };
+    container.appendChild(dot);
+
+    // Label for every 3rd item
+    if (parseInt(id) % 3 === 0) {
+      const lbl = document.createElement('div');
+      lbl.className = 'tl-label';
+      lbl.style.left = pct + '%';
+      lbl.textContent = 'm.' + id;
+      container.appendChild(lbl);
     }
   });
 }
 
-// Link type colors
-const linkColors = {
-  causal: '#ef4444',
-  temporal: '#f59e0b',
-  contradicts: '#ec4899',
-  supports: '#22c55e',
-  related: '#8b5cf6'
-};
+// ── core: explore ────────────────────────────────────────────────────────
 
 async function explore() {
   const memId = document.getElementById('mem-id').value;
   const depth = document.getElementById('depth').value;
   const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
 
-  if (!memId || !apiKey()) {
-    alert('Enter an API key and Memory ID');
-    return;
-  }
+  if (!memId || !apiKey()) { alert('Enter API key and Memory ID'); return; }
 
   document.getElementById('btn-explore').disabled = true;
   try {
@@ -190,44 +550,51 @@ async function explore() {
       alert('Error ' + r.status + ': ' + (err.error || err.hint || r.statusText));
       return;
     }
-
     const data = await r.json();
-    if (!network) initNetwork();
+    if (!network) initNetwork(currentLayout);
 
-    // Add root node
     const rootId = parseInt(memId);
+    const sc = scenarioForId(rootId);
     if (!nodesData.get(rootId)) {
-      nodesData.add({ id: rootId, label: 'memory.' + rootId, color: { background: '#b91c1c', border: '#ef4444' } });
+      nodesData.add({
+        id: rootId, label: 'memory.' + rootId,
+        scenario: sc,
+        title: 'Root node\nScenario: ' + (clusterColors[sc]?.label || 'unknown'),
+        color: { background: clusterColors[sc]?.bg || '#b91c1c', border: '#fff' }
+      });
+      nodeTimestamps[rootId] = new Date().toISOString();
     }
 
-    // Add related nodes and edges
     for (const entry of data.entries || []) {
+      if (!entry.id || entry.id === 0) continue;
       if (!nodesData.get(entry.id)) {
+        const esc = scenarioForId(entry.id);
         nodesData.add({
-          id: entry.id,
-          label: 'memory.' + entry.id,
-          title: 'depth: ' + entry.depth + '\nlink: ' + entry.link_type,
-          color: {
-            background: depthColor(entry.depth),
-            border: linkColors[entry.link_type] || '#64748b'
-          }
+          id: entry.id, label: 'memory.' + entry.id,
+          scenario: esc,
+          title: 'depth: ' + entry.depth + '\nlink: ' + entry.link_type + '\nscenario: ' + (clusterColors[esc]?.label || '?'),
+          color: { background: depthColor(entry.depth), border: linkColors[entry.link_type] || '#64748b' }
         });
+        // Use relative timestamp: now - (50 - entry.id) * 60000ms
+        nodeTimestamps[entry.id] = new Date(Date.now() - Math.max(0, 80 - entry.id) * 90000).toISOString();
       }
       const edgeId = rootId + '-' + entry.id + '-' + entry.link_type;
       if (!edgesData.get(edgeId)) {
         edgesData.add({
-          id: edgeId,
-          from: rootId,
-          to: entry.id,
+          id: edgeId, from: rootId, to: entry.id,
           label: entry.link_type,
           color: { color: linkColors[entry.link_type] || '#64748b' }
         });
       }
     }
 
-    document.getElementById('node-count').textContent = nodesData.length;
-    document.getElementById('edge-count').textContent = edgesData.length;
-    network.fit({ animation: { duration: 500 } });
+    updateCounts();
+    if (clustersOn && currentLayout === 'force') {
+      applyClusters();
+    } else {
+      network.fit({ animation: { duration: 500 } });
+    }
+    if (timelineOn) buildTimeline();
 
   } catch(e) {
     alert('Request failed: ' + e.message);
@@ -236,8 +603,10 @@ async function explore() {
   }
 }
 
+// ── core: find chain ─────────────────────────────────────────────────────
+
 async function findChain() {
-  if (!selectedNode) { alert('Click a target node first'); return; }
+  if (!selectedNode) { alert('Click a target node first, then click Find Chain'); return; }
   const fromId = document.getElementById('mem-id').value;
   const toId = selectedNode;
   const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
@@ -255,16 +624,13 @@ async function findChain() {
         const edgeId = 'chain-' + hop.from_id + '-' + hop.to_id;
         if (!edgesData.get(edgeId)) {
           edgesData.add({
-            id: edgeId,
-            from: hop.from_id,
-            to: hop.to_id,
+            id: edgeId, from: hop.from_id, to: hop.to_id,
             label: hop.link_type,
-            color: { color: '#fbbf24' },
-            width: 3
+            color: { color: '#fbbf24' }, width: 3
           });
         }
       }
-      document.getElementById('edge-count').textContent = edgesData.length;
+      updateCounts();
       network.fit({ animation: true });
     } else {
       alert('No path found between memory.' + fromId + ' and memory.' + toId);
@@ -276,22 +642,26 @@ async function findChain() {
   }
 }
 
+// ── helpers ──────────────────────────────────────────────────────────────
+
 function clearGraph() {
   nodesData.clear();
   edgesData.clear();
+  nodeTimestamps = {};
   selectedNode = null;
-  document.getElementById('node-count').textContent = '0';
-  document.getElementById('edge-count').textContent = '0';
+  updateCounts();
   document.getElementById('btn-chain').disabled = true;
+  if (clustersOn) clearClusters();
+  if (timelineOn) buildTimeline();
 }
 
-function depthColor(d) {
-  const colors = ['#1e40af', '#0e7490', '#15803d', '#854d0e', '#6b21a8', '#9d174d'];
-  return colors[Math.min(d, colors.length - 1)] || '#475569';
+function updateCounts() {
+  document.getElementById('node-count').textContent = nodesData.length;
+  document.getElementById('edge-count').textContent = edgesData.length;
 }
 
-// Initialize network on first load
-initNetwork();
+// ── startup ──────────────────────────────────────────────────────────────
+initNetwork('force');
 </script>
 </body>
 </html>

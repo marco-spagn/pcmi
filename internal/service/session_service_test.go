@@ -228,3 +228,55 @@ func TestSessionService_Promote_success(t *testing.T) {
 		t.Fatalf("err=%v resp=%+v", err, resp)
 	}
 }
+
+func TestSessionService_Get(t *testing.T) {
+	t.Parallel()
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(mock.Close)
+
+	tenantID := uuid.New().String()
+	sessionID := uuid.New().String()
+	_ = sessionRepoWithActiveSession(t, mock, tenantID, sessionID)
+
+	svc := NewSessionService(repository.NewSessionRepositoryFromDB(mock, mock), NewMemoryService(&stubMemoryRepo{}, nil))
+	sess, err := svc.Get(context.Background(), tenantID, sessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.ID != sessionID {
+		t.Fatalf("got id=%q want %q", sess.ID, sessionID)
+	}
+}
+
+func TestSessionService_End(t *testing.T) {
+	t.Parallel()
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(mock.Close)
+
+	tenantID := uuid.New().String()
+	sessionID := uuid.New().String()
+	ended := time.Now().UTC()
+	started := ended.Add(-time.Hour)
+	meta := []byte(`{}`)
+
+	mock.ExpectQuery(`UPDATE agent_sessions`).
+		WithArgs(sessionID, tenantID).
+		WillReturnRows(pgxmock.NewRows([]string{
+			"id", "tenant_id", "agent_id", "metadata", "started_at", "ended_at",
+		}).AddRow(sessionID, tenantID, nil, meta, started, &ended))
+
+	svc := NewSessionService(repository.NewSessionRepositoryFromDB(mock, mock), NewMemoryService(&stubMemoryRepo{}, nil))
+	sess, err := svc.End(context.Background(), tenantID, sessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.ID != sessionID {
+		t.Fatalf("got id=%q want %q", sess.ID, sessionID)
+	}
+}

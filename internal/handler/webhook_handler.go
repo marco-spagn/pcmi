@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
@@ -16,10 +15,10 @@ import (
 const sortKeyWebhookCreatedAt = model.SortKeyCreatedAtDesc
 
 type WebhookHandler struct {
-	db *pgxpool.Pool
+	db handlerDB
 }
 
-func NewWebhookHandler(db *pgxpool.Pool) *WebhookHandler {
+func NewWebhookHandler(db handlerDB) *WebhookHandler {
 	return &WebhookHandler{db: db}
 }
 

@@ -8,13 +8,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/marco-spagn/pcmi/internal/metrics"
 )
 
+// webhookDB is satisfied by *pgxpool.Pool and pgxmock pools in tests.
+type webhookDB interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type Dispatcher struct {
-	db           *pgxpool.Pool
+	db           webhookDB
 	client       *http.Client
 	maxAttempts  int
 	retryBase    time.Duration
@@ -22,7 +30,7 @@ type Dispatcher struct {
 	wg           sync.WaitGroup
 }
 
-func NewDispatcher(db *pgxpool.Pool, maxAttempts int) *Dispatcher {
+func NewDispatcher(db webhookDB, maxAttempts int) *Dispatcher {
 	if maxAttempts < 1 {
 		maxAttempts = 5
 	}
@@ -41,7 +49,14 @@ func NewDispatcher(db *pgxpool.Pool, maxAttempts int) *Dispatcher {
 }
 
 func (d *Dispatcher) Close() {
-	close(d.stopCh)
+	if d.stopCh != nil {
+		select {
+		case <-d.stopCh:
+			// already closed
+		default:
+			close(d.stopCh)
+		}
+	}
 	d.wg.Wait()
 }
 
@@ -149,12 +164,17 @@ func (d *Dispatcher) retryLoop() {
 		case <-d.stopCh:
 			return
 		case <-ticker.C:
-			d.processPending()
+			if d.db != nil {
+				d.processPending()
+			}
 		}
 	}
 }
 
 func (d *Dispatcher) processPending() {
+	if d == nil || d.db == nil {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 

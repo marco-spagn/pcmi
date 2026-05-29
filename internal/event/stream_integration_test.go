@@ -15,7 +15,10 @@ import (
 
 func TestStreamIntegration_PublishAndConsume_EndToEnd(t *testing.T) {
 	mr := startRedis(t)
-	InitRedis(mr.Addr())
+	if mr == nil {
+		t.Skip("skipping miniredis-specific test when using real Redis")
+	}
+	InitRedis(redisAddr(mr))
 	SetEventBackend(BackendStreams)
 
 	pub := NewStreamPublisher(RedisClient, StreamKey)
@@ -61,7 +64,10 @@ func TestStreamIntegration_PublishAndConsume_EndToEnd(t *testing.T) {
 
 func TestStreamIntegration_WorkerCrash_MessagesRecoveredAfterRestart(t *testing.T) {
 	mr := startRedis(t)
-	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	if mr == nil {
+		t.Skip("skipping miniredis-specific test when using real Redis")
+	}
+	client := redis.NewClient(&redis.Options{Addr: redisAddr(mr)})
 	pub := NewStreamPublisher(client, StreamKey)
 	group := "crash-group"
 
@@ -105,7 +111,10 @@ func TestStreamIntegration_WorkerCrash_MessagesRecoveredAfterRestart(t *testing.
 
 func TestStreamIntegration_MultipleConsumers_LoadBalanced(t *testing.T) {
 	mr := startRedis(t)
-	client := redis.NewClient(&redis.Options{Addr: mr.Addr()})
+	if mr == nil {
+		t.Skip("skipping miniredis-specific test when using real Redis")
+	}
+	client := redis.NewClient(&redis.Options{Addr: redisAddr(mr)})
 	pub := NewStreamPublisher(client, StreamKey)
 	group := "lb-group"
 	for _, name := range []string{"w1", "w2"} {
@@ -166,6 +175,14 @@ func startRedis(t *testing.T) *miniredis.Miniredis {
 	}
 	t.Cleanup(mr.Close)
 	return mr
+}
+
+// redisAddr returns the address to use: miniredis when available, otherwise REDIS_ADDR.
+func redisAddr(mr *miniredis.Miniredis) string {
+	if mr != nil {
+		return mr.Addr()
+	}
+	return os.Getenv("REDIS_ADDR")
 }
 
 func waitUntil(t *testing.T, timeout time.Duration, fn func() bool) {

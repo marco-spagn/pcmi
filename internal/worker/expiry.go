@@ -5,17 +5,16 @@ import (
 	"log"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 // ExpiryWorker periodically soft-closes memories whose TTL has passed.
 type ExpiryWorker struct {
-	db       *pgxpool.Pool
+	db       workerDB
 	interval time.Duration
 }
 
-func NewExpiryWorker(db *pgxpool.Pool, cfg *config.Config) *ExpiryWorker {
+func NewExpiryWorker(db workerDB, cfg *config.Config) *ExpiryWorker {
 	interval := time.Hour
 	if cfg != nil && cfg.ExpiryIntervalSecs > 0 {
 		interval = time.Duration(cfg.ExpiryIntervalSecs) * time.Second

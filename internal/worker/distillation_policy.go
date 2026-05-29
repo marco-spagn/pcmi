@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/model"
 )
@@ -46,12 +45,12 @@ func ShouldTriggerPolicy(p model.DistillationPolicy, st PolicyEvalState, now tim
 
 // DistillationPolicyEngine evaluates policies and triggers distillation jobs.
 type DistillationPolicyEngine struct {
-	db     *pgxpool.Pool
+	db     workerDB
 	dist   *DistillationWorker
 	ticker time.Duration
 }
 
-func NewDistillationPolicyEngine(db *pgxpool.Pool, dist *DistillationWorker) *DistillationPolicyEngine {
+func NewDistillationPolicyEngine(db workerDB, dist *DistillationWorker) *DistillationPolicyEngine {
 	return &DistillationPolicyEngine{db: db, dist: dist, ticker: 30 * time.Second}
 }
 
@@ -258,7 +257,7 @@ func scanDistillationPolicy(rows policyScanner) (model.DistillationPolicy, error
 }
 
 // InsertPolicyForTest creates a policy row (integration tests).
-func InsertPolicyForTest(ctx context.Context, db *pgxpool.Pool, tenantID string, req model.CreateDistillationPolicyRequest) (model.DistillationPolicy, error) {
+func InsertPolicyForTest(ctx context.Context, db workerDB, tenantID string, req model.CreateDistillationPolicyRequest) (model.DistillationPolicy, error) {
 	enabled := true
 	if req.Enabled != nil {
 		enabled = *req.Enabled
@@ -297,7 +296,7 @@ func InsertPolicyForTest(ctx context.Context, db *pgxpool.Pool, tenantID string,
 }
 
 // GetLatestRunForPolicy returns the most recent run for a policy (tests).
-func GetLatestRunForPolicy(ctx context.Context, db *pgxpool.Pool, policyID int64) (model.DistillationRun, error) {
+func GetLatestRunForPolicy(ctx context.Context, db workerDB, policyID int64) (model.DistillationRun, error) {
 	var r model.DistillationRun
 	var errMsg *string
 	err := db.QueryRow(ctx, `

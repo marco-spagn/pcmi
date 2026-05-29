@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
@@ -17,7 +16,7 @@ import (
 )
 
 type DistillationWorker struct {
-	db         *pgxpool.Pool
+	db         workerDB
 	openai     *openai.Client
 	modelName  string
 	apiKey     string
@@ -25,7 +24,7 @@ type DistillationWorker struct {
 	sem        chan struct{}
 }
 
-func NewDistillationWorker(db *pgxpool.Pool, cfg *config.Config) *DistillationWorker {
+func NewDistillationWorker(db workerDB, cfg *config.Config) *DistillationWorker {
 	apiKey := ""
 	model := "gpt-4o-mini"
 	batchSize := defaultDistillationBatchSize

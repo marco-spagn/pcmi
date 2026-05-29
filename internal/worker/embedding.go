@@ -6,17 +6,16 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/pgvector/pgvector-go"
 )
 
 type EmbeddingWorker struct {
-	db       *pgxpool.Pool
+	db       workerDB
 	provider embedding.Provider
 }
 
-func NewEmbeddingWorker(db *pgxpool.Pool, provider embedding.Provider) *EmbeddingWorker {
+func NewEmbeddingWorker(db workerDB, provider embedding.Provider) *EmbeddingWorker {
 	return &EmbeddingWorker{db: db, provider: provider}
 }
 

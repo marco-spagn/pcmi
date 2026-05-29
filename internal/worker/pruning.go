@@ -5,18 +5,17 @@ import (
 	"log"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/marco-spagn/pcmi/internal/config"
 )
 
 // PruningWorker periodically deletes superseded memory rows past retention.
 type PruningWorker struct {
-	db            *pgxpool.Pool
+	db            workerDB
 	retentionDays int
 	interval      time.Duration
 }
 
-func NewPruningWorker(db *pgxpool.Pool, cfg *config.Config) *PruningWorker {
+func NewPruningWorker(db workerDB, cfg *config.Config) *PruningWorker {
 	days := 30
 	interval := 6 * time.Hour
 	if cfg != nil {

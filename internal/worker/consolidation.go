@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
@@ -18,13 +16,13 @@ const consolidationMinEntries = 3
 
 // ConsolidationWorker merges related memories under a path prefix into a consolidated entry.
 type ConsolidationWorker struct {
-	db   *pgxpool.Pool
+	db   workerDB
 	repo *repository.MemoryRepository
 	mu   sync.Mutex
 }
 
-func NewConsolidationWorker(db *pgxpool.Pool) *ConsolidationWorker {
-	return &ConsolidationWorker{db: db, repo: repository.NewMemoryRepository(db, nil)}
+func NewConsolidationWorker(db workerDB) *ConsolidationWorker {
+	return &ConsolidationWorker{db: db, repo: repository.NewMemoryRepositoryFromDB(db, nil)}
 }
 
 func (w *ConsolidationWorker) Start(ctx context.Context) {

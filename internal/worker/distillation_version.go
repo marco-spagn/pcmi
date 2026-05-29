@@ -2,12 +2,10 @@ package worker
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // nextDistilledVersion returns the next version for tenant+distilled path (1 if none).
-func nextDistilledVersion(ctx context.Context, db *pgxpool.Pool, tenantID, distilledPath string) (int, error) {
+func nextDistilledVersion(ctx context.Context, db workerDB, tenantID, distilledPath string) (int, error) {
 	var maxVer int
 	err := db.QueryRow(ctx, `
 		SELECT COALESCE(MAX(version), 0)

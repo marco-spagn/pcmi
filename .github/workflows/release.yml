@@ -57,7 +57,7 @@ jobs:
             echo "Tag $RELEASE_TAG does not match version.go Tag $PCMI_EXPECT_VERSION" >&2
             exit 1
           fi
-          echo "version.go Tag matches tag $RELEASE_TAG ✓"
+          echo "version.go Tag matches tag $RELEASE_TAG "
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2

@@ -1,17 +1,17 @@
-# Worker ed eventi
+# Workers and events
 
-Come PCMI elabora memorie in background e notifica i client.
+How PCMI processes memories in the background and notifies clients.
 
-## Architettura eventi
+## Event architecture
 
-Trasporto Redis configurabile con **`EVENT_BACKEND`** (default **`streams`**):
+Configurable Redis transport via **`EVENT_BACKEND`** (default **`streams`**):
 
-| Valore | Meccanismo | Note |
-|--------|------------|------|
-| `streams` | `XADD` su stream **`pcmi:events`**, consumer group **`pcmi-workers`** | Durable, at-least-once; DLQ `pcmi:events:dlq` dopo max tentativi |
-| `pubsub` | Canale legacy **`memory_events`** | Compatibilità installazioni precedenti |
+| Value | Mechanism | Notes |
+|-------|-----------|-------|
+| `streams` | `XADD` on stream **`pcmi:events`**, consumer group **`pcmi-workers`** | Durable, at-least-once; DLQ `pcmi:events:dlq` after max attempts |
+| `pubsub` | Legacy channel **`memory_events`** | Backward compatibility for existing installations |
 
-API e worker devono usare lo **stesso** backend. Test bus Streams senza Docker: `make test-streams-integration`.
+API and worker must use the **same** backend. Test Streams bus without Docker: `make test-streams-integration`.
 
 ```mermaid
 flowchart TB
@@ -33,18 +33,18 @@ flowchart TB
   W -->|XADD| R
 ```
 
-## Tipi di evento (Redis / SSE)
+## Event types (Redis / SSE)
 
-| Tipo | Quando |
-|------|--------|
-| `memory.stored` | Prima versione di un path |
-| `memory.updated` | Nuova versione (supersede) |
-| `memory.refine.requested` | `POST /v1/memories/refine` o gRPC `Refine` |
-| `knowledge.distilled` | Worker ha prodotto distillazione |
+| Type | When |
+|------|------|
+| `memory.stored` | First version of a path |
+| `memory.updated` | New version (supersedes) |
+| `memory.refine.requested` | `POST /v1/memories/refine` or gRPC `Refine` |
+| `knowledge.distilled` | Worker produced a distillation |
 
-Schema payload: `GET /v1/events/schemas` o gRPC `ListEventSchemas`.
+Payload schema: `GET /v1/events/schemas` or gRPC `ListEventSchemas`.
 
-## Job worker
+## Worker jobs
 
 ```mermaid
 flowchart LR
@@ -63,99 +63,99 @@ flowchart LR
   X --> PG
 ```
 
-| Loop | Env / trigger | Effetto |
-|------|----------------|---------|
-| Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Riempie `embedding` NULL; **circuit breaker** su provider OpenAI |
-| Distillation | `LLM_PROVIDER` + chiave API, Redis events, refine | `distilled_knowledge` — vedi [Cambiare provider LLM](#cambiare-provider-llm) |
-| Pruning | `PRUNE_INTERVAL_SECS` | Rimuove versioni chiuse vecchie |
-| Consolidation | eventi / soglia | Path `.consolidated` |
-| Expiry | `EXPIRY_INTERVAL_SECS` | Chiude righe con `expires_at` passato |
+| Loop | Env / trigger | Effect |
+|------|---------------|--------|
+| Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Fills NULL `embedding`; **circuit breaker** on OpenAI provider |
+| Distillation | `LLM_PROVIDER` + API key, Redis events, refine | `distilled_knowledge` — see [Changing LLM provider](#changing-llm-provider) |
+| Pruning | `PRUNE_INTERVAL_SECS` | Removes old closed versions |
+| Consolidation | events / threshold | Path `.consolidated` |
+| Expiry | `EXPIRY_INTERVAL_SECS` | Closes rows with past `expires_at` |
 
-Metriche worker: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
+Worker metrics: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
 
-### Cambiare provider LLM
+### Changing LLM provider
 
-Il worker di distillazione supporta quattro provider selezionabili tramite `LLM_PROVIDER` senza modificare il codice. Il default è `openai` per compatibilità con le installazioni esistenti.
+The distillation worker supports four providers selectable via `LLM_PROVIDER` without code changes. The default is `openai` for compatibility with existing installations.
 
-| `LLM_PROVIDER` | Alias | Endpoint | Chiave API | Modello default |
+| `LLM_PROVIDER` | Alias | Endpoint | API Key | Default model |
 |---|---|---|---|---|
 | `openai` | — | api.openai.com | `OPENAI_API_KEY` | `gpt-4o-mini` |
 | `grok` | `xai` | api.x.ai/v1 | `GROK_API_KEY` | `grok-3-mini` |
 | `anthropic` | `claude` | api.anthropic.com/v1/messages | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` |
 | `deepseek` | — | api.deepseek.com/v1 | `DEEPSEEK_API_KEY` | `deepseek-chat` |
 
-`DISTILLATION_MODEL` sovrascrive il modello default per qualsiasi provider.
+`DISTILLATION_MODEL` overrides the default model for any provider.
 
-**Esempio — passare a Claude:**
+**Example — switch to Claude:**
 
 ```env
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=ant-...
-# opzionale: forza un modello specifico
+# optional: force a specific model
 DISTILLATION_MODEL=claude-opus-4-7
 ```
 
-**Esempio — Grok:**
+**Example — Grok:**
 
 ```env
 LLM_PROVIDER=grok
 GROK_API_KEY=xai-...
 ```
 
-**Esempio — DeepSeek:**
+**Example — DeepSeek:**
 
 ```env
 LLM_PROVIDER=deepseek
 DEEPSEEK_API_KEY=...
 ```
 
-Se il provider è valido ma la chiave API è assente, il worker logga un avviso e salta la distillazione LLM (stessa semantica del precedente comportamento con `OPENAI_API_KEY` vuota). Se `LLM_PROVIDER` contiene un valore non supportato, il worker logga l'errore e ricade su un client OpenAI non configurato.
+If the provider is valid but the API key is missing, the worker logs a warning and skips LLM distillation (same semantics as the previous behavior with empty `OPENAI_API_KEY`). If `LLM_PROVIDER` contains an unsupported value, the worker logs the error and falls back to an unconfigured OpenAI client.
 
-> **Nota Anthropic:** il formato API è diverso da OpenAI — il `system` prompt è un campo top-level, non un messaggio in array. L'adapter in `internal/worker/llm_anthropic.go` gestisce la traduzione trasparentemente. Non è richiesta nessuna dipendenza SDK aggiuntiva.
+> **Anthropic note:** the API format differs from OpenAI — the `system` prompt is a top-level field, not an array message. The adapter in `internal/worker/llm_anthropic.go` handles the translation transparently. No additional SDK dependency is required.
 
-### Circuit breaker embedding (Sprint 1)
+### Embedding circuit breaker (Sprint 1)
 
-Tutti i provider da `internal/embedding/factory` sono wrappati con **`CircuitBreakerProvider`** (gobreaker + rate limit outbound). Se il circuito è **open**, il worker salta l’embedding senza bloccare il loop (fast-fail).
+All providers from `internal/embedding/factory` are wrapped with **`CircuitBreakerProvider`** (gobreaker + outbound rate limit). If the circuit is **open**, the worker skips embedding without blocking the loop (fast-fail).
 
-| Metrica | Significato |
-|---------|-------------|
-| `pcmi_embedding_circuit_state{state="open\|half_open\|closed"}` | Stato corrente (uno a 1) |
-| `pcmi_embedding_requests_total{result="success\|error\|circuit_open"}` | Esiti chiamate |
+| Metric | Meaning |
+|--------|---------|
+| `pcmi_embedding_circuit_state{state="open\|half_open\|closed"}` | Current state (one at 1) |
+| `pcmi_embedding_requests_total{result="success\|error\|circuit_open"}` | Call outcomes |
 
 Test: `make test-circuit-breaker`.
 
 ## Webhook
 
-1. `POST /v1/webhooks` registra URL + `event_types` (+ `secret` opzionale).
-2. Dispatcher API invia POST HTTP su match Redis.
-3. Fallimenti → retry → `GET /v1/webhooks/dead-letter`.
+1. `POST /v1/webhooks` registers URL + `event_types` (+ optional `secret`).
+2. API dispatcher sends HTTP POST on Redis match.
+3. Failures → retry → `GET /v1/webhooks/dead-letter`.
 
 gRPC: `RegisterWebhook`, `ListWebhooks`, `ListWebhookDeadLetter`.
 
-### Firma HMAC-SHA256 (v1.39+)
+### HMAC-SHA256 signature (v1.39+)
 
-Ogni delivery include:
+Every delivery includes:
 
-| Header | Valore |
-|--------|--------|
+| Header | Value |
+|--------|-------|
 | `X-PCMI-Signature` | `sha256={hex(HMAC-SHA256(secret, timestamp + "." + body))}` |
-| `X-PCMI-Timestamp` | Unix epoch (secondi, stringa decimale) |
-| `X-PCMI-Delivery-ID` | UUID della riga `webhook_deliveries` |
+| `X-PCMI-Timestamp` | Unix epoch (seconds, decimal string) |
+| `X-PCMI-Delivery-ID` | UUID of the `webhook_deliveries` row |
 | `X-PCMI-Event-Delivery` | `1` |
 | `Content-Type` | `application/json` |
 
-Verifica lato consumer (tolleranza default 5 minuti):
+Consumer-side verification (default 5-minute tolerance):
 
 - Go: `crypto.HMACVerify(secret, signature, timestamp, body, time.Now(), crypto.DefaultWebhookMaxAge)`
 - Python: `pcmi.webhook.verify_signature(secret, signature, timestamp, body)`
-- TypeScript: `verifySignature(secret, signature, timestamp, body)` da `sdk/typescript/src/webhook.ts`
+- TypeScript: `verifySignature(secret, signature, timestamp, body)` from `sdk/typescript/src/webhook.ts`
 
-## Consumare eventi
+## Consuming events
 
-| Modalità | Come |
-|----------|------|
+| Mode | How |
+|------|-----|
 | SSE | `GET /v1/events` — SDK `subscribe()` |
-| gRPC | `StreamEvents` — messaggi `StreamEventMsg` |
-| Webhook | Endpoint tuo HTTPS |
+| gRPC | `StreamEvents` — `StreamEventMsg` messages |
+| Webhook | Your HTTPS endpoint |
 
-Filtraggio: query `types=memory.stored,memory.updated` o campo `types` in `StreamEventsRequest`.
+Filtering: query `types=memory.stored,memory.updated` or `types` field in `StreamEventsRequest`.

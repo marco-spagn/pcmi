@@ -8,8 +8,8 @@
 #   - plain text table          (always, on stdout + optional file)
 #   - markdown table            (when COVERAGE_MD_OUT is set; used by CI for
 #                                $GITHUB_STEP_SUMMARY and sticky PR comment).
-#                                Global ✅/🔴 follows COVERAGE_MIN_TOTAL; per-pkg
-#                                ✅/🔴 follows COVERAGE_PKG_FLOORS when listed.
+#                                Global / follows COVERAGE_MIN_TOTAL; per-pkg
+#                                / follows COVERAGE_PKG_FLOORS when listed.
 #   - shields.io badge URL      (when COVERAGE_BADGE_OUT is set; static URL
 #                                that the README can point to without an
 #                                external coverage service)
@@ -131,15 +131,15 @@ fi
 # ─── Markdown report (for GITHUB_STEP_SUMMARY + PR comment) ───────────────────
 
 # Emoji semantics (aligned with CI thresholds, not a fixed 70% bar):
-#   • Global title: ✅ if global % >= COVERAGE_MIN_TOTAL, else 🔴
-#   • Per package: ✅ / 🔴 vs COVERAGE_PKG_FLOORS when that pkg is listed;
-#     otherwise ✅ if >= COVERAGE_MIN_TOTAL, 🟡 if >= 30%, else 🔴.
+#   • Global title:  if global % >= COVERAGE_MIN_TOTAL, else 
+#   • Per package:  /  vs COVERAGE_PKG_FLOORS when that pkg is listed;
+#     otherwise  if >= COVERAGE_MIN_TOTAL,  if >= 30%, else .
 
 GLOBAL_PCT="$(printf '%s\n' "$SUMMARY" | awk -F'\t' '$1=="GLOBAL" { if ($3>0) printf "%.2f", ($4/$3)*100; else print "0.00" }')"
 if ge "$GLOBAL_PCT" "$COVERAGE_MIN_TOTAL"; then
-  GLOBAL_EMOJI="✅"
+  GLOBAL_EMOJI=""
 else
-  GLOBAL_EMOJI="🔴"
+  GLOBAL_EMOJI=""
 fi
 
 if [ -n "$COVERAGE_MD_OUT" ]; then
@@ -164,12 +164,12 @@ if [ -n "$COVERAGE_MD_OUT" ]; then
         pkg = $2
         pct = ($3 > 0) ? ($4/$3)*100 : 0
         if (pkg in floor) {
-          emoji = (pct >= floor[pkg]) ? "✅" : "🔴"
+          emoji = (pct >= floor[pkg]) ? "" : ""
         } else {
           min = gmin + 0
-          if (pct >= min) emoji = "✅"
-          else if (pct >= 30) emoji = "🟡"
-          else emoji = "🔴"
+          if (pct >= min) emoji = ""
+          else if (pct >= 30) emoji = ""
+          else emoji = ""
         }
         printf "| `%s` | %d | %d | %s %.1f%% |\n", pkg, $3, $4, emoji, pct
       }

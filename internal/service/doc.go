@@ -1,4 +1,4 @@
-// Package service contiene la logica di dominio usata sia dall’API HTTP sia da gRPC:
-// store/retrieve memorie, batch, admin, riassunto, ingest eventi. Dipende da repository
-// e da internal/embedding per i vettori; pubblica eventi Redis dopo store tramite internal/event.
+// Package service contains the domain logic used by both the HTTP API and gRPC:
+// store/retrieve memories, batch, admin, summarize, event ingest. Depends on repository
+// and internal/embedding for vectors; publishes Redis events after store via internal/event.
 package service

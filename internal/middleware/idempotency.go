@@ -49,7 +49,7 @@ func NewIdempotencyMiddleware(cache IdempotencyCache) fiber.Handler {
 
 		cached, ok, err := cache.Get(c.Context(), tenantID, key)
 		if err != nil {
-			log.Printf("❌ idempotency lookup: %v", err)
+			log.Printf("idempotency lookup: %v", err)
 			return c.Status(500).JSON(fiber.Map{"error": "idempotency lookup failed"})
 		}
 		if ok {
@@ -69,7 +69,7 @@ func NewIdempotencyMiddleware(cache IdempotencyCache) fiber.Handler {
 			return nil
 		}
 		if putErr := cache.Put(c.Context(), tenantID, key, body); putErr != nil {
-			log.Printf("⚠️ idempotency cache store: %v", putErr)
+			log.Printf("idempotency cache store: %v", putErr)
 		}
 		return nil
 	}

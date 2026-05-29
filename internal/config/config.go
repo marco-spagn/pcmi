@@ -9,12 +9,12 @@ import (
 	"time"
 )
 
-// Config centralizza tutte le variabili d'ambiente del sistema PCMI.
-// Usare Load() per caricare e MustLoad() per fail-fast all'avvio.
+// Config centralizes all environment variables for the PCMI system.
+// Use Load() to load and MustLoad() for fail-fast at startup.
 type Config struct {
 	// Database
 	DatabaseURL     string
-	DatabaseReadURL string // opzionale: replica di lettura
+	DatabaseReadURL string // optional: read replica
 
 	// Redis
 	RedisAddr     string

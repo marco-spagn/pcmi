@@ -1,8 +1,8 @@
-# Modello dati PCMI
+# PCMI Data Model
 
-Schema logico per memorie, versioni, tenant e grafo.
+Logical schema for memories, versions, tenants, and graph.
 
-## Entità principali
+## Main entities
 
 ```mermaid
 erDiagram
@@ -31,45 +31,45 @@ erDiagram
   }
 ```
 
-## Versioning append-only
+## Append-only versioning
 
 ```mermaid
 stateDiagram-v2
-  [*] --> V1: Store path P (prima volta)
+  [*] --> V1: Store path P (first time)
   V1 --> V1_closed: Store path P again
-  V1_closed --> V2: nuova riga
+  V1_closed --> V2: new row
   V2 --> V2_current: valid_to IS NULL
   note right of V1_closed: valid_to = NOW()
 ```
 
-- **Nessun UPDATE** sul contenuto storico: ogni store crea una nuova riga.
-- **Versione corrente**: `valid_to IS NULL`.
-- **Retrieve con `as_of`**: slice temporale (non solo corrente).
-- **Rollback**: nuova riga che ripristina contenuto storico.
+- **No UPDATE** on historical content: every store creates a new row.
+- **Current version**: `valid_to IS NULL`.
+- **Retrieve with `as_of`**: temporal slice (not just current).
+- **Rollback**: new row that restores historical content.
 
-## Path gerarchici (`ltree`)
+## Hierarchical paths (`ltree`)
 
-Esempi:
+Examples:
 
-| Path | Significato |
-|------|-------------|
-| `root` | Radice tenant |
-| `root.acme` | Namespace progetto |
-| `root.acme.sprint42.notes` | Note sprint |
+| Path | Meaning |
+|------|---------|
+| `root` | Tenant root |
+| `root.acme` | Project namespace |
+| `root.acme.sprint42.notes` | Sprint notes |
 
-`path_prefix` in retrieve = operatore `<@` (discendente o uguale).
+`path_prefix` in retrieve = operator `<@` (descendant or equal).
 
 ## Embedding
 
-| Campo | Ruolo |
-|-------|--------|
+| Field | Role |
+|-------|------|
 | `embedding` | `vector(1536)` — pgvector |
-| `embedding_model` | Etichetta modello (es. `text-embedding-3-small`) |
-| `embedding_space` | Spazio logico per migrazioni multi-modello |
+| `embedding_model` | Model label (e.g. `text-embedding-3-small`) |
+| `embedding_space` | Logical space for multi-model migrations |
 
-Store può inviare vettore client (REST `embedding`, gRPC `repeated float embedding`) oppure lasciare `NULL` per backfill worker.
+Store can send a client vector (REST `embedding`, gRPC `repeated float embedding`) or leave `NULL` for worker backfill.
 
-## Sicurezza multi-tenant
+## Multi-tenant security
 
 ```mermaid
 sequenceDiagram
@@ -79,19 +79,19 @@ sequenceDiagram
   C->>API: X-API-Key
   API->>API: SHA-256 → tenant_id + role
   API->>PG: set_tenant_context(tenant_id)
-  API->>PG: query con RLS
+  API->>PG: query with RLS
 ```
 
-RLS su `memory_entries`, `api_keys`, webhook, ecc.
+RLS on `memory_entries`, `api_keys`, webhooks, etc.
 
-## Tabelle correlate
+## Related tables
 
-| Tabella | Uso |
-|---------|-----|
-| `memory_entries` | Memorie versionate |
-| `distilled_knowledge` | Sintesi distillate |
-| `memory_links` | Grafo tra path |
-| `webhook_endpoints` / `webhook_deliveries` | Notifiche HTTP |
-| `audit_log` | Audit richieste API |
+| Table | Use |
+|-------|-----|
+| `memory_entries` | Versioned memories |
+| `distilled_knowledge` | Distilled summaries |
+| `memory_links` | Graph between paths |
+| `webhook_endpoints` / `webhook_deliveries` | HTTP notifications |
+| `audit_log` | API request audit |
 
-SQL: cartella `migrations/` — ordine in [MIGRATIONS.md](MIGRATIONS.md).
+SQL: `migrations/` directory — order in [MIGRATIONS.md](MIGRATIONS.md).

@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 🔴 Security vulnerability (private)
+  - name:  Security vulnerability (private)
     url: https://github.com/marco-spagn/pcmi/security/advisories/new
     about: Please report security issues privately using GitHub Security Advisories.
-  - name: 💬 Discussions & Questions
+  - name:  Discussions & Questions
     url: https://github.com/marco-spagn/pcmi/discussions
     about: For general questions, ideas, or usage help, start a discussion instead of an issue.
-  - name: 📝 Documentation issues
+  - name:  Documentation issues
     url: https://github.com/marco-spagn/pcmi/issues/new?template=feature_request.md
     about: Documentation improvements can be filed as feature requests.

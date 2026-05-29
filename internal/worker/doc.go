@@ -1,4 +1,4 @@
-// Package worker raggruppa i job in background: embedding, distillation, pruning, consolidation, expiry.
-// Sono attivati da cmd/worker e sottoscrivono Redis (memory.stored, memory.updated, memory.refine.requested).
-// Richiedono DATABASE_URL e, per LLM/embeddings, variabili OpenAI coerenti con l’API.
+// Package worker groups background jobs: embedding, distillation, pruning, consolidation, expiry.
+// They are started by cmd/worker and subscribe to Redis (memory.stored, memory.updated, memory.refine.requested).
+// Require DATABASE_URL and, for LLM/embeddings, OpenAI variables consistent with the API.
 package worker

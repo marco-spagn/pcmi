@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Scenario 05 — Idempotenza distillation (dedup su source_entry_ids)
+# Scenario 05 — Distillation idempotency (dedup on source_entry_ids)
 # =============================================================================
-# Verifica che il check `hasDuplicateDistillation` del worker rifiuti
-# tentativi ripetuti di distillare gli stessi 10 record.
+# Verifies that the worker's `hasDuplicateDistillation` check rejects
+# repeated attempts to distill the same 10 records.
 #
-# Flusso:
-#   1) Esegue lo scenario 03 (100→10 distilled).
-#   2) NON fa teardown.
-#   3) Ripubblica gli stessi 10 refine events.
-#   4) Verifica che distilled_count NON cresca (idempotenza).
+# Flow:
+#   1) Runs scenario 03 (100→10 distilled).
+#   2) Does NOT tear down.
+#   3) Republishes the same 10 refine events.
+#   4) Verifies that distilled_count does NOT grow (idempotency).
 #
-# Use case: validare la garanzia "exactly-once distillation per shard".
+# Use case: validate the "exactly-once distillation per shard" guarantee.
 # =============================================================================
 set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -22,15 +22,15 @@ ok()   { echo -e "${GREEN}[OK]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 err()  { echo -e "${RED}[ERR]${NC} $*" >&2; }
 
-# Fase 1: smoke standard (NON fa teardown)
-echo "[scenario-05] fase 1/3 — primo round di distillation (100 → 10)"
+# Phase 1: standard smoke (does NOT tear down)
+echo "[scenario-05] phase 1/3 — first round of distillation (100 → 10)"
 "${SCRIPT_DIR}/../run_pcmi_distillation_test.sh" \
   --no-build \
   --no-teardown \
   --num 100 \
   --distill-batch-size 10
 
-# Fase 2: rilegge stats correnti
+# Phase 2: read current stats
 TENANT_ID="${TENANT_ID:-a1b2c3d4-e5f6-7890-abcd-ef1234567890}"
 PCMI_BASE_URL="${PCMI_BASE_URL:-http://localhost:8000}"
 KEY_NAME="soc-bulk-loader"
@@ -43,13 +43,13 @@ KEY_RAW="$(curl -fsS -X POST -H "X-API-Key: ${ADMIN_API_KEY}" -H 'Content-Type: 
   "${PCMI_BASE_URL}/v1/admin/api-keys/${KEY_ID}/rotate" | jq -r '.api_key')"
 
 PRE="$(curl -fsS -H "X-API-Key: ${KEY_RAW}" "${PCMI_BASE_URL}/v1/stats" | jq -r '.distilled_count')"
-echo "[scenario-05] fase 2/3 — distilled_count attuale = ${PRE}"
+echo "[scenario-05] phase 2/3 — current distilled_count = ${PRE}"
 
-# Fase 3: ripubblica gli stessi 10 refine events
-# Il check di dedup del worker (hasDuplicateDistillation) avviene DOPO la
-# LLM call: quindi il worker fa comunque la chiamata, poi si accorge che
-# ha gli stessi source_entry_ids e fa skip dell'INSERT.
-# Risultato atteso: distilled_count invariato.
+# Phase 3: republish the same 10 refine events
+# The worker's dedup check (hasDuplicateDistillation) runs AFTER the
+# LLM call: so the worker still makes the call, then realizes it has
+# the same source_entry_ids and skips the INSERT.
+# Expected result: distilled_count unchanged.
 EVENT_BACKEND="${EVENT_BACKEND:-streams}"
 publish_memory_event() {
   local payload="$1"
@@ -63,7 +63,7 @@ publish_memory_event() {
   printf '%s' "$data" | ( cd "$ROOT" && docker compose exec -T -i redis redis-cli -x XADD pcmi:events '*' type "$etype" data >/dev/null )
 }
 
-echo "[scenario-05] fase 3/3 — riapplica 10 refine events identici (EVENT_BACKEND=${EVENT_BACKEND})"
+echo "[scenario-05] phase 3/3 — reapply 10 identical refine events (EVENT_BACKEND=${EVENT_BACKEND})"
 for ((i=0; i<10; i++)); do
   PREFIX="$(printf "root.security.incidents.soc.shard_%03d" "$i")"
   PAYLOAD="$(jq -nc --arg t "$TENANT_ID" --arg p "$PREFIX" \
@@ -71,20 +71,20 @@ for ((i=0; i<10; i++)); do
   publish_memory_event "$PAYLOAD"
   sleep 1.2
 done
-echo "[scenario-05] aspetto 30s che il worker finisca le 10 LLM calls + dedup check…"
+echo "[scenario-05] waiting 30s for the worker to finish 10 LLM calls + dedup check..."
 sleep 30
 
 POST="$(curl -fsS -H "X-API-Key: ${KEY_RAW}" "${PCMI_BASE_URL}/v1/stats" | jq -r '.distilled_count')"
-echo "[scenario-05] dopo retry: distilled_count = ${POST}"
+echo "[scenario-05] after retry: distilled_count = ${POST}"
 
 if [[ "$PRE" == "$POST" ]]; then
-  ok "Idempotenza confermata: distilled_count invariato (${PRE} = ${POST})."
+  ok "Idempotency confirmed: distilled_count unchanged (${PRE} = ${POST})."
   EXIT=0
 else
-  err "Dedup violata: distilled_count è cambiato (${PRE} → ${POST})."
+  err "Dedup violated: distilled_count changed (${PRE} → ${POST})."
   EXIT=1
 fi
 
-echo "[scenario-05] teardown finale"
+echo "[scenario-05] final teardown"
 ( cd "$ROOT" && docker compose down -v --remove-orphans >/dev/null 2>&1 ) || true
 exit $EXIT

@@ -424,13 +424,13 @@ act-trivy:
 act-integration-smoke: act-preflight
 	bash scripts/act_integration_smoke_host.sh
 
-# Replica locale della CI GitHub (workflow CI): lint/vuln/helm opzionali,
-# go test -race -tags=integration (+ gate coverage) salvo CI_LIKE_NO_RACE=1, poi integration-smoke.
-# Tra un pacchetto e l'altro può non esserci output per molti minuti (-race è lento).
-# Su laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github
-#             CI_LIKE_NO_RACE=1 — Phase F senza race (più veloce; CI GitHub usa ancora -race)
-#                             oppure CI_LIKE_GO_VERBOSE=1 per log dei singoli test
-# Solo smoke HTTP/gRPC/SDK: `make act-integration-smoke` oppure `./scripts/ci_like_github.sh --integration-smoke`
+# Local replica of GitHub CI (CI workflow): lint/vuln/helm optional,
+# go test -race -tags=integration (+ coverage gate) unless CI_LIKE_NO_RACE=1, then integration-smoke.
+# Between packages there may be no output for many minutes (-race is slow).
+# On laptop: PCMI_GO_TEST_P=1 CI_LIKE_HEARTBEAT_SECS=120 make ci-like-github
+#             CI_LIKE_NO_RACE=1 — Phase F without race (faster; GitHub CI still uses -race)
+#                             or CI_LIKE_GO_VERBOSE=1 for individual test logs
+# HTTP/gRPC/SDK smoke only: `make act-integration-smoke` or `./scripts/ci_like_github.sh --integration-smoke`
 # Alias: one command for full host CI parity (auto-frees :5432 / :6379 first).
 test-all: ci-like-github
 
@@ -438,8 +438,8 @@ ci-like-github: act-preflight
 	@chmod +x scripts/ci_like_github.sh scripts/free_dev_ports.sh scripts/ci/*.sh scripts/ci/phases/*.sh
 	bash scripts/ci_like_github.sh
 
-# Simulazione production-like: CI host + E2E OpenAI (se chiave) + MCP + importance + sessions.
-# Vedi docs/local-ci.md § Simulazione completa.
+# Production-like simulation: host CI + E2E OpenAI (if key present) + MCP + importance + sessions.
+# See docs/local-ci.md § Full simulation.
 test-full-real:
 	@chmod +x scripts/run_full_validation.sh
 	bash scripts/run_full_validation.sh

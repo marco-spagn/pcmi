@@ -1,6 +1,6 @@
-// Programma pcmi-worker: job di embedding, distillation, pruning, consolidation ed expiry, più
-// subscribe al canale Redis memory_events. Health e Prometheus su :8081 (`/health`, `/metrics`).
-// OpenTelemetry: stesse variabili OTLP dell'API; nome servizio default `pcmi-worker` se OTEL_SERVICE_NAME è vuoto.
+// Program pcmi-worker: embedding, distillation, pruning, consolidation, and expiry jobs, plus
+// subscribing to the Redis memory_events channel. Health and Prometheus on :8081 (`/health`, `/metrics`).
+// OpenTelemetry: same OTLP variables as the API; default service name `pcmi-worker` if OTEL_SERVICE_NAME is empty.
 package main
 
 import (
@@ -31,14 +31,14 @@ import (
 const workerTracerName = "github.com/marco-spagn/pcmi/cmd/worker"
 
 func main() {
-	log.Println("🚀 PCMI Worker starting...")
+	log.Println("PCMI Worker starting...")
 
-	// --- Fail-fast: carica e valida config prima di aprire qualsiasi connessione ---
+	// --- Fail-fast: load and validate config before opening any connection ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.WorkerRequiredFields...); err != nil {
-		log.Fatalf("❌ FATAL: %v", err)
+		log.Fatalf(" FATAL: %v", err)
 	}
-	log.Printf("✅ Config loaded (DB=%s, Redis=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr)
+	log.Printf("Config loaded (DB=%s, Redis=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr)
 
 	ctxTelemetry := context.Background()
 	shutdownTelemetry, err := telemetry.Init(ctxTelemetry, cfg, "pcmi-worker")
@@ -74,34 +74,34 @@ func main() {
 			metrics.WorkerRegistry,
 			promhttp.HandlerOpts{EnableOpenMetrics: false},
 		))
-		log.Println("💓 Worker HTTP on :8081 (/health, /metrics)")
+		log.Println("Worker HTTP on :8081 (/health, /metrics)")
 		if err := http.ListenAndServe(":8081", mux); err != nil {
 			log.Printf("Health server error: %v", err)
 		}
 	}()
 
 	backend := event.EventBackend()
-	log.Printf("✅ Redis connected, event backend=%s", backend)
+	log.Printf("Redis connected, event backend=%s", backend)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	prov, err := embedding.NewFromConfig(cfg)
 	if err != nil {
-		log.Fatalf("❌ FATAL embedding provider: %v", err)
+		log.Fatalf(" FATAL embedding provider: %v", err)
 	}
 	if prov != nil {
 		ew := worker.NewEmbeddingWorker(db, prov)
 		go ew.Start(ctx)
-		log.Println("✅ Embedding worker started")
+		log.Println("Embedding worker started")
 	} else {
-		log.Println("⚠️ OPENAI_API_KEY unset — embedding worker disabled")
+		log.Println("OPENAI_API_KEY unset — embedding worker disabled")
 	}
 
 	distWorker := worker.NewDistillationWorker(db, cfg)
 	var policyEngine *worker.DistillationPolicyEngine
 	if cfg.DistillationPolicyDisabled {
-		log.Println("ℹ️  Distillation policy engine disabled (DISTILLATION_POLICY_DISABLED)")
+		log.Println("ℹ  Distillation policy engine disabled (DISTILLATION_POLICY_DISABLED)")
 	} else {
 		policyEngine = worker.NewDistillationPolicyEngine(db, distWorker)
 		go policyEngine.Start(ctx)
@@ -136,13 +136,13 @@ func main() {
 		case event.EventMemoryStored, event.EventMemoryUpdated:
 			path, _ := evt.Payload["path"].(string)
 			if policyEngine != nil {
-				log.Printf("📨 [REDIS] %s id=%v tenant=%s path=%s → distillation policy", evt.Type, evt.Payload["id"], tenantID, path)
+				log.Printf("[REDIS] %s id=%v tenant=%s path=%s → distillation policy", evt.Type, evt.Payload["id"], tenantID, path)
 				policyEngine.OnMemoryEvent(tenantID, path)
 			}
 			consolidationWorker.TriggerForMemory(tenantID, path)
 		case event.EventMemoryRefineRequested:
 			prefix, _ := evt.Payload["path_prefix"].(string)
-			log.Printf("📨 [REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
+			log.Printf("[REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)
 			distWorker.TriggerForPrefix(tenantID, prefix)
 		}
 		span.End()
@@ -158,7 +158,7 @@ func main() {
 	} else {
 		consumer := event.NewWorkerStreamConsumer()
 		if err := consumer.EnsureGroup(ctx); err != nil {
-			log.Fatalf("❌ stream consumer group: %v", err)
+			log.Fatalf(" stream consumer group: %v", err)
 		}
 		streamHandler := func(_ context.Context, evt event.Event, streamID string) error {
 			handleMemoryEvent(evt, streamID)
@@ -167,20 +167,20 @@ func main() {
 		consumer.StartPendingRecovery(ctx, streamHandler)
 		go func() {
 			if err := consumer.Consume(ctx, streamHandler); err != nil && ctx.Err() == nil {
-				log.Printf("❌ stream consumer stopped: %v", err)
+				log.Printf("stream consumer stopped: %v", err)
 			}
 		}()
-		log.Printf("✅ Subscribed to stream %s (group %s)", event.StreamKey, event.WorkerConsumerGroup)
+		log.Printf("Subscribed to stream %s (group %s)", event.StreamKey, event.WorkerConsumerGroup)
 	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	log.Println("🛑 Shutting down worker...")
+	log.Println("Shutting down worker...")
 	cancel()
 	time.Sleep(2 * time.Second)
-	log.Println("👋 Worker stopped")
+	log.Println("Worker stopped")
 }
 
 func min(a, b int) int {

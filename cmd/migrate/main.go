@@ -35,9 +35,9 @@ func main() {
 
 	n, skipped, err := runMigrations(ctx, pool, cfg.MigrationsDir)
 	if err != nil {
-		log.Fatalf("❌ migrations: %v", err)
+		log.Fatalf(" migrations: %v", err)
 	}
-	fmt.Printf("\n🎉 Migrations: %d applied, %d skipped.\n", n, skipped)
+	fmt.Printf("\n Migrations: %d applied, %d skipped.\n", n, skipped)
 }
 
 // runMigrations applies all .sql files in dir that haven't been applied yet.
@@ -101,7 +101,7 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool, dir string) (applied
 		if err := tx.Commit(ctx); err != nil {
 			return applied, skipped, fmt.Errorf("commit %s: %w", fname, err)
 		}
-		log.Printf("✅ applied %s", fname)
+		log.Printf("applied %s", fname)
 		applied++
 	}
 	return applied, skipped, nil

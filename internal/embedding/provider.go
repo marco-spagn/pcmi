@@ -37,7 +37,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, text string) ([]float32, 
 	resp, err := p.client.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input:      []string{text},
 		Model:      openai.EmbeddingModel(p.model),
-		Dimensions: 1536, // ← FORZATO A 1536 per compatibilità con DB
+		Dimensions: 1536, // ← FORCED TO 1536 for DB compatibility
 	})
 	if err != nil {
 		return nil, fmt.Errorf("openai embedding error: %w", err)

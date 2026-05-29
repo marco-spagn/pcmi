@@ -3,13 +3,13 @@
 #
 # Usage:
 #   make infra-up && make smoke-importance
-#   # oppure:
+#   # or:
 #   ./scripts/smoke_importance_retrieve.sh
 #
 # Env:
 #   PCMI_BASE_URL   default http://localhost:8000
 #   PCMI_API_KEY    default testkey123 (seed in migrations)
-#   SKIP_READY=1    skip GET /v1/ready (API già verificata)
+#   SKIP_READY=1    skip GET /v1/ready (API already verified)
 
 set -euo pipefail
 

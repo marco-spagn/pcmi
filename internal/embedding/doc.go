@@ -1,3 +1,3 @@
-// Package embedding astrae la generazione di vettori (implementazione OpenAI di default).
-// L’API passa il provider al MemoryService; il worker usa lo stesso pattern per job asincroni.
+// Package embedding abstracts vector generation (OpenAI implementation by default).
+// The API passes the provider to MemoryService; the worker uses the same pattern for async jobs.
 package embedding

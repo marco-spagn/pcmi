@@ -21,8 +21,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-pass()  { echo -e "${GREEN}✔ $*${NC}"; }
-fail()  { echo -e "${RED}✖ $*${NC}"; exit 1; }
+pass()  { echo -e "${GREEN} $*${NC}"; }
+fail()  { echo -e "${RED} $*${NC}"; exit 1; }
 info()  { echo -e "${YELLOW}→ $*${NC}"; }
 hdr()   { echo -e "${YELLOW}━━━ $* ━━━${NC}"; }
 

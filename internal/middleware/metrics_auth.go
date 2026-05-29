@@ -12,7 +12,7 @@ const metricsBearerPrefix = "Bearer "
 // LogMetricsScrapeAuthState logs a startup warning when METRICS_SCRAPE_TOKEN is unset.
 func LogMetricsScrapeAuthState(scrapeToken string) {
 	if scrapeToken == "" {
-		log.Println("⚠️  WARNING: METRICS_SCRAPE_TOKEN not set; GET /metrics is open without authentication")
+		log.Println("WARNING: METRICS_SCRAPE_TOKEN not set; GET /metrics is open without authentication")
 	}
 }
 

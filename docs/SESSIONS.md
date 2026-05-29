@@ -18,28 +18,28 @@ Sessions bound an agent run to a **working memory** scope. Rows in `memory_entri
 - `migrations/016_sessions.sql` — `agent_sessions` table + partial index on `metadata->>'session_id'`.
 - RLS on `agent_sessions` matches other tenant-scoped tables.
 
-## Esempio curl
+## curl example
 
 ```bash
 export PCMI_BASE_URL=http://localhost:8000
 export PCMI_API_KEY=testkey123
 
-# Crea sessione
+# Create session
 SID=$(curl -s -X POST "$PCMI_BASE_URL/v1/sessions" \
   -H "X-API-Key: $PCMI_API_KEY" -H "Content-Type: application/json" \
   -d '{"agent_id":"demo-agent"}' | jq -r '.id')
 
-# Working memory nella sessione
+# Working memory in the session
 curl -s -X POST "$PCMI_BASE_URL/v1/sessions/$SID/memories" \
   -H "X-API-Key: $PCMI_API_KEY" \
-  -d '{"path":"note","content":"contesto temporaneo"}'
+  -d '{"path":"note","content":"temporary context"}'
 
-# Promuovi verso memoria globale (prefisso default root)
+# Promote to global memory (default prefix root)
 curl -s -X POST "$PCMI_BASE_URL/v1/sessions/$SID/promote" \
   -H "X-API-Key: $PCMI_API_KEY" \
   -d '{"target_prefix":"root.demo"}'
 
-# Chiudi sessione
+# Close session
 curl -s -X DELETE "$PCMI_BASE_URL/v1/sessions/$SID" \
   -H "X-API-Key: $PCMI_API_KEY"
 ```
@@ -52,4 +52,4 @@ make smoke-sessions              # script: scripts/smoke_sessions.sh
 make test-sessions-integration   # requires DATABASE_URL + migration 016
 ```
 
-Incluso in **`make test-full-real`** (Phase 3 + 4). Vedi [local-ci.md](local-ci.md).
+Included in **`make test-full-real`** (Phase 3 + 4). See [local-ci.md](local-ci.md).

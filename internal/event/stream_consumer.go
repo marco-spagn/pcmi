@@ -43,7 +43,7 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		Count:  pendingClaimBatch,
 	}).Result()
 	if err != nil {
-		log.Printf("⚠️ stream XPENDING: %v", err)
+		log.Printf("stream XPENDING: %v", err)
 		return
 	}
 	SetStreamPending(len(pending))
@@ -64,7 +64,7 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		Messages: ids,
 	}).Result()
 	if err != nil {
-		log.Printf("⚠️ stream XCLAIM: %v", err)
+		log.Printf("stream XCLAIM: %v", err)
 		return
 	}
 	for _, msg := range claimed {
@@ -74,16 +74,16 @@ func (c *StreamConsumer) recoverPending(ctx context.Context, handler StreamHandl
 		}
 		evt, parseErr := decodeStreamMessage(msg)
 		if parseErr != nil {
-			log.Printf("❌ pending decode %s: %v", msg.ID, parseErr)
+			log.Printf("pending decode %s: %v", msg.ID, parseErr)
 			_ = c.ack(ctx, msg.ID)
 			continue
 		}
 		if err := handler(ctx, evt, msg.ID); err != nil {
-			log.Printf("⚠️ pending handler %s: %v", msg.ID, err)
+			log.Printf("pending handler %s: %v", msg.ID, err)
 			continue
 		}
 		if ackErr := c.ack(ctx, msg.ID); ackErr != nil {
-			log.Printf("❌ pending XACK %s: %v", msg.ID, ackErr)
+			log.Printf("pending XACK %s: %v", msg.ID, ackErr)
 		} else {
 			IncStreamAck()
 		}
@@ -106,11 +106,11 @@ func (c *StreamConsumer) moveToDLQ(ctx context.Context, msg redis.XMessage) {
 		Values: values,
 	}).Result()
 	if dlqErr != nil {
-		log.Printf("❌ stream DLQ XADD %s: %v", msg.ID, dlqErr)
+		log.Printf("stream DLQ XADD %s: %v", msg.ID, dlqErr)
 		return
 	}
 	IncStreamDLQ()
 	if ackErr := c.ack(ctx, msg.ID); ackErr != nil {
-		log.Printf("❌ stream DLQ XACK %s: %v", msg.ID, ackErr)
+		log.Printf("stream DLQ XACK %s: %v", msg.ID, ackErr)
 	}
 }

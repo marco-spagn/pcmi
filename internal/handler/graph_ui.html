@@ -84,7 +84,7 @@ function apiKey() {
 
 function authHeaders() {
   const key = apiKey();
-  return key ? { 'Authorization': 'Bearer ' + key } : {};
+  return key ? { 'X-API-Key': key } : {};
 }
 
 // Check AGE on load

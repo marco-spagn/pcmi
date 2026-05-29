@@ -39,6 +39,14 @@ type Config struct {
 	OpenAIBaseURL  string // optional: proxy or Azure OpenAI endpoint base
 	EmbeddingModel string
 
+	// LLM provider selection for distillation.
+	// LLM_PROVIDER: openai (default) | grok | anthropic | deepseek
+	// DISTILLATION_MODEL overrides the per-provider default model name.
+	LLMProvider    string
+	GrokAPIKey     string // GROK_API_KEY — xAI Grok
+	AnthropicAPIKey string // ANTHROPIC_API_KEY — Claude
+	DeepSeekAPIKey  string // DEEPSEEK_API_KEY — DeepSeek
+
 	// Migrations
 	MigrationsDir string // directory containing .sql files; default "migrations"
 
@@ -103,7 +111,12 @@ func Load() *Config {
 		PCMIAPIKey:         strings.TrimSpace(os.Getenv("PCMI_API_KEY")),
 		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
 		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
-		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
+		EmbeddingModel: envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
+
+		LLMProvider:     strings.ToLower(strings.TrimSpace(os.Getenv("LLM_PROVIDER"))),
+		GrokAPIKey:      strings.TrimSpace(os.Getenv("GROK_API_KEY")),
+		AnthropicAPIKey: strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")),
+		DeepSeekAPIKey:  strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
 		MigrationsDir:    envOr("MIGRATIONS_DIR", "migrations"),
 
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),

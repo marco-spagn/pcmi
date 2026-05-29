@@ -1,7 +1,7 @@
-// Package handler registra le route Fiber per l’API REST PCMI: memorie, retrieve, eventi (SSE),
-// webhooks, admin, batch, lineage, links, stats e refine. I tenant e i ruoli arrivano da middleware;
-// la logica pesante è delegata a internal/service e internal/repository.
+// Package handler registers Fiber routes for the PCMI REST API: memories, retrieve, events (SSE),
+// webhooks, admin, batch, lineage, links, stats, and refine. Tenants and roles come from middleware;
+// heavy business logic is delegated to internal/service and internal/repository.
 //
-// Convenzione: le route GET più specifiche (es. /lineage/*, /memories/history) devono essere
-// registrate prima del wildcard GET /memories/* per evitare che Fiber interpreti "lineage" come path.
+// Convention: more specific GET routes (e.g. /lineage/*, /memories/history) must be
+// registered before the wildcard GET /memories/* to prevent Fiber from treating "lineage" as a path.
 package handler

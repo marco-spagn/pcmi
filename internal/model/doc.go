@@ -1,3 +1,3 @@
-// Package model contiene i tipi di richiesta/risposta e le struct mappate su tabelle/cursori.
-// Nessuna I/O: solo struct JSON e tag di serializzazione.
+// Package model contains request/response types and structs mapped to tables/cursors.
+// No I/O: only JSON structs and serialization tags.
 package model

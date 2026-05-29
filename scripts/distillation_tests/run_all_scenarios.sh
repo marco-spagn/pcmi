@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Esegue in sequenza tutti gli scenari di distillation.
-# Compatibile con bash 3.2 (default macOS) — usa array indicizzati paralleli
-# invece di `declare -A` (assoc array, bash 4+).
+# Runs all distillation scenarios in sequence.
+# Compatible with bash 3.2 (macOS default) — uses parallel indexed arrays
+# instead of `declare -A` (assoc array, bash 4+).
 # =============================================================================
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 GREEN="\033[1;32m"; YELLOW="\033[1;33m"; RED="\033[1;31m"; NC="\033[0m"
 
-# Ordine ottimizzato:
-# - smoke veloce per primo (fail fast se infra è rotta)
-# - 01 e 02 (carichi LLM ragionevoli)
-# - 05 (dedup, riusa lo stato di 03)
-# - 04 ULTIMO perché satura volutamente il rate limit OpenAI (200k TPM):
-#   se messo prima, i successivi falliscono per token bucket pieno.
+# Optimized order:
+# - fast smoke first (fail fast if infra is broken)
+# - 01 and 02 (reasonable LLM loads)
+# - 05 (dedup, reuses state from 03)
+# - 04 LAST because it intentionally saturates the OpenAI rate limit (200k TPM):
+#   if run earlier, subsequent scenarios fail due to a full token bucket.
 SCENARIOS=(
   "03_quick_smoke_100_to_10.sh"
   "01_full_coverage_1000_to_100.sh"
@@ -23,9 +23,9 @@ SCENARIOS=(
   "04_cascade_rate_limit_stress.sh"
 )
 
-# Cooldown tra scenari (secondi). Il token bucket di OpenAI è 60s rolling →
-# 65s sono sufficienti a recuperare anche dopo uno scenario "stressante".
-# Override con env COOLDOWN_S=0 per disattivare.
+# Cooldown between scenarios (seconds). OpenAI token bucket is 60s rolling →
+# 65s is enough to recover even after a "stressful" scenario.
+# Override with env COOLDOWN_S=0 to disable.
 COOLDOWN_S="${COOLDOWN_S:-65}"
 
 # Array paralleli (indice = posizione in SCENARIOS)
@@ -53,9 +53,9 @@ for i in "${!SCENARIOS[@]}"; do
   echo -e "${YELLOW}  Running ${s}${NC}"
   echo -e "${YELLOW}════════════════════════════════════════════════════════════════════${NC}"
   run_scenario "$s"
-  # Cooldown tra scenari (no cooldown dopo l'ultimo)
+  # Cooldown between scenarios (no cooldown after the last one)
   if (( i < ${#SCENARIOS[@]} - 1 )) && (( COOLDOWN_S > 0 )); then
-    echo "[cooldown] dormo ${COOLDOWN_S}s per far resettare il token bucket OpenAI…"
+    echo "[cooldown] sleeping ${COOLDOWN_S}s to let the OpenAI token bucket reset..."
     sleep "$COOLDOWN_S"
   fi
 done

@@ -32,7 +32,7 @@ func TestHMACSign_EmptySecretStillProducesSignature(t *testing.T) {
 
 func TestHMACSign_UnicodeBody(t *testing.T) {
 	t.Parallel()
-	body := []byte("payload: 日本語 🎉")
+	body := []byte("payload: 日本語 ")
 	ts := "1700000000"
 	secret := "k"
 	sig := HMACSign(secret, ts, body)

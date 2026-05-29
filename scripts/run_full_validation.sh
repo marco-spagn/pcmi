@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
-# Simulazione locale production-like: parità CI host + E2E OpenAI (opz.) + MCP + feature smokes.
+# Local production-like simulation: host CI parity + E2E OpenAI (opt.) + MCP + feature smokes.
 #
 # Usage:
 #   make test-full-real
 #   ./scripts/run_full_validation.sh
 #
 # Env (pass-through to ci_like_github.sh):
-#   CI_LIKE_NO_RACE=1          — Phase F senza -race (~2× più veloce; GitHub usa ancora -race)
-#   PCMI_GO_TEST_P=1           — serializza pacchetti go test (laptop)
-#   CI_LIKE_HEARTBEAT_SECS=120 — heartbeat durante go test lunghi
-#   SKIP_LINT=1 SKIP_GOVCHECK=1 SKIP_HELM=1 SKIP_COVERAGE=1 — salta fasi CI
+#   CI_LIKE_NO_RACE=1          — Phase F without -race (~2× faster; GitHub still uses -race)
+#   PCMI_GO_TEST_P=1           — serialize go test packages (laptop)
+#   CI_LIKE_HEARTBEAT_SECS=120 — heartbeat during long go tests
+#   SKIP_LINT=1 SKIP_GOVCHECK=1 SKIP_HELM=1 SKIP_COVERAGE=1 — skip CI phases
 #
-# E2E OpenAI (Phase 2 — come job GitHub integration-e2e):
-#   Richiede OPENAI_API_KEY in ambiente o in .env (non vuota).
-#   FULL_VALIDATION_E2E=distill — invece del trio script, esegue:
+# E2E OpenAI (Phase 2 — like GitHub job integration-e2e):
+#   Requires OPENAI_API_KEY in environment or in .env (non-empty).
+#   FULL_VALIDATION_E2E=distill — instead of the script trio, runs:
 #     make distillation-e2e PRESET=soc SYNTH_NUM=100
 #   Default FULL_VALIDATION_E2E=trio:
 #     scripts/e2e/test_pcmi.sh, ci_e2e_sse_dedup.sh, ci_e2e_finale.sh
 #
-# Infra (Phase 3 — un solo avvio stack per smoke HTTP/MCP):
-#   SKIP_INFRA_DOWN=1 — non esegue make infra-down a fine validazione (debug locale)
+# Infra (Phase 3 — single stack startup for HTTP/MCP smoke):
+#   SKIP_INFRA_DOWN=1 — do not run make infra-down at end of validation (local debug)
 #
-# Prerequisites: go, docker, curl, jq, git; psql on PATH per ci-like-github smoke;
-#   python3 per distillation-e2e; OPENAI opzionale per Phase 2.
+# Prerequisites: go, docker, curl, jq, git; psql on PATH for ci-like-github smoke;
+#   python3 for distillation-e2e; OPENAI optional for Phase 2.
 #
 set -euo pipefail
 
@@ -66,25 +66,25 @@ api_ready() {
 
 ensure_api_stack() {
   if api_ready; then
-    say "API pronta su ${API_URL} (/v1/ready)"
+    say "API ready on ${API_URL} (/v1/ready)"
     return 0
   fi
-  say "Avvio stack Docker (make infra-up) per smoke HTTP/MCP…"
+  say "Starting Docker stack (make infra-up) for HTTP/MCP smoke..."
   make infra-up
   INFRA_STARTED=1
   if ! api_ready; then
-    warn "API non risponde su /v1/ready dopo infra-up"
+    warn "API not responding on /v1/ready after infra-up"
     exit 1
   fi
 }
 
 maybe_infra_down() {
   if [[ "${SKIP_INFRA_DOWN:-}" == "1" ]]; then
-    warn "SKIP_INFRA_DOWN=1 — stack Docker lasciato attivo"
+    warn "SKIP_INFRA_DOWN=1 — Docker stack left running"
     return 0
   fi
   if [[ "$INFRA_STARTED" == "1" ]]; then
-    say "Arresto stack Docker (make infra-down)…"
+    say "Stopping Docker stack (make infra-down)..."
     make infra-down
   fi
 }
@@ -103,7 +103,7 @@ make act-preflight
 
 make env >/dev/null 2>&1 || cp .env.example .env
 
-say "Phase 1 — parità CI GitHub (ci_like_github.sh) — può richiedere 20–45+ min"
+say "Phase 1 — GitHub CI parity (ci_like_github.sh) — may take 20–45+ min"
 chmod +x scripts/ci_like_github.sh scripts/free_dev_ports.sh
 bash scripts/ci_like_github.sh
 
@@ -124,8 +124,8 @@ if openai_configured; then
     ;;
   esac
 else
-  warn "SKIP Phase 2 — OPENAI_API_KEY non impostata (export OPENAI_API_KEY=… o valorizza .env)"
-  warn "         Per il job GitHub integration-e2e: trio script o FULL_VALIDATION_E2E=distill"
+  warn "SKIP Phase 2 — OPENAI_API_KEY not set (export OPENAI_API_KEY=... or set it in .env)"
+  warn "         For GitHub integration-e2e job: script trio or FULL_VALIDATION_E2E=distill"
 fi
 
 say "Phase 3 — feature smokes + MCP (stack API unico)"
@@ -150,4 +150,4 @@ PCMI_SKIP_SSE_HTTPTEST=1 make test-sessions-integration
 
 maybe_infra_down
 
-say "Fine — validazione completa terminata."
+say "Done — full validation complete."

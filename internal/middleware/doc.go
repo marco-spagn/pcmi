@@ -1,4 +1,4 @@
-// Package middleware applica autenticazione API key (hash SHA-256 + tenant RLS), rate limiting
-// per chiave, ruoli read/write/admin, e audit delle richieste. Health e metrics sono esentiti
-// dove la sicurezza lo consente; vedi singoli file per eccezioni.
+// Package middleware applies API key authentication (SHA-256 hash + tenant RLS), rate limiting
+// per key, read/write/admin roles, and request auditing. Health and metrics are exempted
+// where security allows; see individual files for exceptions.
 package middleware

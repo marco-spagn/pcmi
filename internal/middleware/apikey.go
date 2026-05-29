@@ -44,7 +44,7 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "Missing X-API-Key header"})
 		}
 
-		// Calcola hash della chiave
+		// Compute key hash
 		hash := sha256.Sum256([]byte(apiKey))
 		keyHash := hex.EncodeToString(hash[:])
 
@@ -66,7 +66,7 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 			return c.Status(401).JSON(fiber.Map{"error": "Invalid or expired API key"})
 		}
 
-		// Imposta tutto nel contesto
+		// Set everything in the context
 		c.Locals(APIKeyContextKey, apiKey)
 		c.Locals(APIKeyIDContextKey, apiKeyID)
 		c.Locals(RoleContextKey, role)
@@ -77,13 +77,13 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		// a DB hiccup the request proceeds without tenant isolation, risking
 		// cross-tenant data exposure. Return 503 instead.
 		if _, err := db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
-			log.Printf("❌ set_tenant_context failed for tenant=%s: %v", tenantID, err)
+			log.Printf("set_tenant_context failed for tenant=%s: %v", tenantID, err)
 			return c.Status(503).JSON(fiber.Map{"error": "tenant context unavailable, please retry"})
 		}
 
 		touchAPIKeyLastUsed(db, apiKeyID, c.IP())
 
-		log.Printf("🔑 API Key authenticated → tenant=%s, role=%s", tenantID, role)
+		log.Printf("API Key authenticated → tenant=%s, role=%s", tenantID, role)
 		return c.Next()
 	}
 }

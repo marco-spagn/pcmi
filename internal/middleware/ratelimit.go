@@ -38,7 +38,7 @@ func RateLimitMiddleware(cfg *config.Config) fiber.Handler {
 	// FIX-10: warn operators that in-memory rate limiting does not share
 	// counters across API replicas. With N replicas the effective limit is
 	// N × configured limit. This is silent in production — log it clearly.
-	log.Println("⚠️  Rate limiter: using in-memory backend (RATE_LIMIT_BACKEND=memory)." +
+	log.Println("Rate limiter: using in-memory backend (RATE_LIMIT_BACKEND=memory)." +
 		" Counters are NOT shared across replicas. For multi-replica deployments" +
 		" set RATE_LIMIT_BACKEND=redis to enforce accurate per-key limits.")
 

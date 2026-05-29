@@ -132,7 +132,7 @@ func (c *StreamConsumer) Consume(ctx context.Context, handler StreamHandler) err
 			if err == redis.Nil {
 				continue
 			}
-			log.Printf("❌ stream XREADGROUP: %v", err)
+			log.Printf("stream XREADGROUP: %v", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		}
@@ -140,16 +140,16 @@ func (c *StreamConsumer) Consume(ctx context.Context, handler StreamHandler) err
 			for _, msg := range stream.Messages {
 				evt, parseErr := decodeStreamMessage(msg)
 				if parseErr != nil {
-					log.Printf("❌ stream decode %s: %v", msg.ID, parseErr)
+					log.Printf("stream decode %s: %v", msg.ID, parseErr)
 					_ = c.ack(ctx, msg.ID)
 					continue
 				}
 				if err := handler(ctx, evt, msg.ID); err != nil {
-					log.Printf("⚠️ stream handler %s: %v (no ACK)", msg.ID, err)
+					log.Printf("stream handler %s: %v (no ACK)", msg.ID, err)
 					continue
 				}
 				if ackErr := c.ack(ctx, msg.ID); ackErr != nil {
-					log.Printf("❌ stream XACK %s: %v", msg.ID, ackErr)
+					log.Printf("stream XACK %s: %v", msg.ID, ackErr)
 				} else {
 					IncStreamAck()
 				}
@@ -221,7 +221,7 @@ func streamSubscribe(parent context.Context) <-chan Event {
 					return
 				}
 				if err != redis.Nil {
-					log.Printf("❌ stream XREAD: %v", err)
+					log.Printf("stream XREAD: %v", err)
 					time.Sleep(500 * time.Millisecond)
 				}
 				continue
@@ -231,7 +231,7 @@ func streamSubscribe(parent context.Context) <-chan Event {
 					lastID = msg.ID
 					evt, err := decodeStreamMessage(msg)
 					if err != nil {
-						log.Printf("❌ stream subscribe decode: %v", err)
+						log.Printf("stream subscribe decode: %v", err)
 						continue
 					}
 					select {

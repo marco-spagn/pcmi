@@ -1,59 +1,59 @@
-# Integration testing — note operative
+# Integration testing — operational notes
 
-Guida rapida per `go test -tags=integration` su handler, service, repository, grpc, embedding, event (Streams).
+Quick guide for `go test -tags=integration` on handler, service, repository, grpc, embedding, event (Streams).
 
 ---
 
-## Prerequisiti
+## Prerequisites
 
-- **Postgres** con migrazioni applicate (`DATABASE_URL`, es. `postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable`).
-- Per test HTTP handler: **Redis** non obbligatorio in host — i test usano **miniredis** in-process.
-- Per **gRPC live** (`make test-integration-live`): API in ascolto su **`GRPC_HOST`** (default `localhost:50051`) e chiave `GRPC_TEST_API_KEY` (default Makefile: `testkey123`).
+- **Postgres** with migrations applied (`DATABASE_URL`, e.g. `postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable`).
+- For HTTP handler tests: **Redis** not required on host — tests use **miniredis** in-process.
+- For **gRPC live** (`make test-integration-live`): API listening on **`GRPC_HOST`** (default `localhost:50051`) and key `GRPC_TEST_API_KEY` (Makefile default: `testkey123`).
 
-### Porte (riepilogo)
+### Ports (summary)
 
-| Porta | Uso |
-|-------|-----|
+| Port | Use |
+|------|-----|
 | `5432` | Postgres — bufconn, live, handler integration |
-| `6379` | Redis — stack completo (`make infra-up`); non serve per bufconn gRPC |
-| `50051` | gRPC — solo test **live** e job `integration-smoke` |
-| `8000` | HTTP — smoke SDK / `ci_integration_smoke.sh` |
+| `6379` | Redis — full stack (`make infra-up`); not needed for bufconn gRPC |
+| `50051` | gRPC — only **live** tests and `integration-smoke` job |
+| `8000` | HTTP — SDK smoke / `ci_integration_smoke.sh` |
 
 ---
 
 ## gRPC — bufconn vs live
 
-| Target | Server | Postgres | :50051 | Note |
-|--------|--------|----------|--------|------|
-| `make test-integration-bufconn` | In-process (bufconn) | Sì | No | `-run '^TestIntegrationBufconn_'` |
-| `make test-integration-live` | TCP su `GRPC_HOST` | Sì (env) | **Sì** | `-run '^TestGRPC\|^TestResolveTenantIntegration$'` |
-| `make test-integration` | Entrambi in sequenza | Sì | Sì (fase live) | |
+| Target | Server | Postgres | :50051 | Notes |
+|--------|--------|----------|--------|-------|
+| `make test-integration-bufconn` | In-process (bufconn) | Yes | No | `-run '^TestIntegrationBufconn_'` |
+| `make test-integration-live` | TCP on `GRPC_HOST` | Yes (env) | **Yes** | `-run '^TestGRPC\|^TestResolveTenantIntegration$'` |
+| `make test-integration` | Both in sequence | Yes | Yes (live phase) | |
 
-Se `GRPC_TEST_API_KEY` **non** è impostata, i test live in `internal/grpc/integration_test.go` fanno `t.Skip`. Il Makefile imposta sempre `GRPC_TEST_API_KEY=testkey123` → senza API su `:50051` la run **fallisce** (non viene saltata).
+If `GRPC_TEST_API_KEY` **is not** set, live tests in `internal/grpc/integration_test.go` call `t.Skip`. The Makefile always sets `GRPC_TEST_API_KEY=testkey123` → without an API on `:50051` the run **fails** (is not skipped).
 
-Sequenza consigliata per live:
+Recommended sequence for live:
 
 ```bash
 make infra-up
 make test-integration-live
-# opzionale, dopo infra-up: make infra-wait   # GET /v1/ready su :8000
+# optional, after infra-up: make infra-wait   # GET /v1/ready on :8000
 ```
 
-Solo dipendenze + API su host:
+Deps only + API on host:
 
 ```bash
 make infra-deps-up
-go run ./cmd/api    # altro terminale
+go run ./cmd/api    # another terminal
 make test-integration-live
 ```
 
-**CI GitHub:** il job `go` esegue `go test -tags=integration ./internal/...` **senza** `GRPC_TEST_API_KEY` → live skipped. Il job **`integration-smoke`** avvia API/worker e lancia `go test -tags=integration ./internal/grpc/...` con chiave — parità con `make act-integration-smoke` in locale. Vedi [local-ci.md](local-ci.md).
+**GitHub CI:** the `go` job runs `go test -tags=integration ./internal/...` **without** `GRPC_TEST_API_KEY` → live skipped. The **`integration-smoke`** job starts API/worker and runs `go test -tags=integration ./internal/grpc/...` with the key — parity with `make act-integration-smoke` locally. See [local-ci.md](local-ci.md).
 
 ---
 
 ## Redis Streams (`make test-streams-integration`)
 
-Test in `internal/event/` con tag `integration` e **miniredis** in-process (`TestStreamIntegration_*`). Non richiedono Postgres né porta `:50051`. Utile dopo modifiche al backend Streams in `internal/event`.
+Tests in `internal/event/` with tag `integration` and **miniredis** in-process (`TestStreamIntegration_*`). No Postgres or `:50051` required. Useful after changes to the Streams backend in `internal/event`.
 
 ```bash
 make test-streams-integration
@@ -61,59 +61,59 @@ make test-streams-integration
 
 ---
 
-## Comando consigliato (handler + embedding)
+## Recommended command (handler + embedding)
 
 ```bash
 export DATABASE_URL='postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable'
 
-# PCMI_SKIP_SSE_HTTPTEST=1 è il default se usi newIntegrationHTTPApp; esplicito se lanci go test a mano:
+# PCMI_SKIP_SSE_HTTPTEST=1 is the default if you use newIntegrationHTTPApp; explicit when running go test manually:
 PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/...
 
-# Con embedding nella stessa run:
+# With embedding in the same run:
 PCMI_SKIP_SSE_HTTPTEST=1 go test -tags=integration -count=1 ./internal/handler/... ./internal/embedding/...
 ```
 
-`make ci-like-github` imposta già `PCMI_SKIP_SSE_HTTPTEST=1` nella Phase F (`go test ./internal/...`).
+`make ci-like-github` already sets `PCMI_SKIP_SSE_HTTPTEST=1` in Phase F (`go test ./internal/...`).
 
 ---
 
-## Problema noto: `TestIntegrationHTTP_EventStreamMemoryStored` (SSE + httptest)
+## Known issue: `TestIntegrationHTTP_EventStreamMemoryStored` (SSE + httptest)
 
-### Sintomo
+### Symptom
 
-- `go test -tags=integration ./internal/handler/...` **sembra bloccato** per molti minuti senza output.
-- Dopo **~10 minuti** fallisce con timeout del **pacchetto** Go (default 10m), stack trace in `miniredis` / `netpoll` / `httptest`.
-- Log tipici prima del timeout: `timeout waiting for SSE GET` o `httptest.Server blocked in Close after 5 seconds`.
+- `go test -tags=integration ./internal/handler/...` **appears blocked** for many minutes without output.
+- After **~10 minutes** it fails with Go **package timeout** (default 10m), stack trace in `miniredis` / `netpoll` / `httptest`.
+- Typical logs before timeout: `timeout waiting for SSE GET` or `httptest.Server blocked in Close after 5 seconds`.
 
-### Causa
+### Root cause
 
-Il test `TestIntegrationHTTP_EventStreamMemoryStored` apre una **GET SSE** su `httptest.Server` che avvolge l’app Fiber tramite `adaptor.FiberApp`. Con **race detector** (e spesso anche senza), la connessione stream può:
+The test `TestIntegrationHTTP_EventStreamMemoryStored` opens a **GET SSE** on `httptest.Server` wrapping the Fiber app via `adaptor.FiberApp`. With the **race detector** (and often without it), the stream connection can:
 
-1. non completare gli header entro 30s (`startGate` timeout nel test);
-2. lasciare `io.Copy` sulla response body **bloccato** dopo `cancel`;
-3. far **bloccare** `httptest.Server.Close` fino al timeout del package.
+1. not complete headers within 30s (`startGate` timeout in the test);
+2. leave `io.Copy` on the response body **blocked** after `cancel`;
+3. cause `httptest.Server.Close` to **block** until package timeout.
 
-Su **GitHub Actions** il test è già `Skip` quando `GITHUB_ACTIONS=true`. In locale il problema è lo stesso.
+On **GitHub Actions** the test is already `Skip` when `GITHUB_ACTIONS=true`. Locally the problem is the same.
 
-### Copertura SSE “vera”
+### Real SSE coverage
 
-Non si perde copertura funzionale:
+No functional coverage is lost:
 
-- **`scripts/ci_integration_smoke.sh`** — `curl` su `GET /v1/events` + `memory.stored` con server HTTP reale.
-- Job CI **`integration-smoke`** (dopo `go build` di API/worker su porta 8000).
+- **`scripts/ci_integration_smoke.sh`** — `curl` on `GET /v1/events` + `memory.stored` with a real HTTP server.
+- CI job **`integration-smoke`** (after `go build` of API/worker on port 8000).
 
 ---
 
-## Variabili d’ambiente
+## Environment variables
 
-| Variabile | Default in `newIntegrationHTTPApp` | Effetto |
-|-----------|--------------------------------------|---------|
-| `PCMI_SKIP_SSE_HTTPTEST` | `1` (se non forzi SSE) | Salta `TestIntegrationHTTP_EventStreamMemoryStored` |
-| `PCMI_FORCE_SSE_HTTPTEST` | — | Se `1`, **non** imposta lo skip automatico; esegue il test SSE httptest (può impiegare fino al timeout) |
-| `DATABASE_URL` | — | Obbligatoria per test handler/service/repository integration |
-| `GITHUB_ACTIONS` | — | Su runner GHA il test SSE httptest è sempre skipped |
+| Variable | Default in `newIntegrationHTTPApp` | Effect |
+|----------|------------------------------------|--------|
+| `PCMI_SKIP_SSE_HTTPTEST` | `1` (unless you force SSE) | Skips `TestIntegrationHTTP_EventStreamMemoryStored` |
+| `PCMI_FORCE_SSE_HTTPTEST` | — | If `1`, does **not** set the automatic skip; runs the SSE httptest (can take up to timeout) |
+| `DATABASE_URL` | — | Required for handler/service/repository integration tests |
+| `GITHUB_ACTIONS` | — | On GHA runner the SSE httptest is always skipped |
 
-### Forzare il test SSE httptest (debug)
+### Force the SSE httptest (debug)
 
 ```bash
 PCMI_FORCE_SSE_HTTPTEST=1 PCMI_SKIP_SSE_HTTPTEST=0 \
@@ -121,21 +121,21 @@ PCMI_FORCE_SSE_HTTPTEST=1 PCMI_SKIP_SSE_HTTPTEST=0 \
   -run TestIntegrationHTTP_EventStreamMemoryStored
 ```
 
-Usa un **timeout** esplicito (`-timeout 15m`) e aspettati possibili fallimenti o attese lunghe.
+Use an explicit **timeout** (`-timeout 15m`) and expect possible failures or long waits.
 
 ---
 
-## Altri test lenti
+## Other slow tests
 
-- **`go test -race -tags=integration ./internal/...`** — può restare **muto** tra un pacchetto e l’altro per molti minuti; normale su laptop.
-- Mitigazioni: `PCMI_GO_TEST_P=1`, `CI_LIKE_NO_RACE=1` (solo script locale `ci_like_github.sh`), `CI_LIKE_GO_VERBOSE=1`, `CI_LIKE_HEARTBEAT_SECS=120`.
+- **`go test -race -tags=integration ./internal/...`** — can stay **silent** between packages for many minutes; normal on laptops.
+- Mitigations: `PCMI_GO_TEST_P=1`, `CI_LIKE_NO_RACE=1` (local-only script `ci_like_github.sh`), `CI_LIKE_GO_VERBOSE=1`, `CI_LIKE_HEARTBEAT_SECS=120`.
 
-Vedi anche [local-ci.md](local-ci.md) e `scripts/ci_like_github.sh --help`.
+See also [local-ci.md](local-ci.md) and `scripts/ci_like_github.sh --help`.
 
 ---
 
-## Riferimenti codice
+## Code references
 
-- Test SSE: `internal/handler/integration_http_e2e_test.go` — `TestIntegrationHTTP_EventStreamMemoryStored`
-- Helper HTTP integration: `newIntegrationHTTPApp` nello stesso file
-- Smoke CI: `scripts/ci_integration_smoke.sh` (sezione “SSE memory.stored”)
+- SSE test: `internal/handler/integration_http_e2e_test.go` — `TestIntegrationHTTP_EventStreamMemoryStored`
+- HTTP integration helper: `newIntegrationHTTPApp` in the same file
+- CI smoke: `scripts/ci_integration_smoke.sh` (section "SSE memory.stored")

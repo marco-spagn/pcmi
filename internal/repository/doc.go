@@ -1,5 +1,5 @@
-// Package repository implementa l’accesso a PostgreSQL con pgxpool. Ogni query operativa
-// assume che il tenant corrente sia già stato impostato (middleware chiama set_tenant_context).
-// Le funzioni di retrieve condividono helper SQL in retrieve_sql.go per filtri temporali,
-// scope agent/embedding space e tag. La persistenza è append-only per le versioni di memoria.
+// Package repository implements PostgreSQL access with pgxpool. Every operational query
+// assumes the current tenant has already been set (middleware calls set_tenant_context).
+// Retrieve functions share SQL helpers in retrieve_sql.go for temporal filters,
+// agent/embedding space scope, and tags. Persistence is append-only for memory versions.
 package repository

@@ -35,7 +35,7 @@ usage() {
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
-    echo "Manca il comando: $1" >&2
+    echo "Missing command: $1" >&2
     exit 1
   }
 }
@@ -71,12 +71,12 @@ smoke_replica() {
     -H "X-API-Key: ${KEY}" \
     -d "$(jq -n --arg p "$path_v" --arg c "$content" '{path:$p, content:$c, metadata:{source:"local_smoke"}}')" | jq .
 
-  echo "== GET subito dopo (usa il pool di lettura: replica se DATABASE_READ_URL è impostato sull'API) =="
+  echo "== GET immediately after (uses read pool: replica if DATABASE_READ_URL is set on API) =="
   local i found=""
   for i in $(seq 1 20); do
     if out="$(curl -sS "${BASE}/v1/memories/${path_v}" -H "X-API-Key: ${KEY}" 2>/dev/null)"; then
       if echo "$out" | jq -e --arg c "$content" '.content == $c' >/dev/null 2>&1; then
-        echo "OK: GET vede la memoria (tentativo ${i}/20)"
+        echo "OK: GET sees the memory (attempt ${i}/20)"
         echo "$out" | jq .
         found=1
         break
@@ -85,7 +85,7 @@ smoke_replica() {
     sleep 0.15
   done
   if [[ -z "$found" ]]; then
-    echo "FAIL: dopo 20 tentativi GET non restituisce ancora content atteso (possibile replication lag o errore API)." >&2
+    echo "FAIL: after 20 attempts GET still does not return expected content (possible replication lag or API error)." >&2
     exit 1
   fi
 }
@@ -99,28 +99,28 @@ ensure_temporal_server() {
     return 0
   fi
   if [[ "${START_TEMPORAL_DEV:-}" != "1" ]]; then
-    echo "Nessun server su ${TEMPORAL_HOST}:${TEMPORAL_PORT}." >&2
-    echo "Avvia Temporal (es. temporal server start-dev) oppure ripeti con START_TEMPORAL_DEV=1" >&2
+    echo "No server on ${TEMPORAL_HOST}:${TEMPORAL_PORT}." >&2
+    echo "Start Temporal (e.g. temporal server start-dev) or retry with START_TEMPORAL_DEV=1" >&2
     return 1
   fi
   if ! temporal_cli_ok; then
-    echo "START_TEMPORAL_DEV=1 richiede la CLI Temporal nel PATH." >&2
+    echo "START_TEMPORAL_DEV=1 requires the Temporal CLI in PATH." >&2
     echo "Installazione: https://docs.temporal.io/cli (es. brew install temporal)" >&2
     return 1
   fi
-  echo "== Avvio temporal server start-dev in background (log: /tmp/pcmi-temporal-dev.log) =="
+  echo "== Starting temporal server start-dev in background (log: /tmp/pcmi-temporal-dev.log) =="
   nohup temporal server start-dev > /tmp/pcmi-temporal-dev.log 2>&1 &
   local pid=$!
   disown "$pid" 2>/dev/null || true
   local j
   for j in $(seq 1 45); do
     if port_open "$TEMPORAL_HOST" "$TEMPORAL_PORT"; then
-      echo "Temporal in ascolto su ${TEMPORAL_HOST}:${TEMPORAL_PORT}"
+      echo "Temporal listening on ${TEMPORAL_HOST}:${TEMPORAL_PORT}"
       return 0
     fi
     sleep 1
   done
-  echo "Timeout in attesa di Temporal. Ultimi log:" >&2
+  echo "Timeout waiting for Temporal. Last logs:" >&2
   tail -20 /tmp/pcmi-temporal-dev.log >&2 || true
   return 1
 }
@@ -139,22 +139,22 @@ smoke_temporal() {
   local venv="${td}/.venv_smoke"
 
   if [[ "${SKIP_TEMPORAL_VENV:-}" == "1" ]]; then
-    echo "== SKIP_TEMPORAL_VENV=1: uso python3 di sistema (import temporalio, httpx) =="
+    echo "== SKIP_TEMPORAL_VENV=1: using system python3 (import temporalio, httpx) =="
     python3 -c "import temporalio, httpx" 2>/dev/null || {
       echo "Installa: pip install temporalio httpx" >&2
       return 1
     }
   else
-    echo "== Python venv + dipendenze (solo smoke) in ${venv} =="
+    echo "== Python venv + dependencies (smoke only) in ${venv} =="
     if [[ ! -d "$venv" ]]; then
       python3 -m venv "$venv"
     fi
     # shellcheck disable=SC1090
     source "${venv}/bin/activate"
     if python3 -c "import temporalio, httpx" 2>/dev/null; then
-      echo "== Dipendenze già installate nel venv (salto pip) =="
+      echo "== Dependencies already installed in venv (skipping pip) =="
     else
-      echo "== pip install (timeout lungo + retry; se fallisce riprova o usa SKIP_TEMPORAL_VENV=1) =="
+      echo "== pip install (long timeout + retry; if it fails retry or use SKIP_TEMPORAL_VENV=1) =="
       local attempt ok=0
       for attempt in 1 2 3 4 5; do
         if PIP_DEFAULT_TIMEOUT=180 pip install -q --retries 10 -r "${td}/requirements.txt"; then
@@ -162,9 +162,9 @@ smoke_temporal() {
           break
         fi
         if [[ "$attempt" -eq 5 ]]; then
-          echo "pip install fallito dopo 5 tentativi. Suggerimenti: VPN stabile, mirror PyPI, oppure:" >&2
+          echo "pip install failed after 5 attempts. Suggestions: stable VPN, PyPI mirror, or:" >&2
           echo "  cd examples/temporal && python3 -m venv .venv_smoke && . .venv_smoke/bin/activate && pip install -r requirements.txt" >&2
-          echo "  oppure SKIP_TEMPORAL_VENV=1 se temporalio e httpx sono già nel python di sistema." >&2
+          echo "  or SKIP_TEMPORAL_VENV=1 if temporalio and httpx are already in the system python." >&2
           deactivate 2>/dev/null || true
           return 1
         fi

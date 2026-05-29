@@ -61,8 +61,8 @@ section() {
 	echo "╚════════════════════════════════════════════════════════════╝"
 }
 
-ok() { echo "  ✓ $1"; PASS=$((PASS + 1)); }
-bad() { echo "  ✗ $1" >&2; FAIL=$((FAIL + 1)); }
+ok() { echo "   $1"; PASS=$((PASS + 1)); }
+bad() { echo "   $1" >&2; FAIL=$((FAIL + 1)); }
 skip() { echo "  ⊘ $1"; SKIP=$((SKIP + 1)); }
 
 HELM_IMAGE="${HELM_IMAGE:-alpine/helm:3.14.4}"

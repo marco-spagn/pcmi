@@ -13,9 +13,9 @@ CYAN=$'\033[0;36m'
 BOLD=$'\033[1m'
 RESET=$'\033[0m'
 
-ok()     { printf "${GREEN}✓${RESET} %s\n" "$*"; }
-warn()   { printf "${YELLOW}⚠${RESET}  %s\n" "$*"; }
-err()    { printf "${RED}✗${RESET}  %s\n" "$*" >&2; }
+ok()     { printf "${GREEN}${RESET} %s\n" "$*"; }
+warn()   { printf "${YELLOW}${RESET}  %s\n" "$*"; }
+err()    { printf "${RED}${RESET}  %s\n" "$*" >&2; }
 info()   { printf "${CYAN}→${RESET} %s\n" "$*"; }
 header() { printf "\n${BOLD}%s${RESET}\n" "$*"; }
 

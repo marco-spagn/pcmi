@@ -2,23 +2,23 @@
 # =============================================================================
 # Scenario 04 — Cascade auto-trigger stress test (intended to FAIL with 429s)
 # =============================================================================
-# Riproduce il comportamento "naive": NON ferma il worker durante l'ingest.
-# Ogni memory.stored triggera 1 chiamata LLM → 500 store in cascata =
-# saturazione del rate limit OpenAI (500 RPM / 200k TPM).
+# Reproduces the "naive" behavior: does NOT stop the worker during ingest.
+# Every memory.stored triggers 1 LLM call → 500 stores in cascade =
+# saturation of the OpenAI rate limit (500 RPM / 200k TPM).
 #
-# - 500 incidenti SOC (basta per saturare il limit)
-# - --keep-worker → worker resta su, cascata attiva
+# - 500 SOC incidents (enough to saturate the limit)
+# - --keep-worker → worker stays up, cascade active
 # - DISTILLATION_BATCH_SIZE=10
-# - Atteso: distilled_count cresce in modo erratico, Worker 429 hits >> 0.
+# - Expected: distilled_count grows erratically, Worker 429 hits >> 0.
 #
-# Use case: dimostrare empiricamente perché serve il bypass del worker
-#           durante il bulk ingest in produzione.
+# Use case: empirically demonstrate why worker bypass is needed
+#           during bulk ingest in production.
 # =============================================================================
 set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "[scenario-04] questo scenario è progettato per generare 429s."
-echo "[scenario-04] Atteso: TEST FAIL su 'worker 429 hits' > 0."
+echo "[scenario-04] this scenario is designed to generate 429s."
+echo "[scenario-04] Expected: TEST FAIL on 'worker 429 hits' > 0."
 echo
 
 "${SCRIPT_DIR}/../run_pcmi_distillation_test.sh" \
@@ -29,6 +29,6 @@ echo
   --throttle-ms 100 \
   "$@" || {
     echo
-    echo "[scenario-04] ATTESO: fail con 429 hits > 0 (vedi metriche sopra)."
+    echo "[scenario-04] EXPECTED: fail with 429 hits > 0 (see metrics above)."
     exit 0
   }

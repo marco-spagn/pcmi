@@ -1,2 +1,2 @@
-// Package database incapsula i pool PostgreSQL (primario e, opzionalmente, replica di lettura) via pgx.
+// Package database encapsulates PostgreSQL pools (primary and, optionally, read replica) via pgx.
 package database

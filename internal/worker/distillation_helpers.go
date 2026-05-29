@@ -20,7 +20,7 @@ func distillationBatchSizeFrom(cfgBatch int) int {
 		return cfgBatch
 	}
 	if cfgBatch != 0 {
-		log.Printf("⚠️  DISTILLATION_BATCH_SIZE=%d invalid, using default %d", cfgBatch, defaultDistillationBatchSize)
+		log.Printf("DISTILLATION_BATCH_SIZE=%d invalid, using default %d", cfgBatch, defaultDistillationBatchSize)
 	}
 	return defaultDistillationBatchSize
 }
@@ -30,7 +30,7 @@ func distillationConcurrencyFrom(cfgConcurrency int) int {
 		return cfgConcurrency
 	}
 	if cfgConcurrency != 0 {
-		log.Printf("⚠️  DISTILLATION_CONCURRENCY=%d invalid, using default %d", cfgConcurrency, defaultDistillationConcurrency)
+		log.Printf("DISTILLATION_CONCURRENCY=%d invalid, using default %d", cfgConcurrency, defaultDistillationConcurrency)
 	}
 	return defaultDistillationConcurrency
 }

@@ -40,17 +40,10 @@ jobs:
       - name: Compute semver and tag
         id: v
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            RAW="${{ github.event.inputs.version }}"
-          else
-            RAW="${{ github.event.release.tag_name }}"
-          fi
-          SEMVER="${RAW#v}"
-          echo "tag=${RAW}"       >> "$GITHUB_OUTPUT"
-          echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
-          echo "Resolved: tag=${RAW}  semver=${SEMVER}"
-
-  # ──────────────────────────────────────────────────────────────────────────
+          if [[ "${{ github.event_name }}"== "workflow_dispatch"]]; then
+            RAW="${{ github.event.inputs.version }}"else
+            RAW="${{ github.event.release.tag_name }}"fi
+          SEMVER="${RAW#v}"echo "tag=${RAW}">> "$GITHUB_OUTPUT"echo "semver=${SEMVER}">> "$GITHUB_OUTPUT"echo "Resolved: tag=${RAW}  semver=${SEMVER}"# ──────────────────────────────────────────────────────────────────────────
   # Build and publish the Python SDK to PyPI.
   # ──────────────────────────────────────────────────────────────────────────
   publish-python:
@@ -74,8 +67,7 @@ jobs:
           python3 - <<'PYEOF'
           import re, os
           semver = os.environ["SEMVER"]
-          path = "pyproject.toml"
-          text = open(path).read()
+          path = "pyproject.toml"text = open(path).read()
           text = re.sub(r'^version\s*=\s*"[^"]*"', f'version = "{semver}"', text, flags=re.MULTILINE)
           open(path, "w").write(text)
           print(f"pyproject.toml version → {semver}")
@@ -109,7 +101,7 @@ jobs:
               release_id: context.payload.release.id,
             });
             const pypiUrl = `https://pypi.org/project/pcmi/${semver}/`;
-            const addition = `\n\n📦 **Python SDK**: \`pip install pcmi==${semver}\`  →  ${pypiUrl}`;
+            const addition = `\n\n **Python SDK**: \`pip install pcmi==${semver}\`→  ${pypiUrl}`;
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -138,7 +130,7 @@ jobs:
 
       - name: Update version in package.json
         working-directory: sdk/typescript
-        run: npm version "${SEMVER}" --no-git-tag-version
+        run: npm version "${SEMVER}"--no-git-tag-version
 
       - name: Install dependencies
         working-directory: sdk/typescript
@@ -168,7 +160,7 @@ jobs:
               release_id: context.payload.release.id,
             });
             const npmUrl = `https://www.npmjs.com/package/@marco-spagn/pcmi-sdk/v/${semver}`;
-            const addition = `\n📦 **TypeScript SDK**: \`npm install @marco-spagn/pcmi-sdk@${semver}\`  →  ${npmUrl}`;
+            const addition = `\n **TypeScript SDK**: \`npm install @marco-spagn/pcmi-sdk@${semver}\`→  ${npmUrl}`;
             await github.rest.repos.updateRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -194,14 +186,7 @@ jobs:
 
       - name: Create and push sdk/go/vX.Y.Z tag
         run: |
-          git config user.name  "pcmi-ci[bot]"
-          git config user.email "pcmi-ci@users.noreply.github.com"
-          TAG="sdk/go/v${SEMVER}"
-          # Idempotent: skip if tag already exists.
-          if git rev-parse --verify "refs/tags/${TAG}" >/dev/null 2>&1; then
-            echo "Tag ${TAG} already exists — skipping."
-          else
-            git tag "${TAG}"
-            git push origin "${TAG}"
-            echo "Pushed tag ${TAG}"
-          fi
+          git config user.name  "pcmi-ci[bot]"git config user.email "pcmi-ci@users.noreply.github.com"TAG="sdk/go/v${SEMVER}"# Idempotent: skip if tag already exists.
+          if git rev-parse --verify "refs/tags/${TAG}">/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — skipping."else
+            git tag "${TAG}"git push origin "${TAG}"echo "Pushed tag ${TAG}"fi

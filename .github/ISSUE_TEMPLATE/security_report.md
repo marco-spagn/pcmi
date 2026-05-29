@@ -6,7 +6,7 @@ labels: security
 assignees: ''
 ---
 
-> **⚠️ Important**: Security vulnerabilities must be reported **privately**.
+> ** Important**: Security vulnerabilities must be reported **privately**.
 > Do **not** open a public issue.
 
 ## How to report

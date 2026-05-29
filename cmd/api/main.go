@@ -45,19 +45,19 @@ func skipTracePath(c *fiber.Ctx) bool {
 }
 
 func main() {
-	log.Println("🚀 PCMI API " + version.Tag + " starting...")
+	log.Println("PCMI API " + version.Tag + " starting...")
 
 	// --- Fail-fast: load and validate config before opening any connection ---
 	cfg := config.Load()
 	if err := cfg.Validate(config.APIRequiredFields...); err != nil {
-		log.Fatalf("❌ FATAL: %v", err)
+		log.Fatalf(" FATAL: %v", err)
 	}
 	if cfg.EncryptionKey != "" {
 		if err := pcmicrypto.InitKey(cfg.EncryptionKey); err != nil {
-			log.Fatalf("❌ FATAL encryption key: %v", err)
+			log.Fatalf(" FATAL encryption key: %v", err)
 		}
 	}
-	log.Printf("✅ Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
+	log.Printf("Config loaded (DB=%s, Redis=%s, Port=%s)", cfg.DatabaseURL[:min(len(cfg.DatabaseURL), 40)], cfg.RedisAddr, cfg.APIPort)
 	middleware.LogMetricsScrapeAuthState(cfg.MetricsScrapeToken)
 
 	ctx := context.Background()
@@ -85,7 +85,7 @@ func main() {
 	repo := repository.NewMemoryRepository(db, pools.Read)
 	embed, err := embedding.NewFromConfig(cfg)
 	if err != nil {
-		log.Fatalf("❌ FATAL embedding provider: %v", err)
+		log.Fatalf(" FATAL embedding provider: %v", err)
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	memSvc := service.NewMemoryService(repo, embed, dedupMode)
@@ -107,10 +107,10 @@ func main() {
 
 	handler.RegisterReadyRoutes(app, db)
 	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
-		log.Fatalf("❌ FATAL memory routes: %v", err)
+		log.Fatalf(" FATAL memory routes: %v", err)
 	}
 	if err := handler.SetupSessionRoutes(app, db, pools.Read, cfg); err != nil {
-		log.Fatalf("❌ FATAL session routes: %v", err)
+		log.Fatalf(" FATAL session routes: %v", err)
 	}
 	handler.SetupAdminRoutes(app, db)
 	handler.SetupDistillationPolicyRoutes(app, db)
@@ -121,13 +121,13 @@ func main() {
 
 	grpcserver.Start(db, pools.Read, memSvc, cfg)
 
-	log.Printf("✅ PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
+	log.Printf("PCMI API %s started on port %s (/v1/ready per readiness)", version.Tag, cfg.APIPort)
 	if pools.Read != nil {
-		log.Println("📖 DATABASE_READ_URL active: read load routed to replica")
+		log.Println("DATABASE_READ_URL active: read load routed to replica")
 	}
 	addr := ":" + cfg.APIPort
 	if cfg.TLSCertFile != "" && cfg.TLSKeyFile != "" {
-		log.Printf("🔒 TLS enabled (cert=%s)", cfg.TLSCertFile)
+		log.Printf("TLS enabled (cert=%s)", cfg.TLSCertFile)
 		log.Fatal(app.ListenTLS(addr, cfg.TLSCertFile, cfg.TLSKeyFile))
 	} else {
 		log.Fatal(app.Listen(addr))

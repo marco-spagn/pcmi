@@ -46,12 +46,12 @@ func InitRedis(addr string) {
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
 		_, err := RedisClient.Ping(ctx).Result()
 		if err == nil {
-			log.Println("✅ Connected to Redis")
+			log.Println("Connected to Redis")
 			return
 		}
 		if attempt == maxAttempts {
 			// Only fatal after all retries exhausted.
-			log.Fatalf("❌ Failed to connect to Redis after %d attempts: %v", maxAttempts, err)
+			log.Fatalf(" Failed to connect to Redis after %d attempts: %v", maxAttempts, err)
 		}
 		log.Printf("⏳ Redis not ready (attempt %d/%d): %v — retrying in %s",
 			attempt, maxAttempts, err, backoff)
@@ -81,10 +81,10 @@ func publishStream(eventType string, payload map[string]any) error {
 	pub := NewStreamPublisher(RedisClient, StreamKey)
 	streamID, err := pub.Publish(ctx, eventType, payload)
 	if err != nil {
-		log.Printf("❌ Failed to XADD event: %v", err)
+		log.Printf("Failed to XADD event: %v", err)
 		return err
 	}
-	log.Printf("📣 [REDIS STREAM] Published event: %s id=%s", eventType, streamID)
+	log.Printf("[REDIS STREAM] Published event: %s id=%s", eventType, streamID)
 	notifyWebhook(eventType, payload)
 	return nil
 }
@@ -102,11 +102,11 @@ func publishPubSub(eventType string, payload map[string]any) error {
 
 	err = RedisClient.Publish(ctx, "memory_events", data).Err()
 	if err != nil {
-		log.Printf("❌ Failed to publish event: %v", err)
+		log.Printf("Failed to publish event: %v", err)
 		return err
 	}
 
-	log.Printf("📣 [REDIS] Published event: %s", eventType)
+	log.Printf("[REDIS] Published event: %s", eventType)
 	notifyWebhook(eventType, payload)
 	return nil
 }
@@ -141,7 +141,7 @@ func pubsubSubscribe(parent context.Context) <-chan Event {
 	pubsub := RedisClient.Subscribe(parent, "memory_events")
 
 	if _, err := pubsub.Receive(parent); err != nil {
-		log.Printf("❌ Failed to confirm Redis SUBSCRIBE: %v", err)
+		log.Printf("Failed to confirm Redis SUBSCRIBE: %v", err)
 		_ = pubsub.Close()
 		close(ch)
 		return ch
@@ -160,7 +160,7 @@ func pubsubSubscribe(parent context.Context) <-chan Event {
 				}
 				var evt Event
 				if err := json.Unmarshal([]byte(msg.Payload), &evt); err != nil {
-					log.Printf("❌ Failed to unmarshal event: %v", err)
+					log.Printf("Failed to unmarshal event: %v", err)
 					continue
 				}
 				select {

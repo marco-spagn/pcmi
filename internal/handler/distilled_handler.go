@@ -48,7 +48,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "after_id is not supported for distilled listings; use cursor"})
 	}
 
-	log.Printf("📡 [DISTILLED] tenant=%s path_prefix=%s", tenantID, pathPrefix)
+	log.Printf("[DISTILLED] tenant=%s path_prefix=%s", tenantID, pathPrefix)
 
 	ctx := context.Background()
 	var total int
@@ -56,7 +56,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 		`SELECT COUNT(*) FROM distilled_knowledge WHERE tenant_id = $1::uuid AND path <@ $2::ltree`,
 		tenantID, pathPrefix,
 	).Scan(&total); err != nil {
-		log.Printf("❌ [DISTILLED] count: %v", err)
+		log.Printf("[DISTILLED] count: %v", err)
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
@@ -79,7 +79,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 
 	rows, err := h.db.Query(ctx, q, args...)
 	if err != nil {
-		log.Printf("❌ [DISTILLED] query: %v", err)
+		log.Printf("[DISTILLED] query: %v", err)
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 	defer rows.Close()
@@ -98,7 +98,7 @@ func (h *DistilledHandler) Get(c *fiber.Ctx) error {
 	for rows.Next() {
 		var row distilledRow
 		if err := rows.Scan(&row.id, &row.path, &row.summary, &row.insightsRaw, &row.confidence, &row.distilledAt, &row.sourceIDs, &row.version); err != nil {
-			log.Printf("❌ [DISTILLED] scan: %v", err)
+			log.Printf("[DISTILLED] scan: %v", err)
 			continue
 		}
 		scanned = append(scanned, row)

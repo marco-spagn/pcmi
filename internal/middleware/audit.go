@@ -57,10 +57,10 @@ func (m *AuditMiddleware) Middleware() fiber.Handler {
 		)
 
 		if dbErr != nil {
-			log.Printf("⚠️ Audit log failed: %v", dbErr)
+			log.Printf("Audit log failed: %v", dbErr)
 		}
 
-		log.Printf("📊 Audit: %s %s [%d] %s", c.Method(), c.Path(), c.Response().StatusCode(), time.Since(start))
+		log.Printf("Audit: %s %s [%d] %s", c.Method(), c.Path(), c.Response().StatusCode(), time.Since(start))
 		return err
 	}
 }

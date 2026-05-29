@@ -38,9 +38,9 @@ func NewDistillationWorker(db workerDB, cfg *config.Config) *DistillationWorker 
 		concurrency = distillationConcurrencyFrom(cfg.DistillationConcurrency)
 	}
 	if apiKey == "" {
-		log.Println("⚠️  OPENAI_API_KEY unset — distillation LLM calls will fail")
+		log.Println("OPENAI_API_KEY unset — distillation LLM calls will fail")
 	}
-	log.Printf("🔧 Distillation concurrency limit: %d parallel LLM jobs", concurrency)
+	log.Printf("Distillation concurrency limit: %d parallel LLM jobs", concurrency)
 	return &DistillationWorker{
 		db:        db,
 		openai:    openai.NewClient(apiKey),
@@ -96,7 +96,7 @@ func (w *DistillationWorker) runDistillationJob(tenantID, memoryPath string) {
 }
 
 func (w *DistillationWorker) Start(ctx context.Context) {
-	log.Printf("🚀 Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", w.batchSize)
+	log.Printf("Distillation Engine v1.7 started — Redis-driven + fallback timer (batch_size=%d)", w.batchSize)
 
 	ticker := time.NewTicker(15 * time.Second)
 	defer ticker.Stop()
@@ -106,7 +106,7 @@ func (w *DistillationWorker) Start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("🛑 Distillation worker stopped")
+			log.Println("Distillation worker stopped")
 			return
 		case <-ticker.C:
 			log.Println("⏰ Fallback timer: periodic distillation for default tenant")
@@ -128,17 +128,17 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	defer cancel()
 
 	if _, err := w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
-		log.Printf("❌ distillation set tenant: %v", err)
+		log.Printf("distillation set tenant: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 
 	batchSize := w.batchSize
-	log.Printf("🔄 Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
+	log.Printf("Distillation job tenant=%s path_prefix=%s batch_size=%d", tenantID, pathPrefix, batchSize)
 
 	rows, err := w.db.Query(ctx, distillationSourceEntriesSQL(), tenantID, pathPrefix, batchSize)
 	if err != nil {
-		log.Printf("❌ distillation query error: %v", err)
+		log.Printf("distillation query error: %v", err)
 		return
 	}
 	defer rows.Close()
@@ -167,7 +167,7 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	}
 
 	if len(entries) < 1 {
-		log.Printf("📊 No memories under %s — distillation skipped", pathPrefix)
+		log.Printf("No memories under %s — distillation skipped", pathPrefix)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
@@ -175,12 +175,12 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 	metrics.ObserveDistillationSources(len(entries))
 
 	if w.apiKey == "" {
-		log.Println("⚠️  Skipping LLM distillation (no OPENAI_API_KEY)")
+		log.Println("Skipping LLM distillation (no OPENAI_API_KEY)")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
 
-	log.Printf("🧠 Distilling %d raw memories under %s...", len(entries), pathPrefix)
+	log.Printf("Distilling %d raw memories under %s...", len(entries), pathPrefix)
 
 	prompt := `Summarize these memories into higher-order knowledge.
 Return ONLY valid JSON:
@@ -206,7 +206,7 @@ Return ONLY valid JSON:
 		},
 	})
 	if err != nil {
-		log.Printf("❌ LLM distillation error: %v", err)
+		log.Printf("LLM distillation error: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
@@ -214,13 +214,13 @@ Return ONLY valid JSON:
 	// BUG-FIX-1: guard against empty Choices (OpenAI API can return 0 choices on
 	// content-filter or rate-limit soft errors without returning an HTTP error code).
 	if len(resp.Choices) == 0 {
-		log.Printf("❌ LLM returned 0 choices (finish_reason may be 'content_filter')")
+		log.Printf("LLM returned 0 choices (finish_reason may be 'content_filter')")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
 	if err != nil {
-		log.Printf("❌ JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
+		log.Printf("JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
@@ -233,24 +233,24 @@ Return ONLY valid JSON:
 
 	dup, err := w.hasDuplicateDistillation(ctx, tenantID, distilledPath, sourceIDs)
 	if err != nil {
-		log.Printf("❌ distillation dedup check: %v", err)
+		log.Printf("distillation dedup check: %v", err)
 		return
 	}
 	if dup {
-		log.Printf("⏭️  Distillation skipped (duplicate sources) path=%s tenant=%s", distilledPath, tenantID)
+		log.Printf("⏭  Distillation skipped (duplicate sources) path=%s tenant=%s", distilledPath, tenantID)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "duplicate")
 		return
 	}
 
 	version, err := nextDistilledVersion(ctx, w.db, tenantID, distilledPath)
 	if err != nil {
-		log.Printf("❌ distillation version: %v", err)
+		log.Printf("distillation version: %v", err)
 		return
 	}
 
 	insightsJSON, err := json.Marshal(result.Insights)
 	if err != nil {
-		log.Printf("❌ insights marshal: %v", err)
+		log.Printf("insights marshal: %v", err)
 		return
 	}
 
@@ -269,7 +269,7 @@ Return ONLY valid JSON:
 		version,
 	).Scan(&distilledID)
 	if err != nil {
-		log.Printf("❌ insert distilled error: %v", err)
+		log.Printf("insert distilled error: %v", err)
 		return
 	}
 
@@ -280,11 +280,11 @@ Return ONLY valid JSON:
 		"version":   version,
 		"sources":   len(sourceIDs),
 	}); err != nil {
-		log.Printf("⚠️  distilled event publish: %v", err)
+		log.Printf("distilled event publish: %v", err)
 	}
 
 	metrics.ObserveDistillationJob(time.Since(start).Seconds(), "ok")
-	log.Printf("✅ Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)",
+	log.Printf("Distillation saved id=%d at %s v%d (tenant=%s, sources=%d)",
 		distilledID, distilledPath, version, tenantID, len(sourceIDs))
 
 	// FIX-4: update distillation_runs row to 'completed' when called from
@@ -332,6 +332,6 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 		  )`, tenantID, tenantID, distilledID)
 	if err != nil {
 		// Non-fatal: the distillate was saved; only the audit row is wrong.
-		log.Printf("⚠️ markRunCompleted: %v", err)
+		log.Printf("markRunCompleted: %v", err)
 	}
 }

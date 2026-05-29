@@ -301,15 +301,15 @@ func BuildServerOptions(cfg *config.Config) []grpc.ServerOption {
 		return opts
 	}
 	if cert == "" || key == "" {
-		log.Printf("⚠️  gRPC TLS partially configured (cert=%q, key=%q) — falling back to plain TCP", cert, key)
+		log.Printf("gRPC TLS partially configured (cert=%q, key=%q) — falling back to plain TCP", cert, key)
 		return opts
 	}
 	creds, err := credentials.NewServerTLSFromFile(cert, key)
 	if err != nil {
-		log.Printf("⚠️  gRPC TLS load failed (%v) — falling back to plain TCP", err)
+		log.Printf("gRPC TLS load failed (%v) — falling back to plain TCP", err)
 		return opts
 	}
-	log.Printf("🔒 gRPC TLS enabled (cert=%s)", cert)
+	log.Printf("gRPC TLS enabled (cert=%s)", cert)
 	return append(opts, grpc.Creds(creds))
 }
 
@@ -342,7 +342,7 @@ func Start(dbWrite, dbRead *pgxpool.Pool, memSvc *service.MemoryService, cfg *co
 	pcmiv1.RegisterAdminServiceServer(srv, newAdminServer(dbWrite))
 	pcmiv1.RegisterMetricsServiceServer(srv, newMetricsServer(dbWrite))
 	go func() {
-		log.Printf("✅ PCMI gRPC server on :%s (MemoryService + AdminService + MetricsService)", port)
+		log.Printf("PCMI gRPC server on :%s (MemoryService + AdminService + MetricsService)", port)
 		if err := srv.Serve(lis); err != nil {
 			log.Printf("gRPC serve: %v", err)
 		}

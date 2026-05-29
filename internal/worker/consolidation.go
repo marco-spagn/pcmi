@@ -51,7 +51,7 @@ func (w *ConsolidationWorker) TriggerForMemory(tenantID, path string) {
 		defer cancel()
 		_, _ = w.db.Exec(ctx, "SELECT set_tenant_context($1::uuid)", tenantID)
 		if err := w.tryConsolidate(ctx, tenantID, prefix); err != nil {
-			log.Printf("⚠️ consolidation trigger: %v", err)
+			log.Printf("consolidation trigger: %v", err)
 		}
 	}()
 }
@@ -152,7 +152,7 @@ func (w *ConsolidationWorker) runConsolidation(ctx context.Context, tenantID, pr
 	if err != nil {
 		return err
 	}
-	log.Printf("✅ consolidated tenant=%s prefix=%s entry_id=%d version=%d sources=%d", tenantID, prefix, id, ver, len(ids))
+	log.Printf("consolidated tenant=%s prefix=%s entry_id=%d version=%d sources=%d", tenantID, prefix, id, ver, len(ids))
 	return nil
 }
 

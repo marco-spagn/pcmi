@@ -256,6 +256,11 @@ test-integration:
 
 # Redis Streams durable bus (//go:build integration).
 test-streams-integration:
+
+# Cognitive Graph v2.0 E2E smoke test — starts Docker, AGE Postgres, API,
+# inserts test data, exercises all 4 graph endpoints, and cleans up.
+test-cognitive-graph:
+	bash scripts/e2e/test_cognitive_graph.sh
 	go test -tags=integration -run TestStream ./internal/event/...
 
 test-circuit-breaker:

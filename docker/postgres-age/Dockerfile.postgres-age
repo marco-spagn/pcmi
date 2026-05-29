@@ -17,10 +17,12 @@ FROM pgvector/pgvector:pg16
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         build-essential \
+        bison \
+        flex \
         postgresql-server-dev-16 \
         git \
         ca-certificates \
-    && git clone --depth 1 \
+    && git clone --depth 1 --branch PG16/v1.6.0-rc0 \
         https://github.com/apache/age.git /tmp/age \
     && cd /tmp/age \
     && make USE_PGXS=1 install \

@@ -184,11 +184,15 @@ MIGRATION_019="$PROJECT_ROOT/migrations/019_cognitive_graph_age.sql"
 
 # Copy migration into the container and run it.
 docker cp "$MIGRATION_019" pcmi-postgres-age:/tmp/019.sql >/dev/null
-docker exec pcmi-postgres-age psql -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1
-docker exec pcmi-postgres-age rm /tmp/019.sql >/dev/null 2>&1
+# Use TCP connection — some images don't expose a Unix socket at the default path.
+if ! docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
+  warn "Migration had non-zero exit — checking if AGE is still available..."
+  cat /tmp/graph-migration.log | tail -5
+fi
+docker exec pcmi-postgres-age rm /tmp/019.sql >/dev/null 2>&1 || true
 
 # Verify AGE extension was created.
-if docker exec pcmi-postgres-age psql -U pcmi -d pcmi -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" >/dev/null 2>&1; then
+if docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" >/dev/null 2>&1; then
   ok "Migration applied — AGE extension and pcmi_memory_graph exist"
 else
   fail "Migration did not create AGE graph"
@@ -196,14 +200,14 @@ else
 fi
 
 # Verify pgvector is also available.
-if docker exec pcmi-postgres-age psql -U pcmi -d pcmi -c "CREATE EXTENSION IF NOT EXISTS vector" >/dev/null 2>&1; then
+if docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -c "CREATE EXTENSION IF NOT EXISTS vector" >/dev/null 2>&1; then
   ok "pgvector extension available (bundled image)"
 else
   warn "pgvector extension not available — embedding features disabled on this instance"
 fi
 
 # Verify the trigger exists.
-TRIGGER_CHECK=$(docker exec pcmi-postgres-age psql -U pcmi -d pcmi -t -c \
+TRIGGER_CHECK=$(docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -t -c \
   "SELECT count(*) FROM information_schema.triggers WHERE trigger_name = 'trg_memory_links_sync_graph'" 2>/dev/null | tr -d ' ')
 if [ "$TRIGGER_CHECK" = "1" ]; then
   ok "Trigger trg_memory_links_sync_graph exists on memory_links"
@@ -444,7 +448,7 @@ docker run -d --name pcmi-postgres-std \
 
 # Apply ONLY migration 019 (simulates running migration without AGE).
 docker cp "$MIGRATION_019" pcmi-postgres-std:/tmp/019.sql >/dev/null
-docker exec pcmi-postgres-std psql -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration-std.log 2>&1 || true
+docker exec pcmi-postgres-std psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration-std.log 2>&1 || true
 docker exec pcmi-postgres-std rm /tmp/019.sql >/dev/null 2>&1
 
 wait_for_pg pcmi-postgres-std 30

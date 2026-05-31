@@ -78,7 +78,7 @@ flowchart LR
 | **Workers** | Embedding (circuit breaker), distillation, consolidation, pruning, compaction, expiry |
 | **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams |
 | **Integration** | Webhooks with **HMAC** (`timestamp.body`), idempotent store (`X-Idempotency-Key`), MCP stdio server |
-| **Graph** *(experimental)* | Typed `memory_links` on **Apache AGE** — `/v1/graph/related`, `/chain`, `/cypher`; browser UI at [`/v1/graph/ui`](docs/cognitive-graph.md#graph-ui--demo-video) |
+| **Graph** *(experimental)* | Typed `memory_links` synced to **Apache AGE** — `GET /v1/graph/health`, `/related` (multi-hop + cursor pagination), `/chain`, `POST /cypher` (read-only MATCH); explorer UI at [`/v1/graph/ui`](docs/cognitive-graph.md#graph-ui--demo-video) |
 | **Security** | API-key RBAC + **rotation/lifecycle** (admin), PostgreSQL RLS, optional metrics Bearer token |
 | **Rate limit** | Per-key limits; **`RATE_LIMIT_BACKEND=redis`** for multi-instance API |
 | **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
@@ -177,7 +177,23 @@ Visualize **any** linked memories as a **typed property graph** on [Apache AGE](
 
 > **Example dataset (SOC only):** `make graph-ui` loads a **sample** cyber-incident graph (alerts, kill chains, campaigns) so you can try the explorer without your own data. The video and memory IDs below refer to that demo — swap in your tenant’s memories and links for production use.
 
-With AGE enabled, `GET /v1/graph/related` and `GET /v1/graph/chain` power the explorer.
+With AGE enabled, the explorer calls the graph endpoints below; links are created with the normal memory API (`POST /v1/memories/links`) and synced into AGE by a DB trigger.
+
+| Endpoint | Auth | Role |
+|----------|------|------|
+| `GET /v1/graph/health` | None | AGE availability probe |
+| `GET /v1/graph/related` | Read | Multi-hop traversal (`memory_id`, `depth`, `link_types`, `cursor`, `limit`) |
+| `GET /v1/graph/chain` | Read | Shortest path between two memories (`from`, `to`, `link_types`, `max_depth`) |
+| `POST /v1/graph/cypher` | Write | Read-only Cypher (`MATCH` only; tenant scoped) |
+| `GET /v1/graph/ui` | None | Browser explorer (uses your API key in-page) |
+
+Returns **501** when AGE is not installed. Full parameters and examples: **[docs/cognitive-graph.md](docs/cognitive-graph.md)**.
+
+```bash
+curl -s "$PCMI_BASE_URL/v1/graph/health"
+curl -s -H "X-API-Key: $PCMI_API_KEY" \
+  "$PCMI_BASE_URL/v1/graph/related?memory_id=14&depth=3&link_types=causal,temporal&limit=50"
+```
 
 ### Demo video (~90s)
 
@@ -189,7 +205,7 @@ https://github.com/user-attachments/assets/d4325b08-50cc-450a-9c24-66b062041eba
 
 | Step | Command / URL |
 |------|----------------|
-| 1. Start stack + load **example** SOC dataset | `make graph-ui` (or `bash scripts/e2e/launch_graph_ui.sh`) — optional; use your own memories/links instead |
+| 1. Start stack + load **example** SOC dataset | `make graph-ui` (AGE on port **5433**, optional SOC sample) — `FULL_STACK=1`, `DATASET_SIZE=5000`, `INFRA_ONLY=1`; or `bash scripts/e2e/launch_graph_ui.sh` |
 | 2. Open the UI | [http://localhost:8000/v1/graph/ui](http://localhost:8000/v1/graph/ui) |
 | 3. API key | Default dev key: `testkey123` (see `.env.example`) |
 | 4. First exploration *(SOC demo)* | Memory ID **14**, depth **5**, link types **causal + temporal** — Conti kill chain in the sample data |
@@ -200,12 +216,13 @@ The green **AGE ready** badge means `GET /v1/graph/health` reports `available: t
 
 | Control | Backed by | Purpose |
 |---------|-----------|---------|
-| **Explore** | `GET /v1/graph/related` | Expand N hops from a root memory; edge labels show `link_type`, node colors show hop depth |
-| **Find Chain** | `GET /v1/graph/chain` | Shortest causal path between root (Memory ID field) and a selected node — highlighted in gold |
-| **Force / Tree / Radial** | vis-network layouts | Force = natural clusters; Tree = stage-by-stage; Radial = root-centered briefing |
-| **Inspector** | `GET /v1/graph/memories` cache | Path, alert content, tags, severity / MITRE metadata on node click |
-| **Clusters** | Path-prefix grouping | Collapse alert storms (many duplicates on the same subnet) |
-| **Timeline** | Memory timestamps | Time axis; click a dot to focus the node in the graph |
+| **Explore** | `GET /v1/graph/related` | Expand N hops from a root memory; filter link types; edge labels + hop depth colors |
+| **Explore from here** | Same | Re-root traversal on a clicked node |
+| **Find Chain** | `GET /v1/graph/chain` | Shortest path between root (Memory ID) and a selected node — highlighted in gold |
+| **Force / Tree / Radial** | vis-network layouts | Force = clusters; Tree = stage-by-stage; Radial = root-centered briefing |
+| **Inspector** | `POST /v1/retrieve` (cached) | Path, content, tags, metadata (e.g. severity / MITRE on the SOC demo) |
+| **Clusters** | Client-side path prefix | Collapse alert storms (many nodes under the same subnet path) |
+| **Timeline** | Memory `detected_at` metadata | Time axis; click a dot to focus the node in the graph |
 
 **Suggested memory IDs for the SOC example**, curl examples, and edge-type semantics: **[docs/cognitive-graph.md § Graph UI](docs/cognitive-graph.md#graph-ui--demo-video)**.
 
@@ -288,11 +305,11 @@ Optional technical report (PDF build): [docs/papers/](docs/papers/).
 | [`cmd/api`](cmd/api) | HTTP + gRPC server, `/metrics`, admin UI |
 | [`cmd/mcp`](cmd/mcp) | MCP stdio server for AI agents (`pcmi-mcp`) |
 | [`cmd/worker`](cmd/worker) | Embedding, distillation, pruning, expiry |
-| [`internal/`](internal/) | Domain logic (handler, service, repository, worker, grpc) |
+| [`internal/`](internal/) | Domain logic (handler, service, repository, worker, grpc); [`internal/graph/`](internal/graph/) = AGE client |
 | [`proto/`](proto/) | Protobuf definitions |
 | [`migrations/`](migrations/) | SQL schema (`001`–`012`) |
 | [`sdk/`](sdk/) | Python & TypeScript HTTP clients |
-| [`examples/`](examples/) | Celery, Temporal, LangChain, LlamaIndex, AutoGen, CrewAI samples |
+| [`examples/`](examples/) | Orchestrator samples + optional [`soc-incident-graph/`](examples/soc-incident-graph/) demo data |
 | [`deploy/helm/`](deploy/helm/) | Primary Kubernetes packaging |
 | [`deploy/k8s/`](deploy/k8s/) | Static manifests (non-Helm) |
 | [`k8s/`](k8s/) | **Deprecated** — use `deploy/helm/` |

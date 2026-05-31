@@ -217,14 +217,6 @@ The green **AGE ready** badge means `GET /v1/graph/health` reports `available: t
 
 **Suggested memory IDs** (after the SOC dataset load), curl examples, and edge-type semantics: **[docs/cognitive-graph.md § Graph UI](docs/cognitive-graph.md#graph-ui--demo-video)**.
 
-**Regenerate the demo video** (requires Chrome + ffmpeg):
-
-```bash
-docker compose --profile graph -f docker-compose.yml -f docker-compose.record-graph.yml up -d api
-cd scripts/e2e && npm install playwright@1.49.1 && node record_graph_ui_demo.mjs
-# → docs/assets/graph-ui-demo.mp4
-```
-
 > **Status:** experimental v2.0 spike — API and schema may change. See [docs/cognitive-graph.md](docs/cognitive-graph.md) and [docs/roadmap.md](docs/roadmap.md).
 
 ---

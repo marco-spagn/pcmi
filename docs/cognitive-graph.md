@@ -375,13 +375,20 @@ with your API key and renders the result with [vis-network](https://visjs.github
 
 ### Watch the walkthrough (~90s)
 
-<video src="assets/graph-ui-demo.mp4" width="100%" controls></video>
+https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4
+
+<video width="100%" controls playsinline preload="metadata"
+  poster="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo-poster.jpg">
+  <source src="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4" type="video/mp4" />
+  <source src="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4" type="video/mp4" />
+</video>
 
 | | |
 |--|--|
-| **File** | [docs/assets/graph-ui-demo.mp4](assets/graph-ui-demo.mp4) |
+| **In repo** | [docs/assets/graph-ui-demo.mp4](assets/graph-ui-demo.mp4) |
+| **Release** | [graph-ui-demo.mp4](https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4) |
 | **Covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
-| **Regenerate** | `node scripts/e2e/record_graph_ui_demo.mjs` (Chrome + ffmpeg; API on postgres-age — see script header) |
+| **Regenerate** | `node scripts/e2e/record_graph_ui_demo.mjs` then `gh release upload graph-ui-demo docs/assets/graph-ui-demo.mp4 --clobber` |
 
 ### Open the UI
 

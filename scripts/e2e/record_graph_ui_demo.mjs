@@ -388,6 +388,9 @@ async function main() {
     OUT_FILE,
   ]);
   console.log('Done:', OUT_FILE, `— ${parseFloat(stdout).toFixed(0)}s, ${frameIdx} frames`);
+  console.log('Publish for README playback:');
+  console.log('  gh release upload graph-ui-demo', OUT_FILE, '--clobber');
+  console.log('  # Update raw/blob URLs in README.md if the git branch name changed');
 }
 
 main().catch((e) => {

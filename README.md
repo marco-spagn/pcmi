@@ -19,17 +19,32 @@ Explore SOC incidents and linked memories as a **typed property graph** on [Apac
 
 **Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline.
 
+https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4
+
 <p align="center">
-  <a href="docs/assets/graph-ui-demo.mp4">
-    <img
-      src="docs/assets/graph-ui-demo-poster.jpg"
-      alt="Cognitive Graph Explorer demo — click to play the 90 second walkthrough video"
-      width="100%"
+  <video
+    width="100%"
+    controls
+    playsinline
+    preload="metadata"
+    poster="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo-poster.jpg"
+  >
+    <source
+      src="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4"
+      type="video/mp4"
     />
-  </a>
+    <source
+      src="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4"
+      type="video/mp4"
+    />
+  </video>
 </p>
 
-<p align="center"><b>▶ Click the image to play</b> · <a href="docs/assets/graph-ui-demo.mp4">graph-ui-demo.mp4</a></p>
+<p align="center">
+  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4"><b>▶ Open in GitHub player</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4"><b>Download MP4</b></a>
+</p>
 
 <p align="center">
   <a href="http://localhost:8000/v1/graph/ui"><code>/v1/graph/ui</code></a> (local)

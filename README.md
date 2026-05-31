@@ -13,16 +13,39 @@
 
 Agents are ephemeral. Organizational memory should not be.
 
+## Cognitive Graph Explorer *(experimental)*
+
+Explore SOC incidents and linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest causal chains, and a browser UI at **`/v1/graph/ui`**.
+
+**Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline:
+
+<p align="center">
+  <video src="docs/assets/graph-ui-demo.mp4" width="100%" controls playsinline>
+    <a href="docs/assets/graph-ui-demo.mp4"><strong>▶ Play graph-ui-demo.mp4</strong></a>
+  </video>
+</p>
+
+<p align="center">
+  <a href="docs/assets/graph-ui-demo.mp4"><b>Download / open video</b></a>
+  &nbsp;·&nbsp;
+  <a href="http://localhost:8000/v1/graph/ui"><code>/v1/graph/ui</code></a> (local)
+  &nbsp;·&nbsp;
+  <a href="docs/cognitive-graph.md#graph-ui--demo-video">Graph UI guide</a>
+  &nbsp;·&nbsp;
+  <code>make graph-ui</code> to load the SOC dataset
+</p>
+
 ---
 
 ## Table of contents
 
+- [Cognitive Graph Explorer](#cognitive-graph-explorer-experimental)
 - [Why PCMI](#why-pcmi)
 - [Features](#features)
 - [Quickstart (2 minutes)](#quickstart-2-minutes)
   - [Docker](#docker)
 - [Usage examples](#usage-examples)
-- [Cognitive Graph Explorer](#cognitive-graph-explorer-experimental)
+- [Cognitive Graph — details](#cognitive-graph--details)
 - [Architecture](#architecture)
 - [APIs and clients](#apis-and-clients)
 - [Documentation](#documentation)
@@ -171,17 +194,11 @@ Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[
 
 ---
 
-## Cognitive Graph Explorer *(experimental)*
+## Cognitive Graph — details
 
-PCMI can model SOC incidents (or any linked memories) as a **property graph**: nodes are memories, edges are typed links (`causal`, `temporal`, `contradicts`, `supports`, `related`). With [Apache AGE](https://github.com/apache/age) enabled, the API answers multi-hop questions and shortest-path chains; the **Graph Explorer** visualizes the result in the browser.
+The **demo video is at the top of this README**. Below: how to run the UI locally and what each control maps to on the API.
 
-### Demo video (~90s)
-
-Walkthrough of the UI: kill-chain traversal, layouts, inspector, Find Chain, edge semantics, clusters, and timeline.
-
-<video src="docs/assets/graph-ui-demo.mp4" width="100%" controls></video>
-
-Direct link: **[docs/assets/graph-ui-demo.mp4](docs/assets/graph-ui-demo.mp4)** (also playable on GitHub’s file view).
+PCMI models linked memories as a graph: **nodes** = memories, **edges** = typed `memory_links` (`causal`, `temporal`, `contradicts`, `supports`, `related`). With AGE enabled, `GET /v1/graph/related` and `GET /v1/graph/chain` power the explorer.
 
 ### Try it locally
 

@@ -17,17 +17,21 @@ Agents are ephemeral. Organizational memory should not be.
 
 Explore SOC incidents and linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest causal chains, and a browser UI at **`/v1/graph/ui`**.
 
-**Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline:
+**Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline.
 
 <p align="center">
-  <video src="docs/assets/graph-ui-demo.mp4" width="100%" controls playsinline>
-    <a href="docs/assets/graph-ui-demo.mp4"><strong>▶ Play graph-ui-demo.mp4</strong></a>
-  </video>
+  <a href="docs/assets/graph-ui-demo.mp4">
+    <img
+      src="docs/assets/graph-ui-demo-poster.jpg"
+      alt="Cognitive Graph Explorer demo — click to play the 90 second walkthrough video"
+      width="100%"
+    />
+  </a>
 </p>
 
+<p align="center"><b>▶ Click the image to play</b> · <a href="docs/assets/graph-ui-demo.mp4">graph-ui-demo.mp4</a></p>
+
 <p align="center">
-  <a href="docs/assets/graph-ui-demo.mp4"><b>Download / open video</b></a>
-  &nbsp;·&nbsp;
   <a href="http://localhost:8000/v1/graph/ui"><code>/v1/graph/ui</code></a> (local)
   &nbsp;·&nbsp;
   <a href="docs/cognitive-graph.md#graph-ui--demo-video">Graph UI guide</a>

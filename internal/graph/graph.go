@@ -98,16 +98,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	defer conn.Release()
 
-	relPattern := fmt.Sprintf("[r*1..%d]", maxDepth)
-	typeFilter := ""
-	if len(linkTypes) > 0 {
-		parts := make([]string, len(linkTypes))
-		for i, lt := range linkTypes {
-			parts[i] = fmt.Sprintf("type(r[0]) = '%s'", sanitizeLinkType(lt))
-		}
-		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
-	}
-
+	relPattern, typeFilter := buildRelPattern(maxDepth, "r", linkTypes)
 	idStr := fmt.Sprintf("memory.%d", memoryID)
 
 	// Count query.
@@ -127,10 +118,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 
 	// Data query with keyset pagination. Fetch limit+1 to detect has_more.
-	cursorClause := ""
-	if cursor > 0 {
-		cursorClause = fmt.Sprintf(" AND n.id > 'memory.%d'", cursor)
-	}
+	cursorClause := buildCursorClause(cursor)
 	dataQuery := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
@@ -198,15 +186,7 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 	}
 	defer conn.Release()
 
-	relPattern := fmt.Sprintf("[e*1..%d]", maxDepth)
-	typeFilter := ""
-	if len(linkTypes) > 0 {
-		parts := make([]string, len(linkTypes))
-		for i, lt := range linkTypes {
-			parts[i] = fmt.Sprintf("type(e[0]) = '%s'", sanitizeLinkType(lt))
-		}
-		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
-	}
+	relPattern, typeFilter := buildRelPattern(maxDepth, "e", linkTypes)
 
 	fromStr := fmt.Sprintf("memory.%d", fromID)
 	toStr := fmt.Sprintf("memory.%d", toID)
@@ -466,6 +446,30 @@ func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, to
 		`SELECT public.sync_memory_link_to_graph($1, $2, $3, $4, $5)`,
 		fromPath, toPath, sanitizeLinkType(linkType), weight, tenantID,
 	)
+}
+
+// buildRelPattern builds the Cypher relationship pattern and WHERE type filter
+// for graph traversals.  relVar is the edge variable name ("r" or "e").
+func buildRelPattern(maxDepth int, relVar string, linkTypes []string) (string, string) {
+	pattern := fmt.Sprintf("[%s*1..%d]", relVar, maxDepth)
+	typeFilter := ""
+	if len(linkTypes) > 0 {
+		parts := make([]string, len(linkTypes))
+		for i, lt := range linkTypes {
+			parts[i] = fmt.Sprintf("type(%s[0]) = '%s'", relVar, sanitizeLinkType(lt))
+		}
+		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
+	}
+	return pattern, typeFilter
+}
+
+// buildCursorClause returns a Cypher WHERE fragment for keyset pagination.
+// Returns empty string when cursor is 0 or negative.
+func buildCursorClause(cursor int64) string {
+	if cursor > 0 {
+		return fmt.Sprintf(" AND n.id > 'memory.%d'", cursor)
+	}
+	return ""
 }
 
 func parseMemoryVertexID(raw string) (int64, error) {

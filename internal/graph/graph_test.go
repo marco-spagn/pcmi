@@ -1607,3 +1607,123 @@ func TestIsAvailable_ZeroValueClient(t *testing.T) {
 		t.Error("must report unavailable even with context.TODO()")
 	}
 }
+
+// ─── buildRelPattern (pure function, extracted from FindRelated/FindChain) ──
+
+func TestBuildRelPattern_NoLinkTypes(t *testing.T) {
+	p, f := buildRelPattern(3, "r", nil)
+	if p != "[r*1..3]" {
+		t.Errorf("pattern: got %q want [r*1..3]", p)
+	}
+	if f != "" {
+		t.Errorf("typeFilter with nil linkTypes: got %q want empty", f)
+	}
+}
+
+func TestBuildRelPattern_EmptyLinkTypes(t *testing.T) {
+	p, f := buildRelPattern(5, "e", []string{})
+	if p != "[e*1..5]" {
+		t.Errorf("pattern: got %q want [e*1..5]", p)
+	}
+	if f != "" {
+		t.Errorf("typeFilter with empty linkTypes: got %q want empty", f)
+	}
+}
+
+func TestBuildRelPattern_SingleLinkType(t *testing.T) {
+	p, f := buildRelPattern(2, "r", []string{"causal"})
+	if p != "[r*1..2]" {
+		t.Errorf("pattern: got %q", p)
+	}
+	if !strings.Contains(f, "type(r[0]) = 'causal'") {
+		t.Errorf("typeFilter must reference link type: %q", f)
+	}
+}
+
+func TestBuildRelPattern_MultipleLinkTypes(t *testing.T) {
+	p, f := buildRelPattern(4, "e", []string{"causal", "temporal", "contradicts"})
+	if p != "[e*1..4]" {
+		t.Errorf("pattern: got %q", p)
+	}
+	for _, lt := range []string{"causal", "temporal", "contradicts"} {
+		if !strings.Contains(f, lt) {
+			t.Errorf("typeFilter missing %q: %q", lt, f)
+		}
+	}
+	if !strings.Contains(f, " OR ") {
+		t.Errorf("typeFilter must contain OR: %q", f)
+	}
+}
+
+func TestBuildRelPattern_DepthOne(t *testing.T) {
+	p, f := buildRelPattern(1, "r", []string{"causal"})
+	if p != "[r*1..1]" {
+		t.Errorf("depth=1: got %q", p)
+	}
+	if !strings.Contains(f, "causal") {
+		t.Errorf("typeFilter: got %q", f)
+	}
+}
+
+func TestBuildRelPattern_DepthHigh(t *testing.T) {
+	p, _ := buildRelPattern(20, "r", []string{"causal", "temporal", "supports", "contradicts", "related"})
+	if p != "[r*1..20]" {
+		t.Errorf("depth=20: got %q", p)
+	}
+}
+
+func TestBuildRelPattern_LinkTypesWithSpecialChars(t *testing.T) {
+	_, f := buildRelPattern(3, "r", []string{"causal-injection", "has space"})
+	if !strings.Contains(f, "causal_injection") {
+		t.Errorf("dash should be sanitised to underscore: %q", f)
+	}
+	if !strings.Contains(f, "has_space") {
+		t.Errorf("space should be sanitised to underscore: %q", f)
+	}
+}
+
+func TestBuildRelPattern_AllFiveLinkTypes(t *testing.T) {
+	all := []string{"causal", "temporal", "contradicts", "supports", "related"}
+	p, f := buildRelPattern(3, "r", all)
+	if p != "[r*1..3]" {
+		t.Errorf("pattern: got %q", p)
+	}
+	for _, lt := range all {
+		if !strings.Contains(f, lt) {
+			t.Errorf("missing link type %q in: %q", lt, f)
+		}
+	}
+}
+
+// ─── buildCursorClause (pure function) ─────────────────────────────────────
+
+func TestBuildCursorClause_Positive(t *testing.T) {
+	clause := buildCursorClause(42)
+	if clause == "" {
+		t.Fatal("cursor=42 must return non-empty clause")
+	}
+	if !strings.Contains(clause, "memory.42") {
+		t.Errorf("cursor clause must contain memory.42: %q", clause)
+	}
+}
+
+func TestBuildCursorClause_Zero(t *testing.T) {
+	clause := buildCursorClause(0)
+	if clause != "" {
+		t.Errorf("cursor=0 must return empty string, got %q", clause)
+	}
+}
+
+func TestBuildCursorClause_Negative(t *testing.T) {
+	clause := buildCursorClause(-5)
+	if clause != "" {
+		t.Errorf("cursor=-5 must return empty string, got %q", clause)
+	}
+}
+
+func TestBuildCursorClause_LargeValue(t *testing.T) {
+	clause := buildCursorClause(999999)
+	if !strings.Contains(clause, "memory.999999") {
+		t.Errorf("large cursor: got %q", clause)
+	}
+}

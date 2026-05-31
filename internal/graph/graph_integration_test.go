@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,8 +36,14 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 	t.Helper()
 	ctx := context.Background()
 
-	// Ensure tenant exists (upsert).
-	_, err := pool.Exec(ctx, `INSERT INTO tenants (id, name, settings) VALUES ($1::uuid, 'graph-int-test', '{}') ON CONFLICT DO NOTHING`, tenantID)
+	// Ensure tenant exists (upsert). slug is NOT NULL (migrations/001_init.sql).
+	slug := "graph-int-" + tenantID[strings.LastIndex(tenantID, "-")+1:]
+	_, err := pool.Exec(ctx, `
+		INSERT INTO tenants (id, slug, name, settings)
+		VALUES ($1::uuid, $2, 'graph-int-test', '{}')
+		ON CONFLICT (id) DO NOTHING`,
+		tenantID, slug,
+	)
 	if err != nil {
 		t.Fatalf("seed tenant: %v", err)
 	}

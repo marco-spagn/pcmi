@@ -1,5 +1,7 @@
 # PCMI CI: lint → unit/integration (race) → smoke → optional OpenAI E2E
-# Coverage: sticky PR comment, job summary, artifacts (see scripts/ci_coverage_check.sh).
+# Coverage: sticky PR comment (refreshed after *every* push), job summary, artifacts
+# (see scripts/ci_coverage_check.sh + the "Resolve PR for coverage comment" step).
+# This design prevents stale coverage numbers on long-lived feature PRs.
 #
 # ── Job DAG (needs →) ─────────────────────────────────────────────────────────
 # Wave 1 (parallel):
@@ -191,6 +193,32 @@ jobs:
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
         run: cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+      # ─────────────────────────────────────────────────────────────────────────
+      # Coverage sticky comment — refreshed on EVERY push
+      #
+      # Goal: Prevent "visual staleness" on long-lived PRs.
+      # When a big feature PR (e.g. #112) is opened, the coverage numbers are
+      # captured at that moment. Later PRs (e.g. #115) can massively improve
+      # coverage on packages like webhook, handler, graph, etc.
+      #
+      # By re-running the coverage job + sticky comment on every push to a
+      # feat/** branch (and on pull_request events), the numbers shown in the
+      # PR are always from the *current* code on that branch, not from the
+      # moment the PR was first created.
+      #
+      # The posted comment keeps the nice emoji style the user liked:
+      #   ## ✅ Test coverage: `xx%`
+      #   | Package | ... | ✅ 87.5% | 🟡 33.3% | 🔴 22% |
+      # (exactly like the original bot comments on PRs).
+      #
+      # === TEST COMMIT MARKER ===
+      # This commit is used to verify that the coverage sticky comment
+      # is correctly refreshed after every push (including emojis).
+      #
+      # The marocchino/sticky-pull-request-comment action (with a stable
+      # `header`) automatically replaces the previous comment with the same
+      # header, so the PR always shows up-to-date coverage with fresh emojis.
+      # ─────────────────────────────────────────────────────────────────────────
       - name: Resolve PR for coverage comment
         id: cov_pr
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
@@ -198,19 +226,39 @@ jobs:
         with:
           script: |
             let n = '';
-            if (context.eventName === 'pull_request') {
+
+            // On pull_request events we have the number directly (most reliable)
+            if (context.eventName === 'pull_request' && context.payload.pull_request) {
               n = String(context.payload.pull_request.number);
-            } else if (context.eventName === 'push') {
-              const branch = context.ref.replace('refs/heads/', '');
-              const { data: prs } = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: `${context.repo.owner}:${branch}`,
-                state: 'open',
-              });
-              if (prs.length) n = String(prs[0].number);
             }
+            // On push events to a feat/** branch we try to find the open PR
+            // that has this branch as head. This makes coverage numbers refresh
+            // after every push, avoiding stale numbers on long-lived PRs.
+            else if (context.eventName === 'push') {
+              const branch = context.ref.replace('refs/heads/', '');
+              try {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branch}`,
+                  state: 'open',
+                  per_page: 5,
+                });
+                if (prs.length > 0) {
+                  n = String(prs[0].number);
+                }
+              } catch (e) {
+                core.warning(`Failed to resolve PR for branch ${branch}: ${e.message}`);
+              }
+            }
+
+            // Also accept explicit PR number via workflow_dispatch inputs (useful for manual runs)
+            if (!n && context.payload.inputs && context.payload.inputs.pr_number) {
+              n = String(context.payload.inputs.pr_number);
+            }
+
             core.setOutput('number', n);
+            core.info(`Coverage comment target PR: ${n || '(none resolved)'}`);
 
       - name: Comment coverage on PR
         if: ${{ always() && hashFiles('coverage-summary.md') != '' && steps.cov_pr.outputs.number != '' }}
@@ -219,6 +267,8 @@ jobs:
           header: pcmi-coverage
           number: ${{ steps.cov_pr.outputs.number }}
           path: coverage-summary.md
+          # append: false (default) → replaces the previous comment with the same header
+          # This guarantees fresh numbers after every push to the PR branch.
 
       - name: Upload coverage artifacts
         if: ${{ always() }}

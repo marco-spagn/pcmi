@@ -189,6 +189,8 @@ With AGE enabled, the explorer calls the graph endpoints below; links are create
 
 Returns **501** when AGE is not installed. Full parameters and examples: **[docs/cognitive-graph.md](docs/cognitive-graph.md)**.
 
+**New to SOC terms?** PCMI does not ingest or classify SIEM alerts for you — you store memories and typed links via REST. The cyber-incident demo is optional sample data. See **[How data enters PCMI — who classifies what](docs/cognitive-graph.md#how-data-enters-pcmi--who-classifies-what)**.
+
 ```bash
 curl -s "$PCMI_BASE_URL/v1/graph/health"
 curl -s -H "X-API-Key: $PCMI_API_KEY" \

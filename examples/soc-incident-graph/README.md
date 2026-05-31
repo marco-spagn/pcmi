@@ -1,6 +1,10 @@
 # SOC incident graph — example dataset
 
-**Optional demo data** for the [Cognitive Graph Explorer](../../docs/cognitive-graph.md#graph-ui--demo-video). PCMI itself is domain-agnostic; this folder is only a realistic **security-operations** sample (alerts, kill chains, campaigns) so you can try `make graph-ui` without loading your own memories.
+**Optional demo data** for the [Cognitive Graph Explorer](../../docs/cognitive-graph.md#graph-ui--demo-video).
+
+PCMI is **domain-agnostic**. This folder is only a realistic **security-operations (SOC)** *story* so the Graph UI looks busy out of the box. PCMI does **not** classify incidents: the generator and loader **pretend** an analyst already triaged alerts and typed the graph edges; your production integration would send the same `POST /v1/memories` and `POST /v1/memories/links` calls with **your** metadata and link types.
+
+**Required reading (no SOC background needed):** [How data enters PCMI — who classifies what](../../docs/cognitive-graph.md#how-data-enters-pcmi--who-classifies-what).
 
 | File | Purpose |
 |------|---------|

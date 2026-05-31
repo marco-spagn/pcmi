@@ -19,6 +19,92 @@ Instead of fetching only directly linked memories, you can answer questions like
 Memories become nodes (`Memory` vertices) and `memory_links` become typed,
 weighted edges in the `pcmi_memory_graph` AGE graph.
 
+## How data enters PCMI — who classifies what
+
+Read this section if you are **not** from security operations (SOC). The Graph UI
+demo uses cyber-incident vocabulary (`kill chain`, `MITRE`, `false_positive`, …)
+only as **sample labels** in fake data. PCMI does **not** require SOC and does
+**not** auto-classify your incidents.
+
+### Two different meanings of “event”
+
+| Term in docs | What it actually is |
+|--------------|-------------------|
+| **PCMI event** (`memory.stored`, SSE, Redis) | An **internal notification** that something was written to the database. It is **not** a SIEM alert and carries **no** incident classification. See [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md). |
+| **“Incident” / “alert” in the SOC demo** | Just **text memories** plus JSON **metadata** that the demo script invented. In production they would be *your* tickets, notes, trades, lab results — whatever you store. |
+
+### Ingress is always REST (or gRPC) — you supply meaning
+
+Nothing is ingested from a SOC product automatically. Your agent, ETL, or analyst
+tool calls the API:
+
+```http
+POST /v1/memories
+  → path, content, tags, metadata (any JSON you want)
+
+POST /v1/memories/links
+  → from_path, to_path, link_type, optional weight
+```
+
+After a link is stored, PostgreSQL can **mirror** it into Apache AGE (when AGE is
+enabled). Graph endpoints **read and traverse** that graph; they do **not** infer
+new link types or dispositions.
+
+### Who decides each field?
+
+| Data | Who assigns it | PCMI’s role |
+|------|----------------|-------------|
+| Memory **text** (`content`) | **You** (or your upstream system) | Store, version, retrieve |
+| **Tags** and **metadata** (e.g. `severity`, `category`, `disposition`, custom enums) | **You** in the store payload | Persist as JSON; optional use in retrieve filters |
+| **Link type** (`causal`, `temporal`, `contradicts`, `supports`, `related`) | **You** on `POST /v1/memories/links` | Validate allowed types; sync edge to AGE |
+| **Graph traversal** (`/v1/graph/related`, `/chain`) | **You** choose query params (`link_types`, `depth`, …) | Run hop-limited search on existing edges |
+| **Shortest path** | **You** pick `from` / `to` memory IDs | Compute path over edges you already created |
+
+There is **no** built-in “classify this alert as true positive / ransomware / causal
+follow-up” service in the current spike. Roadmap items (e.g. LLM-based contradiction
+hints) would still be **assistive** — the contract remains: **memories and links
+you write are the source of truth**.
+
+### What the SOC example adds (and does not add)
+
+The folder [`examples/soc-incident-graph/`](../examples/soc-incident-graph/) is
+**optional demo content**:
+
+- `generate_soc_dataset.py` **fabricates** 1000 rows with SOC-like columns
+  (`disposition`, `mitre_tactic`, `fp_cause`, …) in **metadata**.
+- `load_to_pcmi.py` **POSTs** those rows and links via the same public API you
+  would use in production.
+- The Graph UI video uses that data so you can click through a rich graph **without
+  preparing your own dataset first**.
+
+If you work in another domain, ignore SOC column names: use your own metadata
+schema and link semantics (e.g. `supports` = “evidence for hypothesis B”,
+`temporal` = “happened before”, `related` = “same customer account”).
+
+### Typical integration flow (any domain)
+
+```text
+Your system (CRM, SIEM, agent, spreadsheet ETL)
+  │
+  ├─ POST /v1/memories          (content + metadata you define)
+  ├─ POST /v1/memories/links    (link_type you define)
+  │
+  ├─ optional: GET /v1/events   (SSE: memory.stored / updated — not classified alerts)
+  │
+  └─ GET /v1/graph/related      (explore N hops)
+     GET /v1/graph/chain         (shortest path between two memories you already linked)
+```
+
+### Glossary (SOC demo only — not PCMI concepts)
+
+| Demo term | Plain meaning |
+|-----------|----------------|
+| **Alert / incident** | One stored **memory** row |
+| **Disposition** (`true_positive`, `false_positive`, …) | A **metadata** field in the sample CSV — not interpreted by the graph engine |
+| **Kill chain** | A **path** of memories linked `causal` + `temporal` in the demo |
+| **MITRE tactic/technique** | Extra **metadata** on demo nodes for realistic inspector text |
+| **AGE ready** | Apache AGE extension is installed; graph queries return 200 instead of 501 |
+
 ## How to enable
 
 ### 1. Start the AGE-enabled Postgres instance

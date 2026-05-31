@@ -15,41 +15,7 @@ Agents are ephemeral. Organizational memory should not be.
 
 ## Cognitive Graph Explorer *(experimental)*
 
-Explore SOC incidents and linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest causal chains, and a browser UI at **`/v1/graph/ui`**.
-
-**Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline.
-
-> GitHub does not render `<video>` in README files. **Click the preview below** to open the full MP4 in GitHub’s built-in player (play / pause / seek / fullscreen).
-
-<p align="center">
-  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
-    <img
-      src="docs/assets/graph-ui-demo.gif"
-      alt="Animated preview — click to play the full 90 second Cognitive Graph Explorer walkthrough with controls"
-      width="100%"
-    />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
-    <img src="https://img.shields.io/badge/▶_Play_full_video_(90s,_with_controls)-2dd4bf?style=for-the-badge&labelColor=0a0f1e" alt="Play full demo video on GitHub" />
-  </a>
-  &nbsp;
-  <a href="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4">
-    <img src="https://img.shields.io/badge/Download-MP4-38bdf8?style=for-the-badge&labelColor=0a0f1e" alt="Download MP4" />
-  </a>
-</p>
-
-**From a git clone:** open `docs/assets/graph-ui-demo.mp4` in any browser or video player.
-
-<p align="center">
-  <a href="http://localhost:8000/v1/graph/ui"><code>/v1/graph/ui</code></a> (local)
-  &nbsp;·&nbsp;
-  <a href="docs/cognitive-graph.md#graph-ui--demo-video">Graph UI guide</a>
-  &nbsp;·&nbsp;
-  <code>make graph-ui</code> to load the SOC dataset
-</p>
+Explore SOC incidents and linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest causal chains, and a browser UI at **`/v1/graph/ui`**. Demo video, setup, and control reference: **[Cognitive Graph — details](#cognitive-graph--details)** below.
 
 ---
 
@@ -212,9 +178,35 @@ Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[
 
 ## Cognitive Graph — details
 
-The **demo video is at the top of this README**. Below: how to run the UI locally and what each control maps to on the API.
-
 PCMI models linked memories as a graph: **nodes** = memories, **edges** = typed `memory_links` (`causal`, `temporal`, `contradicts`, `supports`, `related`). With AGE enabled, `GET /v1/graph/related` and `GET /v1/graph/chain` power the explorer.
+
+### Demo video (~90s)
+
+Kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, and timeline.
+
+> GitHub does not render `<video>` in README files. **Click the preview below** to open the full MP4 in GitHub’s built-in player (play / pause / seek / fullscreen).
+
+<p align="center">
+  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
+    <img
+      src="docs/assets/graph-ui-demo.gif"
+      alt="Animated preview — click to play the full 90 second Cognitive Graph Explorer walkthrough with controls"
+      width="100%"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
+    <img src="https://img.shields.io/badge/▶_Play_full_video_(90s,_with_controls)-2dd4bf?style=for-the-badge&labelColor=0a0f1e" alt="Play full demo video on GitHub" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4">
+    <img src="https://img.shields.io/badge/Download-MP4-38bdf8?style=for-the-badge&labelColor=0a0f1e" alt="Download MP4" />
+  </a>
+</p>
+
+**From a git clone:** open `docs/assets/graph-ui-demo.mp4` in any browser or video player.
 
 ### Try it locally
 

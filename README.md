@@ -22,6 +22,7 @@ Agents are ephemeral. Organizational memory should not be.
 - [Quickstart (2 minutes)](#quickstart-2-minutes)
   - [Docker](#docker)
 - [Usage examples](#usage-examples)
+- [Cognitive Graph Explorer](#cognitive-graph-explorer-experimental)
 - [Architecture](#architecture)
 - [APIs and clients](#apis-and-clients)
 - [Documentation](#documentation)
@@ -77,7 +78,7 @@ flowchart LR
 | **Workers** | Embedding (circuit breaker), distillation, consolidation, pruning, compaction, expiry |
 | **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams |
 | **Integration** | Webhooks with **HMAC** (`timestamp.body`), idempotent store (`X-Idempotency-Key`), MCP stdio server |
-| **Graph** | Memory links, lineage (raw + distilled knowledge) |
+| **Graph** *(experimental)* | Typed `memory_links` on **Apache AGE** — `/v1/graph/related`, `/chain`, `/cypher`; browser UI at [`/v1/graph/ui`](docs/cognitive-graph.md#graph-ui--demo-video) |
 | **Security** | API-key RBAC + **rotation/lifecycle** (admin), PostgreSQL RLS, optional metrics Bearer token |
 | **Rate limit** | Per-key limits; **`RATE_LIMIT_BACKEND=redis`** for multi-instance API |
 | **Ops** | Prometheus metrics, OpenTelemetry, Helm chart, health/readiness probes |
@@ -170,6 +171,54 @@ Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[
 
 ---
 
+## Cognitive Graph Explorer *(experimental)*
+
+PCMI can model SOC incidents (or any linked memories) as a **property graph**: nodes are memories, edges are typed links (`causal`, `temporal`, `contradicts`, `supports`, `related`). With [Apache AGE](https://github.com/apache/age) enabled, the API answers multi-hop questions and shortest-path chains; the **Graph Explorer** visualizes the result in the browser.
+
+### Demo video (~90s)
+
+Walkthrough of the UI: kill-chain traversal, layouts, inspector, Find Chain, edge semantics, clusters, and timeline.
+
+<video src="docs/assets/graph-ui-demo.mp4" width="100%" controls></video>
+
+Direct link: **[docs/assets/graph-ui-demo.mp4](docs/assets/graph-ui-demo.mp4)** (also playable on GitHub’s file view).
+
+### Try it locally
+
+| Step | Command / URL |
+|------|----------------|
+| 1. Start stack + load SOC dataset | `make graph-ui` (or `bash scripts/e2e/launch_graph_ui.sh`) |
+| 2. Open the UI | [http://localhost:8000/v1/graph/ui](http://localhost:8000/v1/graph/ui) |
+| 3. API key | Default dev key: `testkey123` (see `.env.example`) |
+| 4. First exploration | Memory ID **14**, depth **5**, link types **causal + temporal** — Conti kill chain |
+
+The green **AGE ready** badge means `GET /v1/graph/health` reports `available: true`. If it is yellow, point the API at `postgres-age` (port **5433**) — see [docs/cognitive-graph.md](docs/cognitive-graph.md#how-to-enable).
+
+### What the UI does
+
+| Control | Backed by | Purpose |
+|---------|-----------|---------|
+| **Explore** | `GET /v1/graph/related` | Expand N hops from a root memory; edge labels show `link_type`, node colors show hop depth |
+| **Find Chain** | `GET /v1/graph/chain` | Shortest causal path between root (Memory ID field) and a selected node — highlighted in gold |
+| **Force / Tree / Radial** | vis-network layouts | Force = natural clusters; Tree = stage-by-stage; Radial = root-centered briefing |
+| **Inspector** | `GET /v1/graph/memories` cache | Path, alert content, tags, severity / MITRE metadata on node click |
+| **Clusters** | Path-prefix grouping | Collapse alert storms (many duplicates on the same subnet) |
+| **Timeline** | Memory timestamps | Time axis; click a dot to focus the node in the graph |
+
+**Suggested memory IDs** (after the SOC dataset load), curl examples, and edge-type semantics: **[docs/cognitive-graph.md § Graph UI](docs/cognitive-graph.md#graph-ui--demo-video)**.
+
+**Regenerate the demo video** (requires Chrome + ffmpeg):
+
+```bash
+docker compose --profile graph -f docker-compose.yml -f docker-compose.record-graph.yml up -d api
+cd scripts/e2e && npm install playwright@1.49.1 && node record_graph_ui_demo.mjs
+# → docs/assets/graph-ui-demo.mp4
+```
+
+> **Status:** experimental v2.0 spike — API and schema may change. See [docs/cognitive-graph.md](docs/cognitive-graph.md) and [docs/roadmap.md](docs/roadmap.md).
+
+---
+
 ## Architecture
 
 ```mermaid
@@ -228,6 +277,7 @@ Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: *
 | [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
 | [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
 | [docs/SESSIONS.md](docs/SESSIONS.md) | Agent sessions and working memory |
+| [docs/cognitive-graph.md](docs/cognitive-graph.md) | Cognitive Graph (AGE), SOC dataset, Graph UI + demo video |
 | [docs/MCP.md](docs/MCP.md) | MCP stdio server for Cursor / Claude |
 | [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |

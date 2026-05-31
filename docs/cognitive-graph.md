@@ -367,6 +367,35 @@ python3 load_to_pcmi.py --batch 50 --link-workers 16
 
 ---
 
+## Graph UI — demo video
+
+The **Cognitive Graph Explorer** is a single-page app served at **`GET /v1/graph/ui`**
+(same origin as the API). It calls `/v1/graph/related`, `/chain`, and `/graph/memories`
+with your API key and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
+
+### Watch the walkthrough (~90s)
+
+<video src="assets/graph-ui-demo.mp4" width="100%" controls></video>
+
+| | |
+|--|--|
+| **File** | [docs/assets/graph-ui-demo.mp4](assets/graph-ui-demo.mp4) |
+| **Covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
+| **Regenerate** | `node scripts/e2e/record_graph_ui_demo.mjs` (Chrome + ffmpeg; API on postgres-age — see script header) |
+
+### Open the UI
+
+```bash
+make graph-ui    # infra + SOC dataset + prints URL
+# then browse:
+open http://localhost:8000/v1/graph/ui
+```
+
+Enter your **X-API-Key**, set **Memory ID** + **Depth**, choose **link types**, and press **Explore**.
+Click a node for the inspector; select a second node and press **Find Chain** for a shortest causal path.
+
+---
+
 ## Graph UI — which Memory IDs to explore
 
 After loading the SOC dataset, open `http://localhost:8000/v1/graph/ui` and

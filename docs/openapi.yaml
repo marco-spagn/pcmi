@@ -658,6 +658,124 @@ paths:
           description: Invalid request
         "503":
           description: Event bus unavailable
+  /v1/graph/health:
+    get:
+      summary: Cognitive Graph (AGE) availability probe (experimental spike; no auth)
+      description: |
+        Reports whether Apache AGE and `pcmi_memory_graph` are available.
+        See [cognitive-graph.md](cognitive-graph.md).
+      security: []
+      responses:
+        "200":
+          description: Extension status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphHealthResponse"
+  /v1/graph/related:
+    get:
+      summary: Traverse memory links via AGE (experimental spike)
+      description: |
+        Returns memories reachable within `depth` hops from `memory_id`.
+        Requires AGE; returns 501 when unavailable. See [cognitive-graph.md](cognitive-graph.md).
+      parameters:
+        - name: memory_id
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: depth
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10, default: 3 }
+        - name: link_types
+          in: query
+          schema: { type: string }
+          description: Comma-separated link types (causal, temporal, contradicts, supports, related)
+        - name: offset
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Related memories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphRelatedResponse"
+        "400":
+          description: Invalid query
+        "501":
+          description: AGE not installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphUnavailableResponse"
+  /v1/graph/chain:
+    get:
+      summary: Find shortest causal chain between two memories (experimental spike)
+      description: |
+        Finds the shortest path between two memories using the given link types.
+        Requires AGE; returns 501 when unavailable. See [cognitive-graph.md](cognitive-graph.md).
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+          description: Source memory ID
+        - name: to
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+          description: Target memory ID
+        - name: link_types
+          in: query
+          schema: { type: string }
+          description: Comma-separated link types (causal, temporal, contradicts, supports, related)
+        - name: max_depth
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 20, default: 10 }
+      responses:
+        "200":
+          description: Chain result (connected or not)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphChainResponse"
+        "400":
+          description: Invalid query
+        "501":
+          description: AGE not installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphUnavailableResponse"
+  /v1/graph/cypher:
+    post:
+      summary: Execute a read-only Cypher query (experimental spike; requires write role)
+      description: |
+        Passthrough for raw Cypher read queries against pcmi_memory_graph.
+        Only MATCH queries are allowed. Tenant scoping is the caller's responsibility.
+        Requires write role. See [cognitive-graph.md](cognitive-graph.md).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CypherQueryRequest"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CypherQueryResponse"
+        "400":
+          description: Invalid query or query rejected
+        "403":
+          description: Read-only role cannot execute Cypher
+        "501":
+          description: AGE not installed
   /v1/memories/links:
     post:
       summary: Create a typed link between two memory paths
@@ -1119,6 +1237,67 @@ components:
       properties:
         status: { type: string, enum: [queued] }
         path_prefix: { type: string }
+    GraphHealthResponse:
+      type: object
+      properties:
+        available: { type: boolean }
+        extension: { type: string, example: apache-age }
+    GraphRelatedEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        link_type: { type: string }
+        depth: { type: integer }
+    GraphRelatedResponse:
+      type: object
+      properties:
+        memory_id: { type: integer, format: int64 }
+        depth: { type: integer }
+        count: { type: integer }
+        total: { type: integer, description: Total matching entries before pagination }
+        offset: { type: integer }
+        limit: { type: integer }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/GraphRelatedEntry" }
+    GraphUnavailableResponse:
+      type: object
+      properties:
+        error: { type: string }
+        hint: { type: string }
+    GraphChainLink:
+      type: object
+      properties:
+        from_id: { type: integer, format: int64 }
+        to_id: { type: integer, format: int64 }
+        link_type: { type: string }
+        hop: { type: integer }
+    GraphChainResponse:
+      type: object
+      properties:
+        from_id: { type: integer, format: int64 }
+        to_id: { type: integer, format: int64 }
+        connected: { type: boolean }
+        hops: { type: integer }
+        path:
+          type: array
+          items: { $ref: "#/components/schemas/GraphChainLink" }
+    CypherQueryRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string, description: Read-only Cypher MATCH query }
+    CypherQueryResponse:
+      type: object
+      properties:
+        columns:
+          type: array
+          items: { type: string }
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
     CreateLinkRequest:
       type: object
       required: [from_path, to_path, link_type]

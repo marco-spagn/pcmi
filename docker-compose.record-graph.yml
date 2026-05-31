@@ -1,0 +1,8 @@
+# Temporary override: point API at postgres-age for graph UI recording.
+services:
+  api:
+    environment:
+      DATABASE_URL: postgres://pcmi:pcmi@postgres-age:5432/pcmi
+    depends_on:
+      postgres-age:
+        condition: service_healthy

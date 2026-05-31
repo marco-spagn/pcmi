@@ -37,5 +37,27 @@ func Middleware() fiber.Handler {
 	return func(c *fiber.Ctx) error { return c.Next() }
 }
 
+var (
+	graphTraversalTotal = promauto.With(Registry).NewCounter(
+		prometheus.CounterOpts{
+			Name: "pcmi_graph_traversal_total",
+			Help: "Total graph traversal operations executed",
+		},
+	)
+	graphTraversalDuration = promauto.With(Registry).NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "pcmi_graph_traversal_duration_seconds",
+			Help:    "Graph traversal duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+	)
+)
+
 func IncStore()     { memoryStoresTotal.Inc() }
 func IncRetrieve() { memoryRetrievesTotal.Inc() }
+
+// IncGraphTraversal increments the graph traversal counter.
+func IncGraphTraversal() { graphTraversalTotal.Inc() }
+
+// ObserveGraphTraversal records the duration of a graph traversal.
+func ObserveGraphTraversal(seconds float64) { graphTraversalDuration.Observe(seconds) }

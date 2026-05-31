@@ -4,6 +4,7 @@ Reference clients that call the **HTTP API** from common orchestrators. They are
 
 | Directory | Description |
 |-----------|-------------|
+| [soc-incident-graph/](soc-incident-graph/) | Optional **SOC example** dataset (CSVs, generator, loader, scenarios) for the Cognitive Graph UI — not required for other domains. |
 | [celery/](celery/) | Celery tasks: store + retrieve over HTTP (`httpx`). |
 | [temporal/](temporal/) | Temporal workflow + activities calling PCMI asynchronously. |
 | [langchain/](langchain/) | LangChain tools: store, retrieve, session working memory. |

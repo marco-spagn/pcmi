@@ -10,6 +10,7 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 | [USAGE.md](USAGE.md) | Integrators | Step-by-step HTTP, gRPC, SDK, env, paths |
 | [architecture.md](architecture.md) | Architects | Components, flows, deployment |
 | [DATA-MODEL.md](DATA-MODEL.md) | Backend / DBA | Schema, versioning, RLS |
+| [cognitive-graph.md](cognitive-graph.md) | Backend / ops | AGE graph traversal, Graph UI, [who classifies data](cognitive-graph.md#how-data-enters-pcmi--who-classifies-what) (not SOC-specific), [demo video](assets/graph-ui-demo.mp4) |
 
 ## API and clients
 

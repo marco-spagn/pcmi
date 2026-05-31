@@ -96,6 +96,17 @@ var registry = map[string]Schema{
 			{Name: "summary", Type: "string", Required: false},
 		},
 	},
+	"contradiction.detected": {
+		EventType:   "contradiction.detected",
+		Description: "A contradiction between two memories was detected",
+		Strict:      true,
+		Fields: []Field{
+			{Name: "tenant_id", Type: "string", Required: true},
+			{Name: "from_path", Type: "string", Required: true},
+			{Name: "to_path", Type: "string", Required: true},
+			{Name: "confidence", Type: "number", Required: true},
+		},
+	},
 }
 
 // List returns all registered schemas sorted by event_type.

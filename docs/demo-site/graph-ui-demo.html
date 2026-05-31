@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PCMI · Cognitive Graph Explorer demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: radial-gradient(900px 500px at 70% 0%, rgba(45,212,191,.12), transparent 55%), #0a0f1e;
+      color: #e6edf7;
+    }
+    main { width: min(100%, 1280px); }
+    h1 { font-size: 1.1rem; font-weight: 600; margin-bottom: 12px; color: #94a3b8; }
+    video {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #25324f;
+      background: #000;
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+    }
+    p { margin-top: 12px; font-size: 0.9rem; color: #64748b; }
+    a { color: #2dd4bf; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Cognitive Graph Explorer — walkthrough (~90s)</h1>
+    <video controls playsinline preload="metadata" poster="graph-ui-demo-poster.jpg">
+      <source src="graph-ui-demo.mp4" type="video/mp4">
+    </video>
+    <p>Part of <a href="https://github.com/marco-spagn/pcmi">PCMI</a>.</p>
+  </main>
+</body>
+</html>

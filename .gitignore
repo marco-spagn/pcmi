@@ -78,6 +78,7 @@ examples/crewai/.venv/
 sdk/python/.venv/
 sdk/python/pcmi.egg-info/
 sdk/typescript/node_modules/
+scripts/e2e/node_modules/
 sdk/typescript/dist/
 __pycache__/
 *.py[cod]

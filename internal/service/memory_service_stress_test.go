@@ -1,6 +1,7 @@
 package service
 
 import (
+	"strings"
 	"context"
 	"fmt"
 	"math/rand"
@@ -60,7 +61,7 @@ func (r *stressRepo) Retrieve(_ context.Context, req model.RetrieveRequest, tena
 	defer r.mu.Unlock()
 	var out []model.MemoryEntry
 	for _, e := range r.stored[tenantID] {
-		if req.PathPrefix == "" || e.Path == req.PathPrefix {
+		if req.PathPrefix == "" || strings.HasPrefix(e.Path, req.PathPrefix) {
 			out = append(out, e)
 		}
 	}

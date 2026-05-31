@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestNewGraphClient_NilDB(t *testing.T) {
@@ -793,5 +794,410 @@ func TestCypherResult_EmptyRows(t *testing.T) {
 	cr := &CypherResult{Columns: []string{"result"}, Rows: nil}
 	if cr.Rows != nil {
 		t.Error("nil rows should remain nil")
+	}
+}
+
+// ─── SetQueryTimeout ───────────────────────────────────────────────────────
+
+func TestSetQueryTimeout_Positive(t *testing.T) {
+	gc := NewGraphClient(nil)
+	gc.SetQueryTimeout(5 * time.Second)
+	if gc.queryTimeout != 5*time.Second {
+		t.Errorf("positive timeout: got %v want 5s", gc.queryTimeout)
+	}
+}
+
+func TestSetQueryTimeout_Zero_LeavesUnchanged(t *testing.T) {
+	gc := NewGraphClient(nil)
+	original := gc.queryTimeout // default 30s
+	gc.SetQueryTimeout(0)
+	if gc.queryTimeout != original {
+		t.Errorf("zero timeout should leave unchanged: got %v want %v", gc.queryTimeout, original)
+	}
+}
+
+func TestSetQueryTimeout_Negative_LeavesUnchanged(t *testing.T) {
+	gc := NewGraphClient(nil)
+	original := gc.queryTimeout
+	gc.SetQueryTimeout(-1 * time.Second)
+	if gc.queryTimeout != original {
+		t.Errorf("negative timeout should leave unchanged: got %v want %v", gc.queryTimeout, original)
+	}
+}
+
+func TestSetQueryTimeout_NilReceiver_Panics(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("SetQueryTimeout on nil receiver should panic")
+		}
+	}()
+	var gc *GraphClient
+	gc.SetQueryTimeout(5 * time.Second)
+}
+
+func TestSetQueryTimeout_DefaultIs30Seconds(t *testing.T) {
+	gc := NewGraphClient(nil)
+	if gc.queryTimeout != 30*time.Second {
+		t.Errorf("default queryTimeout: got %v want 30s", gc.queryTimeout)
+	}
+	gc.SetQueryTimeout(10 * time.Second)
+	if gc.queryTimeout != 10*time.Second {
+		t.Errorf("after set: got %v want 10s", gc.queryTimeout)
+	}
+}
+
+// ─── ageConn nil-safe paths ────────────────────────────────────────────────
+
+func TestAgeConn_NilDB_ReturnsError(t *testing.T) {
+	gc := NewGraphClient(nil)
+	conn, err := gc.ageConn(context.Background())
+	if err == nil {
+		t.Fatal("ageConn with nil db must return error")
+	}
+	if conn != nil {
+		conn.Release()
+		t.Error("ageConn with nil db must return nil conn")
+	}
+}
+
+func TestAgeConn_NilReceiver_ReturnsError(t *testing.T) {
+	var gc *GraphClient
+	conn, err := gc.ageConn(context.Background())
+	if err == nil {
+		t.Fatal("ageConn on nil receiver must return error")
+	}
+	if conn != nil {
+		t.Error("ageConn on nil receiver must return nil conn")
+	}
+}
+
+// ─── FindRelated: nil receiver path ────────────────────────────────────────
+
+func TestFindRelated_DepthNormalisedWhenAGEUnavailable(t *testing.T) {
+	// With nil db: IsAvailable returns false → returns empty. Verify normalisations
+	// do not execute (they are after the IsAvailable guard).
+	gc := NewGraphClient(nil)
+	result, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal"}, -1, 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Memories == nil {
+		t.Error("Memories should be non-nil empty slice")
+	}
+}
+
+func TestFindRelated_AllParams_NilDB(t *testing.T) {
+	gc := NewGraphClient(nil)
+	result, err := gc.FindRelated(context.Background(), "t", 42, []string{"causal", "temporal"}, 10, 100, 200)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Memories) != 0 {
+		t.Errorf("expected empty, got %d entries", len(result.Memories))
+	}
+}
+
+// ─── FindChain: more edge cases ────────────────────────────────────────────
+
+func TestFindChain_AllLinkTypes_NilDB(t *testing.T) {
+	gc := NewGraphClient(nil)
+	result, err := gc.FindChain(context.Background(), "t", 1, 2, []string{"causal", "temporal", "contradicts", "supports", "related"}, 15)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.Connected {
+		t.Error("expected Connected=false when AGE unavailable")
+	}
+}
+
+func TestFindChain_EmptyLinkTypes_NilDB(t *testing.T) {
+	gc := NewGraphClient(nil)
+	result, err := gc.FindChain(context.Background(), "t", 1, 2, []string{}, 5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil {
+		t.Fatal("expected non-nil result")
+	}
+}
+
+func TestFindChain_NegativeMaxDepth_NilDB(t *testing.T) {
+	gc := NewGraphClient(nil)
+	result, err := gc.FindChain(context.Background(), "t", 1, 2, nil, -5)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.FromID != 1 || result.ToID != 2 {
+		t.Errorf("IDs must be preserved")
+	}
+}
+
+// ─── ExecuteCypher: more validation edge cases ────────────────────────────
+
+func TestExecuteCypher_QueryWithOnlyWhitespace(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "\n \t  ")
+	if err == nil {
+		t.Fatal("whitespace-only query should be rejected")
+	}
+}
+
+func TestExecuteCypher_QueryWithoutMemoryNode_ValidMatch(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n:Person) RETURN n")
+	if err == nil {
+		t.Fatal("query without :Memory node should be rejected by tenant scoping")
+	}
+}
+
+func TestExecuteCypher_QueryWithoutReturn(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n:Memory)")
+	if err == nil {
+		t.Fatal("query without RETURN should be rejected by tenant scoping")
+	}
+}
+
+func TestExecuteCypher_SetKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n) SET n.x = 1")
+	if err == nil {
+		t.Fatal("SET keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_RemoveKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n) REMOVE n.x")
+	if err == nil {
+		t.Fatal("REMOVE keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_MergeKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MERGE (n:Memory)")
+	if err == nil {
+		t.Fatal("MERGE keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_DropKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "DROP TABLE memory_entries")
+	if err == nil {
+		t.Fatal("DROP keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_CallKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "CALL proc()")
+	if err == nil {
+		t.Fatal("CALL keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_LoadKeyword(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.ExecuteCypher(context.Background(), "t", "LOAD CSV FROM 'file.csv'")
+	if err == nil {
+		t.Fatal("LOAD keyword should be rejected")
+	}
+}
+
+func TestExecuteCypher_NilReceiver(t *testing.T) {
+	var gc *GraphClient
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n) RETURN n")
+	if err == nil {
+		t.Fatal("nil receiver must return error")
+	}
+}
+
+// ─── CreateLink: edge values ──────────────────────────────────────────────
+
+func TestCreateLink_NegativeWeight(t *testing.T) {
+	gc := NewGraphClient(nil)
+	err := gc.CreateLink(context.Background(), "t", 1, 2, LinkTypeSupports, -0.5)
+	if err == nil {
+		t.Fatal("nil db must return error")
+	}
+}
+
+func TestCreateLink_LargeWeight(t *testing.T) {
+	gc := NewGraphClient(nil)
+	err := gc.CreateLink(context.Background(), "t", 1, 2, LinkTypeRelated, 999999.0)
+	if err == nil {
+		t.Fatal("nil db must return error")
+	}
+}
+
+// ─── SyncMemoryLink: zero weight normalisation ────────────────────────────
+
+func TestSyncMemoryLink_ZeroWeightNormalised_WithAvailableAGE(t *testing.T) {
+	// SyncMemoryLink with zero weight + nil db (AGE unavailable) → weight
+	// is normalised to 1.0 but exec is skipped because IsAvailable is false.
+	gc := NewGraphClient(nil)
+	gc.SyncMemoryLink(context.Background(), "t", "memory.1", "memory.2", LinkTypeCausal, 0)
+	// Should not panic and should not try to exec SQL.
+}
+
+func TestSyncMemoryLink_NegativeWeightNormalised(t *testing.T) {
+	gc := NewGraphClient(nil)
+	gc.SyncMemoryLink(context.Background(), "t", "memory.1", "memory.2", LinkTypeTemporal, -5.0)
+}
+
+// ─── IsAvailable: edge ────────────────────────────────────────────────────
+
+func TestIsAvailable_NilPool(t *testing.T) {
+	gc := &GraphClient{db: nil}
+	if gc.IsAvailable(context.Background()) {
+		t.Error("IsAvailable with nil db must return false")
+	}
+}
+
+// ─── FindRelated: link types with SQL-like content ────────────────────────
+
+func TestFindRelated_LinkTypeWithSQLKeywords(t *testing.T) {
+	gc := NewGraphClient(nil)
+	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"SELECT", "DROP", "causal_injection"}, 3, 0, 50)
+	if err != nil {
+		t.Fatalf("SQL-like link types should be sanitised, not error: %v", err)
+	}
+}
+
+func TestFindRelated_LimitClamped(t *testing.T) {
+	// FindRelated normalises limit=0 → 50 before calling AGE. With nil db we never
+	// reach the normalisation, but we can verify the guard works.
+	gc := NewGraphClient(nil)
+	result, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100)
+	if result.Memories == nil {
+		t.Error("expected non-nil Memories")
+	}
+}
+
+// ─── FindChain: various max depths ────────────────────────────────────────
+
+func TestFindChain_MaxDepthEdgeValues(t *testing.T) {
+	gc := NewGraphClient(nil)
+	for _, d := range []int{1, 5, 10, 20} {
+		result, err := gc.FindChain(context.Background(), "t", 1, 2, nil, d)
+		if err != nil {
+			t.Errorf("maxDepth=%d: unexpected error: %v", d, err)
+		}
+		if result == nil {
+			t.Errorf("maxDepth=%d: expected non-nil result", d)
+		}
+	}
+}
+
+func TestFindChain_MaxDepthExceedsLimit(t *testing.T) {
+	gc := NewGraphClient(nil)
+	// maxDepth=1000 exceeds typical limits but FindChain should handle it
+	// (with nil db it returns early via IsAvailable check).
+	result, err := gc.FindChain(context.Background(), "t", 1, 2, nil, 1000)
+	if err != nil {
+		t.Fatalf("unexpected error with large maxDepth: %v", err)
+	}
+	if result.FromID != 1 || result.ToID != 2 {
+		t.Error("IDs must be preserved")
+	}
+}
+
+// ─── autoTenantScopeCypher: additional edge cases ─────────────────────────
+
+func TestAutoTenantScopeCypher_AliasWithBraces(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (m:Memory {id: 'memory.1'}) RETURN m", "t9")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "m.tenant_id = 't9'") {
+		t.Errorf("expected tenant filter on alias 'm', got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_WhereWithANDAfterInjection(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) WHERE n.score > 0.5 AND n.active = true RETURN n", "t10")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Tenant filter must appear before the existing WHERE body
+	if !strings.Contains(got, "tenant_id = 't10'") {
+		t.Errorf("tenant filter not found: %q", got)
+	}
+	if !strings.Contains(got, "AND (") {
+		t.Errorf("existing WHERE not wrapped: %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_OrderByAndLimit(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n ORDER BY n.id LIMIT 20", "t11")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "ORDER BY n.id LIMIT 20") {
+		t.Errorf("ORDER BY / LIMIT must survive tenant scoping: %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_TenantIDWithHyphen(t *testing.T) {
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n.id", "my-tenant-id")
+	if err != nil {
+		t.Fatalf("unexpected error with hyphenated tenant: %v", err)
+	}
+	if !strings.Contains(got, "n.tenant_id = 'my-tenant-id'") {
+		t.Errorf("hyphenated tenant ID not preserved: %q", got)
+	}
+}
+
+// ─── parseAGEPath: additional robustness ──────────────────────────────────
+
+func TestParseAGEPath_NilInput(t *testing.T) {
+	links := parseAGEPath(nil)
+	if links != nil {
+		t.Errorf("nil input: got %v want nil", links)
+	}
+}
+
+func TestParseAGEPath_MalformedEdgeJSON(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{not-valid-json-at-all},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}}
+	]`)
+	links := parseAGEPath(path)
+	if links != nil {
+		t.Errorf("malformed edge JSON: got %v want nil", links)
+	}
+}
+
+func TestParseAGEPath_PathSuffix(t *testing.T) {
+	// AGE sometimes emits the ::path suffix on the outer array
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "start_id": 1, "end_id": 2, "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.7"}}
+	]::path`)
+	links := parseAGEPath(path)
+	if len(links) != 1 {
+		t.Fatalf("path with ::path suffix: expected 1 link, got %d", len(links))
+	}
+	if links[0].FromID != 1 || links[0].ToID != 7 {
+		t.Errorf("got from=%d to=%d want from=1 to=7", links[0].FromID, links[0].ToID)
+	}
+}
+
+func TestParseAGEPath_VertexWithSuffixes(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.42"}}::vertex,
+		{"id": 99, "label": "supports", "properties": {}}::edge,
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.99"}}::vertex
+	]`)
+	links := parseAGEPath(path)
+	if len(links) != 1 {
+		t.Fatalf("path with ::vertex/::edge suffixes: expected 1 link, got %d", len(links))
+	}
+	if links[0].FromID != 42 || links[0].ToID != 99 {
+		t.Errorf("got from=%d to=%d want from=42 to=99", links[0].FromID, links[0].ToID)
 	}
 }

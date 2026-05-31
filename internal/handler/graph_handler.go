@@ -50,6 +50,60 @@ func RegisterGraphRoutes(app *fiber.App, graphClient *graph.GraphClient) {
 	RegisterGraphUIRoute(app)
 }
 
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+// ageNotAvailable returns a 501 response when AGE is not installed.
+func (h *GraphHandler) ageNotAvailable(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
+		"error": "cognitive graph not available",
+		"hint":  "requires PostgreSQL AGE extension — see docs/cognitive-graph.md",
+	})
+}
+
+// tenantID extracts the tenant UUID from request-scoped locals.
+func (h *GraphHandler) tenantID(c *fiber.Ctx) string {
+	id, _ := c.Locals(middleware.TenantContextKey).(string)
+	return id
+}
+
+// parseLinkTypes splits a comma-separated link_types query parameter.
+func (h *GraphHandler) parseLinkTypes(c *fiber.Ctx) []string {
+	raw := c.Query("link_types")
+	if raw == "" {
+		return nil
+	}
+	var out []string
+	for _, t := range strings.Split(raw, ",") {
+		if s := strings.TrimSpace(t); s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// timed runs fn and records graph traversal metrics.
+func (h *GraphHandler) timed(c *fiber.Ctx, fn func() error) error {
+	start := time.Now()
+	err := fn()
+	elapsed := time.Since(start).Seconds()
+	metrics.IncGraphTraversal()
+	metrics.ObserveGraphTraversal(elapsed)
+	return err
+}
+
+// graphError maps a graph client error to an HTTP error response.
+func (h *GraphHandler) graphError(c *fiber.Ctx, err error, timeoutHint string) error {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
+			"error": "graph query timed out",
+			"hint":  timeoutHint,
+		})
+	}
+	return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+}
+
+// ── Endpoints ──────────────────────────────────────────────────────────────────
+
 // Health returns AGE availability.
 // GET /v1/graph/health
 func (h *GraphHandler) Health(c *fiber.Ctx) error {
@@ -66,13 +120,10 @@ func (h *GraphHandler) Health(c *fiber.Ctx) error {
 // GET /v1/graph/related?memory_id=123&depth=3&link_types=causal,temporal&cursor=0&limit=50
 func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 	if !h.client.IsAvailable(c.Context()) {
-		return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
-			"error": "cognitive graph not available",
-			"hint":  "requires PostgreSQL AGE extension — see docs/cognitive-graph.md",
-		})
+		return h.ageNotAvailable(c)
 	}
 
-	tenantID, _ := c.Locals(middleware.TenantContextKey).(string)
+	tid := h.tenantID(c)
 
 	memIDStr := c.Query("memory_id")
 	if memIDStr == "" {
@@ -90,14 +141,7 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 		}
 	}
 
-	var linkTypes []string
-	if lt := c.Query("link_types"); lt != "" {
-		for _, t := range strings.Split(lt, ",") {
-			if s := strings.TrimSpace(t); s != "" {
-				linkTypes = append(linkTypes, s)
-			}
-		}
-	}
+	linkTypes := h.parseLinkTypes(c)
 
 	cursor := int64(0)
 	if cur := c.Query("cursor"); cur != "" {
@@ -112,20 +156,13 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 		}
 	}
 
-	start := time.Now()
-	result, err := h.client.FindRelated(c.Context(), tenantID, memID, linkTypes, depth, cursor, limit)
-	elapsed := time.Since(start).Seconds()
-	metrics.IncGraphTraversal()
-	metrics.ObserveGraphTraversal(elapsed)
-
+	var result *graph.RelatedResult
+	err = h.timed(c, func() error {
+		result, err = h.client.FindRelated(c.Context(), tid, memID, linkTypes, depth, cursor, limit)
+		return err
+	})
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
-				"error": "graph query timed out",
-				"hint":  "try reducing depth or narrowing link_types",
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return h.graphError(c, err, "try reducing depth or narrowing link_types")
 	}
 	if result.Memories == nil {
 		result.Memories = []graph.RelatedMemory{}
@@ -146,13 +183,10 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 // GET /v1/graph/chain?from=1&to=42&link_types=causal&max_depth=10
 func (h *GraphHandler) FindChain(c *fiber.Ctx) error {
 	if !h.client.IsAvailable(c.Context()) {
-		return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
-			"error": "cognitive graph not available",
-			"hint":  "requires PostgreSQL AGE extension — see docs/cognitive-graph.md",
-		})
+		return h.ageNotAvailable(c)
 	}
 
-	tenantID, _ := c.Locals(middleware.TenantContextKey).(string)
+	tid := h.tenantID(c)
 
 	fromStr := c.Query("from")
 	toStr := c.Query("to")
@@ -176,29 +210,15 @@ func (h *GraphHandler) FindChain(c *fiber.Ctx) error {
 		}
 	}
 
-	var linkTypes []string
-	if lt := c.Query("link_types"); lt != "" {
-		for _, t := range strings.Split(lt, ",") {
-			if s := strings.TrimSpace(t); s != "" {
-				linkTypes = append(linkTypes, s)
-			}
-		}
-	}
+	linkTypes := h.parseLinkTypes(c)
 
-	start := time.Now()
-	result, err := h.client.FindChain(c.Context(), tenantID, fromID, toID, linkTypes, maxDepth)
-	elapsed := time.Since(start).Seconds()
-	metrics.IncGraphTraversal()
-	metrics.ObserveGraphTraversal(elapsed)
-
+	var result *graph.ChainResult
+	err = h.timed(c, func() error {
+		result, err = h.client.FindChain(c.Context(), tid, fromID, toID, linkTypes, maxDepth)
+		return err
+	})
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
-				"error": "graph query timed out",
-				"hint":  "try reducing max_depth or narrowing link_types",
-			})
-		}
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+		return h.graphError(c, err, "try reducing max_depth or narrowing link_types")
 	}
 	if result.Path == nil {
 		result.Path = []graph.ChainLink{}
@@ -209,16 +229,13 @@ func (h *GraphHandler) FindChain(c *fiber.Ctx) error {
 // ExecuteCypher runs a read-only Cypher query against pcmi_memory_graph.
 // Requires write role (ability to execute arbitrary graph queries).
 //
-// POST /v1/graph/cypher  {"query": "MATCH (n:Memory) WHERE n.tenant_id = '...' RETURN n.id LIMIT 10"}
+// POST /v1/graph/cypher  {"query": "MATCH (n:Memory) RETURN n.id LIMIT 10"}
 func (h *GraphHandler) ExecuteCypher(c *fiber.Ctx) error {
 	if !h.client.IsAvailable(c.Context()) {
-		return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
-			"error": "cognitive graph not available",
-			"hint":  "requires PostgreSQL AGE extension — see docs/cognitive-graph.md",
-		})
+		return h.ageNotAvailable(c)
 	}
 
-	tenantID, _ := c.Locals(middleware.TenantContextKey).(string)
+	tid := h.tenantID(c)
 
 	var req struct {
 		Query string `json:"query"`
@@ -227,20 +244,17 @@ func (h *GraphHandler) ExecuteCypher(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "query field is required"})
 	}
 
-	start := time.Now()
-	result, err := h.client.ExecuteCypher(c.Context(), tenantID, req.Query)
-	elapsed := time.Since(start).Seconds()
-	metrics.IncGraphTraversal()
-	metrics.ObserveGraphTraversal(elapsed)
-
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return c.Status(fiber.StatusGatewayTimeout).JSON(fiber.Map{
-				"error": "graph query timed out",
-				"hint":  "try simplifying the Cypher query or adding a LIMIT clause",
-			})
+	var result *graph.CypherResult
+	var execErr error
+	execErr = h.timed(c, func() error {
+		result, execErr = h.client.ExecuteCypher(c.Context(), tid, req.Query)
+		return execErr
+	})
+	if execErr != nil {
+		if errors.Is(execErr, context.DeadlineExceeded) {
+			return h.graphError(c, execErr, "try simplifying the Cypher query or adding a LIMIT clause")
 		}
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": execErr.Error()})
 	}
 	if result.Rows == nil {
 		result.Rows = []map[string]interface{}{}

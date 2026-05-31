@@ -173,13 +173,15 @@ Full operational guide: **[docs/USAGE.md](docs/USAGE.md)** · SDK reference: **[
 
 ## Cognitive Graph Explorer *(experimental)*
 
-Explore SOC incidents and linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest causal chains, and a browser UI at **`/v1/graph/ui`**.
+Visualize **any** linked memories as a **typed property graph** on [Apache AGE](https://github.com/apache/age) — multi-hop traversal, shortest paths, and a browser UI at **`/v1/graph/ui`**. PCMI is **not** SOC-specific: **nodes** = memories, **edges** = typed `memory_links` (`causal`, `temporal`, `contradicts`, `supports`, `related`) you define for your domain (incidents, tickets, research notes, trading signals, etc.).
 
-PCMI models linked memories as a graph: **nodes** = memories, **edges** = typed `memory_links` (`causal`, `temporal`, `contradicts`, `supports`, `related`). With AGE enabled, `GET /v1/graph/related` and `GET /v1/graph/chain` power the explorer.
+> **Example dataset (SOC only):** `make graph-ui` loads a **sample** cyber-incident graph (alerts, kill chains, campaigns) so you can try the explorer without your own data. The video and memory IDs below refer to that demo — swap in your tenant’s memories and links for production use.
+
+With AGE enabled, `GET /v1/graph/related` and `GET /v1/graph/chain` power the explorer.
 
 ### Demo video (~90s)
 
-Kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, and timeline.
+Walkthrough on the **SOC sample data**: kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, and timeline.
 
 https://github.com/user-attachments/assets/d4325b08-50cc-450a-9c24-66b062041eba
 
@@ -187,10 +189,10 @@ https://github.com/user-attachments/assets/d4325b08-50cc-450a-9c24-66b062041eba
 
 | Step | Command / URL |
 |------|----------------|
-| 1. Start stack + load SOC dataset | `make graph-ui` (or `bash scripts/e2e/launch_graph_ui.sh`) |
+| 1. Start stack + load **example** SOC dataset | `make graph-ui` (or `bash scripts/e2e/launch_graph_ui.sh`) — optional; use your own memories/links instead |
 | 2. Open the UI | [http://localhost:8000/v1/graph/ui](http://localhost:8000/v1/graph/ui) |
 | 3. API key | Default dev key: `testkey123` (see `.env.example`) |
-| 4. First exploration | Memory ID **14**, depth **5**, link types **causal + temporal** — Conti kill chain |
+| 4. First exploration *(SOC demo)* | Memory ID **14**, depth **5**, link types **causal + temporal** — Conti kill chain in the sample data |
 
 The green **AGE ready** badge means `GET /v1/graph/health` reports `available: true`. If it is yellow, point the API at `postgres-age` (port **5433**) — see [docs/cognitive-graph.md](docs/cognitive-graph.md#how-to-enable).
 
@@ -205,7 +207,7 @@ The green **AGE ready** badge means `GET /v1/graph/health` reports `available: t
 | **Clusters** | Path-prefix grouping | Collapse alert storms (many duplicates on the same subnet) |
 | **Timeline** | Memory timestamps | Time axis; click a dot to focus the node in the graph |
 
-**Suggested memory IDs** (after the SOC dataset load), curl examples, and edge-type semantics: **[docs/cognitive-graph.md § Graph UI](docs/cognitive-graph.md#graph-ui--demo-video)**.
+**Suggested memory IDs for the SOC example**, curl examples, and edge-type semantics: **[docs/cognitive-graph.md § Graph UI](docs/cognitive-graph.md#graph-ui--demo-video)**.
 
 > **Status:** experimental v2.0 spike — API and schema may change. See [docs/cognitive-graph.md](docs/cognitive-graph.md) and [docs/roadmap.md](docs/roadmap.md).
 
@@ -269,7 +271,7 @@ Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: *
 | [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
 | [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
 | [docs/SESSIONS.md](docs/SESSIONS.md) | Agent sessions and working memory |
-| [docs/cognitive-graph.md](docs/cognitive-graph.md) | Cognitive Graph (AGE), SOC dataset, Graph UI + demo video |
+| [docs/cognitive-graph.md](docs/cognitive-graph.md) | Cognitive Graph (AGE), optional SOC example dataset, Graph UI + demo video |
 | [docs/MCP.md](docs/MCP.md) | MCP stdio server for Cursor / Claude |
 | [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |

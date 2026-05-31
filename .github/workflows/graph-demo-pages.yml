@@ -1,0 +1,41 @@
+# Publishes docs/demo-site/ (HTML5 player) for README embed fallback.
+name: Graph demo GitHub Pages
+
+on:
+  push:
+    branches: [main, feat/pcmi-cognitive-graph-v3-spike]
+    paths:
+      - 'docs/demo-site/**'
+      - 'docs/assets/graph-ui-demo.mp4'
+      - 'docs/assets/graph-ui-demo-poster.jpg'
+      - '.github/workflows/graph-demo-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: graph-demo-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp docs/demo-site/*.html _site/
+          cp docs/assets/graph-ui-demo.mp4 docs/assets/graph-ui-demo-poster.jpg _site/
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

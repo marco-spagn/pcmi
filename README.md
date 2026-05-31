@@ -181,17 +181,9 @@ PCMI models linked memories as a graph: **nodes** = memories, **edges** = typed 
 
 Kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, and timeline.
 
-> GitHub does not render `<video>` in README files. **Click the preview below** to open the full MP4 in GitHub’s built-in player (play / pause / seek / fullscreen).
-
-<p align="center">
-  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
-    <img
-      src="docs/assets/graph-ui-demo.gif"
-      alt="Animated preview — click to play the full 90 second Cognitive Graph Explorer walkthrough with controls"
-      width="100%"
-    />
-  </a>
-</p>
+| Walkthrough (play / pause / seek) |
+| --- |
+| <video controls playsinline preload="metadata" width="100%" poster="docs/assets/graph-ui-demo-poster.jpg"><source src="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4" type="video/mp4"></video> |
 
 ### Try it locally
 

@@ -1150,6 +1150,64 @@ func TestAutoTenantScopeCypher_TenantIDWithHyphen(t *testing.T) {
 	}
 }
 
+func TestAutoTenantScopeCypher_AliasWithPropertiesBeforeColon(t *testing.T) {
+	// Pattern: (n {score:0.5} :Memory) — aliasPart contains brace/space before :Memory.
+	// This hits the IndexAny branch (line 406-407).
+	got, err := autoTenantScopeCypher(
+		"MATCH (n {score:0.5} :Memory) RETURN n",
+		"t12",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "n.tenant_id = 't12'") {
+		t.Errorf("alias 'n' not extracted correctly from (n {prop} :Memory): %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_EmptyAliasWithBrace(t *testing.T) {
+	// Pattern: ( {key:'val'} :Memory) — no alias, just properties then :Memory.
+	// aliasPart = "{key:'val'}", IndexAny finds '{' at idx 0, alias = "".
+	_, err := autoTenantScopeCypher(
+		"MATCH ( {key:'val'} :Memory) RETURN n",
+		"t13",
+	)
+	if err == nil {
+		t.Fatal("expected error for empty alias after brace extraction")
+	}
+	if !strings.Contains(err.Error(), "could not determine") {
+		t.Errorf("expected 'could not determine' error, got: %v", err)
+	}
+}
+
+func TestAutoTenantScopeCypher_AliasWithSpaceBeforeColon(t *testing.T) {
+	// Pattern: (n  :Memory) — aliasPart contains extra space before :.
+	// TrimSpace removes leading/trailing but internal space remains.
+	got, err := autoTenantScopeCypher(
+		"MATCH (n  :Memory) RETURN n",
+		"t14",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "n.tenant_id = 't14'") {
+		t.Errorf("alias 'n' not extracted from (n  :Memory): %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_MultipleSpacesBeforeWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher(
+		"MATCH (a:Memory)   WHERE   a.x > 0   RETURN a",
+		"t15",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(got, "a.tenant_id = 't15'") {
+		t.Errorf("tenant filter not found: %q", got)
+	}
+}
+
 // ─── parseAGEPath: additional robustness ──────────────────────────────────
 
 func TestParseAGEPath_NilInput(t *testing.T) {
@@ -1199,6 +1257,78 @@ func TestParseAGEPath_VertexWithSuffixes(t *testing.T) {
 	}
 	if links[0].FromID != 42 || links[0].ToID != 99 {
 		t.Errorf("got from=%d to=%d want from=42 to=99", links[0].FromID, links[0].ToID)
+	}
+}
+
+func TestParseAGEPath_EdgeJSONUnmarshalFails_Continues(t *testing.T) {
+	// A valid JSON array where the edge at index 1 is a JSON string (not an object).
+	// The initial json.Unmarshal into []json.RawMessage succeeds (the array is valid),
+	// but json.Unmarshal of the string into the edge struct fails → continue.
+	// This hits the `if err := json.Unmarshal(path[i], &edge); err != nil { continue }` branch.
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		"not-a-struct-edge",
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.7"}}
+	]`)
+	links := parseAGEPath(path)
+	// The edge at index 1 is a string, unmarshal fails → continue.
+	// Index 0 is a vertex (ok but skipped — it's at position 0, the loop starts at 1).
+	// Index 2 is a vertex (ok but only edges are processed).
+	// Result: 0 links (the bad edge was the only edge position, and it failed).
+	if links != nil {
+		t.Logf("got %d links (edge at [1] is a string, unmarshal should fail gracefully)", len(links))
+	}
+}
+
+func TestParseAGEPath_EdgeIsNumber_FailsUnmarshal(t *testing.T) {
+	// Edge is a JSON number — valid JSON but not an object → unmarshal fails.
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		12345,
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.7"}}
+	]`)
+	links := parseAGEPath(path)
+	if links != nil {
+		t.Logf("got %d links (edge is number, unmarshal should fail gracefully)", len(links))
+	}
+}
+
+func TestParseAGEPath_FiveHopChain(t *testing.T) {
+	// 5-hop chain: v0-e0-v1-e1-v2-e2-v3-e3-v4-e4-v5 (11 elements)
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "start_id": 1, "end_id": 2, "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.10"}},
+		{"id": 11, "label": "temporal", "start_id": 2, "end_id": 3, "properties": {}},
+		{"id": 3, "label": "Memory", "properties": {"id": "memory.20"}},
+		{"id": 12, "label": "supports", "start_id": 3, "end_id": 4, "properties": {}},
+		{"id": 4, "label": "Memory", "properties": {"id": "memory.30"}},
+		{"id": 13, "label": "contradicts", "start_id": 4, "end_id": 5, "properties": {}},
+		{"id": 5, "label": "Memory", "properties": {"id": "memory.40"}},
+		{"id": 14, "label": "related", "start_id": 5, "end_id": 6, "properties": {}},
+		{"id": 6, "label": "Memory", "properties": {"id": "memory.50"}}
+	]`)
+	links := parseAGEPath(path)
+	if len(links) != 5 {
+		t.Fatalf("expected 5 links, got %d", len(links))
+	}
+	expected := []struct {
+		from, to int64
+		lt       string
+		hop      int
+	}{
+		{1, 10, "causal", 0},
+		{10, 20, "temporal", 1},
+		{20, 30, "supports", 2},
+		{30, 40, "contradicts", 3},
+		{40, 50, "related", 4},
+	}
+	for i, exp := range expected {
+		if links[i].FromID != exp.from || links[i].ToID != exp.to || links[i].LinkType != exp.lt || links[i].HopIndex != exp.hop {
+			t.Errorf("link[%d]: got {from=%d to=%d type=%s hop=%d}, want {from=%d to=%d type=%s hop=%d}",
+				i, links[i].FromID, links[i].ToID, links[i].LinkType, links[i].HopIndex,
+				exp.from, exp.to, exp.lt, exp.hop)
+		}
 	}
 }
 

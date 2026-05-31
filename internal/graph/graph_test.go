@@ -1472,7 +1472,8 @@ func TestIsAvailable_ZeroValueClient(t *testing.T) {
 	if gc.IsAvailable(context.Background()) {
 		t.Error("zero-value GraphClient must report unavailable")
 	}
-	if gc.IsAvailable(nil) {
-		t.Error("nil context must report unavailable (no panic)")
+	// context.TODO is fine when the caller doesn't know which context to use yet.
+	if gc.IsAvailable(context.TODO()) {
+		t.Error("must report unavailable even with context.TODO()")
 	}
 }

@@ -427,7 +427,7 @@ func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, t
 		VALUES ($1, $2::ltree, $3::ltree, $4, jsonb_build_object('weight', $5::float8))
 		ON CONFLICT (tenant_id, from_path, to_path, link_type) DO UPDATE
 		    SET metadata = memory_links.metadata || jsonb_build_object('weight', $5::float8)`,
-		tenantID, fromPath, toPath, linkType, weight, weight,
+		tenantID, fromPath, toPath, linkType, weight,
 	)
 	if err != nil {
 		return fmt.Errorf("graph CreateLink insert: %w", err)

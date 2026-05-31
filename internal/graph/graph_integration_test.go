@@ -79,24 +79,26 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 		{ids[0], ids[1]},
 		{ids[1], ids[2]},
 	} {
+		fromPath := fmt.Sprintf("memory.%d", l.from)
+		toPath := fmt.Sprintf("memory.%d", l.to)
 		_, err := pool.Exec(ctx, `
 			INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
-			VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'causal',
-			        jsonb_build_object('weight', 1.0))
+			VALUES ($1::uuid, $2::ltree, $3::ltree, 'causal', jsonb_build_object('weight', 1.0))
 			ON CONFLICT (tenant_id, from_path, to_path, link_type) DO NOTHING`,
-			tenantID, l.from, l.to,
+			tenantID, fromPath, toPath,
 		)
 		if err != nil {
 			t.Fatalf("seed link %d->%d: %v", l.from, l.to, err)
 		}
 	}
 	// a → c supports.
+	fromAC := fmt.Sprintf("memory.%d", ids[0])
+	toAC := fmt.Sprintf("memory.%d", ids[2])
 	_, err = pool.Exec(ctx, `
 		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
-		VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'supports',
-		        jsonb_build_object('weight', 1.0))
+		VALUES ($1::uuid, $2::ltree, $3::ltree, 'supports', jsonb_build_object('weight', 1.0))
 		ON CONFLICT (tenant_id, from_path, to_path, link_type) DO NOTHING`,
-		tenantID, ids[0], ids[2],
+		tenantID, fromAC, toAC,
 	)
 	if err != nil {
 		t.Fatalf("seed supports link: %v", err)
@@ -108,14 +110,11 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 		{ids[1], ids[2], "causal"},
 		{ids[0], ids[2], "supports"},
 	} {
+		fromP := fmt.Sprintf("memory.%d", l.from)
+		toP := fmt.Sprintf("memory.%d", l.to)
 		_, err := pool.Exec(ctx,
-			`SELECT public.sync_memory_link_to_graph(
-				'memory.' || $2::text,
-				'memory.' || $3::text,
-				$4,
-				1.0,
-				$1::uuid
-			)`, tenantID, l.from, l.to, l.lt,
+			`SELECT public.sync_memory_link_to_graph($1, $2, $3, $4, $5::uuid)`,
+			fromP, toP, l.lt, 1.0, tenantID,
 		)
 		if err != nil {
 			t.Logf("sync link %d-[%s]->%d: %v (AGE may be absent)", l.from, l.lt, l.to, err)
@@ -224,14 +223,16 @@ func TestIntegration_CreateLink_WithRealDB(t *testing.T) {
 	}
 
 	// Verify the link exists.
+	fromP := fmt.Sprintf("memory.%d", a)
+	toP := fmt.Sprintf("memory.%d", b)
 	var count int
 	err = pool.QueryRow(ctx, `
 		SELECT COUNT(*) FROM memory_links
 		WHERE tenant_id = $1::uuid
-		  AND from_path = ('memory.' || $2::text)::ltree
-		  AND to_path = ('memory.' || $3::text)::ltree
+		  AND from_path = $2::ltree
+		  AND to_path = $3::ltree
 		  AND link_type = 'temporal'`,
-		tenantID, a, b,
+		tenantID, fromP, toP,
 	).Scan(&count)
 	if err != nil {
 		t.Fatalf("verify link: %v", err)

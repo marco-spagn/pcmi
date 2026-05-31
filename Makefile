@@ -16,7 +16,7 @@ API_URL ?= http://localhost:8000
 # Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
 # scripts/ci_coverage_check.sh. Tighten as new tests land.
 COVERAGE_MIN_TOTAL  ?= 22
-COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70
+COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,graph:42,metrics:70
 
 # Set of packages that the coverage gate considers. Integration-heavy packages
 # (cmd/* binaries) are intentionally excluded because they cannot run without a
@@ -32,6 +32,7 @@ COVERAGE_PKGS = \
 	./internal/embedding/... \
 	./internal/event/... \
 	./internal/eventschema/... \
+	./internal/graph/... \
 	./internal/handler/... \
 	./internal/metrics/... \
 	./internal/middleware/... \

@@ -45,7 +45,7 @@ ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 >= b + 0) }'; }
 
 COVERAGE_OUT="${COVERAGE_OUT:-coverage.out}"
 COVERAGE_MIN_TOTAL="${COVERAGE_MIN_TOTAL:-60}"
-COVERAGE_PKG_FLOORS="${COVERAGE_PKG_FLOORS:-config:70,event:70,eventschema:85,metrics:70,handler:55,service:55,repository:55,worker:45,webhook:40,embedding:55,ratelimit:60,crypto:70}"
+COVERAGE_PKG_FLOORS="${COVERAGE_PKG_FLOORS:-config:70,event:70,eventschema:85,graph:42,metrics:70,handler:55,service:55,repository:55,worker:45,webhook:40,embedding:55,ratelimit:60,crypto:70}"
 COVERAGE_FAIL_ON_MISSING_FILE="${COVERAGE_FAIL_ON_MISSING_FILE:-true}"
 COVERAGE_SUMMARY_OUT="${COVERAGE_SUMMARY_OUT:-}"
 COVERAGE_MD_OUT="${COVERAGE_MD_OUT:-}"

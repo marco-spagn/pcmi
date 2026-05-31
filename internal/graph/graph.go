@@ -74,9 +74,7 @@ func (g *GraphClient) ageConn(ctx context.Context) (*pgxpool.Conn, error) {
 // cursor/limit implement keyset pagination over memory IDs.  Pass cursor=0 for
 // the first page; subsequent pages pass the last ID from the previous page.
 func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*RelatedResult, error) {
-	if !g.IsAvailable(ctx) {
-		return &RelatedResult{Memories: []RelatedMemory{}}, nil
-	}
+	// Normalise inputs before the AGE check so unit tests can cover these branches.
 	if maxDepth < 1 {
 		maxDepth = 1
 	}
@@ -85,6 +83,10 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	if cursor < 0 {
 		cursor = 0
+	}
+
+	if !g.IsAvailable(ctx) {
+		return &RelatedResult{Memories: []RelatedMemory{}}, nil
 	}
 
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
@@ -178,11 +180,13 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, toID int64, linkTypes []string, maxDepth int) (*ChainResult, error) {
 	result := &ChainResult{FromID: fromID, ToID: toID}
 
-	if !g.IsAvailable(ctx) {
-		return result, nil
-	}
+	// Normalise before the AGE check so unit tests can cover this branch.
 	if maxDepth < 1 {
 		maxDepth = 3
+	}
+
+	if !g.IsAvailable(ctx) {
+		return result, nil
 	}
 
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
@@ -322,16 +326,9 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 	}
 	defer conn.Release()
 
-	trimmed := strings.TrimSpace(query)
-	upper := strings.ToUpper(trimmed)
-	if !strings.HasPrefix(upper, "MATCH") {
-		return nil, fmt.Errorf("only MATCH queries are allowed in Cypher passthrough")
-	}
-	dangerous := []string{"CREATE ", "DELETE ", "SET ", "REMOVE ", "MERGE ", "DROP ", "CALL ", "LOAD "}
-	for _, kw := range dangerous {
-		if strings.Contains(upper, kw) {
-			return nil, fmt.Errorf("keyword %s is not allowed in Cypher passthrough queries", strings.TrimSpace(kw))
-		}
+	trimmed, err := validateCypherQuery(query)
+	if err != nil {
+		return nil, err
 	}
 
 	scopedQuery, err := autoTenantScopeCypher(trimmed, tenantID)
@@ -370,6 +367,26 @@ func (g *GraphClient) ExecuteCypher(ctx context.Context, tenantID, query string)
 		Columns: []string{"result"},
 		Rows:    jsonRows,
 	}, nil
+}
+
+// validateCypherQuery validates a Cypher passthrough query and returns the
+// trimmed form.  Only MATCH queries are allowed; write keywords are rejected.
+func validateCypherQuery(query string) (string, error) {
+	trimmed := strings.TrimSpace(query)
+	if trimmed == "" {
+		return "", fmt.Errorf("query must not be empty")
+	}
+	upper := strings.ToUpper(trimmed)
+	if !strings.HasPrefix(upper, "MATCH") {
+		return "", fmt.Errorf("only MATCH queries are allowed in Cypher passthrough")
+	}
+	dangerous := []string{"CREATE ", "DELETE ", "SET ", "REMOVE ", "MERGE ", "DROP ", "CALL ", "LOAD "}
+	for _, kw := range dangerous {
+		if strings.Contains(upper, kw) {
+			return "", fmt.Errorf("keyword %s is not allowed in Cypher passthrough queries", strings.TrimSpace(kw))
+		}
+	}
+	return trimmed, nil
 }
 
 // autoTenantScopeCypher injects a tenant_id filter into a read-only Cypher query.

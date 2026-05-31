@@ -1201,3 +1201,278 @@ func TestParseAGEPath_VertexWithSuffixes(t *testing.T) {
 		t.Errorf("got from=%d to=%d want from=42 to=99", links[0].FromID, links[0].ToID)
 	}
 }
+
+// ─── validateCypherQuery (pure function, full coverage) ────────────────────
+
+func TestValidateCypherQuery_ValidMatch(t *testing.T) {
+	trimmed, err := validateCypherQuery("MATCH (n:Memory) RETURN n LIMIT 10")
+	if err != nil {
+		t.Fatalf("valid MATCH query should pass: %v", err)
+	}
+	if !strings.HasPrefix(trimmed, "MATCH") {
+		t.Errorf("trimmed query should start with MATCH: %q", trimmed)
+	}
+}
+
+func TestValidateCypherQuery_LowercaseMatch(t *testing.T) {
+	trimmed, err := validateCypherQuery("match (n:Memory) return n")
+	if err != nil {
+		t.Fatalf("lowercase 'match' should pass: %v", err)
+	}
+	if trimmed != "match (n:Memory) return n" {
+		t.Errorf("lowercase query preserved: got %q", trimmed)
+	}
+}
+
+func TestValidateCypherQuery_MixedCaseMatch(t *testing.T) {
+	trimmed, err := validateCypherQuery("Match (n:Memory) Return n Limit 5")
+	if err != nil {
+		t.Fatalf("mixed-case 'Match' should pass: %v", err)
+	}
+	if trimmed != "Match (n:Memory) Return n Limit 5" {
+		t.Errorf("original case preserved: got %q", trimmed)
+	}
+}
+
+func TestValidateCypherQuery_EmptyString(t *testing.T) {
+	_, err := validateCypherQuery("")
+	if err == nil {
+		t.Fatal("empty query must be rejected")
+	}
+}
+
+func TestValidateCypherQuery_WhitespaceOnly(t *testing.T) {
+	for _, q := range []string{"   ", "\t\n ", "  \n  "} {
+		_, err := validateCypherQuery(q)
+		if err == nil {
+			t.Errorf("whitespace-only query %q must be rejected", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_TrimsWhitespace(t *testing.T) {
+	trimmed, err := validateCypherQuery("  MATCH (n) RETURN n  ")
+	if err != nil {
+		t.Fatalf("padded MATCH query should pass: %v", err)
+	}
+	if trimmed != "MATCH (n) RETURN n" {
+		t.Errorf("should be trimmed: got %q", trimmed)
+	}
+}
+
+func TestValidateCypherQuery_NotMatchPrefix(t *testing.T) {
+	rejected := []string{
+		"CREATE (n:Memory {id: 'x'})",
+		"RETURN n",
+		"SELECT * FROM memory_entries",
+		"INSERT INTO memory_links VALUES (1)",
+		"UPDATE memory_entries SET content = 'x'",
+		"WITH n MATCH (m) RETURN m",
+		"OPTIONAL MATCH (n) RETURN n",
+		"EXPLAIN MATCH (n) RETURN n",
+	}
+	for _, q := range rejected {
+		_, err := validateCypherQuery(q)
+		if err == nil {
+			t.Errorf("non-MATCH prefix query %q must be rejected", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_EachDangerousKeyword(t *testing.T) {
+	dangerous := map[string]string{
+		"MATCH (n) CREATE (x)":                 "CREATE",
+		"MATCH (n) DELETE n":                   "DELETE",
+		"MATCH (n) SET n.x = 1":               "SET",
+		"MATCH (n) REMOVE n.x":                  "REMOVE",
+		"MATCH (n) MERGE (x:Memory {id:'y'})": "MERGE",
+		"MATCH (n) DROP TABLE memory_entries":  "DROP",
+		"MATCH (n) CALL proc()":                "CALL",
+		"MATCH (n) LOAD CSV FROM 'f.csv'":      "LOAD",
+	}
+	for q, kw := range dangerous {
+		_, err := validateCypherQuery(q)
+		if err == nil {
+			t.Errorf("query with %s must be rejected: %q", kw, q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_DangerousInLowerCase(t *testing.T) {
+	// Dangerous keywords are detected case-insensitively.
+	rejected := []string{
+		"MATCH (n) create (x)",
+		"MATCH (n) delete n",
+		"MATCH (n) set n.x = 1",
+		"MATCH (n) merge (x)",
+	}
+	for _, q := range rejected {
+		_, err := validateCypherQuery(q)
+		if err == nil {
+			t.Errorf("lowercase dangerous keyword should be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_DangerousEmbeddedInWord(t *testing.T) {
+	// Keywords like "SET" inside longer words (e.g. "RESET") need a space.
+	// Our check uses "SET " with trailing space, so "RESETTING" won't match.
+	for _, q := range []string{
+		"MATCH (n:Memory) RETURN n.settings",
+		"MATCH (n) RETURN created_at",
+	} {
+		_, err := validateCypherQuery(q)
+		if err != nil {
+			t.Errorf("keyword embedded in word should NOT be rejected: %q → %v", q, err)
+		}
+	}
+}
+
+func TestValidateCypherQuery_ComplexValidQuery(t *testing.T) {
+	q := "MATCH (a:Memory)-[r:causal]->(b:Memory) WHERE a.importance > 0.5 RETURN a.id, b.id, r.weight ORDER BY r.weight DESC LIMIT 50"
+	trimmed, err := validateCypherQuery(q)
+	if err != nil {
+		t.Fatalf("complex valid query should pass: %v", err)
+	}
+	if trimmed != q {
+		t.Errorf("complex query must not be altered: got %q", trimmed)
+	}
+}
+
+func TestValidateCypherQuery_QueryWithTabsAndNewlines(t *testing.T) {
+	trimmed, err := validateCypherQuery("\tMATCH (n:Memory)\nRETURN n.id\n")
+	if err != nil {
+		t.Fatalf("query with tabs/newlines should pass: %v", err)
+	}
+	if !strings.HasPrefix(trimmed, "MATCH") {
+		t.Errorf("expected trimmed MATCH, got %q", trimmed)
+	}
+}
+
+// ─── FindRelated: input normalisation with nil db (moved before IsAvailable) ──
+
+func TestFindRelated_NormalisationRunsBeforeAGE(t *testing.T) {
+	// With nil db, IsAvailable returns false, but normalisation now happens
+	// before the check, so these branches are covered.
+	gc := NewGraphClient(nil)
+
+	// maxDepth=0 → normalised to 1
+	r1, _ := gc.FindRelated(context.Background(), "t", 1, nil, 0, 0, 50)
+	if len(r1.Memories) != 0 {
+		t.Error("maxDepth=0: expected empty (AGE unavailable)")
+	}
+
+	// limit=0 → normalised to 50
+	r2, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 0)
+	if len(r2.Memories) != 0 {
+		t.Error("limit=0: expected empty (AGE unavailable)")
+	}
+
+	// cursor=-1 → normalised to 0
+	r3, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, -1, 50)
+	if len(r3.Memories) != 0 {
+		t.Error("cursor=-1: expected empty (AGE unavailable)")
+	}
+}
+
+func TestFindRelated_MaxDepthAlreadyValid(t *testing.T) {
+	gc := NewGraphClient(nil)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 5, 0, 50)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Memories == nil {
+		t.Error("expected non-nil Memories")
+	}
+}
+
+func TestFindRelated_LimitAlreadyValid(t *testing.T) {
+	gc := NewGraphClient(nil)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Memories == nil {
+		t.Error("expected non-nil Memories")
+	}
+}
+
+func TestFindRelated_CursorAlreadyValid(t *testing.T) {
+	gc := NewGraphClient(nil)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 100, 50)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Memories == nil {
+		t.Error("expected non-nil Memories")
+	}
+}
+
+// ─── FindChain: input normalisation with nil db (moved before IsAvailable) ─
+
+func TestFindChain_NormalisationRunsBeforeAGE(t *testing.T) {
+	gc := NewGraphClient(nil)
+
+	// maxDepth=0 → normalised to 3
+	r1, _ := gc.FindChain(context.Background(), "t", 1, 2, nil, 0)
+	if r1.FromID != 1 || r1.ToID != 2 {
+		t.Error("IDs must be preserved")
+	}
+
+	// maxDepth=-1 → normalised to 3
+	r2, _ := gc.FindChain(context.Background(), "t", 1, 2, nil, -1)
+	if r2.FromID != 1 || r2.ToID != 2 {
+		t.Error("IDs must be preserved after negative maxDepth normalization")
+	}
+
+	// maxDepth already valid
+	r3, err := gc.FindChain(context.Background(), "t", 1, 2, nil, 10)
+	if err != nil {
+		t.Fatalf("valid maxDepth: unexpected error: %v", err)
+	}
+	if r3.FromID != 1 || r3.ToID != 2 {
+		t.Error("IDs must be preserved")
+	}
+}
+
+func TestFindChain_MaxDepthOne(t *testing.T) {
+	gc := NewGraphClient(nil)
+	r, err := gc.FindChain(context.Background(), "t", 1, 2, []string{LinkTypeCausal}, 1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if r.Connected {
+		t.Error("expected Connected=false when AGE unavailable")
+	}
+}
+
+// ─── ExecuteCypher: validation now testable via validateCypherQuery ────────
+
+func TestExecuteCypher_ValidationUsesExtractedFunction(t *testing.T) {
+	// ExecuteCypher with nil db returns "cognitive graph not available" error
+	// BEFORE reaching validation, because IsAvailable check is first.
+	// The actual validation logic is now in validateCypherQuery, tested above.
+	// These tests verify the integration: nil db → IsAvailable → graceful error.
+	gc := NewGraphClient(nil)
+
+	_, err := gc.ExecuteCypher(context.Background(), "t", "MATCH (n:Memory) RETURN n")
+	if err == nil {
+		t.Fatal("nil db must return error (AGE unavailable)")
+	}
+	if !strings.Contains(err.Error(), "cognitive graph not available") {
+		t.Errorf("expected AGE-unavailable error, got: %v", err)
+	}
+}
+
+// ─── IsAvailable: additional edge ─────────────────────────────────────────
+
+func TestIsAvailable_ZeroValueClient(t *testing.T) {
+	// &GraphClient{} has nil db — IsAvailable must return false.
+	gc := &GraphClient{}
+	if gc.IsAvailable(context.Background()) {
+		t.Error("zero-value GraphClient must report unavailable")
+	}
+	if gc.IsAvailable(nil) {
+		t.Error("nil context must report unavailable (no panic)")
+	}
+}

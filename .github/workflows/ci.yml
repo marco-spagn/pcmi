@@ -211,9 +211,10 @@ jobs:
       #   | Package | ... | ✅ 87.5% | 🟡 33.3% | 🔴 22% |
       # (exactly like the original bot comments on PRs).
       #
-      # === TEST COMMIT MARKER ===
+      # === TEST COMMIT MARKER (4939d33 + this commit) ===
       # This commit is used to verify that the coverage sticky comment
-      # is correctly refreshed after every push (including emojis).
+      # is correctly refreshed after every push, WITH the fixed ✅ 🟡 🔴
+      # icons on every single row of the table.
       #
       # The marocchino/sticky-pull-request-comment action (with a stable
       # `header`) automatically replaces the previous comment with the same

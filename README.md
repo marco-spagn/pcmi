@@ -19,32 +19,29 @@ Explore SOC incidents and linked memories as a **typed property graph** on [Apac
 
 **Demo (~90s)** — kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, timeline.
 
-https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4
+> GitHub does not render `<video>` in README files. **Click the preview below** to open the full MP4 in GitHub’s built-in player (play / pause / seek / fullscreen).
 
 <p align="center">
-  <video
-    width="100%"
-    controls
-    playsinline
-    preload="metadata"
-    poster="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo-poster.jpg"
-  >
-    <source
-      src="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4"
-      type="video/mp4"
+  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
+    <img
+      src="docs/assets/graph-ui-demo.gif"
+      alt="Animated preview — click to play the full 90 second Cognitive Graph Explorer walkthrough with controls"
+      width="100%"
     />
-    <source
-      src="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4"
-      type="video/mp4"
-    />
-  </video>
+  </a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4"><b>▶ Open in GitHub player</b></a>
-  &nbsp;·&nbsp;
-  <a href="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4"><b>Download MP4</b></a>
+  <a href="https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4">
+    <img src="https://img.shields.io/badge/▶_Play_full_video_(90s,_with_controls)-2dd4bf?style=for-the-badge&labelColor=0a0f1e" alt="Play full demo video on GitHub" />
+  </a>
+  &nbsp;
+  <a href="https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4">
+    <img src="https://img.shields.io/badge/Download-MP4-38bdf8?style=for-the-badge&labelColor=0a0f1e" alt="Download MP4" />
+  </a>
 </p>
+
+**From a git clone:** open `docs/assets/graph-ui-demo.mp4` in any browser or video player.
 
 <p align="center">
   <a href="http://localhost:8000/v1/graph/ui"><code>/v1/graph/ui</code></a> (local)

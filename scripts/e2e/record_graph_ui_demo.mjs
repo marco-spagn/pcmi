@@ -387,10 +387,15 @@ async function main() {
     '-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1',
     OUT_FILE,
   ]);
+  const gifOut = join(OUT_DIR, 'graph-ui-demo.gif');
+  await execFileAsync('ffmpeg', [
+    '-y', '-i', OUT_FILE, '-t', '18',
+    '-vf', 'fps=8,scale=960:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse',
+    '-loop', '0', gifOut,
+  ]);
   console.log('Done:', OUT_FILE, `— ${parseFloat(stdout).toFixed(0)}s, ${frameIdx} frames`);
-  console.log('Publish for README playback:');
-  console.log('  gh release upload graph-ui-demo', OUT_FILE, '--clobber');
-  console.log('  # Update raw/blob URLs in README.md if the git branch name changed');
+  console.log('Also wrote', gifOut, '(README preview — GitHub cannot inline <video>)');
+  console.log('Publish: gh release upload graph-ui-demo', OUT_FILE, '--clobber');
 }
 
 main().catch((e) => {

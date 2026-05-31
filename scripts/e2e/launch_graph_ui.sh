@@ -122,18 +122,19 @@ if [ "$INFRA_ONLY" = "1" ]; then
   echo "  API key:   ${PCMI_API_KEY}"
   echo ""
   echo "  To load data later:"
-  echo "    PCMI_BASE_URL=${PCMI_BASE_URL} PCMI_API_KEY=${PCMI_API_KEY} python3 load_to_pcmi.py"
+  echo "    cd examples/soc-incident-graph && PCMI_BASE_URL=${PCMI_BASE_URL} PCMI_API_KEY=${PCMI_API_KEY} python3 load_to_pcmi.py"
   echo ""
   exit 0
 fi
 
 case "$PRESET" in
   soc)
-    NODES_CSV="${PROJECT_ROOT}/soc_incidents_nodes.csv"
-    LINKS_CSV="${PROJECT_ROOT}/soc_incidents_links.csv"
-    GENERATOR="${PROJECT_ROOT}/generate_soc_dataset.py"
-    VALIDATOR="${PROJECT_ROOT}/validate.py"
-    LOADER="${PROJECT_ROOT}/load_to_pcmi.py"
+    SOC_DATASET="${PROJECT_ROOT}/examples/soc-incident-graph"
+    NODES_CSV="${SOC_DATASET}/soc_incidents_nodes.csv"
+    LINKS_CSV="${SOC_DATASET}/soc_incidents_links.csv"
+    GENERATOR="${SOC_DATASET}/generate_soc_dataset.py"
+    VALIDATOR="${SOC_DATASET}/validate.py"
+    LOADER="${SOC_DATASET}/load_to_pcmi.py"
     ;;
   *)
     echo "${RED}✗ Unknown preset: $PRESET (supported: soc)${RESET}" >&2
@@ -147,7 +148,7 @@ CURRENT_NODES=$((CURRENT_NODES - 1))  # subtract header
 
 if [ "$CURRENT_NODES" -lt "$DATASET_SIZE" ] 2>/dev/null || [ ! -f "$NODES_CSV" ]; then
   info "Generating SOC dataset (${DATASET_SIZE} nodes)..."
-  cd "$PROJECT_ROOT"
+  cd "$SOC_DATASET"
   python3 "$GENERATOR" "$DATASET_SIZE"
   ok "Dataset generated: $(wc -l < "$NODES_CSV" | tr -d ' ') lines (header + nodes)"
 else
@@ -158,7 +159,7 @@ fi
 # ── Step 4: Validate ────────────────────────────────────────────────────────
 hdr "Step 4: Validate dataset"
 
-cd "$PROJECT_ROOT"
+cd "$SOC_DATASET"
 if python3 "$VALIDATOR"; then
   ok "Dataset is coherent — 0 errors"
 else
@@ -168,12 +169,12 @@ fi
 # ── Step 5: Load into PCMI ──────────────────────────────────────────────────
 hdr "Step 5: Load dataset into PCMI"
 
-cd "$PROJECT_ROOT"
+cd "$SOC_DATASET"
 export PCMI_BASE_URL
 export PCMI_API_KEY
 
 info "Loading ${DATASET_SIZE} nodes + their links..."
-info "This is resumable — interrupt and restart safely (id_map.json checkpoint)"
+info "This is resumable — interrupt and restart safely (examples/soc-incident-graph/id_map.json checkpoint)"
 
 python3 "$LOADER" --batch 50 --link-workers 16
 

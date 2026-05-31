@@ -21,7 +21,7 @@ Output (contratto grafo invariato):
   soc_incidents_nodes.csv   (N nodi, default 1000)
   soc_incidents_links.csv   (referenzia external_id → loader traduce in memory.<db_id>)
 """
-import csv, random, math, sys
+import csv, math, os, random, sys
 from datetime import datetime, timedelta
 
 SEED = 1337
@@ -440,10 +440,11 @@ FIELDS=["external_id","path","content","tags","disposition","severity","status",
   "escalation_tier","analyst","threat_actor","campaign_id","src_ip","dst_host","affected_user",
   "ioc_hash","ioc_domain","cve_id","fp_cause","benign_cause","closure_reason","asset_criticality",
   "confidence","cvss_score","alert_count","sla_met","ttd_minutes","ttr_minutes"]
-with open("soc_incidents_nodes.csv","w",newline="",encoding="utf-8") as f:
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(_ROOT, "soc_incidents_nodes.csv"), "w", newline="", encoding="utf-8") as f:
     w=csv.DictWriter(f,fieldnames=FIELDS); w.writeheader()
     for r in nodes: w.writerow(r)
-with open("soc_incidents_links.csv","w",newline="",encoding="utf-8") as f:
+with open(os.path.join(_ROOT, "soc_incidents_links.csv"), "w", newline="", encoding="utf-8") as f:
     w=csv.writer(f); w.writerow(["from_external_id","to_external_id","link_type","rationale"])
     for a,b,t,why in links: w.writerow([a,b,t,why])
 

@@ -341,22 +341,24 @@ make graph-ui DATASET_SIZE=5000
 bash scripts/e2e/launch_graph_ui.sh
 ```
 
-### Files
+### Example SOC dataset (optional)
+
+All generator, CSVs, loader, and docs live under **[`examples/soc-incident-graph/`](../examples/soc-incident-graph/)** (not repo root). PCMI is not SOC-only; this is demo data for the Graph UI.
 
 | File | Description |
 |------|-------------|
-| `generate_soc_dataset.py` | Generator (deterministic, seed 1337). `python3 generate_soc_dataset.py 5000` |
-| `soc_incidents_nodes.csv` | 1000 alert/incident nodes (33 typed columns) |
-| `soc_incidents_links.csv` | 1333 typed edges (causal 29%, temporal 29%, related 20%, supports 13%, contradicts 10%) |
-| `load_to_pcmi.py` | Batch loader (resumable, `id_map.json` checkpoint) |
+| [`README.md`](../examples/soc-incident-graph/README.md) | Overview and commands |
+| [`example-scenarios.md`](../examples/soc-incident-graph/example-scenarios.md) | Five patterns from real CSV rows |
+| [`data-dictionary.md`](../examples/soc-incident-graph/data-dictionary.md) | Full column reference |
+| `generate_soc_dataset.py` | Generator (deterministic, seed 1337) |
+| `load_to_pcmi.py` | Batch loader (resumable `id_map.json`) |
 | `validate.py` | Integrity + coherence validator |
-| `CASI_SPECIFICI.md` | Walkthrough of 5 real-world SOC patterns in the data |
-| `DATA_DICTIONARY.md` | Full 33-column reference |
 
 ### Manual load
 
 ```bash
 export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+cd examples/soc-incident-graph
 
 # Smoke test (first 100)
 python3 load_to_pcmi.py --limit 100

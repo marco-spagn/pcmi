@@ -1,11 +1,13 @@
-import csv, re, sys
+import csv, os, re, sys
 from collections import Counter
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 errors=[]; LTREE=re.compile(r'^root(\.[a-z0-9_]+)+$')
 IPRE=re.compile(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$')
 DISP={"true_positive","false_positive","benign_true_positive","duplicate"}
 SEV={"P1","P2","P3","P4"}
 nodes={}; paths=set()
-with open("soc_incidents_nodes.csv",encoding="utf-8") as f:
+with open(os.path.join(ROOT, "soc_incidents_nodes.csv"), encoding="utf-8") as f:
     for row in csv.DictReader(f):
         eid=row["external_id"]
         if eid in nodes: errors.append(f"dup external_id {eid}")
@@ -28,7 +30,7 @@ with open("soc_incidents_nodes.csv",encoding="utf-8") as f:
         nodes[eid]=row
 LT={"causal","temporal","contradicts","supports","related"}
 dang=self_=dup=0; seen=set(); lc=0
-with open("soc_incidents_links.csv",encoding="utf-8") as f:
+with open(os.path.join(ROOT, "soc_incidents_links.csv"), encoding="utf-8") as f:
     for row in csv.DictReader(f):
         lc+=1; a,b,t=row["from_external_id"],row["to_external_id"],row["link_type"]
         if t not in LT: errors.append(f"bad link_type {t}")

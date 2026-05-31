@@ -26,11 +26,12 @@ import argparse, csv, json, os, sys, time, threading
 import urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+ROOT = os.path.dirname(os.path.abspath(__file__))
 BASE = os.environ.get("PCMI_BASE_URL", "http://localhost:8000").rstrip("/")
 KEY  = os.environ.get("PCMI_API_KEY", "testkey123")
-NODES_CSV = "soc_incidents_nodes.csv"
-LINKS_CSV = "soc_incidents_links.csv"
-ID_MAP    = "id_map.json"
+NODES_CSV = os.path.join(ROOT, "soc_incidents_nodes.csv")
+LINKS_CSV = os.path.join(ROOT, "soc_incidents_links.csv")
+ID_MAP    = os.path.join(ROOT, "id_map.json")
 MAX_BATCH = 50
 EMB_MODEL = os.environ.get("PCMI_EMBEDDING_MODEL", "")
 

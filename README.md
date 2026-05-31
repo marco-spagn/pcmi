@@ -271,7 +271,8 @@ Deeper design: **[docs/architecture.md](docs/architecture.md)** · Data model: *
 | [docs/local-ci.md](docs/local-ci.md) | Reproduce CI locally |
 | [docs/distillation-tests.md](docs/distillation-tests.md) | Distillation E2E harness |
 | [docs/SESSIONS.md](docs/SESSIONS.md) | Agent sessions and working memory |
-| [docs/cognitive-graph.md](docs/cognitive-graph.md) | Cognitive Graph (AGE), optional SOC example dataset, Graph UI + demo video |
+| [docs/cognitive-graph.md](docs/cognitive-graph.md) | Cognitive Graph (AGE), Graph UI + demo video |
+| [examples/soc-incident-graph/](examples/soc-incident-graph/) | Optional SOC **example** dataset (CSVs, loader, scenarios) |
 | [docs/MCP.md](docs/MCP.md) | MCP stdio server for Cursor / Claude |
 | [deploy/helm/README.md](deploy/helm/README.md) | Kubernetes / Helm deployment |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |

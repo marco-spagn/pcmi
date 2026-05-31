@@ -420,12 +420,14 @@ func (g *GraphClient) CreateLink(ctx context.Context, tenantID string, fromID, t
 	fromPath := fmt.Sprintf("memory.%d", fromID)
 	toPath := fmt.Sprintf("memory.%d", toID)
 
+	// Store weight in metadata (weight column is added by migration 019 only when AGE
+	// is installed; metadata is always present on memory_links).
 	_, err := g.db.Exec(ctx, `
-		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, weight, metadata)
-		VALUES ($1, $2::ltree, $3::ltree, $4, $5, '{}')
+		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
+		VALUES ($1, $2::ltree, $3::ltree, $4, jsonb_build_object('weight', $5::float8))
 		ON CONFLICT (tenant_id, from_path, to_path, link_type) DO UPDATE
-		    SET weight = EXCLUDED.weight`,
-		tenantID, fromPath, toPath, linkType, weight,
+		    SET metadata = memory_links.metadata || jsonb_build_object('weight', $5::float8)`,
+		tenantID, fromPath, toPath, linkType, weight, weight,
 	)
 	if err != nil {
 		return fmt.Errorf("graph CreateLink insert: %w", err)

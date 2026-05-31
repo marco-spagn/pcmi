@@ -74,13 +74,15 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 	}
 
 	// Create links: a → b (causal), b → c (causal).
+	// weight is stored in metadata, not as a column (column only exists via migration 019).
 	for _, l := range []struct{ from, to int64 }{
 		{ids[0], ids[1]},
 		{ids[1], ids[2]},
 	} {
 		_, err := pool.Exec(ctx, `
-			INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, weight)
-			VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'causal', 1.0)
+			INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
+			VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'causal',
+			        jsonb_build_object('weight', 1.0))
 			ON CONFLICT (tenant_id, from_path, to_path, link_type) DO NOTHING`,
 			tenantID, l.from, l.to,
 		)
@@ -90,8 +92,9 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 	}
 	// a → c supports.
 	_, err = pool.Exec(ctx, `
-		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, weight)
-		VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'supports', 1.0)
+		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
+		VALUES ($1::uuid, ('memory.' || $2::text)::ltree, ('memory.' || $3::text)::ltree, 'supports',
+		        jsonb_build_object('weight', 1.0))
 		ON CONFLICT (tenant_id, from_path, to_path, link_type) DO NOTHING`,
 		tenantID, ids[0], ids[2],
 	)

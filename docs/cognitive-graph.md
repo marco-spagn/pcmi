@@ -316,3 +316,149 @@ go test ./internal/... -count=1
 go test ./internal/... -count=1 -coverprofile=coverage.out
 go tool cover -func=coverage.out | grep graph
 ```
+
+---
+
+## SOC Incident Dataset (1000 nodes + 1333 links)
+
+For realistic demos, the repo includes a **deterministic SOC incident dataset** that
+models a real case-management queue. Every node is a triaged alert with coherent
+entities, realistic dispositions, and full MITRE ATT&CK mapping.
+
+### One-command launch
+
+```bash
+# Everything: start AGE infra → generate dataset → load → open UI
+make graph-ui
+
+# Full stack (API + Worker) instead of just DB + Redis
+make graph-ui FULL_STACK=1
+
+# Custom size
+make graph-ui DATASET_SIZE=5000
+
+# Or run the script directly
+bash scripts/e2e/launch_graph_ui.sh
+```
+
+### Files
+
+| File | Description |
+|------|-------------|
+| `generate_soc_dataset.py` | Generator (deterministic, seed 1337). `python3 generate_soc_dataset.py 5000` |
+| `soc_incidents_nodes.csv` | 1000 alert/incident nodes (33 typed columns) |
+| `soc_incidents_links.csv` | 1333 typed edges (causal 29%, temporal 29%, related 20%, supports 13%, contradicts 10%) |
+| `load_to_pcmi.py` | Batch loader (resumable, `id_map.json` checkpoint) |
+| `validate.py` | Integrity + coherence validator |
+| `CASI_SPECIFICI.md` | Walkthrough of 5 real-world SOC patterns in the data |
+| `DATA_DICTIONARY.md` | Full 33-column reference |
+
+### Manual load
+
+```bash
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+
+# Smoke test (first 100)
+python3 load_to_pcmi.py --limit 100
+
+# Full load (Ctrl+C safe — resumable)
+python3 load_to_pcmi.py --batch 50 --link-workers 16
+```
+
+---
+
+## Graph UI — which Memory IDs to explore
+
+After loading the SOC dataset, open `http://localhost:8000/v1/graph/ui` and
+try these specific explorations. Each Memory ID corresponds to a position in the
+CSV (deterministic insertion order, seed 1337).
+
+### 1. Kill chain traversal (`/related`) — the main feature
+
+| Memory ID | Depth | Link Types | What you see |
+|-----------|-------|------------|--------------|
+| **14** | 5 | `causal, temporal` | **CAMP000004 (Conti)** — 9-stage kill chain: resource_dev → phishing → web_attack → valid_accounts → malware_exec → persistence → priv_escalation → defense_evasion → postmortem. Severity climbs from P3→P1. Dwell time spans 10 days. |
+| **35** | 5 | `causal, temporal` | **CAMP000007 (Royal)** — 10-stage chain: resource_dev → persistence → priv_escalation → lateral_movement → exfiltration. Each stage shares the same user/host/IP — coherent narrative across hops. |
+| **113** | 5 | `causal, temporal, supports` | **CAMP000021 (TA505)** — 10-stage chain including postmortem `supports` edges that fan back to every stage in the campaign. |
+
+**What to observe:** Each hop shows `depth`, `link_type`, and the memory ID.
+The graph renders the full chain as a directed graph. Switch between **force**,
+**tree**, and **radial** layouts to compare.
+
+### 2. Shortest-path chain reconstruction (`/chain`)
+
+| From | To | Max Depth | Link Types | What you see |
+|------|----|-----------|------------|--------------|
+| **14** | **22** | 10 | `causal` | 8-hop causal path through CAMP000004 (resource_dev → postmortem). Response: `connected: true, hops: 8, path: [{from_id:14, to_id:15, ...}, ...]`. |
+| **35** | **44** | 10 | `causal` | 9-hop path through CAMP000007. Verify it's the shortest path with `hops` = exactly the stage count. |
+| **22** | **14** | 10 | `causal` | Reverse direction → `connected: false` (edges are directed, no back-links). |
+
+**What to observe:** The response includes every hop with `from_id`, `to_id`,
+`link_type`, and `hop_index`. The UI renders the chain as a highlighted path
+through the graph.
+
+### 3. Contradiction edges (`contradicts`)
+
+Look for a node with disposition `false_positive` that `contradicts` a `true_positive`
+node in the same campaign. The dataset generates ~18% of campaigns with an initial
+FP assessment that later contradicts the confirmed TP.
+
+**In the UI:** Select a campaign root (e.g., ID 14), set depth 5, and check the
+edge colors. **Red edges = contradicts**. Hover/click to see the rationale
+("falso positivo iniziale vs attività confermata").
+
+### 4. Cross-campaign links (`related`) — same threat actor
+
+Nodes from different campaigns that share the same threat actor are linked via
+`related` edges. For example, two campaigns attributed to the same APT group
+will have cross-links.
+
+**In the UI:** Select a node with high out-degree, depth 4, to see how the graph
+connects across campaign boundaries. These appear as **gray dashed edges**.
+
+### 5. Alert storm cluster
+
+Alert storms generate 8-40 nodes with the same `/24` subnet, mostly `duplicate`
+disposition. The duplicates are linked `related` → a representative node and
+also `contradicts` the duplicate relationship.
+
+**In the UI:** Look for dense clusters of nodes connected by `related` and
+`contradicts` edges — these are alert storms. Use the **cluster view** to see
+them grouped by path prefix.
+
+### 6. Postmortem support fan-out
+
+Campaign postmortem/synthesis nodes (typically the last node in a campaign)
+have `supports` edges pointing back to **every** stage in the kill chain.
+
+**In the UI:** Select the last node of CAMP000004 (ID ~22), depth 1,
+link_types `supports` — you'll see it fan out to all 8 stages.
+
+### 7. Isolated nodes
+
+~30% of nodes have no links at all (standalone alerts). These are visible in the
+**Memories browser** (left panel) but won't appear in traversals unless you
+search for them by ID or path.
+
+### Quick curl examples
+
+```bash
+API_KEY=testkey123 BASE=http://localhost:8000/v1
+
+# Traversal: full CAMP000004 chain from ID 14
+curl -s -H "X-API-Key: $API_KEY" \
+  "$BASE/graph/related?memory_id=14&depth=5&link_types=causal,temporal" | jq '{count,total,entries:[.entries[]|{id,link_type,depth}]}'
+
+# Chain: shortest path through CAMP000004
+curl -s -H "X-API-Key: $API_KEY" \
+  "$BASE/graph/chain?from=14&to=22&link_types=causal&max_depth=10" | jq '{connected,hops,path:[.path[]|{from_id,to_id,link_type}]}'
+
+# List memories to find other IDs
+curl -s -H "X-API-Key: $API_KEY" \
+  "$BASE/graph/memories?limit=10" | jq '.entries[] | {id, path, preview: .preview[:80]}'
+
+# Cypher passthrough (write role)
+curl -s -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"query": "MATCH (n:Memory) RETURN n.id ORDER BY n.id LIMIT 10"}' \
+  "$BASE/graph/cypher" | jq '.rows[:3]'
+```

@@ -181,9 +181,7 @@ PCMI models linked memories as a graph: **nodes** = memories, **edges** = typed 
 
 Kill-chain expansion, Tree/Radial layouts, memory inspector, Find Chain, edge semantics, clusters, and timeline.
 
-| Walkthrough (play / pause / seek) |
-| --- |
-| <video controls playsinline preload="metadata" width="100%" poster="docs/assets/graph-ui-demo-poster.jpg"><source src="https://raw.githubusercontent.com/marco-spagn/pcmi/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4" type="video/mp4"></video> |
+https://github.com/user-attachments/assets/d4325b08-50cc-450a-9c24-66b062041eba
 
 ### Try it locally
 

@@ -34,6 +34,8 @@ jobs:
           cp docs/demo-site/*.html _site/
           cp docs/assets/graph-ui-demo.mp4 docs/assets/graph-ui-demo-poster.jpg _site/
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

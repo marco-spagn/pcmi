@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use PCMI in academic work, please cite both the software and the paper."
+title: "PCMI: Persistent Cognitive Memory Infrastructure"
+abstract: "A durable, multi-tenant memory layer for AI agents, with HTTP and gRPC APIs, hybrid BM25+vector retrieval, background workers, RLS, RBAC, audit, and observability."
+type: software
+authors:
+  - family-names: Spagnuolo
+    given-names: Marco
+    email: mspagn97@gmail.com
+repository-code: "https://github.com/marco-spagn/pcmi"
+license: Apache-2.0
+version: v1.50.0
+date-released: "2026-06-01"
+keywords:
+  - ai-agents
+  - agent-memory
+  - memory
+  - vector-database
+  - pgvector
+  - grpc
+  - llm-infrastructure
+  - go
+  - golang
+  - rag
+  - multi-tenant
+  - apache-age
+preferred-citation:
+  type: article
+  title: "PCMI: Persistent Cognitive Memory Infrastructure for AI Agents"
+  authors:
+    - family-names: Spagnuolo
+      given-names: Marco
+  year: 2026

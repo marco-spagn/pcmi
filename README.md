@@ -313,8 +313,7 @@ Optional technical report (PDF build): [docs/papers/](docs/papers/).
 | [`sdk/`](sdk/) | Python & TypeScript HTTP clients |
 | [`examples/`](examples/) | Orchestrator samples + optional [`soc-incident-graph/`](examples/soc-incident-graph/) demo data |
 | [`deploy/helm/`](deploy/helm/) | Primary Kubernetes packaging |
-| [`deploy/k8s/`](deploy/k8s/) | Static manifests (non-Helm) |
-| [`k8s/`](k8s/) | **Deprecated** — use `deploy/helm/` |
+| [`deploy/k8s/`](deploy/k8s/) | Kubernetes manifests (base + overlays for dev/prod) |
 | [`scripts/`](scripts/) | CI smoke, distillation E2E, coverage |
 | [`.github/workflows/`](.github/workflows/) | CI, CodeQL |
 

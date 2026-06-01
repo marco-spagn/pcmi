@@ -1,0 +1,1334 @@
+from_external_id,to_external_id,link_type,rationale
+INC0000001,INC0000002,causal,progressione kill-chain stesso attore/campagna
+INC0000001,INC0000002,temporal,"stessa campagna, sequenza temporale"
+INC0000002,INC0000003,causal,progressione kill-chain stesso attore/campagna
+INC0000002,INC0000003,temporal,"stessa campagna, sequenza temporale"
+INC0000003,INC0000004,causal,progressione kill-chain stesso attore/campagna
+INC0000003,INC0000004,temporal,"stessa campagna, sequenza temporale"
+INC0000005,INC0000006,causal,progressione kill-chain stesso attore/campagna
+INC0000005,INC0000006,temporal,"stessa campagna, sequenza temporale"
+INC0000006,INC0000007,causal,progressione kill-chain stesso attore/campagna
+INC0000006,INC0000007,temporal,"stessa campagna, sequenza temporale"
+INC0000008,INC0000009,causal,progressione kill-chain stesso attore/campagna
+INC0000008,INC0000009,temporal,"stessa campagna, sequenza temporale"
+INC0000009,INC0000010,causal,progressione kill-chain stesso attore/campagna
+INC0000009,INC0000010,temporal,"stessa campagna, sequenza temporale"
+INC0000010,INC0000011,causal,progressione kill-chain stesso attore/campagna
+INC0000010,INC0000011,temporal,"stessa campagna, sequenza temporale"
+INC0000011,INC0000012,causal,progressione kill-chain stesso attore/campagna
+INC0000011,INC0000012,temporal,"stessa campagna, sequenza temporale"
+INC0000012,INC0000013,causal,progressione kill-chain stesso attore/campagna
+INC0000012,INC0000013,temporal,"stessa campagna, sequenza temporale"
+INC0000014,INC0000015,causal,progressione kill-chain stesso attore/campagna
+INC0000014,INC0000015,temporal,"stessa campagna, sequenza temporale"
+INC0000015,INC0000016,causal,progressione kill-chain stesso attore/campagna
+INC0000015,INC0000016,temporal,"stessa campagna, sequenza temporale"
+INC0000016,INC0000017,causal,progressione kill-chain stesso attore/campagna
+INC0000016,INC0000017,temporal,"stessa campagna, sequenza temporale"
+INC0000017,INC0000018,causal,progressione kill-chain stesso attore/campagna
+INC0000017,INC0000018,temporal,"stessa campagna, sequenza temporale"
+INC0000018,INC0000019,causal,progressione kill-chain stesso attore/campagna
+INC0000018,INC0000019,temporal,"stessa campagna, sequenza temporale"
+INC0000019,INC0000020,causal,progressione kill-chain stesso attore/campagna
+INC0000019,INC0000020,temporal,"stessa campagna, sequenza temporale"
+INC0000020,INC0000021,causal,progressione kill-chain stesso attore/campagna
+INC0000020,INC0000021,temporal,"stessa campagna, sequenza temporale"
+INC0000022,INC0000014,supports,postmortem corrobora lo stadio
+INC0000022,INC0000015,supports,postmortem corrobora lo stadio
+INC0000022,INC0000016,supports,postmortem corrobora lo stadio
+INC0000022,INC0000017,supports,postmortem corrobora lo stadio
+INC0000022,INC0000018,supports,postmortem corrobora lo stadio
+INC0000022,INC0000019,supports,postmortem corrobora lo stadio
+INC0000022,INC0000020,supports,postmortem corrobora lo stadio
+INC0000022,INC0000021,supports,postmortem corrobora lo stadio
+INC0000023,INC0000024,causal,progressione kill-chain stesso attore/campagna
+INC0000023,INC0000024,temporal,"stessa campagna, sequenza temporale"
+INC0000024,INC0000025,causal,progressione kill-chain stesso attore/campagna
+INC0000024,INC0000025,temporal,"stessa campagna, sequenza temporale"
+INC0000026,INC0000023,supports,postmortem corrobora lo stadio
+INC0000026,INC0000024,supports,postmortem corrobora lo stadio
+INC0000026,INC0000025,supports,postmortem corrobora lo stadio
+INC0000027,INC0000028,causal,progressione kill-chain stesso attore/campagna
+INC0000027,INC0000028,temporal,"stessa campagna, sequenza temporale"
+INC0000028,INC0000029,causal,progressione kill-chain stesso attore/campagna
+INC0000028,INC0000029,temporal,"stessa campagna, sequenza temporale"
+INC0000029,INC0000030,causal,progressione kill-chain stesso attore/campagna
+INC0000029,INC0000030,temporal,"stessa campagna, sequenza temporale"
+INC0000030,INC0000031,causal,progressione kill-chain stesso attore/campagna
+INC0000030,INC0000031,temporal,"stessa campagna, sequenza temporale"
+INC0000031,INC0000032,causal,progressione kill-chain stesso attore/campagna
+INC0000031,INC0000032,temporal,"stessa campagna, sequenza temporale"
+INC0000032,INC0000033,causal,progressione kill-chain stesso attore/campagna
+INC0000032,INC0000033,temporal,"stessa campagna, sequenza temporale"
+INC0000034,INC0000032,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000035,INC0000036,causal,progressione kill-chain stesso attore/campagna
+INC0000035,INC0000036,temporal,"stessa campagna, sequenza temporale"
+INC0000036,INC0000037,causal,progressione kill-chain stesso attore/campagna
+INC0000036,INC0000037,temporal,"stessa campagna, sequenza temporale"
+INC0000037,INC0000038,causal,progressione kill-chain stesso attore/campagna
+INC0000037,INC0000038,temporal,"stessa campagna, sequenza temporale"
+INC0000038,INC0000039,causal,progressione kill-chain stesso attore/campagna
+INC0000038,INC0000039,temporal,"stessa campagna, sequenza temporale"
+INC0000039,INC0000040,causal,progressione kill-chain stesso attore/campagna
+INC0000039,INC0000040,temporal,"stessa campagna, sequenza temporale"
+INC0000040,INC0000041,causal,progressione kill-chain stesso attore/campagna
+INC0000040,INC0000041,temporal,"stessa campagna, sequenza temporale"
+INC0000041,INC0000042,causal,progressione kill-chain stesso attore/campagna
+INC0000041,INC0000042,temporal,"stessa campagna, sequenza temporale"
+INC0000043,INC0000035,supports,postmortem corrobora lo stadio
+INC0000043,INC0000036,supports,postmortem corrobora lo stadio
+INC0000043,INC0000037,supports,postmortem corrobora lo stadio
+INC0000043,INC0000038,supports,postmortem corrobora lo stadio
+INC0000043,INC0000039,supports,postmortem corrobora lo stadio
+INC0000043,INC0000040,supports,postmortem corrobora lo stadio
+INC0000043,INC0000041,supports,postmortem corrobora lo stadio
+INC0000043,INC0000042,supports,postmortem corrobora lo stadio
+INC0000044,INC0000040,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000045,INC0000046,causal,progressione kill-chain stesso attore/campagna
+INC0000045,INC0000046,temporal,"stessa campagna, sequenza temporale"
+INC0000046,INC0000047,causal,progressione kill-chain stesso attore/campagna
+INC0000046,INC0000047,temporal,"stessa campagna, sequenza temporale"
+INC0000048,INC0000049,causal,progressione kill-chain stesso attore/campagna
+INC0000048,INC0000049,temporal,"stessa campagna, sequenza temporale"
+INC0000049,INC0000050,causal,progressione kill-chain stesso attore/campagna
+INC0000049,INC0000050,temporal,"stessa campagna, sequenza temporale"
+INC0000051,INC0000052,causal,progressione kill-chain stesso attore/campagna
+INC0000051,INC0000052,temporal,"stessa campagna, sequenza temporale"
+INC0000052,INC0000053,causal,progressione kill-chain stesso attore/campagna
+INC0000052,INC0000053,temporal,"stessa campagna, sequenza temporale"
+INC0000053,INC0000054,causal,progressione kill-chain stesso attore/campagna
+INC0000053,INC0000054,temporal,"stessa campagna, sequenza temporale"
+INC0000054,INC0000055,causal,progressione kill-chain stesso attore/campagna
+INC0000054,INC0000055,temporal,"stessa campagna, sequenza temporale"
+INC0000056,INC0000057,causal,progressione kill-chain stesso attore/campagna
+INC0000056,INC0000057,temporal,"stessa campagna, sequenza temporale"
+INC0000057,INC0000058,causal,progressione kill-chain stesso attore/campagna
+INC0000057,INC0000058,temporal,"stessa campagna, sequenza temporale"
+INC0000058,INC0000059,causal,progressione kill-chain stesso attore/campagna
+INC0000058,INC0000059,temporal,"stessa campagna, sequenza temporale"
+INC0000060,INC0000061,causal,progressione kill-chain stesso attore/campagna
+INC0000060,INC0000061,temporal,"stessa campagna, sequenza temporale"
+INC0000061,INC0000062,causal,progressione kill-chain stesso attore/campagna
+INC0000061,INC0000062,temporal,"stessa campagna, sequenza temporale"
+INC0000062,INC0000063,causal,progressione kill-chain stesso attore/campagna
+INC0000062,INC0000063,temporal,"stessa campagna, sequenza temporale"
+INC0000064,INC0000062,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000065,INC0000066,causal,progressione kill-chain stesso attore/campagna
+INC0000065,INC0000066,temporal,"stessa campagna, sequenza temporale"
+INC0000066,INC0000067,causal,progressione kill-chain stesso attore/campagna
+INC0000066,INC0000067,temporal,"stessa campagna, sequenza temporale"
+INC0000067,INC0000068,causal,progressione kill-chain stesso attore/campagna
+INC0000067,INC0000068,temporal,"stessa campagna, sequenza temporale"
+INC0000069,INC0000065,supports,postmortem corrobora lo stadio
+INC0000069,INC0000066,supports,postmortem corrobora lo stadio
+INC0000069,INC0000067,supports,postmortem corrobora lo stadio
+INC0000069,INC0000068,supports,postmortem corrobora lo stadio
+INC0000070,INC0000071,causal,progressione kill-chain stesso attore/campagna
+INC0000070,INC0000071,temporal,"stessa campagna, sequenza temporale"
+INC0000071,INC0000072,causal,progressione kill-chain stesso attore/campagna
+INC0000071,INC0000072,temporal,"stessa campagna, sequenza temporale"
+INC0000073,INC0000070,supports,postmortem corrobora lo stadio
+INC0000073,INC0000071,supports,postmortem corrobora lo stadio
+INC0000073,INC0000072,supports,postmortem corrobora lo stadio
+INC0000074,INC0000072,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000075,INC0000076,causal,progressione kill-chain stesso attore/campagna
+INC0000075,INC0000076,temporal,"stessa campagna, sequenza temporale"
+INC0000076,INC0000077,causal,progressione kill-chain stesso attore/campagna
+INC0000076,INC0000077,temporal,"stessa campagna, sequenza temporale"
+INC0000077,INC0000078,causal,progressione kill-chain stesso attore/campagna
+INC0000077,INC0000078,temporal,"stessa campagna, sequenza temporale"
+INC0000078,INC0000079,causal,progressione kill-chain stesso attore/campagna
+INC0000078,INC0000079,temporal,"stessa campagna, sequenza temporale"
+INC0000079,INC0000080,causal,progressione kill-chain stesso attore/campagna
+INC0000079,INC0000080,temporal,"stessa campagna, sequenza temporale"
+INC0000080,INC0000081,causal,progressione kill-chain stesso attore/campagna
+INC0000080,INC0000081,temporal,"stessa campagna, sequenza temporale"
+INC0000082,INC0000075,supports,postmortem corrobora lo stadio
+INC0000082,INC0000076,supports,postmortem corrobora lo stadio
+INC0000082,INC0000077,supports,postmortem corrobora lo stadio
+INC0000082,INC0000078,supports,postmortem corrobora lo stadio
+INC0000082,INC0000079,supports,postmortem corrobora lo stadio
+INC0000082,INC0000080,supports,postmortem corrobora lo stadio
+INC0000082,INC0000081,supports,postmortem corrobora lo stadio
+INC0000083,INC0000084,causal,progressione kill-chain stesso attore/campagna
+INC0000083,INC0000084,temporal,"stessa campagna, sequenza temporale"
+INC0000084,INC0000085,causal,progressione kill-chain stesso attore/campagna
+INC0000084,INC0000085,temporal,"stessa campagna, sequenza temporale"
+INC0000085,INC0000086,causal,progressione kill-chain stesso attore/campagna
+INC0000085,INC0000086,temporal,"stessa campagna, sequenza temporale"
+INC0000086,INC0000087,causal,progressione kill-chain stesso attore/campagna
+INC0000086,INC0000087,temporal,"stessa campagna, sequenza temporale"
+INC0000088,INC0000083,supports,postmortem corrobora lo stadio
+INC0000088,INC0000084,supports,postmortem corrobora lo stadio
+INC0000088,INC0000085,supports,postmortem corrobora lo stadio
+INC0000088,INC0000086,supports,postmortem corrobora lo stadio
+INC0000088,INC0000087,supports,postmortem corrobora lo stadio
+INC0000089,INC0000090,causal,progressione kill-chain stesso attore/campagna
+INC0000089,INC0000090,temporal,"stessa campagna, sequenza temporale"
+INC0000090,INC0000091,causal,progressione kill-chain stesso attore/campagna
+INC0000090,INC0000091,temporal,"stessa campagna, sequenza temporale"
+INC0000092,INC0000090,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000093,INC0000094,causal,progressione kill-chain stesso attore/campagna
+INC0000093,INC0000094,temporal,"stessa campagna, sequenza temporale"
+INC0000094,INC0000095,causal,progressione kill-chain stesso attore/campagna
+INC0000094,INC0000095,temporal,"stessa campagna, sequenza temporale"
+INC0000095,INC0000096,causal,progressione kill-chain stesso attore/campagna
+INC0000095,INC0000096,temporal,"stessa campagna, sequenza temporale"
+INC0000096,INC0000097,causal,progressione kill-chain stesso attore/campagna
+INC0000096,INC0000097,temporal,"stessa campagna, sequenza temporale"
+INC0000097,INC0000098,causal,progressione kill-chain stesso attore/campagna
+INC0000097,INC0000098,temporal,"stessa campagna, sequenza temporale"
+INC0000098,INC0000099,causal,progressione kill-chain stesso attore/campagna
+INC0000098,INC0000099,temporal,"stessa campagna, sequenza temporale"
+INC0000100,INC0000101,causal,progressione kill-chain stesso attore/campagna
+INC0000100,INC0000101,temporal,"stessa campagna, sequenza temporale"
+INC0000101,INC0000102,causal,progressione kill-chain stesso attore/campagna
+INC0000101,INC0000102,temporal,"stessa campagna, sequenza temporale"
+INC0000102,INC0000103,causal,progressione kill-chain stesso attore/campagna
+INC0000102,INC0000103,temporal,"stessa campagna, sequenza temporale"
+INC0000103,INC0000104,causal,progressione kill-chain stesso attore/campagna
+INC0000103,INC0000104,temporal,"stessa campagna, sequenza temporale"
+INC0000105,INC0000106,causal,progressione kill-chain stesso attore/campagna
+INC0000105,INC0000106,temporal,"stessa campagna, sequenza temporale"
+INC0000106,INC0000107,causal,progressione kill-chain stesso attore/campagna
+INC0000106,INC0000107,temporal,"stessa campagna, sequenza temporale"
+INC0000107,INC0000108,causal,progressione kill-chain stesso attore/campagna
+INC0000107,INC0000108,temporal,"stessa campagna, sequenza temporale"
+INC0000108,INC0000109,causal,progressione kill-chain stesso attore/campagna
+INC0000108,INC0000109,temporal,"stessa campagna, sequenza temporale"
+INC0000109,INC0000110,causal,progressione kill-chain stesso attore/campagna
+INC0000109,INC0000110,temporal,"stessa campagna, sequenza temporale"
+INC0000111,INC0000105,supports,postmortem corrobora lo stadio
+INC0000111,INC0000106,supports,postmortem corrobora lo stadio
+INC0000111,INC0000107,supports,postmortem corrobora lo stadio
+INC0000111,INC0000108,supports,postmortem corrobora lo stadio
+INC0000111,INC0000109,supports,postmortem corrobora lo stadio
+INC0000111,INC0000110,supports,postmortem corrobora lo stadio
+INC0000112,INC0000106,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000113,INC0000114,causal,progressione kill-chain stesso attore/campagna
+INC0000113,INC0000114,temporal,"stessa campagna, sequenza temporale"
+INC0000114,INC0000115,causal,progressione kill-chain stesso attore/campagna
+INC0000114,INC0000115,temporal,"stessa campagna, sequenza temporale"
+INC0000115,INC0000116,causal,progressione kill-chain stesso attore/campagna
+INC0000115,INC0000116,temporal,"stessa campagna, sequenza temporale"
+INC0000116,INC0000117,causal,progressione kill-chain stesso attore/campagna
+INC0000116,INC0000117,temporal,"stessa campagna, sequenza temporale"
+INC0000117,INC0000118,causal,progressione kill-chain stesso attore/campagna
+INC0000117,INC0000118,temporal,"stessa campagna, sequenza temporale"
+INC0000118,INC0000119,causal,progressione kill-chain stesso attore/campagna
+INC0000118,INC0000119,temporal,"stessa campagna, sequenza temporale"
+INC0000119,INC0000120,causal,progressione kill-chain stesso attore/campagna
+INC0000119,INC0000120,temporal,"stessa campagna, sequenza temporale"
+INC0000120,INC0000121,causal,progressione kill-chain stesso attore/campagna
+INC0000120,INC0000121,temporal,"stessa campagna, sequenza temporale"
+INC0000122,INC0000113,supports,postmortem corrobora lo stadio
+INC0000122,INC0000114,supports,postmortem corrobora lo stadio
+INC0000122,INC0000115,supports,postmortem corrobora lo stadio
+INC0000122,INC0000116,supports,postmortem corrobora lo stadio
+INC0000122,INC0000117,supports,postmortem corrobora lo stadio
+INC0000122,INC0000118,supports,postmortem corrobora lo stadio
+INC0000122,INC0000119,supports,postmortem corrobora lo stadio
+INC0000122,INC0000120,supports,postmortem corrobora lo stadio
+INC0000122,INC0000121,supports,postmortem corrobora lo stadio
+INC0000123,INC0000124,causal,progressione kill-chain stesso attore/campagna
+INC0000123,INC0000124,temporal,"stessa campagna, sequenza temporale"
+INC0000124,INC0000125,causal,progressione kill-chain stesso attore/campagna
+INC0000124,INC0000125,temporal,"stessa campagna, sequenza temporale"
+INC0000125,INC0000126,causal,progressione kill-chain stesso attore/campagna
+INC0000125,INC0000126,temporal,"stessa campagna, sequenza temporale"
+INC0000126,INC0000127,causal,progressione kill-chain stesso attore/campagna
+INC0000126,INC0000127,temporal,"stessa campagna, sequenza temporale"
+INC0000127,INC0000128,causal,progressione kill-chain stesso attore/campagna
+INC0000127,INC0000128,temporal,"stessa campagna, sequenza temporale"
+INC0000128,INC0000129,causal,progressione kill-chain stesso attore/campagna
+INC0000128,INC0000129,temporal,"stessa campagna, sequenza temporale"
+INC0000129,INC0000130,causal,progressione kill-chain stesso attore/campagna
+INC0000129,INC0000130,temporal,"stessa campagna, sequenza temporale"
+INC0000130,INC0000131,causal,progressione kill-chain stesso attore/campagna
+INC0000130,INC0000131,temporal,"stessa campagna, sequenza temporale"
+INC0000132,INC0000123,supports,postmortem corrobora lo stadio
+INC0000132,INC0000124,supports,postmortem corrobora lo stadio
+INC0000132,INC0000125,supports,postmortem corrobora lo stadio
+INC0000132,INC0000126,supports,postmortem corrobora lo stadio
+INC0000132,INC0000127,supports,postmortem corrobora lo stadio
+INC0000132,INC0000128,supports,postmortem corrobora lo stadio
+INC0000132,INC0000129,supports,postmortem corrobora lo stadio
+INC0000132,INC0000130,supports,postmortem corrobora lo stadio
+INC0000132,INC0000131,supports,postmortem corrobora lo stadio
+INC0000133,INC0000134,causal,progressione kill-chain stesso attore/campagna
+INC0000133,INC0000134,temporal,"stessa campagna, sequenza temporale"
+INC0000134,INC0000135,causal,progressione kill-chain stesso attore/campagna
+INC0000134,INC0000135,temporal,"stessa campagna, sequenza temporale"
+INC0000136,INC0000133,supports,postmortem corrobora lo stadio
+INC0000136,INC0000134,supports,postmortem corrobora lo stadio
+INC0000136,INC0000135,supports,postmortem corrobora lo stadio
+INC0000137,INC0000138,causal,progressione kill-chain stesso attore/campagna
+INC0000137,INC0000138,temporal,"stessa campagna, sequenza temporale"
+INC0000138,INC0000139,causal,progressione kill-chain stesso attore/campagna
+INC0000138,INC0000139,temporal,"stessa campagna, sequenza temporale"
+INC0000140,INC0000141,causal,progressione kill-chain stesso attore/campagna
+INC0000140,INC0000141,temporal,"stessa campagna, sequenza temporale"
+INC0000141,INC0000142,causal,progressione kill-chain stesso attore/campagna
+INC0000141,INC0000142,temporal,"stessa campagna, sequenza temporale"
+INC0000142,INC0000143,causal,progressione kill-chain stesso attore/campagna
+INC0000142,INC0000143,temporal,"stessa campagna, sequenza temporale"
+INC0000143,INC0000144,causal,progressione kill-chain stesso attore/campagna
+INC0000143,INC0000144,temporal,"stessa campagna, sequenza temporale"
+INC0000144,INC0000145,causal,progressione kill-chain stesso attore/campagna
+INC0000144,INC0000145,temporal,"stessa campagna, sequenza temporale"
+INC0000146,INC0000140,supports,postmortem corrobora lo stadio
+INC0000146,INC0000141,supports,postmortem corrobora lo stadio
+INC0000146,INC0000142,supports,postmortem corrobora lo stadio
+INC0000146,INC0000143,supports,postmortem corrobora lo stadio
+INC0000146,INC0000144,supports,postmortem corrobora lo stadio
+INC0000146,INC0000145,supports,postmortem corrobora lo stadio
+INC0000147,INC0000148,causal,progressione kill-chain stesso attore/campagna
+INC0000147,INC0000148,temporal,"stessa campagna, sequenza temporale"
+INC0000148,INC0000149,causal,progressione kill-chain stesso attore/campagna
+INC0000148,INC0000149,temporal,"stessa campagna, sequenza temporale"
+INC0000149,INC0000150,causal,progressione kill-chain stesso attore/campagna
+INC0000149,INC0000150,temporal,"stessa campagna, sequenza temporale"
+INC0000150,INC0000151,causal,progressione kill-chain stesso attore/campagna
+INC0000150,INC0000151,temporal,"stessa campagna, sequenza temporale"
+INC0000151,INC0000152,causal,progressione kill-chain stesso attore/campagna
+INC0000151,INC0000152,temporal,"stessa campagna, sequenza temporale"
+INC0000152,INC0000153,causal,progressione kill-chain stesso attore/campagna
+INC0000152,INC0000153,temporal,"stessa campagna, sequenza temporale"
+INC0000154,INC0000147,supports,postmortem corrobora lo stadio
+INC0000154,INC0000148,supports,postmortem corrobora lo stadio
+INC0000154,INC0000149,supports,postmortem corrobora lo stadio
+INC0000154,INC0000150,supports,postmortem corrobora lo stadio
+INC0000154,INC0000151,supports,postmortem corrobora lo stadio
+INC0000154,INC0000152,supports,postmortem corrobora lo stadio
+INC0000154,INC0000153,supports,postmortem corrobora lo stadio
+INC0000155,INC0000156,causal,progressione kill-chain stesso attore/campagna
+INC0000155,INC0000156,temporal,"stessa campagna, sequenza temporale"
+INC0000156,INC0000157,causal,progressione kill-chain stesso attore/campagna
+INC0000156,INC0000157,temporal,"stessa campagna, sequenza temporale"
+INC0000157,INC0000158,causal,progressione kill-chain stesso attore/campagna
+INC0000157,INC0000158,temporal,"stessa campagna, sequenza temporale"
+INC0000158,INC0000159,causal,progressione kill-chain stesso attore/campagna
+INC0000158,INC0000159,temporal,"stessa campagna, sequenza temporale"
+INC0000159,INC0000160,causal,progressione kill-chain stesso attore/campagna
+INC0000159,INC0000160,temporal,"stessa campagna, sequenza temporale"
+INC0000160,INC0000161,causal,progressione kill-chain stesso attore/campagna
+INC0000160,INC0000161,temporal,"stessa campagna, sequenza temporale"
+INC0000161,INC0000162,causal,progressione kill-chain stesso attore/campagna
+INC0000161,INC0000162,temporal,"stessa campagna, sequenza temporale"
+INC0000163,INC0000155,supports,postmortem corrobora lo stadio
+INC0000163,INC0000156,supports,postmortem corrobora lo stadio
+INC0000163,INC0000157,supports,postmortem corrobora lo stadio
+INC0000163,INC0000158,supports,postmortem corrobora lo stadio
+INC0000163,INC0000159,supports,postmortem corrobora lo stadio
+INC0000163,INC0000160,supports,postmortem corrobora lo stadio
+INC0000163,INC0000161,supports,postmortem corrobora lo stadio
+INC0000163,INC0000162,supports,postmortem corrobora lo stadio
+INC0000164,INC0000165,causal,progressione kill-chain stesso attore/campagna
+INC0000164,INC0000165,temporal,"stessa campagna, sequenza temporale"
+INC0000165,INC0000166,causal,progressione kill-chain stesso attore/campagna
+INC0000165,INC0000166,temporal,"stessa campagna, sequenza temporale"
+INC0000166,INC0000167,causal,progressione kill-chain stesso attore/campagna
+INC0000166,INC0000167,temporal,"stessa campagna, sequenza temporale"
+INC0000167,INC0000168,causal,progressione kill-chain stesso attore/campagna
+INC0000167,INC0000168,temporal,"stessa campagna, sequenza temporale"
+INC0000169,INC0000164,supports,postmortem corrobora lo stadio
+INC0000169,INC0000165,supports,postmortem corrobora lo stadio
+INC0000169,INC0000166,supports,postmortem corrobora lo stadio
+INC0000169,INC0000167,supports,postmortem corrobora lo stadio
+INC0000169,INC0000168,supports,postmortem corrobora lo stadio
+INC0000170,INC0000171,causal,progressione kill-chain stesso attore/campagna
+INC0000170,INC0000171,temporal,"stessa campagna, sequenza temporale"
+INC0000171,INC0000172,causal,progressione kill-chain stesso attore/campagna
+INC0000171,INC0000172,temporal,"stessa campagna, sequenza temporale"
+INC0000172,INC0000173,causal,progressione kill-chain stesso attore/campagna
+INC0000172,INC0000173,temporal,"stessa campagna, sequenza temporale"
+INC0000173,INC0000174,causal,progressione kill-chain stesso attore/campagna
+INC0000173,INC0000174,temporal,"stessa campagna, sequenza temporale"
+INC0000174,INC0000175,causal,progressione kill-chain stesso attore/campagna
+INC0000174,INC0000175,temporal,"stessa campagna, sequenza temporale"
+INC0000175,INC0000176,causal,progressione kill-chain stesso attore/campagna
+INC0000175,INC0000176,temporal,"stessa campagna, sequenza temporale"
+INC0000176,INC0000177,causal,progressione kill-chain stesso attore/campagna
+INC0000176,INC0000177,temporal,"stessa campagna, sequenza temporale"
+INC0000177,INC0000178,causal,progressione kill-chain stesso attore/campagna
+INC0000177,INC0000178,temporal,"stessa campagna, sequenza temporale"
+INC0000179,INC0000180,causal,progressione kill-chain stesso attore/campagna
+INC0000179,INC0000180,temporal,"stessa campagna, sequenza temporale"
+INC0000180,INC0000181,causal,progressione kill-chain stesso attore/campagna
+INC0000180,INC0000181,temporal,"stessa campagna, sequenza temporale"
+INC0000182,INC0000183,causal,progressione kill-chain stesso attore/campagna
+INC0000182,INC0000183,temporal,"stessa campagna, sequenza temporale"
+INC0000183,INC0000184,causal,progressione kill-chain stesso attore/campagna
+INC0000183,INC0000184,temporal,"stessa campagna, sequenza temporale"
+INC0000184,INC0000185,causal,progressione kill-chain stesso attore/campagna
+INC0000184,INC0000185,temporal,"stessa campagna, sequenza temporale"
+INC0000185,INC0000186,causal,progressione kill-chain stesso attore/campagna
+INC0000185,INC0000186,temporal,"stessa campagna, sequenza temporale"
+INC0000186,INC0000187,causal,progressione kill-chain stesso attore/campagna
+INC0000186,INC0000187,temporal,"stessa campagna, sequenza temporale"
+INC0000187,INC0000188,causal,progressione kill-chain stesso attore/campagna
+INC0000187,INC0000188,temporal,"stessa campagna, sequenza temporale"
+INC0000188,INC0000189,causal,progressione kill-chain stesso attore/campagna
+INC0000188,INC0000189,temporal,"stessa campagna, sequenza temporale"
+INC0000190,INC0000191,causal,progressione kill-chain stesso attore/campagna
+INC0000190,INC0000191,temporal,"stessa campagna, sequenza temporale"
+INC0000191,INC0000192,causal,progressione kill-chain stesso attore/campagna
+INC0000191,INC0000192,temporal,"stessa campagna, sequenza temporale"
+INC0000192,INC0000193,causal,progressione kill-chain stesso attore/campagna
+INC0000192,INC0000193,temporal,"stessa campagna, sequenza temporale"
+INC0000193,INC0000194,causal,progressione kill-chain stesso attore/campagna
+INC0000193,INC0000194,temporal,"stessa campagna, sequenza temporale"
+INC0000194,INC0000195,causal,progressione kill-chain stesso attore/campagna
+INC0000194,INC0000195,temporal,"stessa campagna, sequenza temporale"
+INC0000196,INC0000190,supports,postmortem corrobora lo stadio
+INC0000196,INC0000191,supports,postmortem corrobora lo stadio
+INC0000196,INC0000192,supports,postmortem corrobora lo stadio
+INC0000196,INC0000193,supports,postmortem corrobora lo stadio
+INC0000196,INC0000194,supports,postmortem corrobora lo stadio
+INC0000196,INC0000195,supports,postmortem corrobora lo stadio
+INC0000197,INC0000198,causal,progressione kill-chain stesso attore/campagna
+INC0000197,INC0000198,temporal,"stessa campagna, sequenza temporale"
+INC0000198,INC0000199,causal,progressione kill-chain stesso attore/campagna
+INC0000198,INC0000199,temporal,"stessa campagna, sequenza temporale"
+INC0000199,INC0000200,causal,progressione kill-chain stesso attore/campagna
+INC0000199,INC0000200,temporal,"stessa campagna, sequenza temporale"
+INC0000200,INC0000201,causal,progressione kill-chain stesso attore/campagna
+INC0000200,INC0000201,temporal,"stessa campagna, sequenza temporale"
+INC0000202,INC0000203,causal,progressione kill-chain stesso attore/campagna
+INC0000202,INC0000203,temporal,"stessa campagna, sequenza temporale"
+INC0000203,INC0000204,causal,progressione kill-chain stesso attore/campagna
+INC0000203,INC0000204,temporal,"stessa campagna, sequenza temporale"
+INC0000204,INC0000205,causal,progressione kill-chain stesso attore/campagna
+INC0000204,INC0000205,temporal,"stessa campagna, sequenza temporale"
+INC0000205,INC0000206,causal,progressione kill-chain stesso attore/campagna
+INC0000205,INC0000206,temporal,"stessa campagna, sequenza temporale"
+INC0000206,INC0000207,causal,progressione kill-chain stesso attore/campagna
+INC0000206,INC0000207,temporal,"stessa campagna, sequenza temporale"
+INC0000207,INC0000208,causal,progressione kill-chain stesso attore/campagna
+INC0000207,INC0000208,temporal,"stessa campagna, sequenza temporale"
+INC0000208,INC0000209,causal,progressione kill-chain stesso attore/campagna
+INC0000208,INC0000209,temporal,"stessa campagna, sequenza temporale"
+INC0000210,INC0000202,supports,postmortem corrobora lo stadio
+INC0000210,INC0000203,supports,postmortem corrobora lo stadio
+INC0000210,INC0000204,supports,postmortem corrobora lo stadio
+INC0000210,INC0000205,supports,postmortem corrobora lo stadio
+INC0000210,INC0000206,supports,postmortem corrobora lo stadio
+INC0000210,INC0000207,supports,postmortem corrobora lo stadio
+INC0000210,INC0000208,supports,postmortem corrobora lo stadio
+INC0000210,INC0000209,supports,postmortem corrobora lo stadio
+INC0000211,INC0000212,causal,progressione kill-chain stesso attore/campagna
+INC0000211,INC0000212,temporal,"stessa campagna, sequenza temporale"
+INC0000212,INC0000213,causal,progressione kill-chain stesso attore/campagna
+INC0000212,INC0000213,temporal,"stessa campagna, sequenza temporale"
+INC0000214,INC0000215,causal,progressione kill-chain stesso attore/campagna
+INC0000214,INC0000215,temporal,"stessa campagna, sequenza temporale"
+INC0000215,INC0000216,causal,progressione kill-chain stesso attore/campagna
+INC0000215,INC0000216,temporal,"stessa campagna, sequenza temporale"
+INC0000216,INC0000217,causal,progressione kill-chain stesso attore/campagna
+INC0000216,INC0000217,temporal,"stessa campagna, sequenza temporale"
+INC0000218,INC0000214,supports,postmortem corrobora lo stadio
+INC0000218,INC0000215,supports,postmortem corrobora lo stadio
+INC0000218,INC0000216,supports,postmortem corrobora lo stadio
+INC0000218,INC0000217,supports,postmortem corrobora lo stadio
+INC0000219,INC0000220,causal,progressione kill-chain stesso attore/campagna
+INC0000219,INC0000220,temporal,"stessa campagna, sequenza temporale"
+INC0000220,INC0000221,causal,progressione kill-chain stesso attore/campagna
+INC0000220,INC0000221,temporal,"stessa campagna, sequenza temporale"
+INC0000221,INC0000222,causal,progressione kill-chain stesso attore/campagna
+INC0000221,INC0000222,temporal,"stessa campagna, sequenza temporale"
+INC0000222,INC0000223,causal,progressione kill-chain stesso attore/campagna
+INC0000222,INC0000223,temporal,"stessa campagna, sequenza temporale"
+INC0000223,INC0000224,causal,progressione kill-chain stesso attore/campagna
+INC0000223,INC0000224,temporal,"stessa campagna, sequenza temporale"
+INC0000224,INC0000225,causal,progressione kill-chain stesso attore/campagna
+INC0000224,INC0000225,temporal,"stessa campagna, sequenza temporale"
+INC0000226,INC0000221,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000227,INC0000228,causal,progressione kill-chain stesso attore/campagna
+INC0000227,INC0000228,temporal,"stessa campagna, sequenza temporale"
+INC0000228,INC0000229,causal,progressione kill-chain stesso attore/campagna
+INC0000228,INC0000229,temporal,"stessa campagna, sequenza temporale"
+INC0000229,INC0000230,causal,progressione kill-chain stesso attore/campagna
+INC0000229,INC0000230,temporal,"stessa campagna, sequenza temporale"
+INC0000231,INC0000227,supports,postmortem corrobora lo stadio
+INC0000231,INC0000228,supports,postmortem corrobora lo stadio
+INC0000231,INC0000229,supports,postmortem corrobora lo stadio
+INC0000231,INC0000230,supports,postmortem corrobora lo stadio
+INC0000232,INC0000229,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000233,INC0000234,causal,progressione kill-chain stesso attore/campagna
+INC0000233,INC0000234,temporal,"stessa campagna, sequenza temporale"
+INC0000234,INC0000235,causal,progressione kill-chain stesso attore/campagna
+INC0000234,INC0000235,temporal,"stessa campagna, sequenza temporale"
+INC0000235,INC0000236,causal,progressione kill-chain stesso attore/campagna
+INC0000235,INC0000236,temporal,"stessa campagna, sequenza temporale"
+INC0000236,INC0000237,causal,progressione kill-chain stesso attore/campagna
+INC0000236,INC0000237,temporal,"stessa campagna, sequenza temporale"
+INC0000237,INC0000238,causal,progressione kill-chain stesso attore/campagna
+INC0000237,INC0000238,temporal,"stessa campagna, sequenza temporale"
+INC0000239,INC0000240,causal,progressione kill-chain stesso attore/campagna
+INC0000239,INC0000240,temporal,"stessa campagna, sequenza temporale"
+INC0000240,INC0000241,causal,progressione kill-chain stesso attore/campagna
+INC0000240,INC0000241,temporal,"stessa campagna, sequenza temporale"
+INC0000242,INC0000239,supports,postmortem corrobora lo stadio
+INC0000242,INC0000240,supports,postmortem corrobora lo stadio
+INC0000242,INC0000241,supports,postmortem corrobora lo stadio
+INC0000243,INC0000244,causal,progressione kill-chain stesso attore/campagna
+INC0000243,INC0000244,temporal,"stessa campagna, sequenza temporale"
+INC0000244,INC0000245,causal,progressione kill-chain stesso attore/campagna
+INC0000244,INC0000245,temporal,"stessa campagna, sequenza temporale"
+INC0000245,INC0000246,causal,progressione kill-chain stesso attore/campagna
+INC0000245,INC0000246,temporal,"stessa campagna, sequenza temporale"
+INC0000247,INC0000248,causal,progressione kill-chain stesso attore/campagna
+INC0000247,INC0000248,temporal,"stessa campagna, sequenza temporale"
+INC0000248,INC0000249,causal,progressione kill-chain stesso attore/campagna
+INC0000248,INC0000249,temporal,"stessa campagna, sequenza temporale"
+INC0000249,INC0000250,causal,progressione kill-chain stesso attore/campagna
+INC0000249,INC0000250,temporal,"stessa campagna, sequenza temporale"
+INC0000250,INC0000251,causal,progressione kill-chain stesso attore/campagna
+INC0000250,INC0000251,temporal,"stessa campagna, sequenza temporale"
+INC0000251,INC0000252,causal,progressione kill-chain stesso attore/campagna
+INC0000251,INC0000252,temporal,"stessa campagna, sequenza temporale"
+INC0000252,INC0000253,causal,progressione kill-chain stesso attore/campagna
+INC0000252,INC0000253,temporal,"stessa campagna, sequenza temporale"
+INC0000253,INC0000254,causal,progressione kill-chain stesso attore/campagna
+INC0000253,INC0000254,temporal,"stessa campagna, sequenza temporale"
+INC0000254,INC0000255,causal,progressione kill-chain stesso attore/campagna
+INC0000254,INC0000255,temporal,"stessa campagna, sequenza temporale"
+INC0000256,INC0000247,supports,postmortem corrobora lo stadio
+INC0000256,INC0000248,supports,postmortem corrobora lo stadio
+INC0000256,INC0000249,supports,postmortem corrobora lo stadio
+INC0000256,INC0000250,supports,postmortem corrobora lo stadio
+INC0000256,INC0000251,supports,postmortem corrobora lo stadio
+INC0000256,INC0000252,supports,postmortem corrobora lo stadio
+INC0000256,INC0000253,supports,postmortem corrobora lo stadio
+INC0000256,INC0000254,supports,postmortem corrobora lo stadio
+INC0000256,INC0000255,supports,postmortem corrobora lo stadio
+INC0000257,INC0000258,causal,progressione kill-chain stesso attore/campagna
+INC0000257,INC0000258,temporal,"stessa campagna, sequenza temporale"
+INC0000258,INC0000259,causal,progressione kill-chain stesso attore/campagna
+INC0000258,INC0000259,temporal,"stessa campagna, sequenza temporale"
+INC0000259,INC0000260,causal,progressione kill-chain stesso attore/campagna
+INC0000259,INC0000260,temporal,"stessa campagna, sequenza temporale"
+INC0000260,INC0000261,causal,progressione kill-chain stesso attore/campagna
+INC0000260,INC0000261,temporal,"stessa campagna, sequenza temporale"
+INC0000262,INC0000257,supports,postmortem corrobora lo stadio
+INC0000262,INC0000258,supports,postmortem corrobora lo stadio
+INC0000262,INC0000259,supports,postmortem corrobora lo stadio
+INC0000262,INC0000260,supports,postmortem corrobora lo stadio
+INC0000262,INC0000261,supports,postmortem corrobora lo stadio
+INC0000263,INC0000264,causal,progressione kill-chain stesso attore/campagna
+INC0000263,INC0000264,temporal,"stessa campagna, sequenza temporale"
+INC0000264,INC0000265,causal,progressione kill-chain stesso attore/campagna
+INC0000264,INC0000265,temporal,"stessa campagna, sequenza temporale"
+INC0000265,INC0000266,causal,progressione kill-chain stesso attore/campagna
+INC0000265,INC0000266,temporal,"stessa campagna, sequenza temporale"
+INC0000267,INC0000268,causal,progressione kill-chain stesso attore/campagna
+INC0000267,INC0000268,temporal,"stessa campagna, sequenza temporale"
+INC0000268,INC0000269,causal,progressione kill-chain stesso attore/campagna
+INC0000268,INC0000269,temporal,"stessa campagna, sequenza temporale"
+INC0000269,INC0000270,causal,progressione kill-chain stesso attore/campagna
+INC0000269,INC0000270,temporal,"stessa campagna, sequenza temporale"
+INC0000270,INC0000271,causal,progressione kill-chain stesso attore/campagna
+INC0000270,INC0000271,temporal,"stessa campagna, sequenza temporale"
+INC0000272,INC0000267,supports,postmortem corrobora lo stadio
+INC0000272,INC0000268,supports,postmortem corrobora lo stadio
+INC0000272,INC0000269,supports,postmortem corrobora lo stadio
+INC0000272,INC0000270,supports,postmortem corrobora lo stadio
+INC0000272,INC0000271,supports,postmortem corrobora lo stadio
+INC0000273,INC0000274,causal,progressione kill-chain stesso attore/campagna
+INC0000273,INC0000274,temporal,"stessa campagna, sequenza temporale"
+INC0000274,INC0000275,causal,progressione kill-chain stesso attore/campagna
+INC0000274,INC0000275,temporal,"stessa campagna, sequenza temporale"
+INC0000275,INC0000276,causal,progressione kill-chain stesso attore/campagna
+INC0000275,INC0000276,temporal,"stessa campagna, sequenza temporale"
+INC0000276,INC0000277,causal,progressione kill-chain stesso attore/campagna
+INC0000276,INC0000277,temporal,"stessa campagna, sequenza temporale"
+INC0000277,INC0000278,causal,progressione kill-chain stesso attore/campagna
+INC0000277,INC0000278,temporal,"stessa campagna, sequenza temporale"
+INC0000278,INC0000279,causal,progressione kill-chain stesso attore/campagna
+INC0000278,INC0000279,temporal,"stessa campagna, sequenza temporale"
+INC0000280,INC0000281,causal,progressione kill-chain stesso attore/campagna
+INC0000280,INC0000281,temporal,"stessa campagna, sequenza temporale"
+INC0000281,INC0000282,causal,progressione kill-chain stesso attore/campagna
+INC0000281,INC0000282,temporal,"stessa campagna, sequenza temporale"
+INC0000282,INC0000283,causal,progressione kill-chain stesso attore/campagna
+INC0000282,INC0000283,temporal,"stessa campagna, sequenza temporale"
+INC0000283,INC0000284,causal,progressione kill-chain stesso attore/campagna
+INC0000283,INC0000284,temporal,"stessa campagna, sequenza temporale"
+INC0000284,INC0000285,causal,progressione kill-chain stesso attore/campagna
+INC0000284,INC0000285,temporal,"stessa campagna, sequenza temporale"
+INC0000285,INC0000286,causal,progressione kill-chain stesso attore/campagna
+INC0000285,INC0000286,temporal,"stessa campagna, sequenza temporale"
+INC0000286,INC0000287,causal,progressione kill-chain stesso attore/campagna
+INC0000286,INC0000287,temporal,"stessa campagna, sequenza temporale"
+INC0000288,INC0000289,causal,progressione kill-chain stesso attore/campagna
+INC0000288,INC0000289,temporal,"stessa campagna, sequenza temporale"
+INC0000289,INC0000290,causal,progressione kill-chain stesso attore/campagna
+INC0000289,INC0000290,temporal,"stessa campagna, sequenza temporale"
+INC0000290,INC0000291,causal,progressione kill-chain stesso attore/campagna
+INC0000290,INC0000291,temporal,"stessa campagna, sequenza temporale"
+INC0000291,INC0000292,causal,progressione kill-chain stesso attore/campagna
+INC0000291,INC0000292,temporal,"stessa campagna, sequenza temporale"
+INC0000292,INC0000293,causal,progressione kill-chain stesso attore/campagna
+INC0000292,INC0000293,temporal,"stessa campagna, sequenza temporale"
+INC0000294,INC0000291,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000295,INC0000296,causal,progressione kill-chain stesso attore/campagna
+INC0000295,INC0000296,temporal,"stessa campagna, sequenza temporale"
+INC0000296,INC0000297,causal,progressione kill-chain stesso attore/campagna
+INC0000296,INC0000297,temporal,"stessa campagna, sequenza temporale"
+INC0000297,INC0000298,causal,progressione kill-chain stesso attore/campagna
+INC0000297,INC0000298,temporal,"stessa campagna, sequenza temporale"
+INC0000298,INC0000299,causal,progressione kill-chain stesso attore/campagna
+INC0000298,INC0000299,temporal,"stessa campagna, sequenza temporale"
+INC0000299,INC0000300,causal,progressione kill-chain stesso attore/campagna
+INC0000299,INC0000300,temporal,"stessa campagna, sequenza temporale"
+INC0000301,INC0000302,causal,progressione kill-chain stesso attore/campagna
+INC0000301,INC0000302,temporal,"stessa campagna, sequenza temporale"
+INC0000302,INC0000303,causal,progressione kill-chain stesso attore/campagna
+INC0000302,INC0000303,temporal,"stessa campagna, sequenza temporale"
+INC0000303,INC0000304,causal,progressione kill-chain stesso attore/campagna
+INC0000303,INC0000304,temporal,"stessa campagna, sequenza temporale"
+INC0000305,INC0000301,supports,postmortem corrobora lo stadio
+INC0000305,INC0000302,supports,postmortem corrobora lo stadio
+INC0000305,INC0000303,supports,postmortem corrobora lo stadio
+INC0000305,INC0000304,supports,postmortem corrobora lo stadio
+INC0000306,INC0000307,causal,progressione kill-chain stesso attore/campagna
+INC0000306,INC0000307,temporal,"stessa campagna, sequenza temporale"
+INC0000307,INC0000308,causal,progressione kill-chain stesso attore/campagna
+INC0000307,INC0000308,temporal,"stessa campagna, sequenza temporale"
+INC0000308,INC0000309,causal,progressione kill-chain stesso attore/campagna
+INC0000308,INC0000309,temporal,"stessa campagna, sequenza temporale"
+INC0000310,INC0000311,causal,progressione kill-chain stesso attore/campagna
+INC0000310,INC0000311,temporal,"stessa campagna, sequenza temporale"
+INC0000311,INC0000312,causal,progressione kill-chain stesso attore/campagna
+INC0000311,INC0000312,temporal,"stessa campagna, sequenza temporale"
+INC0000312,INC0000313,causal,progressione kill-chain stesso attore/campagna
+INC0000312,INC0000313,temporal,"stessa campagna, sequenza temporale"
+INC0000314,INC0000315,causal,progressione kill-chain stesso attore/campagna
+INC0000314,INC0000315,temporal,"stessa campagna, sequenza temporale"
+INC0000315,INC0000316,causal,progressione kill-chain stesso attore/campagna
+INC0000315,INC0000316,temporal,"stessa campagna, sequenza temporale"
+INC0000316,INC0000317,causal,progressione kill-chain stesso attore/campagna
+INC0000316,INC0000317,temporal,"stessa campagna, sequenza temporale"
+INC0000318,INC0000314,supports,postmortem corrobora lo stadio
+INC0000318,INC0000315,supports,postmortem corrobora lo stadio
+INC0000318,INC0000316,supports,postmortem corrobora lo stadio
+INC0000318,INC0000317,supports,postmortem corrobora lo stadio
+INC0000319,INC0000320,causal,progressione kill-chain stesso attore/campagna
+INC0000319,INC0000320,temporal,"stessa campagna, sequenza temporale"
+INC0000320,INC0000321,causal,progressione kill-chain stesso attore/campagna
+INC0000320,INC0000321,temporal,"stessa campagna, sequenza temporale"
+INC0000321,INC0000322,causal,progressione kill-chain stesso attore/campagna
+INC0000321,INC0000322,temporal,"stessa campagna, sequenza temporale"
+INC0000322,INC0000323,causal,progressione kill-chain stesso attore/campagna
+INC0000322,INC0000323,temporal,"stessa campagna, sequenza temporale"
+INC0000323,INC0000324,causal,progressione kill-chain stesso attore/campagna
+INC0000323,INC0000324,temporal,"stessa campagna, sequenza temporale"
+INC0000324,INC0000325,causal,progressione kill-chain stesso attore/campagna
+INC0000324,INC0000325,temporal,"stessa campagna, sequenza temporale"
+INC0000326,INC0000327,causal,progressione kill-chain stesso attore/campagna
+INC0000326,INC0000327,temporal,"stessa campagna, sequenza temporale"
+INC0000327,INC0000328,causal,progressione kill-chain stesso attore/campagna
+INC0000327,INC0000328,temporal,"stessa campagna, sequenza temporale"
+INC0000329,INC0000326,supports,postmortem corrobora lo stadio
+INC0000329,INC0000327,supports,postmortem corrobora lo stadio
+INC0000329,INC0000328,supports,postmortem corrobora lo stadio
+INC0000330,INC0000331,causal,progressione kill-chain stesso attore/campagna
+INC0000330,INC0000331,temporal,"stessa campagna, sequenza temporale"
+INC0000331,INC0000332,causal,progressione kill-chain stesso attore/campagna
+INC0000331,INC0000332,temporal,"stessa campagna, sequenza temporale"
+INC0000332,INC0000333,causal,progressione kill-chain stesso attore/campagna
+INC0000332,INC0000333,temporal,"stessa campagna, sequenza temporale"
+INC0000333,INC0000334,causal,progressione kill-chain stesso attore/campagna
+INC0000333,INC0000334,temporal,"stessa campagna, sequenza temporale"
+INC0000334,INC0000335,causal,progressione kill-chain stesso attore/campagna
+INC0000334,INC0000335,temporal,"stessa campagna, sequenza temporale"
+INC0000336,INC0000330,supports,postmortem corrobora lo stadio
+INC0000336,INC0000331,supports,postmortem corrobora lo stadio
+INC0000336,INC0000332,supports,postmortem corrobora lo stadio
+INC0000336,INC0000333,supports,postmortem corrobora lo stadio
+INC0000336,INC0000334,supports,postmortem corrobora lo stadio
+INC0000336,INC0000335,supports,postmortem corrobora lo stadio
+INC0000337,INC0000338,causal,progressione kill-chain stesso attore/campagna
+INC0000337,INC0000338,temporal,"stessa campagna, sequenza temporale"
+INC0000338,INC0000339,causal,progressione kill-chain stesso attore/campagna
+INC0000338,INC0000339,temporal,"stessa campagna, sequenza temporale"
+INC0000339,INC0000340,causal,progressione kill-chain stesso attore/campagna
+INC0000339,INC0000340,temporal,"stessa campagna, sequenza temporale"
+INC0000340,INC0000341,causal,progressione kill-chain stesso attore/campagna
+INC0000340,INC0000341,temporal,"stessa campagna, sequenza temporale"
+INC0000342,INC0000343,causal,progressione kill-chain stesso attore/campagna
+INC0000342,INC0000343,temporal,"stessa campagna, sequenza temporale"
+INC0000343,INC0000344,causal,progressione kill-chain stesso attore/campagna
+INC0000343,INC0000344,temporal,"stessa campagna, sequenza temporale"
+INC0000344,INC0000345,causal,progressione kill-chain stesso attore/campagna
+INC0000344,INC0000345,temporal,"stessa campagna, sequenza temporale"
+INC0000345,INC0000346,causal,progressione kill-chain stesso attore/campagna
+INC0000345,INC0000346,temporal,"stessa campagna, sequenza temporale"
+INC0000346,INC0000347,causal,progressione kill-chain stesso attore/campagna
+INC0000346,INC0000347,temporal,"stessa campagna, sequenza temporale"
+INC0000347,INC0000348,causal,progressione kill-chain stesso attore/campagna
+INC0000347,INC0000348,temporal,"stessa campagna, sequenza temporale"
+INC0000348,INC0000349,causal,progressione kill-chain stesso attore/campagna
+INC0000348,INC0000349,temporal,"stessa campagna, sequenza temporale"
+INC0000349,INC0000350,causal,progressione kill-chain stesso attore/campagna
+INC0000349,INC0000350,temporal,"stessa campagna, sequenza temporale"
+INC0000351,INC0000352,causal,progressione kill-chain stesso attore/campagna
+INC0000351,INC0000352,temporal,"stessa campagna, sequenza temporale"
+INC0000352,INC0000353,causal,progressione kill-chain stesso attore/campagna
+INC0000352,INC0000353,temporal,"stessa campagna, sequenza temporale"
+INC0000353,INC0000354,causal,progressione kill-chain stesso attore/campagna
+INC0000353,INC0000354,temporal,"stessa campagna, sequenza temporale"
+INC0000354,INC0000355,causal,progressione kill-chain stesso attore/campagna
+INC0000354,INC0000355,temporal,"stessa campagna, sequenza temporale"
+INC0000355,INC0000356,causal,progressione kill-chain stesso attore/campagna
+INC0000355,INC0000356,temporal,"stessa campagna, sequenza temporale"
+INC0000356,INC0000357,causal,progressione kill-chain stesso attore/campagna
+INC0000356,INC0000357,temporal,"stessa campagna, sequenza temporale"
+INC0000358,INC0000356,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000359,INC0000360,causal,progressione kill-chain stesso attore/campagna
+INC0000359,INC0000360,temporal,"stessa campagna, sequenza temporale"
+INC0000360,INC0000361,causal,progressione kill-chain stesso attore/campagna
+INC0000360,INC0000361,temporal,"stessa campagna, sequenza temporale"
+INC0000362,INC0000363,causal,progressione kill-chain stesso attore/campagna
+INC0000362,INC0000363,temporal,"stessa campagna, sequenza temporale"
+INC0000363,INC0000364,causal,progressione kill-chain stesso attore/campagna
+INC0000363,INC0000364,temporal,"stessa campagna, sequenza temporale"
+INC0000364,INC0000365,causal,progressione kill-chain stesso attore/campagna
+INC0000364,INC0000365,temporal,"stessa campagna, sequenza temporale"
+INC0000365,INC0000366,causal,progressione kill-chain stesso attore/campagna
+INC0000365,INC0000366,temporal,"stessa campagna, sequenza temporale"
+INC0000366,INC0000367,causal,progressione kill-chain stesso attore/campagna
+INC0000366,INC0000367,temporal,"stessa campagna, sequenza temporale"
+INC0000368,INC0000369,causal,progressione kill-chain stesso attore/campagna
+INC0000368,INC0000369,temporal,"stessa campagna, sequenza temporale"
+INC0000369,INC0000370,causal,progressione kill-chain stesso attore/campagna
+INC0000369,INC0000370,temporal,"stessa campagna, sequenza temporale"
+INC0000370,INC0000371,causal,progressione kill-chain stesso attore/campagna
+INC0000370,INC0000371,temporal,"stessa campagna, sequenza temporale"
+INC0000371,INC0000372,causal,progressione kill-chain stesso attore/campagna
+INC0000371,INC0000372,temporal,"stessa campagna, sequenza temporale"
+INC0000372,INC0000373,causal,progressione kill-chain stesso attore/campagna
+INC0000372,INC0000373,temporal,"stessa campagna, sequenza temporale"
+INC0000373,INC0000374,causal,progressione kill-chain stesso attore/campagna
+INC0000373,INC0000374,temporal,"stessa campagna, sequenza temporale"
+INC0000375,INC0000368,supports,postmortem corrobora lo stadio
+INC0000375,INC0000369,supports,postmortem corrobora lo stadio
+INC0000375,INC0000370,supports,postmortem corrobora lo stadio
+INC0000375,INC0000371,supports,postmortem corrobora lo stadio
+INC0000375,INC0000372,supports,postmortem corrobora lo stadio
+INC0000375,INC0000373,supports,postmortem corrobora lo stadio
+INC0000375,INC0000374,supports,postmortem corrobora lo stadio
+INC0000376,INC0000377,causal,progressione kill-chain stesso attore/campagna
+INC0000376,INC0000377,temporal,"stessa campagna, sequenza temporale"
+INC0000377,INC0000378,causal,progressione kill-chain stesso attore/campagna
+INC0000377,INC0000378,temporal,"stessa campagna, sequenza temporale"
+INC0000378,INC0000379,causal,progressione kill-chain stesso attore/campagna
+INC0000378,INC0000379,temporal,"stessa campagna, sequenza temporale"
+INC0000379,INC0000380,causal,progressione kill-chain stesso attore/campagna
+INC0000379,INC0000380,temporal,"stessa campagna, sequenza temporale"
+INC0000380,INC0000381,causal,progressione kill-chain stesso attore/campagna
+INC0000380,INC0000381,temporal,"stessa campagna, sequenza temporale"
+INC0000381,INC0000382,causal,progressione kill-chain stesso attore/campagna
+INC0000381,INC0000382,temporal,"stessa campagna, sequenza temporale"
+INC0000382,INC0000383,causal,progressione kill-chain stesso attore/campagna
+INC0000382,INC0000383,temporal,"stessa campagna, sequenza temporale"
+INC0000383,INC0000384,causal,progressione kill-chain stesso attore/campagna
+INC0000383,INC0000384,temporal,"stessa campagna, sequenza temporale"
+INC0000385,INC0000386,causal,progressione kill-chain stesso attore/campagna
+INC0000385,INC0000386,temporal,"stessa campagna, sequenza temporale"
+INC0000386,INC0000387,causal,progressione kill-chain stesso attore/campagna
+INC0000386,INC0000387,temporal,"stessa campagna, sequenza temporale"
+INC0000387,INC0000388,causal,progressione kill-chain stesso attore/campagna
+INC0000387,INC0000388,temporal,"stessa campagna, sequenza temporale"
+INC0000388,INC0000389,causal,progressione kill-chain stesso attore/campagna
+INC0000388,INC0000389,temporal,"stessa campagna, sequenza temporale"
+INC0000390,INC0000385,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000391,INC0000392,causal,progressione kill-chain stesso attore/campagna
+INC0000391,INC0000392,temporal,"stessa campagna, sequenza temporale"
+INC0000392,INC0000393,causal,progressione kill-chain stesso attore/campagna
+INC0000392,INC0000393,temporal,"stessa campagna, sequenza temporale"
+INC0000393,INC0000394,causal,progressione kill-chain stesso attore/campagna
+INC0000393,INC0000394,temporal,"stessa campagna, sequenza temporale"
+INC0000394,INC0000395,causal,progressione kill-chain stesso attore/campagna
+INC0000394,INC0000395,temporal,"stessa campagna, sequenza temporale"
+INC0000395,INC0000396,causal,progressione kill-chain stesso attore/campagna
+INC0000395,INC0000396,temporal,"stessa campagna, sequenza temporale"
+INC0000396,INC0000397,causal,progressione kill-chain stesso attore/campagna
+INC0000396,INC0000397,temporal,"stessa campagna, sequenza temporale"
+INC0000398,INC0000399,causal,progressione kill-chain stesso attore/campagna
+INC0000398,INC0000399,temporal,"stessa campagna, sequenza temporale"
+INC0000399,INC0000400,causal,progressione kill-chain stesso attore/campagna
+INC0000399,INC0000400,temporal,"stessa campagna, sequenza temporale"
+INC0000400,INC0000401,causal,progressione kill-chain stesso attore/campagna
+INC0000400,INC0000401,temporal,"stessa campagna, sequenza temporale"
+INC0000401,INC0000402,causal,progressione kill-chain stesso attore/campagna
+INC0000401,INC0000402,temporal,"stessa campagna, sequenza temporale"
+INC0000402,INC0000403,causal,progressione kill-chain stesso attore/campagna
+INC0000402,INC0000403,temporal,"stessa campagna, sequenza temporale"
+INC0000403,INC0000404,causal,progressione kill-chain stesso attore/campagna
+INC0000403,INC0000404,temporal,"stessa campagna, sequenza temporale"
+INC0000405,INC0000398,supports,postmortem corrobora lo stadio
+INC0000405,INC0000399,supports,postmortem corrobora lo stadio
+INC0000405,INC0000400,supports,postmortem corrobora lo stadio
+INC0000405,INC0000401,supports,postmortem corrobora lo stadio
+INC0000405,INC0000402,supports,postmortem corrobora lo stadio
+INC0000405,INC0000403,supports,postmortem corrobora lo stadio
+INC0000405,INC0000404,supports,postmortem corrobora lo stadio
+INC0000406,INC0000407,causal,progressione kill-chain stesso attore/campagna
+INC0000406,INC0000407,temporal,"stessa campagna, sequenza temporale"
+INC0000407,INC0000408,causal,progressione kill-chain stesso attore/campagna
+INC0000407,INC0000408,temporal,"stessa campagna, sequenza temporale"
+INC0000408,INC0000409,causal,progressione kill-chain stesso attore/campagna
+INC0000408,INC0000409,temporal,"stessa campagna, sequenza temporale"
+INC0000409,INC0000410,causal,progressione kill-chain stesso attore/campagna
+INC0000409,INC0000410,temporal,"stessa campagna, sequenza temporale"
+INC0000410,INC0000411,causal,progressione kill-chain stesso attore/campagna
+INC0000410,INC0000411,temporal,"stessa campagna, sequenza temporale"
+INC0000411,INC0000412,causal,progressione kill-chain stesso attore/campagna
+INC0000411,INC0000412,temporal,"stessa campagna, sequenza temporale"
+INC0000413,INC0000411,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000414,INC0000415,causal,progressione kill-chain stesso attore/campagna
+INC0000414,INC0000415,temporal,"stessa campagna, sequenza temporale"
+INC0000415,INC0000416,causal,progressione kill-chain stesso attore/campagna
+INC0000415,INC0000416,temporal,"stessa campagna, sequenza temporale"
+INC0000416,INC0000417,causal,progressione kill-chain stesso attore/campagna
+INC0000416,INC0000417,temporal,"stessa campagna, sequenza temporale"
+INC0000417,INC0000418,causal,progressione kill-chain stesso attore/campagna
+INC0000417,INC0000418,temporal,"stessa campagna, sequenza temporale"
+INC0000418,INC0000419,causal,progressione kill-chain stesso attore/campagna
+INC0000418,INC0000419,temporal,"stessa campagna, sequenza temporale"
+INC0000419,INC0000420,causal,progressione kill-chain stesso attore/campagna
+INC0000419,INC0000420,temporal,"stessa campagna, sequenza temporale"
+INC0000420,INC0000421,causal,progressione kill-chain stesso attore/campagna
+INC0000420,INC0000421,temporal,"stessa campagna, sequenza temporale"
+INC0000422,INC0000423,causal,progressione kill-chain stesso attore/campagna
+INC0000422,INC0000423,temporal,"stessa campagna, sequenza temporale"
+INC0000423,INC0000424,causal,progressione kill-chain stesso attore/campagna
+INC0000423,INC0000424,temporal,"stessa campagna, sequenza temporale"
+INC0000424,INC0000425,causal,progressione kill-chain stesso attore/campagna
+INC0000424,INC0000425,temporal,"stessa campagna, sequenza temporale"
+INC0000426,INC0000427,causal,progressione kill-chain stesso attore/campagna
+INC0000426,INC0000427,temporal,"stessa campagna, sequenza temporale"
+INC0000427,INC0000428,causal,progressione kill-chain stesso attore/campagna
+INC0000427,INC0000428,temporal,"stessa campagna, sequenza temporale"
+INC0000428,INC0000429,causal,progressione kill-chain stesso attore/campagna
+INC0000428,INC0000429,temporal,"stessa campagna, sequenza temporale"
+INC0000429,INC0000430,causal,progressione kill-chain stesso attore/campagna
+INC0000429,INC0000430,temporal,"stessa campagna, sequenza temporale"
+INC0000430,INC0000431,causal,progressione kill-chain stesso attore/campagna
+INC0000430,INC0000431,temporal,"stessa campagna, sequenza temporale"
+INC0000431,INC0000432,causal,progressione kill-chain stesso attore/campagna
+INC0000431,INC0000432,temporal,"stessa campagna, sequenza temporale"
+INC0000432,INC0000433,causal,progressione kill-chain stesso attore/campagna
+INC0000432,INC0000433,temporal,"stessa campagna, sequenza temporale"
+INC0000434,INC0000435,causal,progressione kill-chain stesso attore/campagna
+INC0000434,INC0000435,temporal,"stessa campagna, sequenza temporale"
+INC0000435,INC0000436,causal,progressione kill-chain stesso attore/campagna
+INC0000435,INC0000436,temporal,"stessa campagna, sequenza temporale"
+INC0000436,INC0000437,causal,progressione kill-chain stesso attore/campagna
+INC0000436,INC0000437,temporal,"stessa campagna, sequenza temporale"
+INC0000437,INC0000438,causal,progressione kill-chain stesso attore/campagna
+INC0000437,INC0000438,temporal,"stessa campagna, sequenza temporale"
+INC0000439,INC0000434,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000440,INC0000441,causal,progressione kill-chain stesso attore/campagna
+INC0000440,INC0000441,temporal,"stessa campagna, sequenza temporale"
+INC0000441,INC0000442,causal,progressione kill-chain stesso attore/campagna
+INC0000441,INC0000442,temporal,"stessa campagna, sequenza temporale"
+INC0000442,INC0000443,causal,progressione kill-chain stesso attore/campagna
+INC0000442,INC0000443,temporal,"stessa campagna, sequenza temporale"
+INC0000443,INC0000444,causal,progressione kill-chain stesso attore/campagna
+INC0000443,INC0000444,temporal,"stessa campagna, sequenza temporale"
+INC0000445,INC0000446,causal,progressione kill-chain stesso attore/campagna
+INC0000445,INC0000446,temporal,"stessa campagna, sequenza temporale"
+INC0000446,INC0000447,causal,progressione kill-chain stesso attore/campagna
+INC0000446,INC0000447,temporal,"stessa campagna, sequenza temporale"
+INC0000447,INC0000448,causal,progressione kill-chain stesso attore/campagna
+INC0000447,INC0000448,temporal,"stessa campagna, sequenza temporale"
+INC0000448,INC0000449,causal,progressione kill-chain stesso attore/campagna
+INC0000448,INC0000449,temporal,"stessa campagna, sequenza temporale"
+INC0000449,INC0000450,causal,progressione kill-chain stesso attore/campagna
+INC0000449,INC0000450,temporal,"stessa campagna, sequenza temporale"
+INC0000450,INC0000451,causal,progressione kill-chain stesso attore/campagna
+INC0000450,INC0000451,temporal,"stessa campagna, sequenza temporale"
+INC0000451,INC0000452,causal,progressione kill-chain stesso attore/campagna
+INC0000451,INC0000452,temporal,"stessa campagna, sequenza temporale"
+INC0000453,INC0000454,causal,progressione kill-chain stesso attore/campagna
+INC0000453,INC0000454,temporal,"stessa campagna, sequenza temporale"
+INC0000454,INC0000455,causal,progressione kill-chain stesso attore/campagna
+INC0000454,INC0000455,temporal,"stessa campagna, sequenza temporale"
+INC0000455,INC0000456,causal,progressione kill-chain stesso attore/campagna
+INC0000455,INC0000456,temporal,"stessa campagna, sequenza temporale"
+INC0000457,INC0000453,supports,postmortem corrobora lo stadio
+INC0000457,INC0000454,supports,postmortem corrobora lo stadio
+INC0000457,INC0000455,supports,postmortem corrobora lo stadio
+INC0000457,INC0000456,supports,postmortem corrobora lo stadio
+INC0000458,INC0000459,causal,progressione kill-chain stesso attore/campagna
+INC0000458,INC0000459,temporal,"stessa campagna, sequenza temporale"
+INC0000459,INC0000460,causal,progressione kill-chain stesso attore/campagna
+INC0000459,INC0000460,temporal,"stessa campagna, sequenza temporale"
+INC0000460,INC0000461,causal,progressione kill-chain stesso attore/campagna
+INC0000460,INC0000461,temporal,"stessa campagna, sequenza temporale"
+INC0000461,INC0000462,causal,progressione kill-chain stesso attore/campagna
+INC0000461,INC0000462,temporal,"stessa campagna, sequenza temporale"
+INC0000462,INC0000463,causal,progressione kill-chain stesso attore/campagna
+INC0000462,INC0000463,temporal,"stessa campagna, sequenza temporale"
+INC0000463,INC0000464,causal,progressione kill-chain stesso attore/campagna
+INC0000463,INC0000464,temporal,"stessa campagna, sequenza temporale"
+INC0000464,INC0000465,causal,progressione kill-chain stesso attore/campagna
+INC0000464,INC0000465,temporal,"stessa campagna, sequenza temporale"
+INC0000466,INC0000467,causal,progressione kill-chain stesso attore/campagna
+INC0000466,INC0000467,temporal,"stessa campagna, sequenza temporale"
+INC0000467,INC0000468,causal,progressione kill-chain stesso attore/campagna
+INC0000467,INC0000468,temporal,"stessa campagna, sequenza temporale"
+INC0000468,INC0000469,causal,progressione kill-chain stesso attore/campagna
+INC0000468,INC0000469,temporal,"stessa campagna, sequenza temporale"
+INC0000469,INC0000470,causal,progressione kill-chain stesso attore/campagna
+INC0000469,INC0000470,temporal,"stessa campagna, sequenza temporale"
+INC0000470,INC0000471,causal,progressione kill-chain stesso attore/campagna
+INC0000470,INC0000471,temporal,"stessa campagna, sequenza temporale"
+INC0000471,INC0000472,causal,progressione kill-chain stesso attore/campagna
+INC0000471,INC0000472,temporal,"stessa campagna, sequenza temporale"
+INC0000472,INC0000473,causal,progressione kill-chain stesso attore/campagna
+INC0000472,INC0000473,temporal,"stessa campagna, sequenza temporale"
+INC0000474,INC0000472,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000475,INC0000476,causal,progressione kill-chain stesso attore/campagna
+INC0000475,INC0000476,temporal,"stessa campagna, sequenza temporale"
+INC0000476,INC0000477,causal,progressione kill-chain stesso attore/campagna
+INC0000476,INC0000477,temporal,"stessa campagna, sequenza temporale"
+INC0000477,INC0000478,causal,progressione kill-chain stesso attore/campagna
+INC0000477,INC0000478,temporal,"stessa campagna, sequenza temporale"
+INC0000479,INC0000480,causal,progressione kill-chain stesso attore/campagna
+INC0000479,INC0000480,temporal,"stessa campagna, sequenza temporale"
+INC0000480,INC0000481,causal,progressione kill-chain stesso attore/campagna
+INC0000480,INC0000481,temporal,"stessa campagna, sequenza temporale"
+INC0000482,INC0000483,causal,progressione kill-chain stesso attore/campagna
+INC0000482,INC0000483,temporal,"stessa campagna, sequenza temporale"
+INC0000483,INC0000484,causal,progressione kill-chain stesso attore/campagna
+INC0000483,INC0000484,temporal,"stessa campagna, sequenza temporale"
+INC0000485,INC0000482,supports,postmortem corrobora lo stadio
+INC0000485,INC0000483,supports,postmortem corrobora lo stadio
+INC0000485,INC0000484,supports,postmortem corrobora lo stadio
+INC0000486,INC0000487,causal,progressione kill-chain stesso attore/campagna
+INC0000486,INC0000487,temporal,"stessa campagna, sequenza temporale"
+INC0000487,INC0000488,causal,progressione kill-chain stesso attore/campagna
+INC0000487,INC0000488,temporal,"stessa campagna, sequenza temporale"
+INC0000488,INC0000489,causal,progressione kill-chain stesso attore/campagna
+INC0000488,INC0000489,temporal,"stessa campagna, sequenza temporale"
+INC0000489,INC0000490,causal,progressione kill-chain stesso attore/campagna
+INC0000489,INC0000490,temporal,"stessa campagna, sequenza temporale"
+INC0000491,INC0000486,supports,postmortem corrobora lo stadio
+INC0000491,INC0000487,supports,postmortem corrobora lo stadio
+INC0000491,INC0000488,supports,postmortem corrobora lo stadio
+INC0000491,INC0000489,supports,postmortem corrobora lo stadio
+INC0000491,INC0000490,supports,postmortem corrobora lo stadio
+INC0000492,INC0000486,contradicts,falso positivo iniziale vs attivita' confermata
+INC0000493,INC0000494,causal,progressione kill-chain stesso attore/campagna
+INC0000493,INC0000494,temporal,"stessa campagna, sequenza temporale"
+INC0000494,INC0000495,causal,progressione kill-chain stesso attore/campagna
+INC0000494,INC0000495,temporal,"stessa campagna, sequenza temporale"
+INC0000495,INC0000496,causal,progressione kill-chain stesso attore/campagna
+INC0000495,INC0000496,temporal,"stessa campagna, sequenza temporale"
+INC0000496,INC0000497,causal,progressione kill-chain stesso attore/campagna
+INC0000496,INC0000497,temporal,"stessa campagna, sequenza temporale"
+INC0000497,INC0000498,causal,progressione kill-chain stesso attore/campagna
+INC0000497,INC0000498,temporal,"stessa campagna, sequenza temporale"
+INC0000499,INC0000500,causal,progressione kill-chain stesso attore/campagna
+INC0000499,INC0000500,temporal,"stessa campagna, sequenza temporale"
+INC0000500,INC0000501,causal,progressione kill-chain stesso attore/campagna
+INC0000500,INC0000501,temporal,"stessa campagna, sequenza temporale"
+INC0000501,INC0000502,causal,progressione kill-chain stesso attore/campagna
+INC0000501,INC0000502,temporal,"stessa campagna, sequenza temporale"
+INC0000502,INC0000503,causal,progressione kill-chain stesso attore/campagna
+INC0000502,INC0000503,temporal,"stessa campagna, sequenza temporale"
+INC0000504,INC0000499,supports,postmortem corrobora lo stadio
+INC0000504,INC0000500,supports,postmortem corrobora lo stadio
+INC0000504,INC0000501,supports,postmortem corrobora lo stadio
+INC0000504,INC0000502,supports,postmortem corrobora lo stadio
+INC0000504,INC0000503,supports,postmortem corrobora lo stadio
+INC0000505,INC0000506,causal,progressione kill-chain stesso attore/campagna
+INC0000505,INC0000506,temporal,"stessa campagna, sequenza temporale"
+INC0000506,INC0000507,causal,progressione kill-chain stesso attore/campagna
+INC0000506,INC0000507,temporal,"stessa campagna, sequenza temporale"
+INC0000507,INC0000508,causal,progressione kill-chain stesso attore/campagna
+INC0000507,INC0000508,temporal,"stessa campagna, sequenza temporale"
+INC0000508,INC0000509,causal,progressione kill-chain stesso attore/campagna
+INC0000508,INC0000509,temporal,"stessa campagna, sequenza temporale"
+INC0000509,INC0000510,causal,progressione kill-chain stesso attore/campagna
+INC0000509,INC0000510,temporal,"stessa campagna, sequenza temporale"
+INC0000510,INC0000511,causal,progressione kill-chain stesso attore/campagna
+INC0000510,INC0000511,temporal,"stessa campagna, sequenza temporale"
+INC0000511,INC0000512,causal,progressione kill-chain stesso attore/campagna
+INC0000511,INC0000512,temporal,"stessa campagna, sequenza temporale"
+INC0000513,INC0000505,supports,postmortem corrobora lo stadio
+INC0000513,INC0000506,supports,postmortem corrobora lo stadio
+INC0000513,INC0000507,supports,postmortem corrobora lo stadio
+INC0000513,INC0000508,supports,postmortem corrobora lo stadio
+INC0000513,INC0000509,supports,postmortem corrobora lo stadio
+INC0000513,INC0000510,supports,postmortem corrobora lo stadio
+INC0000513,INC0000511,supports,postmortem corrobora lo stadio
+INC0000513,INC0000512,supports,postmortem corrobora lo stadio
+INC0000514,INC0000515,causal,progressione kill-chain stesso attore/campagna
+INC0000514,INC0000515,temporal,"stessa campagna, sequenza temporale"
+INC0000515,INC0000516,causal,progressione kill-chain stesso attore/campagna
+INC0000515,INC0000516,temporal,"stessa campagna, sequenza temporale"
+INC0000516,INC0000517,causal,progressione kill-chain stesso attore/campagna
+INC0000516,INC0000517,temporal,"stessa campagna, sequenza temporale"
+INC0000517,INC0000518,causal,progressione kill-chain stesso attore/campagna
+INC0000517,INC0000518,temporal,"stessa campagna, sequenza temporale"
+INC0000519,INC0000520,causal,progressione kill-chain stesso attore/campagna
+INC0000519,INC0000520,temporal,"stessa campagna, sequenza temporale"
+INC0000547,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000548,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000549,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000549,INC0000546,contradicts,duplicato dello stesso evento
+INC0000550,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000550,INC0000546,contradicts,duplicato dello stesso evento
+INC0000551,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000551,INC0000546,contradicts,duplicato dello stesso evento
+INC0000552,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000552,INC0000546,contradicts,duplicato dello stesso evento
+INC0000553,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000554,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000554,INC0000546,contradicts,duplicato dello stesso evento
+INC0000555,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000556,INC0000546,related,alert storm: stessa origine/segnatura
+INC0000591,INC0000559,related,duplicato/correlato stessa categoria
+INC0000591,INC0000559,contradicts,duplicato dello stesso evento
+INC0000594,INC0000579,related,duplicato/correlato stessa categoria
+INC0000594,INC0000579,contradicts,duplicato dello stesso evento
+INC0000601,INC0000596,related,duplicato/correlato stessa categoria
+INC0000601,INC0000596,contradicts,duplicato dello stesso evento
+INC0000609,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000610,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000611,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000612,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000612,INC0000608,contradicts,duplicato dello stesso evento
+INC0000613,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000614,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000615,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000615,INC0000608,contradicts,duplicato dello stesso evento
+INC0000616,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000616,INC0000608,contradicts,duplicato dello stesso evento
+INC0000617,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000617,INC0000608,contradicts,duplicato dello stesso evento
+INC0000618,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000618,INC0000608,contradicts,duplicato dello stesso evento
+INC0000619,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000620,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000621,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000621,INC0000608,contradicts,duplicato dello stesso evento
+INC0000622,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000622,INC0000608,contradicts,duplicato dello stesso evento
+INC0000623,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000623,INC0000608,contradicts,duplicato dello stesso evento
+INC0000624,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000625,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000626,INC0000608,related,alert storm: stessa origine/segnatura
+INC0000629,INC0000596,related,duplicato/correlato stessa categoria
+INC0000629,INC0000596,contradicts,duplicato dello stesso evento
+INC0000648,INC0000586,related,duplicato/correlato stessa categoria
+INC0000648,INC0000586,contradicts,duplicato dello stesso evento
+INC0000654,INC0000632,related,duplicato/correlato stessa categoria
+INC0000654,INC0000632,contradicts,duplicato dello stesso evento
+INC0000658,INC0000632,related,duplicato/correlato stessa categoria
+INC0000658,INC0000632,contradicts,duplicato dello stesso evento
+INC0000673,INC0000630,related,duplicato/correlato stessa categoria
+INC0000673,INC0000630,contradicts,duplicato dello stesso evento
+INC0000686,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000686,INC0000688,contradicts,duplicato dello stesso evento
+INC0000687,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000689,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000689,INC0000688,contradicts,duplicato dello stesso evento
+INC0000690,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000690,INC0000688,contradicts,duplicato dello stesso evento
+INC0000691,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000692,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000692,INC0000688,contradicts,duplicato dello stesso evento
+INC0000693,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000694,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000695,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000695,INC0000688,contradicts,duplicato dello stesso evento
+INC0000696,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000696,INC0000688,contradicts,duplicato dello stesso evento
+INC0000697,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000698,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000699,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000699,INC0000688,contradicts,duplicato dello stesso evento
+INC0000700,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000701,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000702,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000702,INC0000688,contradicts,duplicato dello stesso evento
+INC0000703,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000704,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000705,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000705,INC0000688,contradicts,duplicato dello stesso evento
+INC0000706,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000706,INC0000688,contradicts,duplicato dello stesso evento
+INC0000707,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000707,INC0000688,contradicts,duplicato dello stesso evento
+INC0000708,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000709,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000709,INC0000688,contradicts,duplicato dello stesso evento
+INC0000710,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000710,INC0000688,contradicts,duplicato dello stesso evento
+INC0000711,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000712,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000712,INC0000688,contradicts,duplicato dello stesso evento
+INC0000713,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000714,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000714,INC0000688,contradicts,duplicato dello stesso evento
+INC0000715,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000715,INC0000688,contradicts,duplicato dello stesso evento
+INC0000716,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000717,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000717,INC0000688,contradicts,duplicato dello stesso evento
+INC0000718,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000718,INC0000688,contradicts,duplicato dello stesso evento
+INC0000719,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000719,INC0000688,contradicts,duplicato dello stesso evento
+INC0000720,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000721,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000721,INC0000688,contradicts,duplicato dello stesso evento
+INC0000722,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000722,INC0000688,contradicts,duplicato dello stesso evento
+INC0000723,INC0000688,related,alert storm: stessa origine/segnatura
+INC0000723,INC0000688,contradicts,duplicato dello stesso evento
+INC0000726,INC0000537,related,duplicato/correlato stessa categoria
+INC0000726,INC0000537,contradicts,duplicato dello stesso evento
+INC0000732,INC0000685,related,duplicato/correlato stessa categoria
+INC0000732,INC0000685,contradicts,duplicato dello stesso evento
+INC0000741,INC0000730,related,duplicato/correlato stessa categoria
+INC0000741,INC0000730,contradicts,duplicato dello stesso evento
+INC0000743,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000744,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000744,INC0000746,contradicts,duplicato dello stesso evento
+INC0000745,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000745,INC0000746,contradicts,duplicato dello stesso evento
+INC0000747,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000748,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000748,INC0000746,contradicts,duplicato dello stesso evento
+INC0000749,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000750,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000751,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000752,INC0000746,related,alert storm: stessa origine/segnatura
+INC0000752,INC0000746,contradicts,duplicato dello stesso evento
+INC0000755,INC0000731,related,duplicato/correlato stessa categoria
+INC0000755,INC0000731,contradicts,duplicato dello stesso evento
+INC0000757,INC0000663,related,duplicato/correlato stessa categoria
+INC0000757,INC0000663,contradicts,duplicato dello stesso evento
+INC0000767,INC0000762,related,duplicato/correlato stessa categoria
+INC0000767,INC0000762,contradicts,duplicato dello stesso evento
+INC0000771,INC0000770,related,duplicato/correlato stessa categoria
+INC0000771,INC0000770,contradicts,duplicato dello stesso evento
+INC0000774,INC0000730,related,duplicato/correlato stessa categoria
+INC0000774,INC0000730,contradicts,duplicato dello stesso evento
+INC0000777,INC0000770,related,duplicato/correlato stessa categoria
+INC0000777,INC0000770,contradicts,duplicato dello stesso evento
+INC0000782,INC0000770,related,duplicato/correlato stessa categoria
+INC0000782,INC0000770,contradicts,duplicato dello stesso evento
+INC0000788,INC0000787,related,duplicato/correlato stessa categoria
+INC0000788,INC0000787,contradicts,duplicato dello stesso evento
+INC0000791,INC0000790,related,duplicato/correlato stessa categoria
+INC0000791,INC0000790,contradicts,duplicato dello stesso evento
+INC0000792,INC0000646,related,duplicato/correlato stessa categoria
+INC0000792,INC0000646,contradicts,duplicato dello stesso evento
+INC0000801,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000801,INC0000811,contradicts,duplicato dello stesso evento
+INC0000802,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000802,INC0000811,contradicts,duplicato dello stesso evento
+INC0000803,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000803,INC0000811,contradicts,duplicato dello stesso evento
+INC0000804,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000804,INC0000811,contradicts,duplicato dello stesso evento
+INC0000805,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000806,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000807,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000807,INC0000811,contradicts,duplicato dello stesso evento
+INC0000808,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000808,INC0000811,contradicts,duplicato dello stesso evento
+INC0000809,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000809,INC0000811,contradicts,duplicato dello stesso evento
+INC0000810,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000812,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000813,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000813,INC0000811,contradicts,duplicato dello stesso evento
+INC0000814,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000814,INC0000811,contradicts,duplicato dello stesso evento
+INC0000815,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000815,INC0000811,contradicts,duplicato dello stesso evento
+INC0000816,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000817,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000817,INC0000811,contradicts,duplicato dello stesso evento
+INC0000818,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000819,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000820,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000820,INC0000811,contradicts,duplicato dello stesso evento
+INC0000821,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000821,INC0000811,contradicts,duplicato dello stesso evento
+INC0000822,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000822,INC0000811,contradicts,duplicato dello stesso evento
+INC0000823,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000824,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000825,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000826,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000827,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000827,INC0000811,contradicts,duplicato dello stesso evento
+INC0000828,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000828,INC0000811,contradicts,duplicato dello stesso evento
+INC0000829,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000829,INC0000811,contradicts,duplicato dello stesso evento
+INC0000830,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000830,INC0000811,contradicts,duplicato dello stesso evento
+INC0000831,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000831,INC0000811,contradicts,duplicato dello stesso evento
+INC0000832,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000833,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000833,INC0000811,contradicts,duplicato dello stesso evento
+INC0000834,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000835,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000835,INC0000811,contradicts,duplicato dello stesso evento
+INC0000836,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000836,INC0000811,contradicts,duplicato dello stesso evento
+INC0000837,INC0000811,related,alert storm: stessa origine/segnatura
+INC0000837,INC0000811,contradicts,duplicato dello stesso evento
+INC0000842,INC0000780,related,duplicato/correlato stessa categoria
+INC0000842,INC0000780,contradicts,duplicato dello stesso evento
+INC0000844,INC0000645,related,duplicato/correlato stessa categoria
+INC0000844,INC0000645,contradicts,duplicato dello stesso evento
+INC0000847,INC0000794,related,duplicato/correlato stessa categoria
+INC0000847,INC0000794,contradicts,duplicato dello stesso evento
+INC0000862,INC0000849,related,duplicato/correlato stessa categoria
+INC0000862,INC0000849,contradicts,duplicato dello stesso evento
+INC0000871,INC0000730,related,duplicato/correlato stessa categoria
+INC0000871,INC0000730,contradicts,duplicato dello stesso evento
+INC0000889,INC0000840,related,duplicato/correlato stessa categoria
+INC0000889,INC0000840,contradicts,duplicato dello stesso evento
+INC0000894,INC0000854,related,duplicato/correlato stessa categoria
+INC0000894,INC0000854,contradicts,duplicato dello stesso evento
+INC0000912,INC0000795,related,duplicato/correlato stessa categoria
+INC0000912,INC0000795,contradicts,duplicato dello stesso evento
+INC0000925,INC0000898,related,duplicato/correlato stessa categoria
+INC0000925,INC0000898,contradicts,duplicato dello stesso evento
+INC0000930,INC0000646,related,duplicato/correlato stessa categoria
+INC0000930,INC0000646,contradicts,duplicato dello stesso evento
+INC0000935,INC0000849,related,duplicato/correlato stessa categoria
+INC0000935,INC0000849,contradicts,duplicato dello stesso evento
+INC0000945,INC0000922,related,duplicato/correlato stessa categoria
+INC0000945,INC0000922,contradicts,duplicato dello stesso evento
+INC0000958,INC0000772,related,duplicato/correlato stessa categoria
+INC0000958,INC0000772,contradicts,duplicato dello stesso evento
+INC0000959,INC0000946,related,duplicato/correlato stessa categoria
+INC0000959,INC0000946,contradicts,duplicato dello stesso evento
+INC0000970,INC0000841,related,duplicato/correlato stessa categoria
+INC0000970,INC0000841,contradicts,duplicato dello stesso evento
+INC0000981,INC0000944,related,duplicato/correlato stessa categoria
+INC0000981,INC0000944,contradicts,duplicato dello stesso evento
+INC0000987,INC0000972,related,duplicato/correlato stessa categoria
+INC0000987,INC0000972,contradicts,duplicato dello stesso evento
+INC0000988,INC0000946,related,duplicato/correlato stessa categoria
+INC0000988,INC0000946,contradicts,duplicato dello stesso evento
+INC0000319,INC0000426,related,stesso threat actor Sandworm
+INC0000426,INC0000027,related,stesso threat actor Sandworm
+INC0000027,INC0000093,related,stesso threat actor Sandworm
+INC0000093,INC0000005,related,stesso threat actor Sandworm
+INC0000398,INC0000493,related,stesso threat actor Turla
+INC0000083,INC0000045,related,stesso threat actor Turla
+INC0000045,INC0000301,related,stesso threat actor Turla
+INC0000123,INC0000170,related,stesso threat actor Royal
+INC0000170,INC0000035,related,stesso threat actor Royal
+INC0000035,INC0000368,related,stesso threat actor Royal
+INC0000202,INC0000133,related,stesso threat actor Royal
+INC0000133,INC0000179,related,stesso threat actor Royal
+INC0000179,INC0000239,related,stesso threat actor Royal
+INC0000280,INC0000182,related,stesso threat actor TA505
+INC0000414,INC0000359,related,stesso threat actor TA505
+INC0000359,INC0000214,related,stesso threat actor TA505
+INC0000060,INC0000267,related,stesso threat actor APT28
+INC0000100,INC0000326,related,stesso threat actor BlackCat
+INC0000056,INC0000376,related,stesso threat actor BlackCat
+INC0000247,INC0000475,related,stesso threat actor Mustang Panda
+INC0000075,INC0000219,related,stesso threat actor Scattered Spider
+INC0000306,INC0000391,related,stesso threat actor LockBit
+INC0000391,INC0000385,related,stesso threat actor LockBit
+INC0000385,INC0000422,related,stesso threat actor LockBit
+INC0000105,INC0000295,related,stesso threat actor LockBit
+INC0000233,INC0000190,related,stesso threat actor LockBit
+INC0000263,INC0000140,related,stesso threat actor APT29
+INC0000514,INC0000337,related,stesso threat actor Kimsuky
+INC0000479,INC0000458,related,stesso threat actor FIN7
+INC0000009,INC0000010,related,stesso asset NAS-246
+INC0000010,INC0000011,related,stesso asset NAS-246
+INC0000036,INC0000037,related,stesso asset DC-950
+INC0000037,INC0000038,related,stesso asset DC-950
+INC0000038,INC0000039,related,stesso asset DC-950
+INC0000045,INC0000046,related,stesso asset DC-953
+INC0000053,INC0000054,related,stesso asset K8S-398
+INC0000058,INC0000059,related,stesso asset WKS-687
+INC0000077,INC0000078,related,stesso asset FS-754
+INC0000093,INC0000094,related,stesso asset DB-157
+INC0000103,INC0000104,related,stesso asset K8S-167
+INC0000116,INC0000117,related,stesso asset NAS-646
+INC0000123,INC0000124,related,stesso asset DB-371
+INC0000126,INC0000127,related,stesso asset DB-371
+INC0000142,INC0000143,related,stesso asset VPN-566
+INC0000147,INC0000148,related,stesso asset JMP-868
+INC0000148,INC0000149,related,stesso asset JMP-868
+INC0000156,INC0000157,related,stesso asset VPN-975
+INC0000166,INC0000167,related,stesso asset FS-501
+INC0000182,INC0000183,related,stesso asset DB-840
+INC0000183,INC0000184,related,stesso asset DB-840
+INC0000198,INC0000199,related,stesso asset VPN-994
+INC0000199,INC0000200,related,stesso asset VPN-994
+INC0000200,INC0000201,related,stesso asset VPN-994
+INC0000212,INC0000213,related,stesso asset MAIL-413
+INC0000219,INC0000220,related,stesso asset K8S-405
+INC0000221,INC0000222,related,stesso asset K8S-405
+INC0000222,INC0000223,related,stesso asset K8S-405
+INC0000236,INC0000237,related,stesso asset NAS-956
+INC0000245,INC0000246,related,stesso asset WEB-276
+INC0000248,INC0000249,related,stesso asset WKS-245
+INC0000249,INC0000250,related,stesso asset WKS-245
+INC0000250,INC0000251,related,stesso asset WKS-245
+INC0000260,INC0000261,related,stesso asset NAS-399
+INC0000267,INC0000268,related,stesso asset WKS-864
+INC0000269,INC0000270,related,stesso asset WKS-864
+INC0000270,INC0000271,related,stesso asset WKS-864
+INC0000273,INC0000274,related,stesso asset VPN-239
+INC0000281,INC0000282,related,stesso asset VPN-642
+INC0000296,INC0000297,related,stesso asset WKS-601
+INC0000297,INC0000298,related,stesso asset WKS-601
+INC0000298,INC0000299,related,stesso asset WKS-601
+INC0000303,INC0000304,related,stesso asset JMP-233
+INC0000308,INC0000309,related,stesso asset WKS-897
+INC0000320,INC0000321,related,stesso asset K8S-270
+INC0000322,INC0000323,related,stesso asset K8S-270
+INC0000326,INC0000327,related,stesso asset SRV-200
+INC0000331,INC0000332,related,stesso asset JMP-384
+INC0000333,INC0000334,related,stesso asset JMP-384
+INC0000363,INC0000364,related,stesso asset DB-734
+INC0000365,INC0000366,related,stesso asset DB-734
+INC0000386,INC0000387,related,stesso asset JMP-465
+INC0000392,INC0000393,related,stesso asset K8S-758
+INC0000399,INC0000400,related,stesso asset MAIL-897
+INC0000407,INC0000408,related,stesso asset K8S-662
+INC0000408,INC0000409,related,stesso asset K8S-662
+INC0000409,INC0000410,related,stesso asset K8S-662
+INC0000414,INC0000415,related,stesso asset FS-911
+INC0000422,INC0000423,related,stesso asset K8S-811
+INC0000423,INC0000424,related,stesso asset K8S-811
+INC0000424,INC0000425,related,stesso asset K8S-811
+INC0000434,INC0000435,related,stesso asset FS-747
+INC0000437,INC0000438,related,stesso asset FS-747
+INC0000454,INC0000455,related,stesso asset VPN-155
+INC0000468,INC0000469,related,stesso asset MAIL-389
+INC0000475,INC0000476,related,stesso asset MAIL-716
+INC0000477,INC0000478,related,stesso asset MAIL-716
+INC0000480,INC0000481,related,stesso asset NAS-324
+INC0000487,INC0000488,related,stesso asset DB-226
+INC0000493,INC0000494,related,stesso asset MAIL-140
+INC0000495,INC0000496,related,stesso asset MAIL-140
+INC0000496,INC0000497,related,stesso asset MAIL-140
+INC0000506,INC0000507,related,stesso asset NAS-987
+INC0000507,INC0000508,related,stesso asset NAS-987
+INC0000514,INC0000515,related,stesso asset WKS-662
+INC0000515,INC0000516,related,stesso asset WKS-662

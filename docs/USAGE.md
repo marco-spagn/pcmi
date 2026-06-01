@@ -218,6 +218,7 @@ Working memory bound to a session; promotion to long-term memory. See **[SESSION
 | Refine (distillation) | `POST /v1/memories/refine` |
 | Importance | `PATCH /v1/memories/{path}/importance` |
 | Links between paths | `POST/GET /v1/memories/links` |
+| Cognitive graph (AGE spike) | `GET /v1/graph/health`, `GET /v1/graph/related` — see [cognitive-graph.md](cognitive-graph.md) |
 | Tenant stats | `GET /v1/stats` |
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |

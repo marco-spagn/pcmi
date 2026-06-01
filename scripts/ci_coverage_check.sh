@@ -32,6 +32,11 @@
 #   COVERAGE_ENDPOINT_OUT           optional path to write a shields.io endpoint
 #                                   JSON file (committed back to main → renders
 #                                   a fully dynamic badge in the README)
+#   COVERAGE_RUN_URL                optional URL to the workflow run (included in
+#                                   the markdown comment for traceability)
+#   COVERAGE_PREVIOUS_PCT           optional previous global coverage % (shows a
+#                                   delta line in the markdown — "change since
+#                                   last time")
 #
 # Exit codes:
 #   0   all thresholds met
@@ -45,13 +50,15 @@ ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a + 0 >= b + 0) }'; }
 
 COVERAGE_OUT="${COVERAGE_OUT:-coverage.out}"
 COVERAGE_MIN_TOTAL="${COVERAGE_MIN_TOTAL:-60}"
-COVERAGE_PKG_FLOORS="${COVERAGE_PKG_FLOORS:-config:70,event:70,eventschema:85,metrics:70,handler:55,service:55,repository:55,worker:45,webhook:40,embedding:55,ratelimit:60,crypto:70}"
+COVERAGE_PKG_FLOORS="${COVERAGE_PKG_FLOORS:-config:70,event:70,eventschema:85,graph:42,metrics:70,handler:55,service:55,repository:55,worker:45,webhook:40,embedding:55,ratelimit:60,crypto:70}"
 COVERAGE_FAIL_ON_MISSING_FILE="${COVERAGE_FAIL_ON_MISSING_FILE:-true}"
 COVERAGE_SUMMARY_OUT="${COVERAGE_SUMMARY_OUT:-}"
 COVERAGE_MD_OUT="${COVERAGE_MD_OUT:-}"
 COVERAGE_BADGE_OUT="${COVERAGE_BADGE_OUT:-}"
 COVERAGE_OMIT_PROTOBUF="${COVERAGE_OMIT_PROTOBUF:-false}"
 COVERAGE_ENDPOINT_OUT="${COVERAGE_ENDPOINT_OUT:-}"
+COVERAGE_RUN_URL="${COVERAGE_RUN_URL:-}"
+COVERAGE_PREVIOUS_PCT="${COVERAGE_PREVIOUS_PCT:-}"
 
 if [ ! -f "$COVERAGE_OUT" ]; then
   if [ "$COVERAGE_FAIL_ON_MISSING_FILE" = "true" ]; then
@@ -131,26 +138,54 @@ fi
 # ─── Markdown report (for GITHUB_STEP_SUMMARY + PR comment) ───────────────────
 
 # Emoji semantics (aligned with CI thresholds, not a fixed 70% bar):
-#   • Global title:  if global % >= COVERAGE_MIN_TOTAL, else 
-#   • Per package:  /  vs COVERAGE_PKG_FLOORS when that pkg is listed;
-#     otherwise  if >= COVERAGE_MIN_TOTAL,  if >= 30%, else .
+#   • Global title: ✅ if global % >= COVERAGE_MIN_TOTAL, else 🔴
+#   • Per package: ✅ / 🔴 vs COVERAGE_PKG_FLOORS when that pkg is listed;
+#     otherwise ✅ if >= COVERAGE_MIN_TOTAL, 🟡 if >= 30%, else 🔴
+
+GREEN="✅"
+YELLOW="🟡"
+RED="🔴"
 
 GLOBAL_PCT="$(printf '%s\n' "$SUMMARY" | awk -F'\t' '$1=="GLOBAL" { if ($3>0) printf "%.2f", ($4/$3)*100; else print "0.00" }')"
 if ge "$GLOBAL_PCT" "$COVERAGE_MIN_TOTAL"; then
-  GLOBAL_EMOJI=""
+  GLOBAL_EMOJI="$GREEN"
 else
-  GLOBAL_EMOJI=""
+  GLOBAL_EMOJI="$RED"
 fi
 
 if [ -n "$COVERAGE_MD_OUT" ]; then
   {
     echo "## ${GLOBAL_EMOJI} Test coverage: \`${GLOBAL_PCT}%\`"
     echo ""
+
+    # ── Point 8 (PR #119): "change since last time" delta ──────────────────
+    if [ -n "$COVERAGE_PREVIOUS_PCT" ] && [ "$COVERAGE_PREVIOUS_PCT" != "0" ]; then
+      DELTA="$(awk -v cur="$GLOBAL_PCT" -v prev="$COVERAGE_PREVIOUS_PCT" 'BEGIN {
+        d = cur - prev
+        if (d >= 0) printf "+%.2f", d
+        else printf "%.2f", d
+      }')"
+      DELTA_EMOJI="$(awk -v d="$DELTA" 'BEGIN { if (d+0 >= 0) print "📈"; else print "📉" }')"
+      echo "_${DELTA_EMOJI} Δ from previous: **${DELTA}%** (was ${COVERAGE_PREVIOUS_PCT}%)_"
+      echo ""
+    fi
+
+    # ── Point 2 (PR #119): workflow run link ───────────────────────────────
+    if [ -n "$COVERAGE_RUN_URL" ]; then
+      echo "> 🔗 [View workflow run](${COVERAGE_RUN_URL})"
+      echo ""
+    fi
+
     echo "_Global statement coverage; threshold = **${COVERAGE_MIN_TOTAL}%** (\`scripts/ci_coverage_check.sh\`)._"
     echo ""
     echo "| Package | Stmts | Covered | Coverage |"
     echo "|---|---:|---:|---:|"
-    printf '%s\n' "$SUMMARY" | awk -F'\t' -v floors="$COVERAGE_PKG_FLOORS" -v gmin="$COVERAGE_MIN_TOTAL" '
+    printf '%s\n' "$SUMMARY" | awk -F'\t' \
+      -v floors="$COVERAGE_PKG_FLOORS" \
+      -v gmin="$COVERAGE_MIN_TOTAL" \
+      -v green="$GREEN" \
+      -v yellow="$YELLOW" \
+      -v red="$RED" '
       BEGIN {
         n = split(floors, a, ",")
         for (i = 1; i <= n; i++) {
@@ -164,17 +199,20 @@ if [ -n "$COVERAGE_MD_OUT" ]; then
         pkg = $2
         pct = ($3 > 0) ? ($4/$3)*100 : 0
         if (pkg in floor) {
-          emoji = (pct >= floor[pkg]) ? "" : ""
+          emoji = (pct >= floor[pkg]) ? green : red
         } else {
           min = gmin + 0
-          if (pct >= min) emoji = ""
-          else if (pct >= 30) emoji = ""
-          else emoji = ""
+          if (pct >= min) emoji = green
+          else if (pct >= 30) emoji = yellow
+          else emoji = red
         }
         printf "| `%s` | %d | %d | %s %.1f%% |\n", pkg, $3, $4, emoji, pct
       }
     ' | sort
-    echo "| **Global** | $(printf '%s\n' "$SUMMARY" | awk -F'\t' '$1=="GLOBAL" {printf "**%d** | **%d** | **%s %.1f%%**", $3, $4, "'"$GLOBAL_EMOJI"'", ($4/$3)*100}') |"
+    # ── Point 5 (PR #119): fixed Global row — emoji passed via -v, not
+    # embedded as a literal awk string (which was a bug: "$GLOBAL_EMOJI"
+    # inside single quotes never expanded). ──
+    echo "| **Global** | $(printf '%s\n' "$SUMMARY" | awk -F'\t' -v ge="$GLOBAL_EMOJI" '$1=="GLOBAL" { pct = ($3 > 0) ? ($4/$3)*100 : 0; printf "**%d** | **%d** | **%s %.1f%%**", $3, $4, ge, pct }') |"
     echo ""
     echo "<sub>Generated by \`scripts/ci_coverage_check.sh\` — bump floors in the same PR that lifts coverage.</sub>"
   } > "$COVERAGE_MD_OUT"

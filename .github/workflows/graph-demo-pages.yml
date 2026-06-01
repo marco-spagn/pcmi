@@ -1,0 +1,43 @@
+# Publishes docs/demo-site/ (HTML5 player) to the gh-pages branch.
+#
+# One-time repo setup (Settings → Pages):
+#   Build and deployment → Source: Deploy from a branch
+#   Branch: gh-pages / (root)
+#
+# The README demo uses GitHub user-attachments; this site is an optional fallback.
+name: Graph demo GitHub Pages
+
+on:
+  push:
+    branches: [main, feat/pcmi-cognitive-graph-v3-spike]
+    paths:
+      - 'docs/demo-site/**'
+      - 'docs/assets/graph-ui-demo.mp4'
+      - 'docs/assets/graph-ui-demo-poster.jpg'
+      - '.github/workflows/graph-demo-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: graph-demo-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp docs/demo-site/*.html _site/
+          cp docs/assets/graph-ui-demo.mp4 docs/assets/graph-ui-demo-poster.jpg _site/
+      - name: Publish gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: gh-pages
+          force_orphan: true

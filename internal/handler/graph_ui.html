@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PCMI · Cognitive Graph Explorer</title>
+<script src="https://unpkg.com/vis-network@9.1.6/dist/vis-network.min.js"></script>
+<style>
+:root {
+  --bg:        #0a0f1e;
+  --bg-panel:  #0e1525;
+  --bg-elev:   #131c30;
+  --bg-input:  #0a1120;
+  --border:    #1c2740;
+  --border-2:  #25324f;
+  --text:      #e6edf7;
+  --text-dim:  #8696b3;
+  --text-mute: #56657f;
+  --primary:   #2dd4bf;
+  --primary-d: #14b8a6;
+  --accent:    #38bdf8;
+  --danger:    #f87171;
+  --warn:      #fbbf24;
+  --ok:        #34d399;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(45,212,191,.06), transparent 60%),
+    radial-gradient(900px 500px at 0% 110%, rgba(56,189,248,.05), transparent 55%),
+    var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── header ── */
+.header {
+  background: linear-gradient(180deg, var(--bg-panel), rgba(14,21,37,.85));
+  padding: 11px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+  flex-shrink: 0; z-index: 30;
+  backdrop-filter: blur(6px);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .mark {
+  width: 26px; height: 26px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  display: grid; place-items: center;
+  box-shadow: 0 0 0 1px rgba(45,212,191,.3), 0 4px 14px rgba(45,212,191,.25);
+}
+.brand .mark svg { width: 16px; height: 16px; }
+.header h1 {
+  font-size: 15px; font-weight: 650; letter-spacing: .2px; white-space: nowrap;
+}
+.header h1 small { color: var(--text-mute); font-weight: 500; font-size: 11px; margin-left: 6px; }
+.status {
+  font-size: 10.5px; padding: 3px 9px; border-radius: 999px; font-weight: 600;
+  letter-spacing: .3px; display: inline-flex; align-items: center; gap: 5px;
+}
+.status::before { content:""; width:6px; height:6px; border-radius:50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+.status.on  { background: rgba(52,211,153,.12);  color: var(--ok);     }
+.status.off { background: rgba(251,191,36,.12);  color: var(--warn);   }
+.status.err { background: rgba(248,113,113,.12); color: var(--danger); }
+.header .stats { font-size: 11px; color: var(--text-mute); margin-left: auto; display: flex; gap: 16px; }
+.header .stats b { color: var(--text-dim); font-family: var(--mono); font-weight: 600; }
+
+/* ── controls bar ── */
+.controls {
+  background: var(--bg-panel);
+  padding: 9px 20px;
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0; z-index: 20;
+}
+.controls .lbl { font-size: 10px; color: var(--text-mute); text-transform: uppercase; letter-spacing: .7px; font-weight: 600; }
+.controls input[type=text],
+.controls input[type=number] {
+  background: var(--bg-input); border: 1px solid var(--border-2); color: var(--text);
+  padding: 6px 9px; border-radius: 6px; font-size: 13px; width: 92px; font-family: var(--mono);
+  transition: border-color .15s, box-shadow .15s;
+}
+.controls input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(45,212,191,.12); }
+.controls button {
+  border: 1px solid transparent; padding: 6px 13px; border-radius: 6px; font-size: 12px;
+  font-weight: 600; cursor: pointer; white-space: nowrap; transition: all .15s; color: var(--text-dim);
+}
+.btn-primary { background: linear-gradient(180deg, var(--primary), var(--primary-d)); color: #04231f; box-shadow: 0 2px 10px rgba(45,212,191,.25); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-secondary { background: var(--bg-elev); border-color: var(--border-2); color: var(--text-dim); }
+.btn-secondary:hover { background: #18233c; color: var(--text); }
+.btn-active { background: rgba(45,212,191,.14); border-color: rgba(45,212,191,.4); color: var(--primary); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+.seg { font-size: 11px !important; padding: 5px 11px !important; }
+.control-sep { width: 1px; height: 22px; background: var(--border-2); margin: 0 5px; }
+
+.link-types { display: flex; gap: 9px; flex-wrap: wrap; }
+.link-types label { display: flex; align-items: center; gap: 5px; font-size: 11.5px; cursor: pointer; color: var(--text-dim); }
+.link-types label::before { content:""; width:8px; height:8px; border-radius:2px; background: var(--lc, #64748b); }
+.link-types input { accent-color: var(--primary); width: 13px; height: 13px; }
+
+.api-key-area { display: flex; align-items: center; gap: 6px; }
+.api-key-area input { width: 190px !important; font-family: var(--mono); font-size: 12px !important; }
+
+/* ── main area ── */
+.main-area { flex: 1; display: flex; position: relative; overflow: hidden; }
+.canvas-wrap { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; min-width: 0; }
+#graph { flex: 1; min-height: 0; }
+
+/* empty / loading states */
+.overlay {
+  position: absolute; inset: 0; display: none; place-items: center;
+  background: rgba(10,15,30,.55); z-index: 5; pointer-events: none;
+}
+.overlay.show { display: grid; }
+.overlay .card {
+  background: var(--bg-elev); border: 1px solid var(--border-2); border-radius: 12px;
+  padding: 22px 26px; text-align: center; max-width: 360px; pointer-events: auto;
+  box-shadow: 0 18px 50px rgba(0,0,0,.4);
+}
+.overlay .card h3 { font-size: 14px; margin-bottom: 6px; }
+.overlay .card p  { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+.spinner { width: 26px; height: 26px; border: 3px solid var(--border-2); border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── timeline ── */
+#timeline-container {
+  height: 102px; flex-shrink: 0; background: var(--bg-panel); border-top: 1px solid var(--border);
+  display: none; overflow-x: auto; overflow-y: hidden; padding: 8px 20px; align-items: center;
+}
+#timeline-container.visible { display: flex; }
+#timeline-bar { position: relative; height: 52px; flex: 1; min-width: 600px; }
+.tl-axis { position: absolute; left:0; right:0; bottom: 18px; height:1px; background: var(--border-2); }
+.tl-tick { position: absolute; bottom: 14px; width: 1px; height: 8px; background: var(--border-2); transform: translateX(-50%); }
+.tl-dot { position: absolute; bottom: 22px; width: 11px; height: 11px; border-radius: 50%; transform: translateX(-50%); cursor: pointer; transition: transform .15s; border: 1.5px solid rgba(255,255,255,.25); }
+.tl-dot:hover { transform: translateX(-50%) scale(1.7); z-index: 3; }
+.tl-time { position: absolute; bottom: 0; font-size: 9px; color: var(--text-mute); transform: translateX(-50%); white-space: nowrap; font-family: var(--mono); }
+.tl-now { position: absolute; top: 4px; bottom: 18px; width: 1px; background: var(--danger); opacity: .6; }
+.tl-now-label { position: absolute; top: 0; right: 4px; font-size: 9px; color: var(--danger); }
+
+/* ── legend ── */
+.legend {
+  position: absolute; bottom: 14px; left: 14px; background: rgba(14,21,37,.82);
+  border: 1px solid var(--border-2); border-radius: 10px; padding: 11px 13px; z-index: 6;
+  backdrop-filter: blur(8px); box-shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+.legend h4 { font-size: 9.5px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-mute); margin-bottom: 8px; font-weight: 700; }
+.legend .row { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text-dim); margin: 4px 0; }
+.legend .swatch { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+
+.hint {
+  position: absolute; bottom: 14px; right: 14px; font-size: 11px; color: var(--text-mute);
+  background: rgba(14,21,37,.7); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 11px; z-index: 6; backdrop-filter: blur(8px);
+}
+.hint kbd { font-family: var(--mono); background: var(--bg-elev); border: 1px solid var(--border-2); border-radius: 4px; padding: 1px 5px; font-size: 10px; color: var(--text-dim); }
+
+/* ── INSPECTOR DRAWER ── */
+.inspector {
+  width: 0; flex-shrink: 0; background: var(--bg-panel); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .22s cubic-bezier(.4,0,.2,1); z-index: 25;
+}
+.inspector.open { width: 380px; }
+.insp-head {
+  padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-shrink: 0;
+}
+.insp-title { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-mute); font-weight: 700; margin-bottom: 6px; }
+.insp-id { font-family: var(--mono); font-size: 17px; font-weight: 650; color: var(--primary); }
+.insp-path {
+  font-family: var(--mono); font-size: 12px; color: var(--text-dim); margin-top: 5px;
+  word-break: break-all; line-height: 1.5;
+}
+.insp-close {
+  background: var(--bg-elev); border: 1px solid var(--border-2); color: var(--text-dim);
+  width: 28px; height: 28px; border-radius: 7px; cursor: pointer; flex-shrink: 0;
+  font-size: 16px; line-height: 1; display: grid; place-items: center; transition: all .15s;
+}
+.insp-close:hover { color: var(--text); background: #1a2742; }
+.insp-body { flex: 1; overflow-y: auto; padding: 14px 16px 20px; }
+.insp-body::-webkit-scrollbar { width: 8px; }
+.insp-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+.insp-section { margin-bottom: 18px; }
+.insp-section > .label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .7px; color: var(--text-mute);
+  font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 7px;
+}
+.insp-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge {
+  font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px;
+  background: var(--bg-elev); border: 1px solid var(--border-2); color: var(--text-dim);
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.badge.sev-P1 { background: rgba(248,113,113,.13); border-color: rgba(248,113,113,.4); color: var(--danger); }
+.badge.sev-P2 { background: rgba(251,191,36,.13); border-color: rgba(251,191,36,.4); color: var(--warn); }
+.badge.sev-P3 { background: rgba(56,189,248,.13); border-color: rgba(56,189,248,.4); color: var(--accent); }
+.badge .dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.content-box {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 9px;
+  padding: 12px 13px; font-size: 12.5px; line-height: 1.6; color: var(--text);
+  white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto;
+  font-family: var(--mono);
+}
+.content-box::-webkit-scrollbar { width: 7px; }
+.content-box::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag {
+  font-size: 11px; font-family: var(--mono); padding: 2px 8px; border-radius: 5px;
+  background: rgba(56,189,248,.1); border: 1px solid rgba(56,189,248,.25); color: var(--accent);
+}
+
+.kv { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kv tr { border-bottom: 1px solid var(--border); }
+.kv tr:last-child { border-bottom: none; }
+.kv td { padding: 6px 4px; vertical-align: top; }
+.kv td.k { color: var(--text-mute); font-family: var(--mono); font-size: 11px; white-space: nowrap; width: 42%; padding-right: 10px; }
+.kv td.v { color: var(--text-dim); font-family: var(--mono); word-break: break-word; }
+
+.insp-actions { display: flex; gap: 8px; margin-top: 4px; }
+.insp-actions button {
+  flex: 1; font-size: 12px; font-weight: 600; padding: 8px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border-2); transition: all .15s;
+}
+.insp-actions .act-primary { background: rgba(45,212,191,.14); border-color: rgba(45,212,191,.4); color: var(--primary); }
+.insp-actions .act-primary:hover { background: rgba(45,212,191,.22); }
+.insp-actions .act-ghost { background: var(--bg-elev); color: var(--text-dim); }
+.insp-actions .act-ghost:hover { background: #18233c; color: var(--text); }
+
+.empty-note { font-size: 12px; color: var(--text-mute); line-height: 1.5; font-style: italic; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--bg-elev); border: 1px solid var(--border-2); color: var(--text);
+  padding: 10px 18px; border-radius: 9px; font-size: 12.5px; z-index: 100;
+  opacity: 0; transition: all .25s; box-shadow: 0 12px 32px rgba(0,0,0,.4); pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { border-color: rgba(248,113,113,.5); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#04231f" stroke-width="2.2" stroke-linecap="round">
+        <circle cx="6" cy="6" r="2.4"/><circle cx="18" cy="7" r="2.4"/><circle cx="12" cy="17" r="2.4"/>
+        <path d="M7.6 7.4 10.6 15M16.6 8.8 13.2 15.2M8 6.4l8 .4"/>
+      </svg>
+    </div>
+    <h1>Cognitive Graph Explorer <small>PCMI</small></h1>
+  </div>
+  <span id="age-status" class="status off">checking…</span>
+  <div class="stats">
+    <span>nodes <b id="stat-nodes">0</b></span>
+    <span>edges <b id="stat-edges">0</b></span>
+    <span>cache <b id="stat-cache">0</b></span>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="btn-force"  class="btn-active seg"     onclick="setLayout('force')">Force</button>
+  <button id="btn-tree"   class="btn-secondary seg"  onclick="setLayout('tree')">Tree</button>
+  <button id="btn-radial" class="btn-secondary seg"  onclick="setLayout('radial')">Radial</button>
+  <div class="control-sep"></div>
+  <button id="btn-clusters" class="btn-secondary seg" onclick="toggleClusters()">Clusters</button>
+  <button id="btn-timeline" class="btn-secondary seg" onclick="toggleTimeline()">Timeline</button>
+  <div class="control-sep"></div>
+
+  <div class="api-key-area">
+    <span class="lbl">Key</span>
+    <input type="text" id="api-key" placeholder="X-API-Key" autocomplete="off" spellcheck="false">
+  </div>
+  <div class="control-sep"></div>
+
+  <span class="lbl">Memory ID</span>
+  <input type="number" id="mem-id" value="172" min="1">
+  <span class="lbl">Depth</span>
+  <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
+
+  <div class="link-types" id="link-types">
+    <label style="--lc:#ef4444"><input type="checkbox" value="causal">causal</label>
+    <label style="--lc:#f59e0b"><input type="checkbox" value="temporal">temporal</label>
+    <label style="--lc:#ec4899"><input type="checkbox" value="contradicts" checked>contradicts</label>
+    <label style="--lc:#22c55e"><input type="checkbox" value="supports" checked>supports</label>
+    <label style="--lc:#8b5cf6"><input type="checkbox" value="related" checked>related</label>
+  </div>
+
+  <div class="control-sep"></div>
+  <button class="btn-primary"   id="btn-explore" onclick="explore()">Explore</button>
+  <button class="btn-secondary" id="btn-chain"   onclick="findChain()" disabled>Find Chain</button>
+  <button class="btn-secondary" id="btn-clear"   onclick="clearGraph()">Clear</button>
+</div>
+
+<div class="main-area">
+  <div class="canvas-wrap">
+    <div id="graph"></div>
+
+    <div class="overlay show" id="overlay">
+      <div class="card" id="overlay-card">
+        <h3>No graph loaded</h3>
+        <p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b> to traverse the cognitive graph.</p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <h4>Hop depth</h4>
+      <div class="row"><span class="swatch" style="background:#38bdf8"></span>root / depth 1</div>
+      <div class="row"><span class="swatch" style="background:#22c55e"></span>depth 2</div>
+      <div class="row"><span class="swatch" style="background:#f59e0b"></span>depth 3</div>
+      <div class="row"><span class="swatch" style="background:#a855f7"></span>depth 4</div>
+      <div class="row"><span class="swatch" style="background:#ef4444"></span>depth 5+</div>
+      <div class="row"><span class="swatch" style="background:#facc15"></span>chain path</div>
+    </div>
+
+    <div class="hint">Click a node to inspect · <kbd>dbl-click</kbd> to expand</div>
+
+    <div id="timeline-container">
+      <div id="timeline-bar"></div>
+    </div>
+  </div>
+
+  <!-- INSPECTOR DRAWER -->
+  <aside class="inspector" id="inspector" aria-hidden="true">
+    <div class="insp-head">
+      <div>
+        <div class="insp-title">Memory node</div>
+        <div class="insp-id"   id="insp-id">—</div>
+        <div class="insp-path" id="insp-path"></div>
+      </div>
+      <button class="insp-close" onclick="closeInspector()" title="Close">&times;</button>
+    </div>
+    <div class="insp-body" id="insp-body"></div>
+  </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const apiUrl = window.location.origin;
+let network = null;
+let nodesData = new vis.DataSet([]);
+let edgesData = new vis.DataSet([]);
+let selectedNode = null;
+let currentLayout = 'force';
+let clustersOn = false;
+let timelineOn = false;
+let nodeTimestamps = {};
+let nodeMeta = {};            // id -> { linkType, depth }
+let memCache = {};            // id -> full MemoryEntry (path, content, tags, metadata, ...)
+let cacheLoaded = false;
+
+// ── auth ──────────────────────────────────────────────────────────────────
+const savedKey = localStorage.getItem('pcmi_graph_apikey');
+if (savedKey) document.getElementById('api-key').value = savedKey;
+document.getElementById('api-key').addEventListener('change', function() {
+  localStorage.setItem('pcmi_graph_apikey', this.value);
+  cacheLoaded = false; // re-load cache under the new key
+});
+function apiKey()     { return document.getElementById('api-key').value.trim(); }
+function authHeaders(){ const k = apiKey(); return k ? { 'X-API-Key': k, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }; }
+
+// ── health badge ────────────────────────────────────────────────────────────
+(async function() {
+  const st = document.getElementById('age-status');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/health');
+    const d = await r.json();
+    st.textContent = d.available ? 'AGE ready' : 'AGE offline';
+    st.className   = d.available ? 'status on' : 'status off';
+  } catch(e) { st.textContent = 'API unreachable'; st.className = 'status err'; }
+})();
+
+// ── colors ────────────────────────────────────────────────────────────────
+const linkColors = {
+  causal: '#ef4444', temporal: '#f59e0b', contradicts: '#ec4899',
+  supports: '#22c55e', related: '#8b5cf6'
+};
+const clusterPalette = [
+  { bg:'#1e3a5f', border:'#3b82f6' }, { bg:'#3b1e1e', border:'#ef4444' },
+  { bg:'#1e3b2f', border:'#22c55e' }, { bg:'#3b2e1e', border:'#f59e0b' },
+  { bg:'#2e1e3b', border:'#a855f7' }, { bg:'#1e3b3b', border:'#2dd4bf' }
+];
+function depthColor(d) {
+  const c = ['#38bdf8', '#22c55e', '#f59e0b', '#a855f7', '#ef4444', '#ec4899'];
+  return c[Math.min(d, c.length - 1)] || '#64748b';
+}
+
+// Cluster key derived from real metadata when present, else stable id-based fallback.
+function clusterKey(id) {
+  const m = memCache[id];
+  const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : null;
+  if (md && (md.category || md.scenario || md.type)) return String(md.category || md.scenario || md.type);
+  if (m && m.path) { const seg = m.path.split('.'); return seg.length > 2 ? seg[seg.length - 2] : seg[0]; }
+  return 'grp-' + (id % clusterPalette.length);
+}
+const clusterColorCache = {};
+function clusterColor(key) {
+  if (clusterColorCache[key]) return clusterColorCache[key];
+  let h = 0; for (const ch of String(key)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  const c = clusterPalette[h % clusterPalette.length];
+  clusterColorCache[key] = c; return c;
+}
+function clusterLabel(key) { return String(key).replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
+
+// ── memory cache (id -> full entry) via /v1/retrieve ────────────────────────
+async function loadMemoryCache(force) {
+  if (cacheLoaded && !force) return;
+  if (!apiKey()) return;
+  let cursor = '', pages = 0;
+  try {
+    do {
+      const body = { path_prefix: 'root', limit: 500 };
+      if (cursor) body.cursor = cursor;
+      const r = await fetch(apiUrl + '/v1/retrieve', {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
+      });
+      if (!r.ok) break;
+      const data = await r.json();
+      for (const e of (data.entries || [])) {
+        if (e && (e.id || e.id === 0)) memCache[e.id] = e;
+      }
+      cursor = data.next_cursor || '';
+      pages++;
+    } while (cursor && pages < 8); // cap: 8 pages * 500 = 4000 memories
+    cacheLoaded = true;
+    document.getElementById('stat-cache').textContent = Object.keys(memCache).length;
+  } catch (e) { /* cache is best-effort; UI still works with id-only labels */ }
+}
+
+// Node label: prefer last two path segments, else memory.<id>
+function nodeLabel(id) {
+  const m = memCache[id];
+  if (m && m.path) {
+    const seg = m.path.split('.');
+    return seg.slice(-2).join('.');
+  }
+  return 'memory.' + id;
+}
+function nodeTitle(id) {
+  const m = memCache[id];
+  if (!m) return 'memory.' + id;
+  const md = m.metadata && typeof m.metadata === 'object' ? m.metadata : {};
+  const t = md.title || md.name || '';
+  return (m.path || ('memory.' + id)) + (t ? '\n' + t : '');
+}
+
+// ── network ─────────────────────────────────────────────────────────────────
+function buildOptions(layout) {
+  const base = {
+    nodes: {
+      shape: 'dot', size: 20,
+      font: { size: 11, color: '#cbd6e8', face: 'ui-monospace, monospace', strokeWidth: 3, strokeColor: '#0a0f1e' },
+      borderWidth: 2.5,
+      color: { background: '#1e40af', border: '#3b82f6', highlight: { background: '#2563eb', border: '#7dd3fc' } }
+    },
+    edges: {
+      arrows: { to: { enabled: true, scaleFactor: .6 } },
+      font: { size: 9, color: '#7e8da8', face: 'ui-monospace, monospace', align: 'middle', strokeWidth: 3, strokeColor: '#0a0f1e' },
+      smooth: { type: 'curvedCW', roundness: .18 }, width: 1.4
+    },
+    interaction: { hover: true, tooltipDelay: 90, navigationButtons: false },
+    groups: {}
+  };
+  if (layout === 'tree') {
+    return { ...base, layout: { hierarchical: { direction: 'UD', sortMethod: 'directed', nodeSpacing: 150, levelSeparation: 180 } },
+      physics: { hierarchicalRepulsion: { nodeDistance: 160 }, solver: 'hierarchicalRepulsion' },
+      edges: { ...base.edges, smooth: { type: 'cubicBezier', forceDirection: 'vertical', roundness: .4 } } };
+  }
+  if (layout === 'radial') {
+    return { ...base, layout: { hierarchical: { direction: 'UD', sortMethod: 'directed', nodeSpacing: 190, levelSeparation: 220 } },
+      physics: { hierarchicalRepulsion: { nodeDistance: 200 }, solver: 'hierarchicalRepulsion' },
+      edges: { ...base.edges, smooth: { type: 'curvedCW', roundness: .5 } } };
+  }
+  return { ...base,
+    physics: { solver: 'forceAtlas2Based',
+      forceAtlas2Based: { gravitationalConstant: -38, centralGravity: .005, springLength: 145, springConstant: .07, damping: .42, avoidOverlap: .85 },
+      stabilization: { iterations: 220 } },
+    edges: { ...base.edges, smooth: { type: 'curvedCW', roundness: .18 } } };
+}
+
+function initNetwork(layout) {
+  const container = document.getElementById('graph');
+  network = new vis.Network(container, { nodes: nodesData, edges: edgesData }, buildOptions(layout || currentLayout));
+
+  network.on('click', function(p) {
+    if (p.nodes.length > 0) {
+      selectNode(p.nodes[0]);
+    } else {
+      selectedNode = null;
+      document.getElementById('btn-chain').disabled = true;
+      closeInspector();
+    }
+  });
+  network.on('doubleClick', function(p) {
+    if (p.nodes.length === 0) return;
+    const id = p.nodes[0];
+    if (typeof id === 'string' && id.indexOf('cluster:') === 0) { network.clustering.openCluster(id); return; }
+    document.getElementById('mem-id').value = id; explore();
+  });
+  if (clustersOn && currentLayout === 'force') applyClusters();
+}
+
+function selectNode(id) {
+  selectedNode = id;
+  document.getElementById('btn-chain').disabled = false;
+  network.selectNodes([id]);
+  openInspector(id);
+}
+
+// ── INSPECTOR ───────────────────────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function fmtDate(iso) {
+  if (!iso) return null;
+  const d = new Date(iso); if (isNaN(d)) return iso;
+  return d.toLocaleString(undefined, { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+function openInspector(id) {
+  const insp = document.getElementById('inspector');
+  insp.classList.add('open'); insp.setAttribute('aria-hidden', 'false');
+
+  const m  = memCache[id];
+  const nm = nodeMeta[id] || {};
+  document.getElementById('insp-id').textContent   = 'memory.' + id;
+  document.getElementById('insp-path').textContent = m && m.path ? m.path : '';
+
+  const body = document.getElementById('insp-body');
+  const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : {};
+
+  // graph-relation badges (always available from traversal)
+  let badges = '';
+  if (nm.depth != null)  badges += '<span class="badge"><span class="dot" style="background:' + depthColor(nm.depth) + '"></span>depth ' + nm.depth + '</span>';
+  if (nm.linkType)       badges += '<span class="badge"><span class="dot" style="background:' + (linkColors[nm.linkType]||'#64748b') + '"></span>' + escapeHtml(nm.linkType) + '</span>';
+  if (md.severity)       badges += '<span class="badge sev-' + escapeHtml(md.severity) + '">' + escapeHtml(md.severity) + '</span>';
+  if (md.category)       badges += '<span class="badge">' + escapeHtml(clusterLabel(md.category)) + '</span>';
+  if (md.status)         badges += '<span class="badge">' + escapeHtml(md.status) + '</span>';
+
+  let html = '<div class="insp-section"><div class="insp-badges">' + (badges || '<span class="empty-note">no relation metadata</span>') + '</div></div>';
+
+  if (!m) {
+    html += '<div class="insp-section">'
+      + '<div class="label">Details</div>'
+      + '<p class="empty-note">This node is not in the local cache, so its content could not be loaded. '
+      + 'It may be a superseded version or outside <code>root</code>. Try <b>Refresh cache</b> below.</p>'
+      + '</div>'
+      + '<div class="insp-section"><div class="insp-actions">'
+      + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
+      + '<button class="act-ghost" onclick="refreshCache()">Refresh cache</button>'
+      + '</div></div>';
+    body.innerHTML = html;
+    return;
+  }
+
+  // content
+  html += '<div class="insp-section"><div class="label">Content</div>'
+        + '<div class="content-box">' + escapeHtml(m.content || '') + '</div></div>';
+
+  // tags
+  if (m.tags && m.tags.length) {
+    html += '<div class="insp-section"><div class="label">Tags · ' + m.tags.length + '</div><div class="tags">'
+          + m.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div></div>';
+  }
+
+  // metadata
+  const mdKeys = Object.keys(md);
+  if (mdKeys.length) {
+    let rows = '';
+    for (const k of mdKeys) {
+      let v = md[k];
+      if (v && typeof v === 'object') v = JSON.stringify(v);
+      rows += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
+    }
+    html += '<div class="insp-section"><div class="label">Metadata · ' + mdKeys.length + '</div><table class="kv">' + rows + '</table></div>';
+  }
+
+  // provenance
+  let prov = '';
+  if (m.version != null)     prov += '<tr><td class="k">version</td><td class="v">v' + m.version + '</td></tr>';
+  if (m.created_at)          prov += '<tr><td class="k">created</td><td class="v">' + escapeHtml(fmtDate(m.created_at)) + '</td></tr>';
+  if (m.valid_from)          prov += '<tr><td class="k">valid_from</td><td class="v">' + escapeHtml(fmtDate(m.valid_from)) + '</td></tr>';
+  if (m.embedding_model)     prov += '<tr><td class="k">embedding</td><td class="v">' + escapeHtml(m.embedding_model) + '</td></tr>';
+  if (m.source_agent_id)     prov += '<tr><td class="k">agent</td><td class="v">' + escapeHtml(m.source_agent_id) + '</td></tr>';
+  if (prov) html += '<div class="insp-section"><div class="label">Provenance</div><table class="kv">' + prov + '</table></div>';
+
+  // actions
+  html += '<div class="insp-section"><div class="insp-actions">'
+        + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
+        + '<button class="act-ghost" onclick="copyPath(' + id + ')">Copy path</button>'
+        + '</div></div>';
+
+  body.innerHTML = html;
+}
+function closeInspector() {
+  const insp = document.getElementById('inspector');
+  insp.classList.remove('open'); insp.setAttribute('aria-hidden', 'true');
+}
+function exploreFrom(id) { document.getElementById('mem-id').value = id; explore(); }
+function copyPath(id) {
+  const m = memCache[id]; if (!m || !m.path) return;
+  navigator.clipboard?.writeText(m.path).then(() => toast('Path copied: ' + m.path));
+}
+async function refreshCache() { await loadMemoryCache(true); if (selectedNode != null) openInspector(selectedNode); toast('Cache refreshed · ' + Object.keys(memCache).length + ' memories'); }
+
+// ── layout ──────────────────────────────────────────────────────────────────
+function setLayout(layout) {
+  currentLayout = layout;
+  ['force','tree','radial'].forEach(l => {
+    const b = document.getElementById('btn-' + l);
+    b.className = (l === layout ? 'btn-active' : 'btn-secondary') + ' seg';
+  });
+  if (network) { network.setOptions(buildOptions(layout)); if (clustersOn && layout === 'force') applyClusters(); network.fit({ animation: { duration: 400 } }); }
+}
+
+// ── clusters ──────────────────────────────────────────────────────────────────
+function toggleClusters() {
+  clustersOn = !clustersOn;
+  document.getElementById('btn-clusters').className = (clustersOn ? 'btn-active' : 'btn-secondary') + ' seg';
+  if (!network) return;
+  if (clustersOn) {
+    if (currentLayout !== 'force') setLayout('force');
+    applyClusters();
+  } else {
+    openAllClusters();
+  }
+}
+function applyClusters() {
+  if (!network) return;
+  openAllClusters(); // reset first so re-clustering is idempotent
+  const groups = {};
+  nodesData.forEach(n => { const k = clusterKey(n.id); (groups[k] = groups[k] || []).push(n.id); });
+  Object.entries(groups).forEach(([key, ids]) => {
+    if (ids.length < 2) return; // don't collapse singletons
+    const c = clusterColor(key);
+    network.clustering.cluster({
+      joinCondition: node => ids.indexOf(node.id) !== -1,
+      clusterNodeProperties: {
+        id: 'cluster:' + key,
+        shape: 'box', borderWidth: 2,
+        color: { background: c.bg, border: c.border },
+        font: { size: 13, color: '#fff', face: 'ui-monospace, monospace' }
+      },
+      processProperties: (opts, children) => { opts.label = clusterLabel(key) + ' [' + children.length + ']'; return opts; }
+    });
+  });
+}
+function openAllClusters() {
+  if (!network || !network.clustering) return;
+  nodesData.forEach(n => {
+    const cid = 'cluster:' + clusterKey(n.id);
+    if (network.clustering.findNode && network.clustering.findNode(n.id).length > 1) {
+      try { network.clustering.openCluster(cid); } catch (e) {}
+    }
+  });
+}
+
+// ── timeline ──────────────────────────────────────────────────────────────────
+function toggleTimeline() {
+  timelineOn = !timelineOn;
+  document.getElementById('btn-timeline').className = (timelineOn ? 'btn-active' : 'btn-secondary') + ' seg';
+  document.getElementById('timeline-container').classList.toggle('visible', timelineOn);
+  if (timelineOn) buildTimeline();
+}
+function buildTimeline() {
+  const bar = document.getElementById('timeline-bar');
+  bar.innerHTML = '';
+  const entries = Object.entries(nodeTimestamps).filter(([,t]) => t);
+  if (!entries.length) { bar.innerHTML = '<span style="color:var(--text-mute);font-size:11px">No temporal data. Explore to populate.</span>'; return; }
+  const now = Date.now();
+  entries.sort((a,b) => new Date(a[1]) - new Date(b[1]));
+  const earliest = new Date(entries[0][1]).getTime();
+  const latest = Math.max(new Date(entries[entries.length-1][1]).getTime(), now);
+  const span = Math.max(latest - earliest, 1);
+  const axis = document.createElement('div'); axis.className = 'tl-axis'; bar.appendChild(axis);
+
+  entries.forEach(([id, ts]) => {
+    const t = new Date(ts).getTime();
+    const x = ((t - earliest) / span) * 100;
+    const dot = document.createElement('div');
+    dot.className = 'tl-dot';
+    dot.style.left = x + '%';
+    const d = (nodeMeta[id] && nodeMeta[id].depth) || 0;
+    dot.style.background = depthColor(d);
+    dot.title = nodeLabel(id) + ' · ' + fmtDate(ts);
+    dot.onclick = () => { if (network) { selectNode(parseInt(id)); network.focus(parseInt(id), { scale: 1.1, animation: true }); } };
+    bar.appendChild(dot);
+  });
+
+  [0, .5, 1].forEach(f => {
+    const t = earliest + span * f;
+    const tk = document.createElement('div'); tk.className = 'tl-tick'; tk.style.left = (f*100) + '%'; bar.appendChild(tk);
+    const lbl = document.createElement('div'); lbl.className = 'tl-time'; lbl.style.left = (f*100) + '%';
+    lbl.textContent = new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric'}); bar.appendChild(lbl);
+  });
+  const nowX = ((now - earliest) / span) * 100;
+  const nl = document.createElement('div'); nl.className = 'tl-now'; nl.style.left = nowX + '%'; bar.appendChild(nl);
+  const nll = document.createElement('div'); nll.className = 'tl-now-label'; nll.textContent = 'now'; nll.style.left = nowX + '%'; bar.appendChild(nll);
+}
+
+// ── counts / overlay / toast ──────────────────────────────────────────────────
+function updateCounts() {
+  document.getElementById('stat-nodes').textContent = nodesData.length;
+  document.getElementById('stat-edges').textContent = edgesData.length;
+  document.getElementById('overlay').classList.toggle('show', nodesData.length === 0);
+}
+function showLoading(on, msg) {
+  const ov = document.getElementById('overlay');
+  if (on) {
+    ov.classList.add('show');
+    document.getElementById('overlay-card').innerHTML = '<div class="spinner"></div><p>' + (msg || 'Loading…') + '</p>';
+  } else if (nodesData.length > 0) {
+    ov.classList.remove('show');
+  } else {
+    document.getElementById('overlay-card').innerHTML = '<h3>No graph loaded</h3><p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b>.</p>';
+  }
+}
+let toastTimer = null;
+function toast(msg, isErr) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => el.className = 'toast', 2600);
+}
+
+// ── explore ───────────────────────────────────────────────────────────────────
+function nodeStyle(id, depth, linkType, isRoot) {
+  if (isRoot) return { background: '#0d3b34', border: '#2dd4bf' };
+  return { background: depthColor(depth), border: linkColors[linkType] || '#64748b' };
+}
+
+async function explore() {
+  const memId = document.getElementById('mem-id').value;
+  const depth = document.getElementById('depth').value;
+  const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
+  if (!memId)    { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+
+  document.getElementById('btn-explore').disabled = true;
+  showLoading(true, 'Traversing graph…');
+  try {
+    await loadMemoryCache(); // best-effort enrichment
+
+    let url = apiUrl + '/v1/graph/related?memory_id=' + encodeURIComponent(memId) + '&depth=' + encodeURIComponent(depth) + '&limit=200';
+    if (selected) url += '&link_types=' + encodeURIComponent(selected);
+
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Error ' + r.status + ': ' + (err.error || err.hint || r.statusText), true);
+      return;
+    }
+    const data = await r.json();
+    if (!network) initNetwork(currentLayout);
+
+    const rootId = parseInt(memId);
+    if (!nodesData.get(rootId)) {
+      nodeMeta[rootId] = { depth: 0, linkType: null };
+      const m = memCache[rootId];
+      nodesData.add({
+        id: rootId, label: nodeLabel(rootId), title: nodeTitle(rootId),
+        size: 26, color: { ...nodeStyle(rootId, 0, null, true), highlight: { background:'#115e54', border:'#5eead4' } },
+        borderWidth: 3
+      });
+      nodeTimestamps[rootId] = (m && (m.created_at || m.valid_from)) || new Date().toISOString();
+    }
+
+    let added = 0;
+    for (const entry of data.entries || []) {
+      if (!entry.id && entry.id !== 0) continue;
+      if (entry.id === rootId) continue;
+      if (!nodesData.get(entry.id)) {
+        nodeMeta[entry.id] = { depth: entry.depth, linkType: entry.link_type };
+        const m = memCache[entry.id];
+        nodesData.add({
+          id: entry.id, label: nodeLabel(entry.id), title: nodeTitle(entry.id),
+          color: nodeStyle(entry.id, entry.depth, entry.link_type, false)
+        });
+        nodeTimestamps[entry.id] = (m && (m.created_at || m.valid_from)) || new Date().toISOString();
+        added++;
+      }
+      const edgeId = rootId + '->' + entry.id + ':' + entry.link_type;
+      if (!edgesData.get(edgeId)) {
+        edgesData.add({ id: edgeId, from: rootId, to: entry.id, label: entry.link_type,
+          color: { color: linkColors[entry.link_type] || '#64748b', highlight: '#fff' } });
+      }
+    }
+
+    updateCounts();
+    if (clustersOn && currentLayout === 'force') applyClusters(); else network.fit({ animation: { duration: 500 } });
+    if (timelineOn) buildTimeline();
+    toast(added > 0 ? ('+' + added + ' related node' + (added>1?'s':'')) : 'No new related nodes');
+    selectNode(rootId);
+  } catch(e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-explore').disabled = false;
+    showLoading(false);
+  }
+}
+
+// ── find chain ──────────────────────────────────────────────────────────────
+async function findChain() {
+  if (selectedNode == null) { toast('Select a target node first', true); return; }
+  const fromId = parseInt(document.getElementById('mem-id').value);
+  const toId = selectedNode;
+  if (fromId === toId) { toast('Pick a different target than the root', true); return; }
+  const selected = [...document.querySelectorAll('#link-types input:checked')].map(c => c.value).join(',');
+
+  showLoading(true, 'Finding chain memory.' + fromId + ' → memory.' + toId + '…');
+  try {
+    await loadMemoryCache();
+    let url = apiUrl + '/v1/graph/chain?from=' + fromId + '&to=' + toId + '&max_depth=10';
+    if (selected) url += '&link_types=' + encodeURIComponent(selected);
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) { const err = await r.json().catch(()=>({})); toast('Error ' + r.status + ': ' + (err.error || r.statusText), true); return; }
+    const data = await r.json();
+    if (!data.connected || !(data.path || []).length) { toast('No path between memory.' + fromId + ' and memory.' + toId, true); return; }
+
+    if (!network) initNetwork(currentLayout);
+    const chainNodes = new Set();
+    for (const hop of data.path) { chainNodes.add(hop.from_id); chainNodes.add(hop.to_id); }
+
+    chainNodes.forEach(id => {
+      if (!nodesData.get(id)) {
+        nodeMeta[id] = nodeMeta[id] || { depth: 0, linkType: null };
+        nodesData.add({ id, label: nodeLabel(id), title: nodeTitle(id), color: { background: '#facc15', border: '#fde047' } });
+        nodeTimestamps[id] = (memCache[id] && (memCache[id].created_at || memCache[id].valid_from)) || new Date().toISOString();
+      } else {
+        nodesData.update({ id, color: { background: '#facc15', border: '#fde047' }, borderWidth: 3 });
+      }
+    });
+    for (const hop of data.path) {
+      const edgeId = 'chain:' + hop.from_id + '->' + hop.to_id;
+      edgesData.update({ id: edgeId, from: hop.from_id, to: hop.to_id, label: hop.link_type,
+        color: { color: '#facc15', highlight: '#fff' }, width: 3 });
+    }
+    updateCounts();
+    network.fit({ animation: { duration: 500 } });
+    toast('Chain found · ' + data.hops + ' hop' + (data.hops>1?'s':''));
+  } catch(e) {
+    toast('Request failed: ' + e.message, true);
+  } finally { showLoading(false); }
+}
+
+// ── clear ──────────────────────────────────────────────────────────────────
+function clearGraph() {
+  nodesData.clear(); edgesData.clear();
+  nodeTimestamps = {}; nodeMeta = {};
+  selectedNode = null;
+  document.getElementById('btn-chain').disabled = true;
+  closeInspector();
+  updateCounts();
+  if (timelineOn) buildTimeline();
+}
+
+// Enter-to-explore
+['mem-id','depth','api-key'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') explore(); });
+});
+
+updateCounts();
+
+// ── recording / demo walkthrough (?record=1) ───────────────────────────────
+(function initRecordMode() {
+  if (new URLSearchParams(location.search).get('record') !== '1') return;
+  const css = document.createElement('style');
+  css.textContent = `
+    #record-banner {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 200;
+      padding: 0 28px 20px; pointer-events: none;
+      background: linear-gradient(180deg, transparent 0%, rgba(10,15,30,.88) 35%, rgba(10,15,30,.97) 100%);
+    }
+    #record-banner .step {
+      font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;
+      color: var(--primary); margin-bottom: 6px;
+    }
+    #record-banner .title {
+      font-size: 20px; font-weight: 650; color: var(--text); line-height: 1.25; margin-bottom: 6px;
+    }
+    #record-banner .body {
+      font-size: 14px; color: var(--text-dim); line-height: 1.55; max-width: 920px;
+    }
+    .record-hi {
+      outline: 2px solid var(--primary) !important;
+      box-shadow: 0 0 0 4px rgba(45,212,191,.25) !important;
+      transition: box-shadow .2s, outline .2s;
+    }
+  `;
+  document.head.appendChild(css);
+  const banner = document.createElement('div');
+  banner.id = 'record-banner';
+  banner.innerHTML = '<div class="step"></div><div class="title"></div><div class="body"></div>';
+  document.body.appendChild(banner);
+
+  window.pcmiRecord = {
+    caption(step, title, body) {
+      banner.querySelector('.step').textContent = step || '';
+      banner.querySelector('.title').textContent = title || '';
+      banner.querySelector('.body').textContent = body || '';
+    },
+    setLinkTypes(types) {
+      const want = new Set((types || '').split(',').filter(Boolean));
+      document.querySelectorAll('#link-types input').forEach((el) => {
+        el.checked = want.has(el.value);
+      });
+    },
+    setMemory(id, depth) {
+      document.getElementById('mem-id').value = String(id);
+      if (depth != null) document.getElementById('depth').value = String(depth);
+    },
+    pickNode(id) {
+      if (!network) return;
+      selectNode(id);
+      network.selectNodes([id]);
+      network.focus(id, { scale: 1.15, animation: { duration: 450 } });
+    },
+    async chainTo(toId) {
+      selectedNode = toId;
+      document.getElementById('btn-chain').disabled = false;
+      await findChain();
+    },
+    highlight(sel, on) {
+      const el = document.querySelector(sel);
+      if (!el) return;
+      if (on) el.classList.add('record-hi');
+      else el.classList.remove('record-hi');
+    },
+    waitNodes(min) {
+      return new Promise((resolve) => {
+        const t0 = Date.now();
+        (function tick() {
+          const n = parseInt(document.getElementById('stat-nodes')?.textContent || '0', 10);
+          if (n >= min || Date.now() - t0 > 25000) return resolve(n);
+          setTimeout(tick, 120);
+        })();
+      });
+    },
+    async exploreFrom(id) {
+      document.getElementById('mem-id').value = String(id);
+      await explore();
+    },
+    async clearAndExplore(memId, depth, linkTypes) {
+      clearGraph();
+      this.setMemory(memId, depth);
+      this.setLinkTypes(linkTypes);
+      await explore();
+    },
+  };
+})();
+</script>
+</body>
+</html>

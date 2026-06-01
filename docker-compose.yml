@@ -26,6 +26,7 @@ services:
       - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
       - ./migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql
       - ./migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql
+      - ./migrations/019_cognitive_graph_age.sql:/docker-entrypoint-initdb.d/019_cognitive_graph_age.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -92,5 +93,51 @@ services:
       timeout: 5s
       retries: 5  
 
+  # ─── Optional: AGE-enabled Postgres for Cognitive Graph (v2.0) ────────────
+  # Start with: docker compose --profile graph up
+  # API should point to DATABASE_URL=postgres://pcmi:pcmi@localhost:5433/pcmi
+  #
+  # Uses a custom image that bundles pgvector + Apache AGE so both embedding
+  # and graph features work on a single instance.
+  postgres-age:
+    build:
+      context: .
+      dockerfile: docker/postgres-age/Dockerfile.postgres-age
+    profiles: ["graph"]
+    container_name: pcmi-postgres-age
+    environment:
+      POSTGRES_DB: pcmi
+      POSTGRES_USER: pcmi
+      POSTGRES_PASSWORD: pcmi
+    volumes:
+      - postgres_age_data:/var/lib/postgresql/data
+      - ./migrations/001_init.sql:/docker-entrypoint-initdb.d/001_init.sql
+      - ./migrations/002_multi_tenant.sql:/docker-entrypoint-initdb.d/002_multi_tenant.sql
+      - ./migrations/003_rbac_api_keys.sql:/docker-entrypoint-initdb.d/003_rbac_api_keys.sql
+      - ./migrations/004_audit_encryption.sql:/docker-entrypoint-initdb.d/004_audit_encryption.sql
+      - ./migrations/005_worker_helpers.sql:/docker-entrypoint-initdb.d/005_worker_helpers.sql
+      - ./migrations/006_fts_hybrid.sql:/docker-entrypoint-initdb.d/006_fts_hybrid.sql
+      - ./migrations/007_v1_11_embedding_space.sql:/docker-entrypoint-initdb.d/007_v1_11_embedding_space.sql
+      - ./migrations/008_v1_12_distilled_webhooks_encrypt.sql:/docker-entrypoint-initdb.d/008_v1_12_distilled_webhooks_encrypt.sql
+      - ./migrations/009_v1_13_event_schemas_webhook_dlq.sql:/docker-entrypoint-initdb.d/009_v1_13_event_schemas_webhook_dlq.sql
+      - ./migrations/010_v1_14_consolidation_bm25_admin.sql:/docker-entrypoint-initdb.d/010_v1_14_consolidation_bm25_admin.sql
+      - ./migrations/011_v1_15_links_expiry_tags.sql:/docker-entrypoint-initdb.d/011_v1_15_links_expiry_tags.sql
+      - ./migrations/012_v1_19_memory_compaction.sql:/docker-entrypoint-initdb.d/012_v1_19_memory_compaction.sql
+      - ./migrations/013_idempotency.sql:/docker-entrypoint-initdb.d/013_idempotency.sql
+      - ./migrations/014_key_lifecycle.sql:/docker-entrypoint-initdb.d/014_key_lifecycle.sql
+      - ./migrations/015_importance_decay.sql:/docker-entrypoint-initdb.d/015_importance_decay.sql
+      - ./migrations/016_sessions.sql:/docker-entrypoint-initdb.d/016_sessions.sql
+      - ./migrations/017_dedup.sql:/docker-entrypoint-initdb.d/017_dedup.sql
+      - ./migrations/018_distillation_policy.sql:/docker-entrypoint-initdb.d/018_distillation_policy.sql
+      - ./migrations/019_cognitive_graph_age.sql:/docker-entrypoint-initdb.d/019_cognitive_graph_age.sql
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pcmi"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
+  postgres_age_data:

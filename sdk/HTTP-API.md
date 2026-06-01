@@ -45,6 +45,15 @@ OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 | `POST /v1/admin/api-keys` | `create_api_key` | `createApiKey` |
 | `POST /v1/admin/api-keys/:id/rotate` | `rotate_api_key` | `rotateApiKey` |
 
+### Experimental — Cognitive Graph (no SDK wrapper yet)
+
+Requires Apache AGE (`docker compose --profile graph`). See [`../docs/cognitive-graph.md`](../docs/cognitive-graph.md).
+
+| HTTP | Notes |
+|------|--------|
+| `GET /v1/graph/health` | No auth; `{"available": bool, "extension": "apache-age"}` |
+| `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`; 501 when AGE absent |
+
 Admin methods require **admin** role (`testkey123` in default migrations). CI runs read-only `admin_smoke` / `admin-smoke.mts`.
 
 ## List pagination (query params)

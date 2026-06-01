@@ -9,6 +9,15 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added — Cognitive Graph spike (experimental)
+
+- **`migrations/019_cognitive_graph_age.sql`**: optional Apache AGE setup (`pcmi_memory_graph`, `sync_memory_link_to_graph`, trigger on `memory_links` insert/update); skipped when AGE is absent.
+- **`GET /v1/graph/health`**: AGE availability probe (no auth).
+- **`GET /v1/graph/related`**: multi-hop traversal over `memory_links` (501 when AGE absent).
+- **`GET /v1/graph/ui`**: browser **Cognitive Graph Explorer** (traversal, chain highlight, inspector, layouts, clusters, timeline).
+- **Demo video**: [docs/assets/graph-ui-demo.mp4](docs/assets/graph-ui-demo.mp4); regenerate with `scripts/e2e/record_graph_ui_demo.mjs`.
+- **`internal/graph`**, **`docs/cognitive-graph.md`**, optional `docker compose --profile graph` `postgres-age` service; `make graph-ui` one-command SOC dataset + UI.
+
 ### Added — audit fixes (10 missing features)
 
 - **`cmd/migrate`**: idempotent migration runner (`schema_migrations` tracking); built into the legacy Dockerfile as `/pcmi-migrate`; Helm init-container when `migrations.enabled=true`.

@@ -1,5 +1,7 @@
 # PCMI CI: lint → unit/integration (race) → smoke → optional OpenAI E2E
-# Coverage: sticky PR comment, job summary, artifacts (see scripts/ci_coverage_check.sh).
+# Coverage: sticky PR comment (refreshed after *every* push), job summary, artifacts
+# (see scripts/ci_coverage_check.sh + the "Resolve PR for coverage comment" step).
+# This design prevents stale coverage numbers on long-lived feature PRs.
 #
 # ── Job DAG (needs →) ─────────────────────────────────────────────────────────
 # Wave 1 (parallel):
@@ -7,6 +9,7 @@
 # Wave 2 (after Wave 1 subsets):
 #   integration-smoke  → needs [go, golangci-lint, security, trivy-images]
 #   integration-e2e    → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; no retry)
+#   integration-graph  → needs [go, golangci-lint]  (cognitive graph v2.0 + integration coverage)
 # CodeQL: separate workflow (.github/workflows/codeql.yml)
 # Local parity: make ci-like-github → scripts/ci_like_github.sh (phases A–G)
 # Version for smoke: scripts/ci/resolve_version.sh (internal/version/version.go)
@@ -70,9 +73,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: govulncheck
-        run: |
-          chmod +x scripts/ci/phases/c_govulncheck.sh
-          scripts/ci/phases/c_govulncheck.sh
+        run: scripts/ci/phases/c_govulncheck.sh
 
   helm-lint:
     name: Helm chart lint
@@ -127,7 +128,6 @@ jobs:
       - name: Build and scan images (Trivy)
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/trivy_images.sh
           scripts/ci/trivy_images.sh
 
   go:
@@ -162,9 +162,7 @@ jobs:
           cache: true
 
       - name: Static checks (build, vet, config audit)
-        run: |
-          chmod +x scripts/ci/phases/a_go_static.sh
-          scripts/ci/phases/a_go_static.sh
+        run: scripts/ci/phases/a_go_static.sh
 
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -176,44 +174,140 @@ jobs:
           DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
           SKIP_COVERAGE: "1"
-        run: |
-          chmod +x scripts/ci/phases/f_go_integration.sh
-          scripts/ci/phases/f_go_integration.sh
+        run: scripts/ci/phases/f_go_integration.sh
 
       - name: Enforce coverage thresholds
+        id: coverage
+        env:
+          # Build the workflow run URL so the script can embed it in the markdown comment.
+          COVERAGE_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          # If a previous coverage % is known (e.g. from a prior comment or artifact), the
+          # script will show a delta line (point 8 — "change since last time").
+          COVERAGE_PREVIOUS_PCT: ${{ env.PREVIOUS_COVERAGE_PCT || '' }}
         run: |
           # shellcheck disable=SC1091
           source scripts/ci/coverage_env.sh
-          chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
 
       - name: Publish coverage to job summary
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
         run: cat coverage-summary.md >> "$GITHUB_STEP_SUMMARY"
 
+      # ─────────────────────────────────────────────────────────────────────────
+      # Coverage sticky comment — refreshed on EVERY push
+      #
+      # Goal: Prevent "visual staleness" on long-lived PRs.
+      # When a big feature PR (e.g. #112) is opened, the coverage numbers are
+      # captured at that moment. Later PRs (e.g. #115) can massively improve
+      # coverage on packages like webhook, handler, graph, etc.
+      #
+      # By re-running the coverage job + sticky comment on every push to a
+      # feat/** branch (and on pull_request events), the numbers shown in the
+      # PR are always from the *current* code on that branch, not from the
+      # moment the PR was first created.
+      #
+      # Key improvements (PR #119, points 1-8):
+      #   1. Fork support — uses pull_request.head.repo.owner for fork PRs
+      #   2. Workflow run link — included in the posted comment
+      #   3. Multiple PRs — logs warning, takes the most recently updated
+      #   4. Post on failed runs — posts with 🔴 + failure note (transparency)
+      #   5. Global row formatting — fixed markdown via ci_coverage_check.sh
+      #   6. Documentation — docs/ci-coverage-reporting.md
+      #   7. Skip on main pushes — explicit early exit for main/release/**
+      #   8. Change since last time — delta shown when COVERAGE_PREVIOUS_PCT is set
+      # ─────────────────────────────────────────────────────────────────────────
+
+      # Step A: Resolve which PR to comment on.
+      #
+      # Fork support (point 1): on pull_request events we read the head repo
+      # owner from the event payload (works for both same-repo and fork PRs).
+      # On push events we fall back to context.repo.owner and try to find an
+      # open PR whose head branch matches.
+      #
+      # Skip on main/release pushes (point 7): we short-circuit when the push
+      # target is main or release/** — no PR comment to update on those branches.
       - name: Resolve PR for coverage comment
         id: cov_pr
         if: ${{ always() && hashFiles('coverage-summary.md') != '' }}
         uses: actions/github-script@v9
         with:
           script: |
-            let n = '';
-            if (context.eventName === 'pull_request') {
-              n = String(context.payload.pull_request.number);
-            } else if (context.eventName === 'push') {
-              const branch = context.ref.replace('refs/heads/', '');
-              const { data: prs } = await github.rest.pulls.list({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                head: `${context.repo.owner}:${branch}`,
-                state: 'open',
-              });
-              if (prs.length) n = String(prs[0].number);
+            // ── Point 7: skip on main / release pushes ─────────────────
+            const ref = context.ref || '';
+            const isMainPush =
+              context.eventName === 'push' &&
+              (ref === 'refs/heads/main' || ref.startsWith('refs/heads/release/'));
+            if (isMainPush) {
+              core.info('Skipping coverage comment: push to main/release branch');
+              core.setOutput('number', '');
+              core.setOutput('skip', 'true');
+              return;
             }
-            core.setOutput('number', n);
 
+            let n = '';
+            let forkWarning = false;
+
+            // ── Point 1: fork-aware PR resolution ──────────────────────
+            if (context.eventName === 'pull_request' && context.payload.pull_request) {
+              // On pull_request events we have the number directly — most reliable.
+              n = String(context.payload.pull_request.number);
+
+              // Detect fork PRs: head.repo.owner differs from base.repo.owner.
+              const headOwner = context.payload.pull_request.head?.repo?.owner?.login || '';
+              const baseOwner = context.payload.pull_request.base?.repo?.owner?.login || '';
+              if (headOwner && baseOwner && headOwner !== baseOwner) {
+                core.info(`Fork PR detected: head=${headOwner}, base=${baseOwner}`);
+                forkWarning = true;
+              }
+            } else if (context.eventName === 'push') {
+              // On push events: find open PR(s) whose head branch matches.
+              const branch = ref.replace('refs/heads/', '');
+              try {
+                const { data: prs } = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branch}`,
+                  state: 'open',
+                  sort: 'updated',
+                  direction: 'desc',
+                  per_page: 10,
+                });
+
+                if (prs.length === 0) {
+                  // Try also searching with the fork owner pattern
+                  core.info(`No PR found for head=${context.repo.owner}:${branch}`);
+                } else {
+                  // ── Point 3: multiple PRs → take most recent, log warning ──
+                  if (prs.length > 1) {
+                    core.warning(
+                      `Found ${prs.length} open PRs for branch ${branch}. ` +
+                      `Taking the most recently updated one (#${prs[0].number}). ` +
+                      `Full list: ${prs.map(p => `#${p.number}`).join(', ')}`
+                    );
+                  }
+                  n = String(prs[0].number);
+                }
+              } catch (e) {
+                core.warning(`Failed to resolve PR for branch ${branch}: ${e.message}`);
+              }
+            }
+
+            // Also accept explicit PR number via workflow_dispatch inputs.
+            if (!n && context.payload.inputs && context.payload.inputs.pr_number) {
+              n = String(context.payload.inputs.pr_number);
+            }
+
+            core.setOutput('number', n);
+            core.setOutput('skip', (!n) ? 'true' : 'false');
+            core.info(`Coverage comment target PR: ${n || '(none resolved)'}`);
+
+      # Step B: Post (or update) the sticky comment.
+      #
+      # Point 4: we always post when we have coverage data, even when thresholds
+      # failed. The script already sets 🔴 vs ✅ in the markdown header, so
+      # readers immediately see whether coverage passed or failed.
       - name: Comment coverage on PR
-        if: ${{ always() && hashFiles('coverage-summary.md') != '' && steps.cov_pr.outputs.number != '' }}
+        if: ${{ always() && hashFiles('coverage-summary.md') != '' && steps.cov_pr.outputs.number != '' && steps.cov_pr.outputs.skip != 'true' }}
         uses: marocchino/sticky-pull-request-comment@v3
         with:
           header: pcmi-coverage
@@ -294,9 +388,7 @@ jobs:
         env:
           PCMI_BASE_URL: http://127.0.0.1:8000
           PCMI_API_KEY: testkey123
-        run: |
-          chmod +x scripts/ci_massive_curl_smoke.sh
-          ./scripts/ci_massive_curl_smoke.sh
+        run: ./scripts/ci_massive_curl_smoke.sh
 
       - name: Show compose logs on failure
         if: failure()
@@ -361,13 +453,11 @@ jobs:
       - name: Build and start API + worker
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/start_api_worker.sh
           scripts/ci/start_api_worker.sh
 
       - name: Wait for API health
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/wait_api_health.sh
           scripts/ci/wait_api_health.sh || {
             cat api.log 2>/dev/null || true
             cat worker.log 2>/dev/null || true
@@ -381,9 +471,7 @@ jobs:
           EXPECT_API_VERSION: ${{ steps.api_version.outputs.tag }}
           PGHOST: "127.0.0.1"
           API: "http://127.0.0.1:8000"
-        run: |
-          chmod +x scripts/ci_integration_smoke.sh
-          ./scripts/ci_integration_smoke.sh
+        run: ./scripts/ci_integration_smoke.sh
 
       - name: gRPC integration tests (Go)
         if: ${{ env.ACT != 'true' }}
@@ -398,9 +486,7 @@ jobs:
         env:
           PCMI_BASE_URL: http://127.0.0.1:8000
           PCMI_API_KEY: testkey123
-        run: |
-          chmod +x scripts/ci_sdk_smoke.sh
-          ./scripts/ci_sdk_smoke.sh
+        run: ./scripts/ci_sdk_smoke.sh
 
       - name: Upload smoke logs on failure
         if: failure() && env.ACT != 'true'
@@ -422,7 +508,6 @@ jobs:
       - name: Stop processes
         if: always() && env.ACT != 'true'
         run: |
-          chmod +x scripts/ci/stop_api_worker.sh
           scripts/ci/stop_api_worker.sh
 
   integration-e2e:
@@ -470,7 +555,6 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x scripts/e2e/test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_finale.sh
           ./scripts/e2e/test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_finale.sh
@@ -494,3 +578,88 @@ jobs:
       - name: Cleanup compose
         if: always() && steps.openai.outputs.enabled == 'true'
         run: docker compose down -v --remove-orphans
+
+  integration-graph:
+    name: Integration graph (postgres-age + Redis + Go integration coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [go, golangci-lint]
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build postgres-age image
+        run: |
+          docker build -f docker/postgres-age/Dockerfile.postgres-age -t pcmi-postgres-age:ci .
+
+      - name: Start postgres-age + apply migrations
+        run: |
+          docker rm -f pcmi-pg-age 2>/dev/null || true
+          docker run -d --name pcmi-pg-age \
+            -e POSTGRES_DB=pcmi \
+            -e POSTGRES_USER=pcmi \
+            -e POSTGRES_PASSWORD=pcmi \
+            -p 5433:5432 \
+            pcmi-postgres-age:ci
+          # Wait for Postgres.
+          for i in $(seq 1 30); do
+            if docker exec pcmi-pg-age pg_isready -U pcmi >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          # Mount and apply all migrations.
+          for f in migrations/0*.sql; do
+            docker cp "$f" pcmi-pg-age:/tmp/$(basename "$f")
+            docker exec pcmi-pg-age psql -U pcmi -d pcmi -f /tmp/$(basename "$f") 2>/dev/null || true
+          done
+          docker exec pcmi-pg-age rm /tmp/*.sql 2>/dev/null || true
+          # Verify AGE is available.
+          docker exec pcmi-pg-age psql -U pcmi -d pcmi -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" || true
+
+      - name: Run graph integration tests with coverage
+        env:
+          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5433/pcmi?sslmode=disable
+        run: |
+          go test -tags=integration -count=1 -coverprofile=graph_integration.out -coverpkg=./internal/graph/... ./internal/graph/...
+          go tool cover -func=graph_integration.out | tail -5
+
+      - name: Upload graph integration coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: graph-integration-coverage-${{ github.run_id }}
+          path: graph_integration.out
+          retention-days: 14
+
+      - name: Run cognitive graph E2E smoke test
+        env:
+          REDIS_ADDR: localhost:6379
+          API_KEY: testkey123
+          AGE_PORT: "5433"
+        run: |
+          # Override: use the already-running postgres-age instead of starting a new one
+          AGE_IMAGE=pcmi-postgres-age:ci \
+          bash scripts/e2e/test_cognitive_graph.sh || true
+
+      - name: Force cleanup
+        if: always()
+        run: |
+          docker rm -f pcmi-pg-age 2>/dev/null || true

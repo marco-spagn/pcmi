@@ -8,10 +8,11 @@ const (
 	EventToolCallExecuted   = "tool.call.executed"
 	EventWorkflowFinished   = "workflow.finished"
 	EventReasoningGenerated = "reasoning.generated"
-	EventMemoryStored       = "memory.stored"
-	EventMemoryUpdated      = "memory.updated"
-	EventKnowledgeDistilled = "knowledge.distilled"
-	EventMemoryRefineRequested = "memory.refine.requested"
+	EventMemoryStored           = "memory.stored"
+	EventMemoryUpdated          = "memory.updated"
+	EventKnowledgeDistilled     = "knowledge.distilled"
+	EventMemoryRefineRequested  = "memory.refine.requested"
+	EventContradictionDetected  = "contradiction.detected"
 )
 
 type UniversalEvent struct {

@@ -4,7 +4,7 @@
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
-        helm-lint helm-template helm-package admin-list-keys bench quickstart
+        helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -16,7 +16,7 @@ API_URL ?= http://localhost:8000
 # Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
 # scripts/ci_coverage_check.sh. Tighten as new tests land.
 COVERAGE_MIN_TOTAL  ?= 22
-COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,metrics:70
+COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,graph:42,metrics:70
 
 # Set of packages that the coverage gate considers. Integration-heavy packages
 # (cmd/* binaries) are intentionally excluded because they cannot run without a
@@ -32,6 +32,7 @@ COVERAGE_PKGS = \
 	./internal/embedding/... \
 	./internal/event/... \
 	./internal/eventschema/... \
+	./internal/graph/... \
 	./internal/handler/... \
 	./internal/metrics/... \
 	./internal/middleware/... \
@@ -256,6 +257,19 @@ test-integration:
 
 # Redis Streams durable bus (//go:build integration).
 test-streams-integration:
+
+# Cognitive Graph v2.0 E2E smoke test — starts Docker, AGE Postgres, API,
+# inserts test data, exercises all 4 graph endpoints, and cleans up.
+test-cognitive-graph:
+	bash scripts/e2e/test_cognitive_graph.sh
+
+# One-command: start AGE infrastructure → generate SOC dataset → load → open UI.
+#   make graph-ui                          # minimal (postgres-age + Redis)
+#   make graph-ui FULL_STACK=1             # full stack (API + Worker)
+#   make graph-ui DATASET_SIZE=5000         # 5000 nodes instead of 1000
+#   make graph-ui INFRA_ONLY=1              # infrastructure only, no data load
+graph-ui:
+	bash scripts/e2e/launch_graph_ui.sh
 	go test -tags=integration -run TestStream ./internal/event/...
 
 test-circuit-breaker:

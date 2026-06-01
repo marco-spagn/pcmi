@@ -117,6 +117,15 @@ func main() {
 	expiryWorker := worker.NewExpiryWorker(db, cfg)
 	go expiryWorker.Start(ctx)
 
+	var contradictionWorker *worker.ContradictionWorker
+	if cfg.ContradictionDetectionEnabled {
+		contradictionWorker = worker.NewContradictionWorker(db, cfg)
+		go contradictionWorker.Start(ctx)
+		log.Println("✅ Contradiction detection worker started")
+	} else {
+		log.Println("ℹ️  Contradiction detection worker disabled (CONTRADICTION_DETECTION_ENABLED=false)")
+	}
+
 	tr := otel.Tracer(workerTracerName)
 	handleMemoryEvent := func(evt event.Event, streamID string) {
 		metrics.IncWorkerRedisEvent(evt.Type)
@@ -140,6 +149,9 @@ func main() {
 				policyEngine.OnMemoryEvent(tenantID, path)
 			}
 			consolidationWorker.TriggerForMemory(tenantID, path)
+			if contradictionWorker != nil {
+				contradictionWorker.OnMemoryEvent(tenantID, path)
+			}
 		case event.EventMemoryRefineRequested:
 			prefix, _ := evt.Payload["path_prefix"].(string)
 			log.Printf("[REDIS] refine.requested tenant=%s prefix=%s", tenantID, prefix)

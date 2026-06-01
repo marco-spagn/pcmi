@@ -7,7 +7,7 @@
 [![Container](https://img.shields.io/badge/ghcr.io-pcmi-blue?logo=docker)](https://ghcr.io/marco-spagn/pcmi)
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![API](https://img.shields.io/badge/API-v1.49.0-22c55e)](internal/version/version.go)
+[![API](https://img.shields.io/badge/API-v1.50.0-22c55e)](internal/version/version.go)
 
 **Durable, multi-tenant memory for AI agents** — outside the agent runtime, with HTTP and gRPC APIs, hybrid retrieval, background workers, and enterprise controls (RLS, RBAC, audit, observability).
 
@@ -107,7 +107,7 @@ Pre-built multi-arch images (`linux/amd64`, `linux/arm64`) are published to the 
 docker pull ghcr.io/marco-spagn/pcmi:latest
 
 # Specific version
-docker pull ghcr.io/marco-spagn/pcmi:v1.49.0
+docker pull ghcr.io/marco-spagn/pcmi:v1.50.0
 
 # Tip of main (continuous delivery)
 docker pull ghcr.io/marco-spagn/pcmi:main

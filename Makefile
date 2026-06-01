@@ -2,7 +2,7 @@
         build-mcp install-mcp test-mcp-unit test-mcp-smoke mcp-e2e smoke-sessions smoke-dedup \
         act-list free-dev-ports act-preflight act-all act-job act-lint act-test act-vuln act-trivy act-integration-smoke \
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
-        infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test \
+        infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test bug-hunt bug-hunt-fast \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui
 
@@ -457,6 +457,18 @@ ci-like-github: act-preflight
 test-full-real:
 	@chmod +x scripts/run_full_validation.sh
 	bash scripts/run_full_validation.sh
+
+# ── Bug hunt pipeline ─────────────────────────────────────────────────────────
+# 14-phase automated bug discovery: static → unit → fuzz → integration →
+# api_property → grpc_load → http_load → soak → mutation → security →
+# migrations → containers → report.
+# See scripts/bug_hunt.sh for details.
+
+bug-hunt:
+	@bash scripts/bug_hunt.sh
+
+bug-hunt-fast:
+	@bash scripts/bug_hunt.sh --fast
 
 # ───────────────────────────────────────────────────────────────────────────────
 # Helm — single packaged Kubernetes deployment (PR #4).

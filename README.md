@@ -318,7 +318,7 @@ Optional technical report (PDF build): [docs/papers/](docs/papers/).
 | [`scripts/`](scripts/) | CI smoke, distillation E2E, coverage |
 | [`.github/workflows/`](.github/workflows/) | CI, CodeQL |
 
-Container images: `Dockerfile.api`, `Dockerfile.worker` (root `Dockerfile` is legacy).
+Container images: `Dockerfile` (release/ghcr.io, combined api+worker), `Dockerfile.api` (API-only), `Dockerfile.worker` (Worker-only).
 
 ---
 

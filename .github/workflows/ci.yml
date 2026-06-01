@@ -73,9 +73,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: govulncheck
-        run: |
-          chmod +x scripts/ci/phases/c_govulncheck.sh
-          scripts/ci/phases/c_govulncheck.sh
+        run: scripts/ci/phases/c_govulncheck.sh
 
   helm-lint:
     name: Helm chart lint
@@ -130,7 +128,6 @@ jobs:
       - name: Build and scan images (Trivy)
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/trivy_images.sh
           scripts/ci/trivy_images.sh
 
   go:
@@ -165,9 +162,7 @@ jobs:
           cache: true
 
       - name: Static checks (build, vet, config audit)
-        run: |
-          chmod +x scripts/ci/phases/a_go_static.sh
-          scripts/ci/phases/a_go_static.sh
+        run: scripts/ci/phases/a_go_static.sh
 
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
@@ -179,9 +174,7 @@ jobs:
           DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
           SKIP_COVERAGE: "1"
-        run: |
-          chmod +x scripts/ci/phases/f_go_integration.sh
-          scripts/ci/phases/f_go_integration.sh
+        run: scripts/ci/phases/f_go_integration.sh
 
       - name: Enforce coverage thresholds
         id: coverage
@@ -194,7 +187,6 @@ jobs:
         run: |
           # shellcheck disable=SC1091
           source scripts/ci/coverage_env.sh
-          chmod +x scripts/ci_coverage_check.sh
           scripts/ci_coverage_check.sh
 
       - name: Publish coverage to job summary
@@ -396,9 +388,7 @@ jobs:
         env:
           PCMI_BASE_URL: http://127.0.0.1:8000
           PCMI_API_KEY: testkey123
-        run: |
-          chmod +x scripts/ci_massive_curl_smoke.sh
-          ./scripts/ci_massive_curl_smoke.sh
+        run: ./scripts/ci_massive_curl_smoke.sh
 
       - name: Show compose logs on failure
         if: failure()
@@ -463,13 +453,11 @@ jobs:
       - name: Build and start API + worker
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/start_api_worker.sh
           scripts/ci/start_api_worker.sh
 
       - name: Wait for API health
         if: ${{ env.ACT != 'true' }}
         run: |
-          chmod +x scripts/ci/wait_api_health.sh
           scripts/ci/wait_api_health.sh || {
             cat api.log 2>/dev/null || true
             cat worker.log 2>/dev/null || true
@@ -483,9 +471,7 @@ jobs:
           EXPECT_API_VERSION: ${{ steps.api_version.outputs.tag }}
           PGHOST: "127.0.0.1"
           API: "http://127.0.0.1:8000"
-        run: |
-          chmod +x scripts/ci_integration_smoke.sh
-          ./scripts/ci_integration_smoke.sh
+        run: ./scripts/ci_integration_smoke.sh
 
       - name: gRPC integration tests (Go)
         if: ${{ env.ACT != 'true' }}
@@ -500,9 +486,7 @@ jobs:
         env:
           PCMI_BASE_URL: http://127.0.0.1:8000
           PCMI_API_KEY: testkey123
-        run: |
-          chmod +x scripts/ci_sdk_smoke.sh
-          ./scripts/ci_sdk_smoke.sh
+        run: ./scripts/ci_sdk_smoke.sh
 
       - name: Upload smoke logs on failure
         if: failure() && env.ACT != 'true'
@@ -524,7 +508,6 @@ jobs:
       - name: Stop processes
         if: always() && env.ACT != 'true'
         run: |
-          chmod +x scripts/ci/stop_api_worker.sh
           scripts/ci/stop_api_worker.sh
 
   integration-e2e:
@@ -572,7 +555,6 @@ jobs:
       - name: Start stack and run E2E scripts
         if: steps.openai.outputs.enabled == 'true'
         run: |
-          chmod +x scripts/e2e/test_pcmi.sh scripts/ci_e2e_sse_dedup.sh scripts/ci_e2e_finale.sh
           ./scripts/e2e/test_pcmi.sh
           ./scripts/ci_e2e_sse_dedup.sh
           ./scripts/ci_e2e_finale.sh
@@ -673,7 +655,6 @@ jobs:
           API_KEY: testkey123
           AGE_PORT: "5433"
         run: |
-          chmod +x scripts/e2e/test_cognitive_graph.sh
           # Override: use the already-running postgres-age instead of starting a new one
           AGE_IMAGE=pcmi-postgres-age:ci \
           bash scripts/e2e/test_cognitive_graph.sh || true

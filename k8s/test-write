@@ -1,4 +1,0 @@
-DELETE_ME — accidental probe file left over from a write-permission test in
-the PR #4 cleanup session. Safe to remove on the host:
-
-    git rm k8s/test-write

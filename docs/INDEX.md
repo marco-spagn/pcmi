@@ -101,4 +101,4 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 | Document | Content |
 |----------|---------|
 | [../deploy/helm/README.md](../deploy/helm/README.md) | Helm chart |
-| [../k8s/README.md](../k8s/README.md) | Deprecated root `k8s/` — use Helm |
+| [../deploy/k8s/](deploy/k8s/) | Kubernetes manifests (base + overlays for dev/prod) |

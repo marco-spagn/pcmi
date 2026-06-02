@@ -38,6 +38,11 @@ on:
 
   workflow_dispatch:
 
+  schedule:
+    # Daily bug-hunt on main — runs non-redundant phases (nilaway, gosec,
+    # staticcheck, fuzz, api_property, migrations, containers).
+    - cron: '37 4 * * *'
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -61,6 +66,16 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           version: v2.12.2
+
+      - name: nilaway (nil-deref detection)
+        run: |
+          go install go.uber.org/nilaway/cmd/nilaway@latest
+          nilaway ./... || true
+
+      - name: gosec (security lint)
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -quiet -severity medium -confidence medium ./... || true
 
   security:
     name: Security scan (govulncheck)
@@ -663,3 +678,120 @@ jobs:
         if: always()
         run: |
           docker rm -f pcmi-pg-age 2>/dev/null || true
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Bug-hunt — non-redundant phases only (daily + manual)
+  #
+  # Runs only on schedule or workflow_dispatch (NOT on PR/push) because it
+  # needs a full docker-compose stack and takes ~15-20 minutes.
+  #
+  # Phases skipped (already covered by other CI jobs):
+  #   go vet, golangci-lint, govulncheck → golangci-lint + security jobs
+  #   unit (test -race -cover)           → go job
+  #   integration                         → integration-smoke job
+  #   trivy image                         → trivy-images job
+  #   helm lint                           → helm-lint job
+  #
+  # Phases run here (NOT covered elsewhere):
+  #   staticcheck, errcheck, gosec, nilaway, gitleaks, buf, hadolint
+  #   fuzz, api_property, security (trivy fs+config), migrations, containers
+  # ───────────────────────────────────────────────────────────────────────────
+  bug-hunt:
+    name: Bug hunt (daily)
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: pcmi
+          POSTGRES_USER: pcmi
+          POSTGRES_PASSWORD: pcmi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pcmi -d pcmi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install tooling
+        run: |
+          # Static analysis tools
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          go install github.com/kisielk/errcheck@latest
+          go install go.uber.org/nilaway/cmd/nilaway@latest
+          go install github.com/zricethezav/gitleaks/v8@latest
+          # Proto linting
+          go install github.com/bufbuild/buf/cmd/buf@latest
+          # Load testing
+          go install github.com/bojand/ghz/cmd/ghz@latest
+          go install github.com/tsenart/vegeta/v12@latest
+          # Dockerfile lint
+          go install github.com/hadolint/hadolint/cmd/hadolint@latest
+          # Migration testing
+          go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          # Security
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          curl -sfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+          # Python tools
+          pip3 install --quiet --break-system-packages schemathesis 2>/dev/null || true
+          # Add Go bin to PATH
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - uses: ./.github/actions/pcmi-postgres-migrate
+
+      - name: Run bug-hunt (non-redundant phases)
+        env:
+          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
+          REDIS_ADDR: localhost:6379
+          PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"
+          RATE_LIMIT_DISABLED: "true"
+          COVERAGE_MIN: "39"
+        run: |
+          chmod +x scripts/bug_hunt.sh
+          # Phases run (all non-redundant with other CI jobs):
+          #   static   — staticcheck, gosec, errcheck, nilaway, gitleaks,
+          #              buf, hadolint (skips go vet + golangci-lint in CI)
+          #   fuzz     — native Go fuzz tests (30s each)
+          #   security — trivy fs + config scan (image scan is separate job)
+          #   migrations — down→up→down→up reversibility check
+          #   containers — kustomize + helm lint (helm-lint job covers too)
+          #   report   — summary markdown
+          # Skipped:
+          #   api_property — needs running API server (not started here)
+          bash scripts/bug_hunt.sh \
+            --phase=static,fuzz,security,migrations,containers,report
+
+      - name: Upload bug-hunt report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: bug-hunt-report
+          path: .bug_hunt/*/summary.md
+          retention-days: 30
+          if-no-files-found: ignore

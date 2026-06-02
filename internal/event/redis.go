@@ -78,6 +78,9 @@ func publishStream(eventType string, payload map[string]any) error {
 	if payload == nil {
 		payload = make(map[string]any)
 	}
+	if RedisClient == nil {
+		return ErrRedisNotInitialized
+	}
 	pub := NewStreamPublisher(RedisClient, StreamKey)
 	streamID, err := pub.Publish(ctx, eventType, payload)
 	if err != nil {
@@ -90,6 +93,9 @@ func publishStream(eventType string, payload map[string]any) error {
 }
 
 func publishPubSub(eventType string, payload map[string]any) error {
+	if RedisClient == nil {
+		return ErrRedisNotInitialized
+	}
 	event := Event{
 		Type:    eventType,
 		Payload: payload,

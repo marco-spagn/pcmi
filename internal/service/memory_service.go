@@ -161,6 +161,9 @@ func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, t
 		if err != nil {
 			return nil, true, err
 		}
+		if merged == nil {
+			return nil, true, fmt.Errorf("merge metadata returned nil result for path %s", path)
+		}
 		log.Printf("[DEDUP] merge metadata tenant=%s path=%s id=%d", tenantID, path, merged.ID)
 		return makeResult(merged, model.StoreActionMerged, ""), true, nil
 	default:
@@ -252,6 +255,9 @@ func (s *MemoryService) Rollback(ctx context.Context, req *model.RollbackRequest
 	result, err := s.Store(ctx, &storeReq, tenantID)
 	if err != nil {
 		return nil, err
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store returned nil result during rollback")
 	}
 
 	return &model.RollbackResponse{

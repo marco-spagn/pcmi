@@ -1,3 +1,0 @@
-# DEPRECATED — see k8s/README.md and deploy/helm/pcmi/.
-# `git rm k8s/worker-deployment.yaml` once you've migrated.
----

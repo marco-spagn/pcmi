@@ -98,7 +98,7 @@ Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 ## Deployment
 
 - **Local**: `docker compose up`
-- **K8s**: `deploy/k8s/` — readiness `GET /v1/ready`, gRPC `Ready`
+- **K8s**: `deploy/k8s/base/` + overlays — readiness `GET /v1/ready`, gRPC `Ready`
 - **CI**: lint, unit, integration-smoke, SDK smoke, optional OpenAI E2E; runs on push/PR
 - **Local full validation**: `make test-full-real` (see [local-ci.md](local-ci.md))
 

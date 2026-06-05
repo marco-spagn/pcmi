@@ -1,12 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# PCMI — combined image (LEGACY)
+# PCMI — combined image (release / ghcr.io)
 #
-# This Dockerfile builds an image containing BOTH pcmi-api and pcmi-worker
-# binaries. It exists for backward compatibility with older deploy scripts.
+# Builds an image containing BOTH pcmi-api and pcmi-worker binaries. Used by
+# the release workflow (.github/workflows/release.yml) to publish the single
+# ghcr.io/marco-spagn/pcmi container on every git tag and main push.
 #
-# For new deployments prefer the dedicated images:
-#   - Dockerfile.api      → minimal API image
-#   - Dockerfile.worker   → minimal Worker image
+# Multi-arch: linux/amd64, linux/arm64.
+#
+# For local development with docker compose, prefer the dedicated images:
+#   - Dockerfile.api      → minimal API image  (docker-compose.yml)
+#   - Dockerfile.worker   → minimal Worker image (docker-compose.yml)
 #
 # Benefits of the split:
 #   - smaller attack surface per node

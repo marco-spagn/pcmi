@@ -1,8 +1,18 @@
 # PCMI evolution roadmap
 
-## v1.50.0 (current)
+## v1.51.0 (current)
 
-- **AI framework examples** (PCMI-016): LangChain, LlamaIndex, AutoGen AgentChat, CrewAI — minimal HTTP integration under `examples/`.
+- **Cognitive Graph** (experimental): Apache AGE integration, typed memory_links, multi-hop traversal (`/related`, `/chain`), Cypher passthrough, graph explorer UI.
+- **Coverage sticky comment system**: refreshed on every PR push, fork support, workflow run links, delta from previous.
+- **Bug hunt pipeline**: 14-phase automated discovery (nilaway, gosec, fuzz, schemathesis, migrations reversibility).
+- API version `v1.51.0`.
+
+## v1.50.0
+
+- **Cognitive Graph** (experimental): Apache AGE integration, typed memory_links, multi-hop traversal (`/related`, `/chain`), Cypher passthrough, graph explorer UI.
+- **Coverage sticky comment system**: refreshed on every PR push, fork support, workflow run links, delta from previous.
+- **Post-release cleanup**: k8s layout consolidated under `deploy/k8s/{base,overlays}`, Dockerfile roles documented, CITATION.cff added.
+- **Bug fixes**: nil guards in event/redis and service/memory_service (nilaway findings).
 - API version `v1.50.0`.
 
 ## v1.48.0

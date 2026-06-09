@@ -9,8 +9,8 @@ authors:
     email: mspagn97@gmail.com
 repository-code: "https://github.com/marco-spagn/pcmi"
 license: Apache-2.0
-version: v1.50.0
-date-released: "2026-06-01"
+version: v1.51.0
+date-released: "2026-06-02"
 keywords:
   - ai-agents
   - agent-memory

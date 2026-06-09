@@ -385,8 +385,12 @@ Transport: Redis Streams → SSE / gRPC streams / webhooks (HMAC-SHA256 `timesta
 
 ### LangChain
 
+```bash
+cd examples/langchain
+```
+
 ```python
-from examples.langchain.pcmi_tools import PCMI_TOOLS
+from pcmi_tools import PCMI_TOOLS
 from langchain.agents import create_react_agent
 
 agent = create_react_agent(llm, PCMI_TOOLS, prompt)
@@ -397,8 +401,12 @@ agent = create_react_agent(llm, PCMI_TOOLS, prompt)
 
 ### CrewAI
 
+```bash
+cd examples/crewai
+```
+
 ```python
-from examples.crewai.pcmi_tools import PCMI_TOOLS
+from pcmi_tools import PCMI_TOOLS
 from crewai import Agent
 
 analyst = Agent(
@@ -447,19 +455,28 @@ workflow.add_edge("act", "persist")
 
 ### AutoGen
 
+```bash
+cd examples/autogen
+```
+
 ```python
-from examples.autogen.pcmi_tools import PCMI_TOOLS
+from pcmi_tools import build_pcmi_tools
 from autogen_agentchat.agents import AssistantAgent
 
-agent = AssistantAgent("researcher", tools=PCMI_TOOLS)
+tools = build_pcmi_tools()
+agent = AssistantAgent("researcher", tools=tools)
 ```
 
 → [`examples/autogen/`](examples/autogen/) — AgentChat `FunctionTool` wrappers
 
 ### LlamaIndex
 
+```bash
+cd examples/llamaindex
+```
+
 ```python
-from examples.llamaindex.pcmi_tools import PCMI_TOOLS
+from pcmi_tools import PCMI_TOOLS
 from llama_index.core.agent import FunctionAgent
 
 agent = FunctionAgent.from_tools(PCMI_TOOLS, llm=llm)
@@ -484,11 +501,15 @@ async def pcmi_retrieve_activity(path_prefix: str, query: str) -> dict:
 
 ### Celery (task queue)
 
-```python
-from examples.celery.pcmi_tasks import store_memory, retrieve_memories
+```bash
+cd examples/celery
+```
 
-store_memory.delay("root.celery.task", "async store result")
-result = retrieve_memories.delay("root.celery", limit=10).get()
+```python
+from pcmi_tasks import pcmi_store, pcmi_retrieve
+
+pcmi_store.delay("root.celery.task", "async store result")
+result = pcmi_retrieve.delay("root.celery", "", 10).get()
 ```
 
 → [`examples/celery/`](examples/celery/) — async store/retrieve via `httpx`

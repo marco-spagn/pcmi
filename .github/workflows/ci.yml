@@ -748,8 +748,10 @@ jobs:
           # Load testing
           go install github.com/bojand/ghz/cmd/ghz@latest
           go install github.com/tsenart/vegeta/v12@latest
-          # Dockerfile lint
-          go install github.com/hadolint/hadolint/cmd/hadolint@latest
+          # Dockerfile lint (Haskell binary — not go-installable)
+          curl -sSfL -o "$(go env GOPATH)/bin/hadolint" \
+            https://github.com/hadolint/hadolint/releases/download/v2.14.0/hadolint-linux-x86_64
+          chmod +x "$(go env GOPATH)/bin/hadolint"
           # Migration testing
           go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           # Security

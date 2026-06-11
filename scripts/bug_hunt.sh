@@ -121,6 +121,31 @@ pip_install_if_missing() {
   fi
 }
 
+hadolint_install_if_missing() {
+  local version=v2.14.0
+  if have hadolint; then return 0; fi
+  local os arch asset dest
+  os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  arch="$(uname -m)"
+  case "$arch" in
+    x86_64|amd64) arch=x86_64 ;;
+    arm64|aarch64) arch=arm64 ;;
+    *) warn "unsupported arch for hadolint: $arch"; return 1 ;;
+  esac
+  case "$os" in
+    linux) asset="hadolint-linux-${arch}" ;;
+    darwin) asset="hadolint-macos-${arch}" ;;
+    *) warn "unsupported OS for hadolint: $os"; return 1 ;;
+  esac
+  dest="$(go env GOPATH)/bin/hadolint"
+  log "installing hadolint ${version} (${asset})"
+  curl -sSfL -o "$dest" \
+    "https://github.com/hadolint/hadolint/releases/download/${version}/${asset}" \
+    && chmod +x "$dest" \
+    || { warn "failed to install hadolint"; return 1; }
+  export PATH="$(go env GOPATH)/bin:$PATH"
+}
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Phase 0: setup — verify env, install missing tooling
 # ─────────────────────────────────────────────────────────────────────────────
@@ -142,7 +167,7 @@ phase_setup() {
   go_install_if_missing ghz           github.com/bojand/ghz/cmd/ghz@latest
   go_install_if_missing grpcurl       github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
   go_install_if_missing vegeta        github.com/tsenart/vegeta/v12@latest
-  go_install_if_missing hadolint      github.com/hadolint/hadolint/cmd/hadolint@latest 2>/dev/null || true
+  hadolint_install_if_missing || warn "hadolint unavailable — skipping Dockerfile lint"
   go_install_if_missing migrate       github.com/golang-migrate/migrate/v4/cmd/migrate@latest
   go_install_if_missing gremlins      github.com/go-gremlins/gremlins/cmd/gremlins@latest
 

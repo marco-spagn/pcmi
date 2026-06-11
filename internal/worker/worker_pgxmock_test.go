@@ -369,6 +369,22 @@ func TestExpiryWorker_runOnce_success(t *testing.T) {
 	}
 }
 
+// TestExpiryWorker_runOnce_enforcesExpiresAt locks in that the expiry UPDATE
+// closes rows on the first-class expires_at column (not only metadata.ttl_seconds).
+// Against the pre-fix SQL this expectation does not match and the test fails.
+func TestExpiryWorker_runOnce_enforcesExpiresAt(t *testing.T) {
+	mock := newMock(t)
+	mock.ExpectExec(`UPDATE memory_entries[\s\S]*expires_at IS NOT NULL AND expires_at <= NOW`).
+		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	mock.ExpectExec(`DELETE FROM idempotency_cache`).
+		WillReturnResult(pgxmock.NewResult("DELETE", 0))
+	w := &ExpiryWorker{db: mock, interval: time.Hour}
+	w.runOnce()
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestExpiryWorker_Start_exitsOnCancel_mock(t *testing.T) {
 	// ExpiryWorker.Start does NOT call runOnce before the loop.
 	w := NewExpiryWorker(nil, nil)

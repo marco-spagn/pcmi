@@ -385,6 +385,8 @@ Transport: Redis Streams → SSE / gRPC streams / webhooks (HMAC-SHA256 `timesta
 
 PCMI is **framework-agnostic** — any agent reaches it over HTTP, gRPC, or MCP. The directories under [`examples/`](examples/) are **reference demos you copy from**, not installable framework plugins. For typed clients without tool wrappers, use the official SDK (`pip install pcmi` — see [sdk/README.md](sdk/README.md)).
 
+**Orchestration vs backend:** LangChain, CrewAI, and the other wrappers in `examples/` are thin **orchestration layers** — they expose store/retrieve as tools and let the **LLM decide** when to call them and with which arguments (`path`, `content`, `query`). PCMI does not understand LangChain or any other framework; it is an **HTTP-only backend** that executes the requests it receives.
+
 **Full index:** [examples/README.md](examples/README.md)
 
 ### How the examples are structured

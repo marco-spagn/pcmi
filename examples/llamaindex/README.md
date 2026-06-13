@@ -18,7 +18,11 @@ python main.py
 
 ## Agent integration
 
-Pass `PCMI_TOOLS` from `pcmi_tools.py` into a LlamaIndex agent, workflow, or query engine that accepts tools. HTTP calls go through [`../pcmi_http.py`](../pcmi_http.py).
+```python
+from pcmi_tools import PCMI_TOOLS
+```
+
+Pass `PCMI_TOOLS` into a LlamaIndex agent, workflow, or query engine that accepts tools. HTTP calls go through [`../pcmi_http.py`](../pcmi_http.py).
 
 ## Smoke
 

@@ -39,12 +39,22 @@ func (w *ExpiryWorker) Start(ctx context.Context) {
 
 func (w *ExpiryWorker) runOnce() {
 	ctx := context.Background()
+	// Close rows whose TTL has passed. Two TTL mechanisms are supported:
+	//   1. The first-class expires_at column (set via the API/gRPC expires_at
+	//      field, indexed by migration 011). This was previously ignored, so
+	//      memories stored with an explicit expiry never closed — see
+	//      docs/WORKERS-AND-EVENTS.md ("Closes rows with past expires_at").
+	//   2. The legacy metadata.ttl_seconds convention (relative to created_at).
+	// Both are evaluated in a single UPDATE so expiry stays one round-trip.
 	tag, err := w.db.Exec(ctx, `
 		UPDATE memory_entries
 		SET valid_to = NOW()
 		WHERE valid_to IS NULL
-		  AND metadata ? 'ttl_seconds'
-		  AND created_at + (metadata->>'ttl_seconds')::int * interval '1 second' < NOW()`)
+		  AND (
+		        (expires_at IS NOT NULL AND expires_at <= NOW())
+		     OR (metadata ? 'ttl_seconds'
+		         AND created_at + (metadata->>'ttl_seconds')::int * interval '1 second' < NOW())
+		  )`)
 	if err != nil {
 		log.Printf("expiry error: %v", err)
 		return

@@ -14,6 +14,10 @@
 #   bash scripts/bug_hunt.sh --fast             # skip slow phases (load, soak, mutation)
 #   bash scripts/bug_hunt.sh --list             # list available phases
 #
+# GitHub Actions: add [bug-hunt] to a commit message and push to trigger the
+# bug-hunt CI job on demand (see .github/workflows/ci.yml). Also runs daily on
+# schedule and via `gh workflow run CI --ref <branch>`.
+#
 # Exit code: 0 if no critical issues, non-zero otherwise.
 # Reports written to: .bug_hunt/<timestamp>/
 

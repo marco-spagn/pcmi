@@ -680,11 +680,20 @@ jobs:
           docker rm -f pcmi-pg-age 2>/dev/null || true
 
   # ───────────────────────────────────────────────────────────────────────────
-  # Bug-hunt — non-redundant phases only (daily + manual)
+  # Bug-hunt — non-redundant phases only (daily + manual + commit tag)
   #
-  # Runs only on schedule or workflow_dispatch (NOT on PR/push) because it
-  # On-demand: gh workflow run CI --ref <branch> (e.g. fix/scheduled-bug-hunt-ci).
-  # needs a full docker-compose stack and takes ~15-20 minutes.
+  # Triggers:
+  #   • schedule (daily cron on main)
+  #   • workflow_dispatch (gh workflow run CI --ref <branch>)
+  #   • push to any tracked branch when the commit message contains [bug-hunt]
+  #   • pull_request opened/reopened when the PR head commit contains [bug-hunt]
+  #     (PR synchronize is covered by the push trigger above)
+  #
+  # Add [bug-hunt] to a commit message to run bug-hunt on push without waiting
+  # for the daily cron. Example: git commit -m "fix: foo [bug-hunt]"
+  #
+  # Skipped on ordinary PR/push (no tag) because it needs Postgres + Redis and
+  # takes ~15-20 minutes.
   #
   # Phases skipped (already covered by other CI jobs):
   #   go vet, golangci-lint, govulncheck → golangci-lint + security jobs
@@ -697,9 +706,52 @@ jobs:
   #   staticcheck, errcheck, gosec, nilaway, gitleaks, buf, hadolint
   #   fuzz, api_property, security (trivy fs+config), migrations, containers
   # ───────────────────────────────────────────────────────────────────────────
+  #
+  # pull_request payloads do not expose head commit messages in job `if:` expressions,
+  # so opened/reopened PRs use this lightweight gate (synchronize is handled by push).
+  bug-hunt-tag-check:
+    name: Bug hunt tag check (PR)
+    if: >-
+      github.event_name == 'pull_request' &&
+      (github.event.action == 'opened' || github.event.action == 'reopened')
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      tagged: ${{ steps.tag.outputs.tagged }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+      - id: tag
+        run: |
+          if git log -1 --format=%B | grep -qF '[bug-hunt]'; then
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+            echo "PR head commit contains [bug-hunt] — bug-hunt will run"
+          else
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+            echo "PR head commit has no [bug-hunt] tag — skipping bug-hunt"
+          fi
+
   bug-hunt:
     name: Bug hunt (daily)
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    needs: [bug-hunt-tag-check]
+    if: >-
+      always() &&
+      (needs.bug-hunt-tag-check.result == 'success' || needs.bug-hunt-tag-check.result == 'skipped') &&
+      (
+        github.event_name == 'schedule' ||
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'push' &&
+          github.event.head_commit != null &&
+          contains(github.event.head_commit.message, '[bug-hunt]')
+        ) ||
+        (
+          github.event_name == 'pull_request' &&
+          needs.bug-hunt-tag-check.outputs.tagged == 'true'
+        )
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:

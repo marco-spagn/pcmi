@@ -383,179 +383,130 @@ Transport: Redis Streams → SSE / gRPC streams / webhooks (HMAC-SHA256 `timesta
 
 ## Integration Examples
 
-### LangChain
+PCMI is **framework-agnostic** — any agent reaches it over HTTP, gRPC, or MCP. The directories under [`examples/`](examples/) are **reference demos you copy from**, not installable framework plugins. For typed clients without tool wrappers, use the official SDK (`pip install pcmi` — see [sdk/README.md](sdk/README.md)).
+
+**Full index:** [examples/README.md](examples/README.md)
+
+### How the examples are structured
+
+```mermaid
+flowchart LR
+  subgraph Agent["Your agent / orchestrator"]
+    FT[Framework tools]
+  end
+
+  subgraph Demo["examples/&lt;framework&gt;/"]
+    PT[pcmi_tools.py]
+    PH[../pcmi_http.py]
+  end
+
+  subgraph API["PCMI API"]
+    S["POST /v1/memories"]
+    R["POST /v1/retrieve"]
+  end
+
+  FT --> PT --> PH
+  PH --> S
+  PH --> R
+```
+
+| Layer | File | Role |
+|-------|------|------|
+| HTTP helpers | [`examples/pcmi_http.py`](examples/pcmi_http.py) | `store(path, content)` → `POST /v1/memories`; `retrieve(path_prefix, query)` → hybrid `POST /v1/retrieve` |
+| Framework tools | `examples/<framework>/pcmi_tools.py` | Wraps the helpers as LangChain `@tool`, CrewAI `@tool`, AutoGen `FunctionTool`, etc. |
+| Production client | [`sdk/python`](sdk/python) | Async `PCMIClient` — use in LangGraph nodes, services, or when you outgrow the demos |
+
+**Paths** are hierarchical `ltree` strings (`root.team.project.note`). The **agent or caller picks the path** on each tool call — there is no built-in namespace router yet (a shared orchestrator helper may come later).
+
+### Run any framework demo
 
 ```bash
+# 1. Start PCMI (from repo root)
+bash scripts/quickstart.sh   # or: make infra-up
+
+# 2. Configure auth
+export PCMI_BASE_URL=http://localhost:8000
+export PCMI_API_KEY=testkey123
+
+# 3. Work inside the example directory (imports are local, not examples.*)
 cd examples/langchain
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python main.py               # or smoke_test.py — see each README
 ```
+
+Import from the example folder, not the repo root:
+
+```python
+# ✅ after cd examples/langchain
+from pcmi_tools import PCMI_TOOLS
+
+# ❌ do not use package-style imports
+# from examples.langchain.pcmi_tools import PCMI_TOOLS
+```
+
+Repo-wide smoke: `make examples-smoke-structural` (no API) or `make examples-smoke` (live API + Docker infra).
+
+### AI framework tool wrappers
+
+| Framework | Directory | Import | Tools exposed | Quick wire-up |
+|-----------|-----------|--------|---------------|---------------|
+| **LangChain** | [examples/langchain/](examples/langchain/) | `from pcmi_tools import PCMI_TOOLS` | `pcmi_store`, `pcmi_retrieve`, `pcmi_session_remember` | `create_react_agent(llm, PCMI_TOOLS, prompt)` |
+| **CrewAI** | [examples/crewai/](examples/crewai/) | `from pcmi_tools import PCMI_TOOLS` | `pcmi_store`, `pcmi_retrieve` | `Agent(..., tools=PCMI_TOOLS)` |
+| **LlamaIndex** | [examples/llamaindex/](examples/llamaindex/) | `from pcmi_tools import PCMI_TOOLS` | `pcmi_store`, `pcmi_retrieve` | `FunctionAgent(tools=PCMI_TOOLS, llm=llm)` |
+| **AutoGen** | [examples/autogen/](examples/autogen/) | `from pcmi_tools import build_pcmi_tools` | store, retrieve (`FunctionTool`) | `AssistantAgent("researcher", tools=build_pcmi_tools())` |
+
+LangChain sample (after `cd examples/langchain`):
 
 ```python
 from pcmi_tools import PCMI_TOOLS
 from langchain.agents import create_react_agent
 
 agent = create_react_agent(llm, PCMI_TOOLS, prompt)
-# Agent now has: pcmi_store, pcmi_retrieve, pcmi_session_remember
+# Tools: pcmi_store, pcmi_retrieve, pcmi_session_remember
 ```
 
-→ [`examples/langchain/`](examples/langchain/) — store, retrieve, session working memory
+AutoGen uses a factory, not a constant — `build_pcmi_tools()` returns fresh `FunctionTool` instances for AgentChat.
 
-### CrewAI
+### LangGraph (SDK in graph nodes)
 
-```bash
-cd examples/crewai
-```
-
-```python
-from pcmi_tools import PCMI_TOOLS
-from crewai import Agent
-
-analyst = Agent(
-    role="Security Analyst",
-    tools=PCMI_TOOLS,
-    # Agent now has: pcmi_store, pcmi_retrieve
-)
-```
-
-→ [`examples/crewai/`](examples/crewai/) — `@tool` decorated store/retrieve
-
-### LangGraph
+LangGraph has no separate `examples/` folder; wire the **Python SDK** directly into retrieve/persist nodes:
 
 ```python
 from pcmi import PCMIClient
-from langgraph.graph import StateGraph
 
 pcmi = PCMIClient("http://localhost:8000", "testkey123")
 
-async def store_to_pcmi(state: dict) -> dict:
-    """Checkpoint agent state into PCMI after each node."""
-    await pcmi.store(
-        path=f"root.langgraph.{state['thread_id']}",
-        content=json.dumps(state),
-        metadata={"workflow": "research", "node": state.get("current_node")}
-    )
-    return state
-
 async def retrieve_context(state: dict) -> dict:
-    """Pull relevant memories before LLM call."""
     result = await pcmi.retrieve(
         path_prefix=f"root.langgraph.{state['thread_id']}",
         query=state.get("query", ""),
-        limit=5
+        limit=5,
     )
     state["context_memories"] = result["entries"]
     return state
 
-workflow = StateGraph(AgentState)
-workflow.add_node("retrieve", retrieve_context)
-workflow.add_node("act", my_agent_node)
-workflow.add_node("persist", store_to_pcmi)
-workflow.add_edge("retrieve", "act")
-workflow.add_edge("act", "persist")
+async def store_to_pcmi(state: dict) -> dict:
+    await pcmi.store(
+        path=f"root.langgraph.{state['thread_id']}",
+        content=json.dumps(state),
+    )
+    return state
 ```
 
-### AutoGen
+### Durable execution & task queues
 
-```bash
-cd examples/autogen
-```
+| Pattern | Directory | Entry point | Notes |
+|---------|-----------|-------------|-------|
+| **Temporal** | [examples/temporal/](examples/temporal/) | `python worker.py` + `python starter.py` | PCMI I/O in activities; workflows stay deterministic |
+| **Celery** | [examples/celery/](examples/celery/) | `celery -A pcmi_tasks worker` | `pcmi_store.delay(...)` / `pcmi_retrieve.delay(...)` |
 
-```python
-from pcmi_tools import build_pcmi_tools
-from autogen_agentchat.agents import AssistantAgent
+### Custom agents & assistants
 
-tools = build_pcmi_tools()
-agent = AssistantAgent("researcher", tools=tools)
-```
-
-→ [`examples/autogen/`](examples/autogen/) — AgentChat `FunctionTool` wrappers
-
-### LlamaIndex
-
-```bash
-cd examples/llamaindex
-```
-
-```python
-from pcmi_tools import PCMI_TOOLS
-from llama_index.core.agent import FunctionAgent
-
-agent = FunctionAgent.from_tools(PCMI_TOOLS, llm=llm)
-```
-
-→ [`examples/llamaindex/`](examples/llamaindex/) — `FunctionTool` store/retrieve
-
-### Temporal.io (durable execution)
-
-```python
-# Worker: async PCMI calls as Temporal activities
-@activity.defn
-async def pcmi_store_activity(path: str, content: str) -> dict:
-    return await store(path, content)
-
-@activity.defn
-async def pcmi_retrieve_activity(path_prefix: str, query: str) -> dict:
-    return await retrieve(path_prefix, query)
-```
-
-→ [`examples/temporal/`](examples/temporal/) — workflows + activities + worker
-
-### Celery (task queue)
-
-```bash
-cd examples/celery
-```
-
-```python
-from pcmi_tasks import pcmi_store, pcmi_retrieve
-
-pcmi_store.delay("root.celery.task", "async store result")
-result = pcmi_retrieve.delay("root.celery", "", 10).get()
-```
-
-→ [`examples/celery/`](examples/celery/) — async store/retrieve via `httpx`
-
-### Custom agent (raw HTTP)
-
-```python
-import httpx
-
-async def my_agent_memory(action: str, **kwargs):
-    """Drop-in memory for any custom agent loop."""
-    async with httpx.AsyncClient(base_url="http://localhost:8000") as client:
-        headers = {"X-API-Key": "testkey123", "Content-Type": "application/json"}
-
-        if action == "remember":
-            r = await client.post("/v1/memories", json=kwargs, headers=headers)
-            return r.json()
-
-        if action == "recall":
-            r = await client.post("/v1/retrieve", json=kwargs, headers=headers)
-            return r.json()
-
-        if action == "listen":
-            async with client.stream("GET", "/v1/events", headers=headers) as r:
-                async for line in r.aiter_lines():
-                    if line.startswith("data:"):
-                        yield json.loads(line[5:])
-```
-
-### MCP (Model Context Protocol) — Cursor / Claude Desktop
-
-```json
-{
-  "mcpServers": {
-    "pcmi": {
-      "command": "pcmi-mcp",
-      "env": {
-        "PCMI_BASE_URL": "http://localhost:8000",
-        "PCMI_API_KEY": "testkey123"
-      }
-    }
-  }
-}
-```
-
-→ [docs/MCP.md](docs/MCP.md) — stdio server for AI code assistants
+| Pattern | Where | When to use |
+|---------|-------|-------------|
+| **Raw HTTP** | Any `httpx`/`fetch` client | Custom loops — same endpoints as [Quickstart](#quickstart-5-minutes) |
+| **MCP stdio** | [docs/MCP.md](docs/MCP.md) | Cursor / Claude Desktop — `pcmi-mcp` with `PCMI_BASE_URL` + `PCMI_API_KEY` |
 
 ---
 

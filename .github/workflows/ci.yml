@@ -686,8 +686,8 @@ jobs:
   #   • schedule (daily cron on main)
   #   • workflow_dispatch (gh workflow run CI --ref <branch>)
   #   • push to any tracked branch when the commit message contains [bug-hunt]
-  #   • pull_request opened/reopened when the PR head commit contains [bug-hunt]
-  #     (PR synchronize is covered by the push trigger above)
+  #   • pull_request when the PR head commit contains [bug-hunt]
+  #     (pull_request payloads lack head_commit.message in `if:` — see bug-hunt-tag-check)
   #
   # Add [bug-hunt] to a commit message to run bug-hunt on push without waiting
   # for the daily cron. Example: git commit -m "fix: foo [bug-hunt]"
@@ -708,12 +708,11 @@ jobs:
   # ───────────────────────────────────────────────────────────────────────────
   #
   # pull_request payloads do not expose head commit messages in job `if:` expressions,
-  # so opened/reopened PRs use this lightweight gate (synchronize is handled by push).
+  # so PRs use this lightweight gate (checks out the head commit and greps for the tag).
+  # Push with [bug-hunt] uses github.event.head_commit.message directly in bug-hunt `if:`.
   bug-hunt-tag-check:
     name: Bug hunt tag check (PR)
-    if: >-
-      github.event_name == 'pull_request' &&
-      (github.event.action == 'opened' || github.event.action == 'reopened')
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 3
     outputs:
@@ -736,6 +735,10 @@ jobs:
   bug-hunt:
     name: Bug hunt (daily)
     needs: [bug-hunt-tag-check]
+    # Same commit can arrive via push + pull_request synchronize; dedupe by SHA.
+    concurrency:
+      group: bug-hunt-${{ github.sha }}
+      cancel-in-progress: true
     if: >-
       always() &&
       (needs.bug-hunt-tag-check.result == 'success' || needs.bug-hunt-tag-check.result == 'skipped') &&

@@ -14,6 +14,10 @@
 #   bash scripts/bug_hunt.sh --fast             # skip slow phases (load, soak, mutation)
 #   bash scripts/bug_hunt.sh --list             # list available phases
 #
+# GitHub Actions: add [bug-hunt] to a commit message and push to trigger the
+# bug-hunt CI job on demand (see .github/workflows/ci.yml). Also runs daily on
+# schedule and via `gh workflow run CI --ref <branch>`.
+#
 # Exit code: 0 if no critical issues, non-zero otherwise.
 # Reports written to: .bug_hunt/<timestamp>/
 
@@ -199,12 +203,19 @@ phase_setup() {
 # ─────────────────────────────────────────────────────────────────────────────
 phase_static() {
   local fail=0
+  local ci=false
+  [ "${BUG_HUNT_CI:-}" = "1" ] && ci=true
 
-  log "→ go vet"
-  go vet ./... || fail=1
+  if ! $ci; then
+    log "→ go vet"
+    go vet ./... || fail=1
 
-  log "→ golangci-lint"
-  golangci-lint run --timeout 5m ./... || fail=1
+    log "→ golangci-lint"
+    golangci-lint run --timeout 5m ./... || fail=1
+  else
+    log "→ go vet (skipped — BUG_HUNT_CI, covered by golangci-lint job)"
+    log "→ golangci-lint (skipped — BUG_HUNT_CI, dedicated CI job)"
+  fi
 
   log "→ staticcheck"
   staticcheck ./... || fail=1
@@ -213,10 +224,19 @@ phase_static() {
   errcheck -ignoretests ./... || warn "errcheck found unchecked errors"
 
   log "→ gosec (security-focused)"
-  gosec -quiet -severity medium -confidence medium ./... || fail=1
+  if $ci; then
+    gosec -quiet -severity medium -confidence medium ./... \
+      || warn "gosec findings (non-blocking in BUG_HUNT_CI; golangci-lint job also runs gosec)"
+  else
+    gosec -quiet -severity medium -confidence medium ./... || fail=1
+  fi
 
-  log "→ govulncheck"
-  govulncheck ./... || fail=1
+  if ! $ci; then
+    log "→ govulncheck"
+    govulncheck ./... || fail=1
+  else
+    log "→ govulncheck (skipped — BUG_HUNT_CI, covered by security job)"
+  fi
 
   log "→ nilaway"
   nilaway ./... || warn "nilaway found potential nil derefs"
@@ -506,6 +526,10 @@ phase_migrations() {
 # ─────────────────────────────────────────────────────────────────────────────
 phase_containers() {
   log "→ docker compose config (syntax)"
+  if [ ! -f .env ] && [ -f .env.example ]; then
+    log "  .env missing — copying .env.example for compose validation"
+    cp .env.example .env
+  fi
   docker compose config -q || return 1
 
   log "→ kustomize render"

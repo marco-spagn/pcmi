@@ -104,6 +104,8 @@ Set `DATABASE_URL` and `REDIS_ADDR` for localhost (see `.env.example`).
 
 **GitHub CI** runs on every push and pull request that match the workflow triggers (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). You can also trigger it manually with `gh workflow run CI`.
 
+To run the **bug-hunt** job on demand (staticcheck, fuzz, gitleaks, migrations, etc.), add `[bug-hunt]` to your commit message and push — e.g. `git commit -m "fix: repro case [bug-hunt]"`. It also runs on the daily schedule and via `gh workflow run CI --ref <branch>`.
+
 Maintainers: if CI cannot update the coverage badge on `main` (GH013), configure a **GitHub Actions** ruleset bypass — see [docs/github-branch-protection.md](docs/github-branch-protection.md). Optional secret `BADGE_UPDATE_TOKEN` is documented there.
 
 See [docs/local-ci.md](docs/local-ci.md) and [docs/integration-testing.md](docs/integration-testing.md).
@@ -150,6 +152,19 @@ CI and local smoke read the API tag from `internal/version/version.go` via `scri
 Semantic versioning applies to the **HTTP/gRPC API contract**, not individual SDK package versions.
 
 Tagged releases (`git tag vX.Y.Z` matching `version.go`) trigger **Release** workflow notes via `git-cliff` (`cliff.toml`). Preview locally with `make changelog-unreleased`.
+
+### SDK registry publishing
+
+The [Publish SDKs](.github/workflows/publish-sdks.yml) workflow uploads the Python (`pcmi`) and TypeScript (`@marco-spagn/pcmi-sdk`) packages, then tags `sdk/go/vX.Y.Z` for Go module consumers. It runs when a GitHub Release is **published**, or manually via **Actions → Publish SDKs → Run workflow** (provide the version, e.g. `v1.51.0`).
+
+Configure these repository secrets before the first publish:
+
+| Secret | Purpose |
+|--------|---------|
+| `PYPI_API_TOKEN` | PyPI API token for `twine upload` (`TWINE_USERNAME` is `__token__`) |
+| `NPM_TOKEN` | npm automation token with publish access to `@marco-spagn/pcmi-sdk` |
+
+Do not publish from local machines; CI owns registry uploads. See [sdk/README.md](sdk/README.md#installation) for install options before packages exist on PyPI/npm.
 
 ## Database migrations
 

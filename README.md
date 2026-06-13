@@ -8,8 +8,8 @@
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![API](https://img.shields.io/badge/API-v1.51.0-22c55e)](internal/version/version.go)
-[![PyPI](https://img.shields.io/badge/pypi-pcmi-3775A9?logo=python)](https://pypi.org/project/pcmi/)
-[![npm](https://img.shields.io/badge/npm-@marco--spagn/pcmi--sdk-CB3837?logo=npm)](https://www.npmjs.com/package/@marco-spagn/pcmi-sdk)
+[![PyPI](https://img.shields.io/badge/PyPI-pcmi%20(pending)-3775A9?logo=python)](sdk/README.md#installation)
+[![npm](https://img.shields.io/badge/npm-%40marco--spagn%2Fpcmi--sdk%20(pending)-CB3837?logo=npm)](sdk/README.md#installation)
 
 <br/>
 
@@ -586,8 +586,8 @@ async def my_agent_memory(action: str, **kwargs):
 |---------|-------------|
 | **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus scrape, admin UI |
 | **gRPC** | Agents, batch workloads, streaming retrieve/events; 45 RPCs across `MemoryService`, `AdminService`, `MetricsService` |
-| **Python SDK** | `pip install pcmi` — async `httpx` client with full API coverage |
-| **TypeScript SDK** | `npm i @marco-spagn/pcmi-sdk` — Node/browser `fetch` with full API coverage |
+| **Python SDK** | `pip install -e sdk/python` (PyPI `pcmi` after first release) — async `httpx` client |
+| **TypeScript SDK** | `npm ci` in `sdk/typescript` (npm `@marco-spagn/pcmi-sdk` after first release) — Node/browser `fetch` |
 | **Go SDK** | `go get github.com/marco-spagn/pcmi/sdk/go/pcmi` — stdlib `net/http` |
 | **MCP** | stdio server for Cursor / Claude Code — [docs/MCP.md](docs/MCP.md) |
 

@@ -767,8 +767,12 @@ jobs:
 
       - uses: ./.github/actions/pcmi-postgres-migrate
 
+      - name: Create .env for compose validation
+        run: cp .env.example .env
+
       - name: Run bug-hunt (non-redundant phases)
         env:
+          BUG_HUNT_CI: "1"
           DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
           REDIS_ADDR: localhost:6379
           PCMI_ENCRYPTION_KEY: "01234567890123456789012345678901"

@@ -4,18 +4,28 @@ Thin **HTTP** clients for PCMI. They do not speak gRPC; for high-throughput stor
 
 ## Installation
 
+**PyPI and npm packages are not published yet.** Until the first release publish runs, install from the repo:
+
 ```bash
 # Python (requires Python 3.10+)
-pip install pcmi
+pip install -e sdk/python
+# or: pip install "git+https://github.com/marco-spagn/pcmi.git#subdirectory=sdk/python"
 
-# TypeScript / Node
-npm install @marco-spagn/pcmi-sdk
+# TypeScript / Node (from repo root)
+cd sdk/typescript && npm ci && npm run build
 
 # Go
 go get github.com/marco-spagn/pcmi/sdk/go@latest
 ```
 
-Packages are published automatically on every GitHub Release. See [`.github/workflows/publish-sdks.yml`](../.github/workflows/publish-sdks.yml) for the pipeline.
+After the first GitHub Release with registry secrets configured, use:
+
+```bash
+pip install pcmi
+npm install @marco-spagn/pcmi-sdk
+```
+
+Publishing runs automatically when a GitHub Release is **published** (see [`.github/workflows/publish-sdks.yml`](../.github/workflows/publish-sdks.yml)), or manually via **Actions → Publish SDKs → Run workflow**. Required repo secrets: `PYPI_API_TOKEN`, `NPM_TOKEN` (see [CONTRIBUTING.md](../CONTRIBUTING.md#sdk-registry-publishing)).
 
 ## Layout
 

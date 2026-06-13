@@ -153,6 +153,19 @@ Semantic versioning applies to the **HTTP/gRPC API contract**, not individual SD
 
 Tagged releases (`git tag vX.Y.Z` matching `version.go`) trigger **Release** workflow notes via `git-cliff` (`cliff.toml`). Preview locally with `make changelog-unreleased`.
 
+### SDK registry publishing
+
+The [Publish SDKs](.github/workflows/publish-sdks.yml) workflow uploads the Python (`pcmi`) and TypeScript (`@marco-spagn/pcmi-sdk`) packages, then tags `sdk/go/vX.Y.Z` for Go module consumers. It runs when a GitHub Release is **published**, or manually via **Actions → Publish SDKs → Run workflow** (provide the version, e.g. `v1.51.0`).
+
+Configure these repository secrets before the first publish:
+
+| Secret | Purpose |
+|--------|---------|
+| `PYPI_API_TOKEN` | PyPI API token for `twine upload` (`TWINE_USERNAME` is `__token__`) |
+| `NPM_TOKEN` | npm automation token with publish access to `@marco-spagn/pcmi-sdk` |
+
+Do not publish from local machines; CI owns registry uploads. See [sdk/README.md](sdk/README.md#installation) for install options before packages exist on PyPI/npm.
+
 ## Database migrations
 
 - Add numbered SQL files under `migrations/` (never edit applied migrations in production).

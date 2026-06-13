@@ -74,12 +74,19 @@ func (w *ContradictionWorker) OnMemoryEvent(tenantID, path string) {
 // pairwise contradiction heuristics. Contradictory pairs are written as
 // contradicts links in memory_links.
 func (w *ContradictionWorker) checkPrefix(ctx context.Context, tenantID, prefix string) error {
+	// NOTE: the source column is `content` (there is no `text_content` column),
+	// and consolidated entries are excluded with a plain LIKE on the ltree text —
+	// the previous `path !~ '*.consolidated.*'` was neither a valid lquery match
+	// nor a valid POSIX regex, so this query errored on every run and the whole
+	// feature silently did nothing. Only current rows (valid_to IS NULL) are
+	// compared so a memory never contradicts its own superseded versions.
 	rows, err := w.db.Query(ctx, `
-		SELECT id, path, text_content
+		SELECT id, path, content
 		FROM memory_entries
 		WHERE tenant_id = $1::uuid
 		  AND ($2::text = '' OR path <@ $2::ltree)
-		  AND path !~ '*.consolidated.*'
+		  AND valid_to IS NULL
+		  AND NOT (path::text LIKE '%.consolidated' OR path::text LIKE '%.consolidated.%')
 		ORDER BY created_at DESC
 		LIMIT 50`, tenantID, prefix)
 	if err != nil {

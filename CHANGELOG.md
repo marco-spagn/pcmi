@@ -28,6 +28,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed
 
+- **Worker expiry**: the expiry worker now honours the first-class `expires_at` column (set via the `expires_at` API/gRPC field and indexed by migration 011), not only the legacy `metadata.ttl_seconds`. Memories stored with an explicit `expires_at` previously never expired despite the documented behaviour in `docs/WORKERS-AND-EVENTS.md`.
+- **Worker contradiction detection**: the recent-memory scan queried a non-existent `text_content` column and used an invalid `path !~ '*.consolidated.*'` predicate, so the query errored on every run and the feature (enabled by default) silently did nothing. It now selects `content`, excludes consolidated entries with a valid ltree filter, and only compares current (`valid_to IS NULL`) rows.
 - **Worker distillation**: 3-minute job timeout; `distillation_runs` rows marked `completed` after success.
 - **Import**: ltree path validation per entry; generic `store failed` instead of raw DB errors.
 - **Rate limit**: startup warning when using in-memory backend with multiple API replicas.

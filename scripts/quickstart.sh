@@ -243,12 +243,12 @@ printf "  %-25s ${GREEN}%d${RESET}\n" "Distilled insights"  "$MEMORIES_DISTILLED
 header "Next steps"
 cat <<EOF
   ${CYAN}Install the Python SDK:${RESET}
-    pip install pcmi-sdk
+    pip install pcmi
     export PCMI_BASE_URL="${API_URL}"
     export PCMI_API_KEY="${API_KEY}"
 
   ${CYAN}Install the TypeScript SDK:${RESET}
-    npm install @pcmi/sdk
+    npm install @marco-spagn/pcmi-sdk
 
   ${CYAN}Use gRPC (high-throughput):${RESET}
     grpcurl -H "X-API-Key: ${API_KEY}" -plaintext localhost:50051 list

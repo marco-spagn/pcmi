@@ -8,17 +8,17 @@ Async **HTTP** client for [PCMI](https://github.com/marco-spagn/pcmi). For high-
 
 ## Install
 
-The `pcmi` package is published to PyPI on each GitHub Release. Until the first publish:
-
-```bash
-pip install -e .                                    # from this directory
-pip install "git+https://github.com/marco-spagn/pcmi.git#subdirectory=sdk/python"
-```
-
-After publish:
+The [`pcmi`](https://pypi.org/project/pcmi/) package is published to PyPI on each GitHub Release:
 
 ```bash
 pip install pcmi
+```
+
+For local SDK development from this directory:
+
+```bash
+pip install -e .
+pip install "git+https://github.com/marco-spagn/pcmi.git#subdirectory=sdk/python"
 ```
 
 ## Quick start

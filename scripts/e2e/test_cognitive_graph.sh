@@ -52,8 +52,13 @@ IMAGE_TAG="pcmi-postgres-age:e2e-test"
 # We start the API manually, not via docker compose, so we can point it at the
 # AGE instance and control the port.
 API_PID=""
+API_STD_PID=""
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
+
+docker_available() {
+  docker info >/dev/null 2>&1
+}
 
 cleanup() {
   info "Cleaning up..."
@@ -64,6 +69,10 @@ cleanup() {
   if [ -n "$API_STD_PID" ] && kill -0 "$API_STD_PID" 2>/dev/null; then
     kill "$API_STD_PID" 2>/dev/null || true
     wait "$API_STD_PID" 2>/dev/null || true
+  fi
+  if ! docker_available; then
+    rm -f /tmp/pcmi-api-e2e
+    return
   fi
   # Optional: stop and remove the containers.
   if docker ps -q -f name="pcmi-postgres-age" | grep -q .; then
@@ -160,6 +169,12 @@ for cmd in docker curl jq go; do
   fi
 done
 ok "All dependencies present (docker, curl, jq, go)"
+
+if ! docker_available; then
+  fail "Docker daemon is not running or not reachable"
+  exit 1
+fi
+ok "Docker daemon reachable"
 
 # ── Step 1: Build the bundled Docker image ──────────────────────────────────
 header "Step 1: Build Docker image (pgvector + Apache AGE)"

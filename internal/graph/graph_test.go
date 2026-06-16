@@ -391,7 +391,7 @@ func TestAutoTenantScopeCypher_WithWhere(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := "MATCH (n:Memory) WHERE n.tenant_id = 't2' AND ( n.color = 'red' RETURN n)"
+	want := "MATCH (n:Memory) WHERE n.tenant_id = 't2' AND (n.color = 'red') RETURN n"
 	if got != want {
 		t.Errorf("got  %q\nwant %q", got, want)
 	}
@@ -577,6 +577,9 @@ func TestAutoTenantScopeCypher_ComplexWhere(t *testing.T) {
 	if !strings.Contains(got, "AND (") {
 		t.Errorf("existing WHERE conditions should be wrapped: %q", got)
 	}
+	if strings.Contains(got, "ORDER BY n.score DESC)") {
+		t.Errorf("RETURN/ORDER BY clauses must stay outside injected WHERE parentheses: %q", got)
+	}
 }
 
 func TestAutoTenantScopeCypher_WhitespaceInAlias(t *testing.T) {
@@ -590,9 +593,15 @@ func TestAutoTenantScopeCypher_WhitespaceInAlias(t *testing.T) {
 }
 
 func TestAutoTenantScopeCypher_SingleQuotesInTenantID(t *testing.T) {
-	_, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n", "tenant'DROP")
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n", "tenant'DROP")
 	if err != nil {
 		t.Fatalf("should not error — tenantID injected as literal: %v", err)
+	}
+	if strings.Contains(got, "tenant'DROP") {
+		t.Fatalf("tenant literal must be escaped in Cypher query: %q", got)
+	}
+	if !strings.Contains(got, `tenant\'DROP`) {
+		t.Fatalf("escaped tenant literal not found: %q", got)
 	}
 }
 
@@ -1411,14 +1420,14 @@ func TestValidateCypherQuery_NotMatchPrefix(t *testing.T) {
 
 func TestValidateCypherQuery_EachDangerousKeyword(t *testing.T) {
 	dangerous := map[string]string{
-		"MATCH (n) CREATE (x)":                 "CREATE",
-		"MATCH (n) DELETE n":                   "DELETE",
+		"MATCH (n) CREATE (x)":                "CREATE",
+		"MATCH (n) DELETE n":                  "DELETE",
 		"MATCH (n) SET n.x = 1":               "SET",
-		"MATCH (n) REMOVE n.x":                  "REMOVE",
+		"MATCH (n) REMOVE n.x":                "REMOVE",
 		"MATCH (n) MERGE (x:Memory {id:'y'})": "MERGE",
-		"MATCH (n) DROP TABLE memory_entries":  "DROP",
-		"MATCH (n) CALL proc()":                "CALL",
-		"MATCH (n) LOAD CSV FROM 'f.csv'":      "LOAD",
+		"MATCH (n) DROP TABLE memory_entries": "DROP",
+		"MATCH (n) CALL proc()":               "CALL",
+		"MATCH (n) LOAD CSV FROM 'f.csv'":     "LOAD",
 	}
 	for q, kw := range dangerous {
 		_, err := validateCypherQuery(q)
@@ -1635,7 +1644,7 @@ func TestBuildRelPattern_SingleLinkType(t *testing.T) {
 	if p != "[r*1..2]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	if !strings.Contains(f, "type(r[0]) = 'causal'") {
+	if !strings.Contains(f, "all(edge IN r WHERE type(edge) IN ['causal'])") {
 		t.Errorf("typeFilter must reference link type: %q", f)
 	}
 }
@@ -1650,8 +1659,11 @@ func TestBuildRelPattern_MultipleLinkTypes(t *testing.T) {
 			t.Errorf("typeFilter missing %q: %q", lt, f)
 		}
 	}
-	if !strings.Contains(f, " OR ") {
-		t.Errorf("typeFilter must contain OR: %q", f)
+	if strings.Contains(f, " OR ") {
+		t.Errorf("typeFilter should use a membership list instead of first-edge OR checks: %q", f)
+	}
+	if !strings.Contains(f, "all(edge IN e WHERE type(edge) IN") {
+		t.Errorf("typeFilter must apply to every path edge: %q", f)
 	}
 }
 

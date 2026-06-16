@@ -100,6 +100,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 
 	relPattern, typeFilter := buildRelPattern(maxDepth, "r", linkTypes)
 	idStr := fmt.Sprintf("memory.%d", memoryID)
+	tenantLiteral := escapeCypherString(tenantID)
 
 	// Count query.
 	countQuery := fmt.Sprintf(`
@@ -108,7 +109,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 			WHERE n.id IS NOT NULL%s
 			RETURN count(n)
 		$$) AS (cnt ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, typeFilter,
+		idStr, tenantLiteral, relPattern, typeFilter,
 	)
 
 	var total int
@@ -127,7 +128,7 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 			ORDER BY n.id
 			LIMIT %d
 		$$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, typeFilter, cursorClause, limit+1,
+		idStr, tenantLiteral, relPattern, typeFilter, cursorClause, limit+1,
 	)
 
 	rows, err := conn.Query(queryCtx, dataQuery)
@@ -190,6 +191,7 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 
 	fromStr := fmt.Sprintf("memory.%d", fromID)
 	toStr := fmt.Sprintf("memory.%d", toID)
+	tenantLiteral := escapeCypherString(tenantID)
 
 	query := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
@@ -199,7 +201,7 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 			ORDER BY length(p) ASC
 			LIMIT 1
 		$$) AS (path ag_catalog.agtype, hops ag_catalog.agtype)`,
-		fromStr, tenantID, relPattern, toStr, tenantID, typeFilter,
+		fromStr, tenantLiteral, relPattern, toStr, tenantLiteral, typeFilter,
 	)
 
 	rows, err := conn.Query(queryCtx, query)
@@ -397,12 +399,12 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 		return "", fmt.Errorf("query must contain a RETURN clause")
 	}
 
-	tenantFilter := fmt.Sprintf("%s.tenant_id = '%s'", alias, tenantID)
+	tenantFilter := fmt.Sprintf("%s.tenant_id = '%s'", alias, escapeCypherString(tenantID))
 
 	whereIdx := strings.Index(upper, "WHERE")
 	if whereIdx >= 0 && whereIdx < returnIdx {
-		suffix := query[whereIdx+5:]
-		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + suffix + ")"
+		existingWhere := strings.TrimSpace(query[whereIdx+5 : returnIdx])
+		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + existingWhere + ") " + query[returnIdx:]
 	} else {
 		query = query[:returnIdx] + "WHERE " + tenantFilter + " " + query[returnIdx:]
 	}
@@ -458,9 +460,9 @@ func buildRelPattern(maxDepth int, relVar string, linkTypes []string) (string, s
 	if len(linkTypes) > 0 {
 		parts := make([]string, len(linkTypes))
 		for i, lt := range linkTypes {
-			parts[i] = fmt.Sprintf("type(%s[0]) = '%s'", relVar, sanitizeLinkType(lt))
+			parts[i] = fmt.Sprintf("'%s'", sanitizeLinkType(lt))
 		}
-		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
+		typeFilter = fmt.Sprintf(" AND all(edge IN %s WHERE type(edge) IN [%s])", relVar, strings.Join(parts, ", "))
 	}
 	return pattern, typeFilter
 }
@@ -490,4 +492,9 @@ func sanitizeLinkType(lt string) string {
 		}
 	}
 	return b.String()
+}
+
+func escapeCypherString(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	return strings.ReplaceAll(s, `'`, `\'`)
 }

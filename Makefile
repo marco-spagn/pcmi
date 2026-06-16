@@ -4,7 +4,8 @@
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test bug-hunt bug-hunt-fast \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
-        helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui
+        helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui test-cognitive-graph test-cognitive-graph-matrix \
+        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-soc-loader-test
 
 GOLANGCI_LINT_VERSION ?= v2.1.6
 GRPC_HOST ?= localhost:50051
@@ -262,6 +263,31 @@ test-streams-integration:
 # inserts test data, exercises all 4 graph endpoints, and cleans up.
 test-cognitive-graph:
 	bash scripts/e2e/test_cognitive_graph.sh
+
+# Exhaustive graph matrix: loads examples/cognitive-graph-test-matrix and
+# verifies traversal, chain, pagination, filters, cycles, self-loop and Cypher.
+test-cognitive-graph-matrix:
+	bash scripts/e2e/test_cognitive_graph_matrix.sh
+
+# Large realistic graph dataset used for demos and manual/load-style checks.
+GRAPH_REALISTIC_DIR = examples/cognitive-graph-realistic
+GRAPH_REALISTIC_NODES ?= 1200
+GRAPH_REALISTIC_SEED ?= 4242
+
+graph-realistic-generate:
+	cd $(GRAPH_REALISTIC_DIR) && python3 generate_realistic_graph.py \
+		--nodes $(GRAPH_REALISTIC_NODES) --seed $(GRAPH_REALISTIC_SEED) \
+		--output graph_realistic_large.json
+
+graph-realistic-validate:
+	cd $(GRAPH_REALISTIC_DIR) && python3 validate_realistic_graph.py graph_realistic_large.json
+
+graph-realistic-smoke:
+	cd $(GRAPH_REALISTIC_DIR) && PCMI_BASE_URL=$(API_URL) PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
+		python3 smoke_load_to_pcmi.py --limit $${REALISTIC_SMOKE_LIMIT:-250}
+
+graph-soc-loader-test:
+	cd examples/soc-incident-graph && python3 test_loader.py
 
 # One-command: start AGE infrastructure → generate SOC dataset → load → open UI.
 #   make graph-ui                          # minimal (postgres-age + Redis)

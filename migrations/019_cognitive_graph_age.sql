@@ -71,10 +71,67 @@ EXCEPTION
 END;
 $fn$;
 
+-- ─── helper: delete_memory_link_from_graph ────────────────────────────────────
+-- Removes the corresponding AGE relationship when the SQL memory_links row is
+-- deleted or re-keyed.  Best-effort, same as sync_memory_link_to_graph.
+CREATE OR REPLACE FUNCTION public.delete_memory_link_from_graph(
+    p_from_path text,
+    p_to_path   text,
+    p_link_type text,
+    p_tenant_id uuid
+) RETURNS void
+SET search_path = ag_catalog, "$user", public
+LANGUAGE plpgsql AS $fn$
+DECLARE
+    safe_type text;
+BEGIN
+    safe_type := regexp_replace(p_link_type, '[^\w]', '_', 'g');
+
+    EXECUTE format(
+        $cypher_exec$
+        SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $cypher$
+            MATCH (a:Memory {id: %L, tenant_id: %L})-[r:%I]->(b:Memory {id: %L, tenant_id: %L})
+            DELETE r
+        $cypher$) AS (result ag_catalog.agtype)
+        $cypher_exec$,
+        p_from_path, p_tenant_id::text,
+        safe_type,
+        p_to_path,   p_tenant_id::text
+    );
+EXCEPTION
+    WHEN others THEN
+        RAISE WARNING 'delete_memory_link_from_graph: %', SQLERRM;
+END;
+$fn$;
+
 -- ─── trigger: trg_memory_links_sync_graph ─────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.trg_memory_links_sync_graph_fn()
 RETURNS trigger LANGUAGE plpgsql AS $trig$
 BEGIN
+    IF TG_OP = 'DELETE' THEN
+        PERFORM public.delete_memory_link_from_graph(
+            OLD.from_path::text,
+            OLD.to_path::text,
+            OLD.link_type,
+            OLD.tenant_id
+        );
+        RETURN OLD;
+    END IF;
+
+    IF TG_OP = 'UPDATE' AND (
+        OLD.from_path IS DISTINCT FROM NEW.from_path OR
+        OLD.to_path IS DISTINCT FROM NEW.to_path OR
+        OLD.link_type IS DISTINCT FROM NEW.link_type OR
+        OLD.tenant_id IS DISTINCT FROM NEW.tenant_id
+    ) THEN
+        PERFORM public.delete_memory_link_from_graph(
+            OLD.from_path::text,
+            OLD.to_path::text,
+            OLD.link_type,
+            OLD.tenant_id
+        );
+    END IF;
+
     PERFORM public.sync_memory_link_to_graph(
         NEW.from_path::text,
         NEW.to_path::text,
@@ -88,7 +145,7 @@ $trig$;
 
 DROP TRIGGER IF EXISTS trg_memory_links_sync_graph ON public.memory_links;
 CREATE TRIGGER trg_memory_links_sync_graph
-    AFTER INSERT OR UPDATE ON public.memory_links
+    AFTER INSERT OR UPDATE OR DELETE ON public.memory_links
     FOR EACH ROW EXECUTE FUNCTION public.trg_memory_links_sync_graph_fn();
 
 EXCEPTION WHEN undefined_file THEN

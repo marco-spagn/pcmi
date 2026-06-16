@@ -550,7 +550,6 @@ func TestParseAGEPath_MissingVertexProperties(t *testing.T) {
 // ─── autoTenantScopeCypher extra coverage ────────────────────────────────────
 
 func TestAutoTenantScopeCypher_MultipleMemoryNodes(t *testing.T) {
-	// First :Memory alias is used for tenant scoping.
 	got, err := autoTenantScopeCypher(
 		"MATCH (a:Memory)-[r]->(b:Memory) RETURN a, b",
 		"t1",
@@ -560,6 +559,28 @@ func TestAutoTenantScopeCypher_MultipleMemoryNodes(t *testing.T) {
 	}
 	if !strings.Contains(got, "a.tenant_id = 't1'") {
 		t.Errorf("expected filter on first alias 'a', got %q", got)
+	}
+	if !strings.Contains(got, "b.tenant_id = 't1'") {
+		t.Errorf("expected filter on second alias 'b', got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_MultipleMemoryNodesWithExistingWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher(
+		"MATCH (a:Memory), (b:Memory) WHERE b.id IS NOT NULL RETURN b.id LIMIT 10",
+		"tenant-42",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{
+		"a.tenant_id = 'tenant-42'",
+		"b.tenant_id = 'tenant-42'",
+		"AND (b.id IS NOT NULL)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("scoped query missing %q: %q", want, got)
+		}
 	}
 }
 
@@ -1453,6 +1474,47 @@ func TestValidateCypherQuery_DangerousInLowerCase(t *testing.T) {
 	}
 }
 
+func TestValidateCypherQuery_DangerousKeywordSeparatedByWhitespace(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) DELETE\nn",
+		"MATCH (n:Memory) SET\tn.x = 1 RETURN n",
+		"MATCH (n:Memory) LOAD\nCSV FROM 'file.csv'",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("dangerous keyword with non-space whitespace must be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_RejectsSQLInjectionDelimiters(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) RETURN n; MATCH (m:Memory) RETURN m",
+		"MATCH (n:Memory) RETURN n $$) AS (x ag_catalog.agtype) SELECT 1",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("query with SQL statement/dollar delimiter must be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_RejectsSQLWriteKeywordsAfterMatch(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) RETURN n INSERT INTO memory_links VALUES (1)",
+		"MATCH (n:Memory) RETURN n UPDATE memory_entries SET content = 'x'",
+		"MATCH (n:Memory) RETURN n ALTER TABLE memory_links ADD COLUMN x int",
+		"MATCH (n:Memory) RETURN n TRUNCATE memory_links",
+		"MATCH (n:Memory) RETURN n GRANT SELECT ON memory_entries TO public",
+		"MATCH (n:Memory) RETURN n COPY memory_entries TO STDOUT",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("SQL write/control keyword must be rejected: %q", q)
+		}
+	}
+}
+
 func TestValidateCypherQuery_DangerousEmbeddedInWord(t *testing.T) {
 	// Keywords like "SET" inside longer words (e.g. "RESET") need a space.
 	// Our check uses "SET " with trailing space, so "RESETTING" won't match.
@@ -1614,6 +1676,15 @@ func TestIsAvailable_ZeroValueClient(t *testing.T) {
 	// context.TODO is fine when the caller doesn't know which context to use yet.
 	if gc.IsAvailable(context.TODO()) {
 		t.Error("must report unavailable even with context.TODO()")
+	}
+}
+
+func TestIsAvailable_QueryRequiresPcmiMemoryGraph(t *testing.T) {
+	if !strings.Contains(graphAvailabilityQuery, "pcmi_memory_graph") {
+		t.Fatalf("availability query must require pcmi_memory_graph, got %q", graphAvailabilityQuery)
+	}
+	if !strings.Contains(graphAvailabilityQuery, "WHERE") {
+		t.Fatalf("availability query must not accept any AGE graph, got %q", graphAvailabilityQuery)
 	}
 }
 

@@ -122,6 +122,21 @@ wait_for_pg() {
   return 1
 }
 
+wait_for_pg_tcp() {
+  local container="$1" timeout="${2:-60}"
+  local deadline=$(( $(date +%s) + timeout ))
+  while true; do
+    if docker exec "$container" psql -h 127.0.0.1 -U pcmi -d pcmi -c "SELECT 1" >/dev/null 2>&1; then
+      return 0
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      return 1
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 wait_for_redis() {
   local container="$1" timeout="${2:-30}"
   local deadline=$(( $(date +%s) + timeout ))
@@ -263,6 +278,15 @@ for i in $(seq 1 30); do
   sleep 1
 done
 
+info "Waiting for final Postgres TCP listener..."
+if wait_for_pg_tcp pcmi-postgres-age 60; then
+  ok "Postgres TCP listener is ready"
+else
+  fail "Postgres TCP listener did not become ready within 60s"
+  docker logs pcmi-postgres-age --tail 80 || true
+  exit 1
+fi
+
 hr
 
 # ── Step 3: Apply migration 019 ─────────────────────────────────────────────
@@ -272,14 +296,9 @@ MIGRATION_019="$PROJECT_ROOT/migrations/019_cognitive_graph_age.sql"
 
 # Copy migration into the container and run it.
 docker cp "$MIGRATION_019" pcmi-postgres-age:/tmp/019.sql >/dev/null
-# Try Unix socket first, then TCP fallback.
-DOCKER_PSQL="docker exec pcmi-postgres-age psql -U pcmi -d pcmi"
-if ! $DOCKER_PSQL -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
-  # Try with TCP
-  if ! docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
-    warn "Migration had non-zero exit — checking if AGE is still available..."
-    cat /tmp/graph-migration.log | tail -5
-  fi
+if ! docker exec pcmi-postgres-age psql -h 127.0.0.1 -U pcmi -d pcmi -f /tmp/019.sql > /tmp/graph-migration.log 2>&1; then
+  warn "Migration had non-zero exit — checking if AGE is still available..."
+  cat /tmp/graph-migration.log | tail -20
 fi
 docker exec pcmi-postgres-age rm /tmp/019.sql >/dev/null 2>&1 || true
 

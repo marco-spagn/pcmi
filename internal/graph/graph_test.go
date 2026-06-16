@@ -1644,8 +1644,8 @@ func TestBuildRelPattern_SingleLinkType(t *testing.T) {
 	if p != "[r*1..2]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	if !strings.Contains(f, "all(edge IN r WHERE type(edge) IN ['causal'])") {
-		t.Errorf("typeFilter must reference link type: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty when filtering happens after AGE returns paths: %q", f)
 	}
 }
 
@@ -1654,16 +1654,8 @@ func TestBuildRelPattern_MultipleLinkTypes(t *testing.T) {
 	if p != "[e*1..4]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	for _, lt := range []string{"causal", "temporal", "contradicts"} {
-		if !strings.Contains(f, lt) {
-			t.Errorf("typeFilter missing %q: %q", lt, f)
-		}
-	}
-	if strings.Contains(f, " OR ") {
-		t.Errorf("typeFilter should use a membership list instead of first-edge OR checks: %q", f)
-	}
-	if !strings.Contains(f, "all(edge IN e WHERE type(edge) IN") {
-		t.Errorf("typeFilter must apply to every path edge: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty when filtering happens after AGE returns paths: %q", f)
 	}
 }
 
@@ -1672,8 +1664,8 @@ func TestBuildRelPattern_DepthOne(t *testing.T) {
 	if p != "[r*1..1]" {
 		t.Errorf("depth=1: got %q", p)
 	}
-	if !strings.Contains(f, "causal") {
-		t.Errorf("typeFilter: got %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
 	}
 }
 
@@ -1685,12 +1677,12 @@ func TestBuildRelPattern_DepthHigh(t *testing.T) {
 }
 
 func TestBuildRelPattern_LinkTypesWithSpecialChars(t *testing.T) {
-	_, f := buildRelPattern(3, "r", []string{"causal-injection", "has space"})
-	if !strings.Contains(f, "causal_injection") {
-		t.Errorf("dash should be sanitised to underscore: %q", f)
+	p, f := buildRelPattern(3, "r", []string{"causal-injection", "has space"})
+	if p != "[r*1..3]" {
+		t.Errorf("pattern should remain AGE-compatible and unlabelled: %q", p)
 	}
-	if !strings.Contains(f, "has_space") {
-		t.Errorf("space should be sanitised to underscore: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
 	}
 }
 
@@ -1700,10 +1692,34 @@ func TestBuildRelPattern_AllFiveLinkTypes(t *testing.T) {
 	if p != "[r*1..3]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	for _, lt := range all {
-		if !strings.Contains(f, lt) {
-			t.Errorf("missing link type %q in: %q", lt, f)
-		}
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
+	}
+}
+
+func TestPathMatchesLinkTypes_AllEdgesAllowed(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}},
+		{"id": 11, "label": "temporal", "properties": {}},
+		{"id": 3, "label": "Memory", "properties": {"id": "memory.3"}}
+	]`)
+	if !pathMatchesLinkTypes(path, []string{"causal", "temporal"}) {
+		t.Fatal("path with only allowed edge labels should match")
+	}
+}
+
+func TestPathMatchesLinkTypes_RejectsDisallowedEdge(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}},
+		{"id": 11, "label": "contradicts", "properties": {}},
+		{"id": 3, "label": "Memory", "properties": {"id": "memory.3"}}
+	]`)
+	if pathMatchesLinkTypes(path, []string{"causal", "temporal"}) {
+		t.Fatal("path with a disallowed edge label should not match")
 	}
 }
 

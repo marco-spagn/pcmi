@@ -172,14 +172,8 @@ func TestBuildRelPattern_withTypes(t *testing.T) {
 	if pattern != "[e*1..2]" {
 		t.Errorf("unexpected pattern: %s", pattern)
 	}
-	if typeFilter == "" {
-		t.Error("expected non-empty type filter")
-	}
-	if !contains(typeFilter, "all(edge IN e WHERE type(edge) IN") {
-		t.Errorf("type filter must check every edge in the path: %s", typeFilter)
-	}
-	if contains(typeFilter, "type(e[0])") {
-		t.Errorf("type filter must not check only the first path edge: %s", typeFilter)
+	if typeFilter != "" {
+		t.Errorf("expected empty type filter when filtering happens after AGE returns paths, got: %s", typeFilter)
 	}
 }
 

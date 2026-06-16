@@ -46,6 +46,9 @@ AGE_RAW="postgres://pcmi:pcmi@localhost:${AGE_PORT}/pcmi"
 API_PORT="${API_PORT:-8000}"
 API_URL="http://localhost:${API_PORT}"
 API_KEY="${API_KEY:-testkey123}"
+REDIS_PORT="${REDIS_PORT:-6379}"
+REDIS_ADDR="${REDIS_ADDR:-localhost:${REDIS_PORT}}"
+REDIS_CONTAINER="pcmi-redis-e2e"
 DOCKERFILE="docker/postgres-age/Dockerfile.postgres-age"
 IMAGE_TAG="pcmi-postgres-age:e2e-test"
 
@@ -53,6 +56,7 @@ IMAGE_TAG="pcmi-postgres-age:e2e-test"
 # AGE instance and control the port.
 API_PID=""
 API_STD_PID=""
+REDIS_STARTED=""
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -73,6 +77,9 @@ cleanup() {
   if ! docker_available; then
     rm -f /tmp/pcmi-api-e2e
     return
+  fi
+  if [ -n "$REDIS_STARTED" ] && docker ps -aq -f name="^/${REDIS_CONTAINER}$" | grep -q .; then
+    docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
   fi
   # Optional: stop and remove the containers.
   if docker ps -q -f name="pcmi-postgres-age" | grep -q .; then
@@ -105,6 +112,21 @@ wait_for_pg() {
   local deadline=$(( $(date +%s) + timeout ))
   while true; do
     if docker exec "$container" pg_isready -U pcmi >/dev/null 2>&1; then
+      return 0
+    fi
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      return 1
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+wait_for_redis() {
+  local container="$1" timeout="${2:-30}"
+  local deadline=$(( $(date +%s) + timeout ))
+  while true; do
+    if docker exec "$container" redis-cli ping >/dev/null 2>&1; then
       return 0
     fi
     if [ "$(date +%s)" -ge "$deadline" ]; then
@@ -294,8 +316,32 @@ fi
 
 hr
 
-# ── Step 4: Build & Start PCMI API pointed at AGE ─────────────────────────
-header "Step 4: Build and start PCMI API (port $API_PORT)"
+# ── Step 4: Start Redis dependency ─────────────────────────────────────────
+header "Step 4: Start Redis dependency"
+
+if [ "${REDIS_ADDR}" = "localhost:${REDIS_PORT}" ]; then
+  docker rm -f "$REDIS_CONTAINER" >/dev/null 2>&1 || true
+  info "Starting Redis container $REDIS_CONTAINER on port $REDIS_PORT..."
+  if docker run -d --name "$REDIS_CONTAINER" -p "${REDIS_PORT}:6379" redis:7-alpine >/dev/null 2>&1; then
+    REDIS_STARTED=1
+    if wait_for_redis "$REDIS_CONTAINER" 30; then
+      ok "Redis is ready at $REDIS_ADDR"
+    else
+      fail "Redis container did not become ready within 30s"
+      exit 1
+    fi
+  else
+    fail "Could not start Redis on $REDIS_ADDR; set REDIS_ADDR to an existing Redis instance or free port $REDIS_PORT"
+    exit 1
+  fi
+else
+  info "Using external Redis at $REDIS_ADDR"
+fi
+
+hr
+
+# ── Step 5: Build & Start PCMI API pointed at AGE ─────────────────────────
+header "Step 5: Build and start PCMI API (port $API_PORT)"
 
 # Build once to avoid Go module cache contention between two go-run instances.
 API_BIN="/tmp/pcmi-api-e2e"
@@ -309,7 +355,7 @@ ok "API binary built"
 info "Starting API with DATABASE_URL=$AGE_DB on port $API_PORT"
 DATABASE_URL="$AGE_RAW" \
   API_PORT="$API_PORT" \
-  REDIS_ADDR="${REDIS_ADDR:-localhost:6379}" \
+  REDIS_ADDR="$REDIS_ADDR" \
   "$API_BIN" > /tmp/graph-api.log 2>&1 &
 API_PID=$!
 
@@ -552,7 +598,7 @@ info "Starting API on port $API_STD_PORT (no AGE)..."
 API_STD_PID=""
 DATABASE_URL="postgres://pcmi:pcmi@localhost:5434/pcmi?sslmode=disable" \
   API_PORT="$API_STD_PORT" \
-  REDIS_ADDR="${REDIS_ADDR:-localhost:6379}" \
+  REDIS_ADDR="$REDIS_ADDR" \
   GRPC_PORT="0" \
   "$API_BIN" > /tmp/graph-api-std.log 2>&1 &
 API_STD_PID=$!
@@ -585,6 +631,8 @@ if [ -n "$API_STD_PID" ]; then
 
   # Cleanup the no-AGE API and container.
   kill "$API_STD_PID" 2>/dev/null || true
+  wait "$API_STD_PID" 2>/dev/null || true
+  API_STD_PID=""
   docker rm -f pcmi-postgres-std >/dev/null 2>&1
 fi
 

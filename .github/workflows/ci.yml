@@ -595,9 +595,9 @@ jobs:
         run: docker compose down -v --remove-orphans
 
   integration-graph:
-    name: Integration graph (postgres-age + Redis + Go integration coverage)
+    name: Integration graph (complete AGE matrix)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     needs: [go, golangci-lint]
     services:
       redis:
@@ -664,15 +664,11 @@ jobs:
           path: graph_integration.out
           retention-days: 14
 
-      - name: Run cognitive graph E2E smoke test
+      - name: Run complete cognitive graph matrix
         env:
-          REDIS_ADDR: localhost:6379
-          API_KEY: testkey123
-          AGE_PORT: "5433"
+          REALISTIC_SMOKE_LIMIT: "180"
         run: |
-          # Override: use the already-running postgres-age instead of starting a new one
-          AGE_IMAGE=pcmi-postgres-age:ci \
-          bash scripts/e2e/test_cognitive_graph.sh || true
+          make test-cognitive-graph-matrix
 
       - name: Force cleanup
         if: always()

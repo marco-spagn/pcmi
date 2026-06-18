@@ -36,6 +36,7 @@ No further configuration needed.
 | Container scan | `trivy-images`| `make act-trivy`| `scripts/ci/trivy_images.sh`|
 | Unit + integration + coverage | `go`| `make act-test`or Phase F | `scripts/ci/phases/a_go_static.sh`, `f_go_integration.sh`, `coverage_env.sh`|
 | HTTP/gRPC/SDK smoke | `integration-smoke`| `make act-integration-smoke`| `scripts/act_integration_smoke_host.sh`, `ci_integration_smoke.sh`|
+| Cognitive Graph matrix | `integration-graph`| `make test-cognitive-graph-matrix`| `scripts/e2e/test_cognitive_graph_matrix.sh`|
 | OpenAI E2E | `integration-e2e`| `OPENAI_API_KEY=… act -j integration-e2e`or `test-full-real`| compose + `scripts/e2e/*`|
 | SAST | CodeQL (separate workflow) | — | `.github/workflows/codeql.yml`|
 
@@ -132,6 +133,7 @@ make test-integration-live
 |-------|------------------------|
 | Job `go`| **No** — `GRPC_TEST_API_KEY`unset; live tests in `internal/grpc`are **skipped** |
 | Job `integration-smoke`| **Yes** — builds API on host, then `go test -tags=integration ./internal/grpc/...`with `GRPC_TEST_API_KEY=testkey123`|
+| Job `integration-graph`| **Yes** — runs `make test-cognitive-graph-matrix`; graph failures fail CI |
 | Local `make act-lint && make act-test`| **No** — same as `go`job (Postgres service only) |
 | Local `make act-integration-smoke`| **Yes** — same scripts as `integration-smoke`|
 

@@ -386,7 +386,7 @@ func validateCypherQuery(query string) (string, error) {
 
 func cypherKeywordTokens(query string) []string {
 	return strings.FieldsFunc(query, func(r rune) bool {
-		return !((r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_')
+		return (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_'
 	})
 }
 

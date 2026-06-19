@@ -92,7 +92,7 @@ Full matrix: [grpc-vs-http.md](grpc-vs-http.md).
 ## Security
 
 - RLS: `set_tenant_context(uuid)` per request.
-- API keys: SHA-256 hash; roles `readonly`, `write`, `admin`.
+- API keys: SHA-256 hash; roles `readonly`, `user` (read-write), `admin` (enforced by the `api_keys.role` CHECK constraint in `migrations/003_rbac_api_keys.sql`).
 - Optional encryption: `PCMI_ENCRYPTION_KEY`.
 
 ## Deployment

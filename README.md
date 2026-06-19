@@ -309,7 +309,7 @@ make bench            # Worker, model, crypto — full suite
 | **Session working memory** | ✅ Promote to long-term | ❌ | ✅ Fact memory | ✅ State checkpointing |
 | **Automated distillation** | ✅ LLM-powered, policy-driven | ❌ | ❌ | ❌ |
 | **Event streaming** | Redis Streams + SSE + gRPC + webhooks | Basic callbacks | Webhooks | None (framework-level) |
-| **RBAC / API keys** | ✅ Admin/Write/Read/ReadOnly + rotation | ❌ API key only | ❌ API key only | ❌ |
+| **RBAC / API keys** | ✅ Admin / User (read-write) / ReadOnly + rotation | ❌ API key only | ❌ API key only | ❌ |
 | **Audit log** | ✅ Full per-request audit | ❌ | Paid tier | ❌ |
 | **Rate limiting** | ✅ Redis-backed, per-key | ❌ | Paid tier | ❌ |
 | **Encryption at rest** | ✅ Column-level AES | ❌ | Paid tier | ❌ |

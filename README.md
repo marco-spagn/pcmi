@@ -343,7 +343,7 @@ PCMI ships as a complete, production-ready stack — not just a library.
 
 | Deliverable | Location | Description |
 |-------------|----------|-------------|
-| **PostgreSQL schema** | [`migrations/`](migrations/) | 19 migration files: tenants, memories (ltree + pgvector), RBAC, sessions, dedup, distillation, cognitive graph |
+| **PostgreSQL schema** | [`migrations/`](migrations/) | 20 migration files: tenants, memories (ltree + pgvector), RBAC, sessions, dedup, distillation, cognitive graph |
 | **OpenAPI 3.0 spec** | [`docs/openapi.yaml`](docs/openapi.yaml) | Complete REST API specification, versioned at v1.51.0 |
 | **Protobuf definitions** | [`proto/pcmi/v1/`](proto/pcmi/v1/) | gRPC: `MemoryService` (45 RPCs), `AdminService`, `MetricsService` |
 | **Docker Compose** | [`docker-compose.yml`](docker-compose.yml) | Full stack: API, Worker, PostgreSQL+pgvector, Redis, optional AGE |
@@ -633,7 +633,7 @@ pcmi/
 │   └── mcp/            # MCP stdio server (pcmi-mcp)
 ├── internal/           # Go domain logic (handler, service, repository, worker, grpc, graph)
 ├── proto/pcmi/v1/      # Protobuf definitions (MemoryService, AdminService, MetricsService)
-├── migrations/         # 19 SQL migrations (001 → 019)
+├── migrations/         # 20 SQL migrations (001 → 020)
 ├── sdk/
 │   ├── python/         # Python SDK (pcmi on PyPI)
 │   ├── typescript/     # TypeScript SDK (npm package)

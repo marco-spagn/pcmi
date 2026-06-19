@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -83,29 +84,6 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 		contentEncrypted = true
 	}
 
-	tx, err := r.w.Begin(ctx)
-	if err != nil {
-		return 0, 0, nil, fmt.Errorf("store begin tx: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-
-	version = 1
-	var closedID sql.NullInt64
-	var closedVer sql.NullInt32
-	closeErr := tx.QueryRow(ctx, `
-		UPDATE memory_entries SET valid_to = NOW()
-		WHERE tenant_id = $1::uuid AND path = $2::ltree AND valid_to IS NULL
-		RETURNING id, version`,
-		tenantID, path,
-	).Scan(&closedID, &closedVer)
-	if closeErr == nil {
-		version = int(closedVer.Int32) + 1
-		v := closedID.Int64
-		supersededID = &v
-	} else if closeErr != pgx.ErrNoRows {
-		return 0, 0, nil, fmt.Errorf("store close current: %w", closeErr)
-	}
-
 	var agentID *string
 	if a := strings.TrimSpace(req.SourceAgentID); a != "" {
 		agentID = &a
@@ -114,28 +92,90 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 	importance := model.NormalizeImportance(req.Importance)
 	contentHash := strings.TrimSpace(req.ContentHash)
 
-	if len(req.Embedding) > 0 {
-		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12, $13, $14)
-			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags,
-			pgvector.NewVector(req.Embedding), embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&id)
-	} else {
-		q := `
-			INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
-			VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11, $12, $13)
-			RETURNING id`
-		err = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, version, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&id)
-	}
-	if err != nil {
-		return 0, 0, nil, fmt.Errorf("store insert: %w", err)
+	// storeVersion runs the close-then-insert sequence in a single transaction.
+	// Exactly one open version per (tenant, path) is enforced by the partial
+	// unique index uq_memory_entries_open_version (migration 020). When a
+	// concurrent writer closes the current row first, our UPDATE matches no row,
+	// we attempt to insert version=1, and the index rejects it with a
+	// unique_violation — the caller then retries and recomputes the next version
+	// against the row the winner left open.
+	storeVersion := func() (int64, int, *int64, error) {
+		tx, txErr := r.w.Begin(ctx)
+		if txErr != nil {
+			return 0, 0, nil, fmt.Errorf("store begin tx: %w", txErr)
+		}
+		defer func() { _ = tx.Rollback(ctx) }()
+
+		ver := 1
+		var sup *int64
+		var closedID sql.NullInt64
+		var closedVer sql.NullInt32
+		closeErr := tx.QueryRow(ctx, `
+			UPDATE memory_entries SET valid_to = NOW()
+			WHERE tenant_id = $1::uuid AND path = $2::ltree AND valid_to IS NULL
+			RETURNING id, version`,
+			tenantID, path,
+		).Scan(&closedID, &closedVer)
+		if closeErr == nil {
+			ver = int(closedVer.Int32) + 1
+			v := closedID.Int64
+			sup = &v
+		} else if closeErr != pgx.ErrNoRows {
+			return 0, 0, nil, fmt.Errorf("store close current: %w", closeErr)
+		}
+
+		var newID int64
+		var insErr error
+		if len(req.Embedding) > 0 {
+			q := `
+				INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
+				VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, $9, NOW(), $10::uuid, NOW(), $11, $12, $13, $14)
+				RETURNING id`
+			insErr = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags,
+				pgvector.NewVector(req.Embedding), embModel, embSpace, ver, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&newID)
+		} else {
+			q := `
+				INSERT INTO memory_entries (tenant_id, path, content, metadata, tags, embedding_model, embedding_space, version, valid_from, source_agent_id, created_at, content_encrypted, expires_at, importance, content_hash)
+				VALUES ($1, $2::ltree, $3, $4, $5, $6, $7, $8, NOW(), $9::uuid, NOW(), $10, $11, $12, $13)
+				RETURNING id`
+			insErr = tx.QueryRow(ctx, q, tenantID, path, content, metadata, tags, embModel, embSpace, ver, agentID, contentEncrypted, req.ExpiresAt, importance, nullIfEmpty(contentHash)).Scan(&newID)
+		}
+		if insErr != nil {
+			return 0, 0, nil, fmt.Errorf("store insert: %w", insErr)
+		}
+
+		if commitErr := tx.Commit(ctx); commitErr != nil {
+			return 0, 0, nil, fmt.Errorf("store commit: %w", commitErr)
+		}
+		return newID, ver, sup, nil
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return 0, 0, nil, fmt.Errorf("store commit: %w", err)
+	for attempt := 1; ; attempt++ {
+		id, version, supersededID, err = storeVersion()
+		if err == nil || attempt >= maxStoreAttempts || !isOpenVersionConflict(err) {
+			return id, version, supersededID, err
+		}
 	}
-	return id, version, supersededID, nil
+}
+
+// openVersionConstraint is the partial unique index that guarantees a single
+// open version per (tenant_id, path); see migration 020.
+const openVersionConstraint = "uq_memory_entries_open_version"
+
+// maxStoreAttempts bounds Store retries when a concurrent writer wins the race
+// to close the current version. A small bound is sufficient: each retry that
+// loses re-reads the freshly-closed row, so progress is guaranteed.
+const maxStoreAttempts = 3
+
+// isOpenVersionConflict reports whether err is a unique_violation on the
+// open-version index — i.e. a concurrent store closed the current row first and
+// our insert collided with the version it left open.
+func isOpenVersionConflict(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	return pgErr.Code == "23505" && pgErr.ConstraintName == openVersionConstraint
 }
 
 func nullIfEmpty(s string) any {

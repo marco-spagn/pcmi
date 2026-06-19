@@ -9,6 +9,10 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Fixed — data integrity
+
+- **Concurrent-write versioning race** (`internal/repository/memory_repository.go`, `migrations/020_memory_open_version_unique.sql`): two simultaneous `POST /v1/memories` to the same `(tenant_id, path)` could each leave a row with `valid_to IS NULL` (two "current" versions with regressed/duplicate version numbers), making `GetByPath` and `as_of` reads non-deterministic. Migration 020 heals any existing duplicates and adds a partial unique index `uq_memory_entries_open_version`; `Store` now retries (bounded) when the losing transaction collides, recomputing the correct next version.
+
 ### Added — Cognitive Graph spike (experimental)
 
 - **`migrations/019_cognitive_graph_age.sql`**: optional Apache AGE setup (`pcmi_memory_graph`, `sync_memory_link_to_graph`, trigger on `memory_links` insert/update); skipped when AGE is absent.

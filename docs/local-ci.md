@@ -42,6 +42,11 @@ No further configuration needed.
 
 **Full host parity** (phases A–G, no CodeQL/E2E unless configured): `make ci-like-github`.
 
+The `integration-graph` job intentionally treats `make test-cognitive-graph-matrix`
+as the authoritative graph gate. That target owns the isolated AGE PostgreSQL,
+Redis, API startup, matrix assertions, focused graph integration tests, realistic
+load smoke, and partial AGE setup checks; any failure exits non-zero and fails CI.
+
 API version for smoke (`/v1/health`): resolved at runtime from `internal/version/version.go`via `scripts/ci/resolve_version.sh`— never pin tags in workflow YAML.
 
 ---
@@ -90,6 +95,7 @@ act -j trivy-images     # run trivy on both Docker images
 | `security`(govulncheck) |  | Identical |
 | `trivy-images`|  stub in `act`+ `make act-trivy`| Workflow skips when `ACT=true`; `make act-trivy`runs `scripts/ci/trivy_images.sh`(same Trivy flags as GitHub). |
 | `integration-smoke`|  stub in `act`+ `make act-integration-smoke`| `act`runs the job container on `host`network while service containers stay on a bridge — background API + health checks flake. When `ACT=true`, only a notice step runs; `make act-integration-smoke`runs `scripts/act_integration_smoke_host.sh`(compose + local `go build`+ same bash/Go/SDK scripts as CI). On **GitHub-hosted** runners nothing changes (`ACT`is unset). |
+| `integration-graph`|  | Runs `make test-cognitive-graph-matrix`; needs Docker, Go, `curl`, and `jq`. Graph matrix failures fail the job. |
 | `integration-e2e`(OpenAI) |  | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY`|
 
 ---
@@ -289,15 +295,20 @@ of the `go`job in `.github/workflows/ci.yml`:
 
 ```yaml
 - name: Enforce coverage thresholds
-  env:
-    COVERAGE_MIN_TOTAL: "22"COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70"run: scripts/ci_coverage_check.sh
-```Run the same check locally before pushing:
+  run: |
+    source scripts/ci/coverage_env.sh
+    scripts/ci_coverage_check.sh
+```
+
+Run the same check locally before pushing:
 
 ```bash
 make test-cover     # writes coverage.out (race + atomic mode)
 make cover-check    # exits non-zero if any floor is missed
 make cover-report   # human-friendly per-function summary
-````scripts/ci_coverage_check.sh`parses `coverage.out`itself — no `go tool cover`
+```
+
+`scripts/ci_coverage_check.sh` parses `coverage.out` itself — no `go tool cover`
 dependency — and supports the same `COVERAGE_MIN_TOTAL`/ `COVERAGE_PKG_FLOORS`
 overrides as CI. When a PR lifts a package's coverage materially, **bump the
 floor in the same PR** so future regressions are caught.

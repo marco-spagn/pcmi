@@ -7,17 +7,17 @@
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui test-cognitive-graph test-cognitive-graph-matrix \
         graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-soc-loader-test
 
-GOLANGCI_LINT_VERSION ?= v2.1.6
+GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
 GRPC_TEST_API_KEY ?= testkey123
 DATABASE_URL ?= postgres://pcmi:pcmi@localhost:5432/pcmi?sslmode=disable
 DOCKER_COMPOSE ?= docker compose
 API_URL ?= http://localhost:8000
 
-# Coverage thresholds. Keep these in sync with .github/workflows/ci.yml and
-# scripts/ci_coverage_check.sh. Tighten as new tests land.
-COVERAGE_MIN_TOTAL  ?= 22
-COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,graph:42,metrics:70
+# Coverage thresholds. Keep these in sync with scripts/ci/coverage_env.sh.
+# Tighten as new tests land.
+COVERAGE_MIN_TOTAL  ?= 41
+COVERAGE_PKG_FLOORS ?= config:70,event:70,eventschema:85,repository:50,service:70,worker:45,metrics:80
 
 # Set of packages that the coverage gate considers. Integration-heavy packages
 # (cmd/* binaries) are intentionally excluded because they cannot run without a

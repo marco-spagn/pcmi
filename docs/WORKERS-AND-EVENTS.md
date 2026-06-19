@@ -66,12 +66,52 @@ flowchart LR
 | Loop | Env / trigger | Effect |
 |------|---------------|--------|
 | Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Fills NULL `embedding`; **circuit breaker** on OpenAI provider |
-| Distillation | Redis events, refine | `distilled_knowledge` |
+| Distillation | `LLM_PROVIDER` + API key, Redis events, refine | `distilled_knowledge` — see [Changing LLM provider](#changing-llm-provider) |
 | Pruning | `PRUNE_INTERVAL_SECS` | Removes old closed versions |
 | Consolidation | events / threshold | Path `.consolidated` |
 | Expiry | `EXPIRY_INTERVAL_SECS` | Closes rows with past `expires_at` |
 
 Worker metrics: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
+
+### Changing LLM provider
+
+The distillation worker supports four providers selectable via `LLM_PROVIDER` without code changes. The default is `openai` for compatibility with existing installations.
+
+| `LLM_PROVIDER` | Alias | Endpoint | API Key | Default model |
+|---|---|---|---|---|
+| `openai` | — | api.openai.com | `OPENAI_API_KEY` | `gpt-4o-mini` |
+| `grok` | `xai` | api.x.ai/v1 | `GROK_API_KEY` | `grok-3-mini` |
+| `anthropic` | `claude` | api.anthropic.com/v1/messages | `ANTHROPIC_API_KEY` | `claude-haiku-4-5-20251001` |
+| `deepseek` | — | api.deepseek.com/v1 | `DEEPSEEK_API_KEY` | `deepseek-chat` |
+
+`DISTILLATION_MODEL` overrides the default model for any provider.
+
+**Example — switch to Claude:**
+
+```env
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=ant-...
+# optional: force a specific model
+DISTILLATION_MODEL=claude-opus-4-7
+```
+
+**Example — Grok:**
+
+```env
+LLM_PROVIDER=grok
+GROK_API_KEY=xai-...
+```
+
+**Example — DeepSeek:**
+
+```env
+LLM_PROVIDER=deepseek
+DEEPSEEK_API_KEY=...
+```
+
+If the provider is valid but the API key is missing, the worker logs a warning and skips LLM distillation (same semantics as the previous behavior with empty `OPENAI_API_KEY`). If `LLM_PROVIDER` contains an unsupported value, the worker logs the error and falls back to an unconfigured OpenAI client.
+
+> **Anthropic note:** the API format differs from OpenAI — the `system` prompt is a top-level field, not an array message. The adapter in `internal/worker/llm_anthropic.go` handles the translation transparently. No additional SDK dependency is required.
 
 ### Embedding circuit breaker (Sprint 1)
 

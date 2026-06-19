@@ -18,11 +18,11 @@ Uso:
   python3 load_to_pcmi.py --nodes-only
   python3 load_to_pcmi.py --links-only    # richiede id_map.json gia' presente
   python3 load_to_pcmi.py --batch 50 --link-workers 16
-  python3 load_to_pcmi.py --limit 200     # smoke test parziale
+  python3 load_to_pcmi.py --limit 200     # carica 200 nodi + link tra quei nodi
 
 Solo stdlib (urllib + threads). Nessuna dipendenza esterna.
 """
-import argparse, csv, json, os, sys, time, threading
+import argparse, csv, hashlib, json, os, sys, time, threading
 import urllib.request, urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -32,6 +32,7 @@ KEY  = os.environ.get("PCMI_API_KEY", "testkey123")
 NODES_CSV = os.path.join(ROOT, "soc_incidents_nodes.csv")
 LINKS_CSV = os.path.join(ROOT, "soc_incidents_links.csv")
 ID_MAP    = os.path.join(ROOT, "id_map.json")
+ID_MAP_META = os.path.join(ROOT, "id_map.meta.json")
 MAX_BATCH = 50
 EMB_MODEL = os.environ.get("PCMI_EMBEDDING_MODEL", "")
 
@@ -45,9 +46,46 @@ def http(method, path, payload=None, timeout=60):
     req = urllib.request.Request(url, data=data, method=method)
     req.add_header("Content-Type", "application/json")
     req.add_header("X-API-Key", KEY)
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        body = r.read().decode()
-        return r.status, (json.loads(body) if body else {})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            body = r.read().decode()
+            return r.status, (json.loads(body) if body else {})
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        try:
+            parsed = json.loads(body) if body else {}
+        except json.JSONDecodeError:
+            parsed = {"error": body}
+        parsed["_retry_after"] = e.headers.get("Retry-After", "")
+        return e.code, parsed
+
+def dataset_fingerprint():
+    h = hashlib.sha256()
+    for path in (NODES_CSV, LINKS_CSV):
+        h.update(os.path.basename(path).encode())
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+    return h.hexdigest()
+
+def load_id_map():
+    if not os.path.exists(ID_MAP):
+        return {}
+    current = dataset_fingerprint()
+    if os.path.exists(ID_MAP_META):
+        meta = json.load(open(ID_MAP_META))
+        if meta.get("dataset_fingerprint") != current:
+            print("  ⚠ id_map.json non corrisponde ai CSV correnti: riparto da zero")
+            return {}
+    return json.load(open(ID_MAP))
+
+def save_id_map(id_map):
+    tmp = ID_MAP + ".tmp"
+    json.dump(id_map, open(tmp, "w"))
+    os.replace(tmp, ID_MAP)
+    meta_tmp = ID_MAP_META + ".tmp"
+    json.dump({"dataset_fingerprint": dataset_fingerprint()}, open(meta_tmp, "w"))
+    os.replace(meta_tmp, ID_MAP_META)
 
 def build_metadata(row):
     md = {}
@@ -65,9 +103,8 @@ def build_metadata(row):
     return md
 
 def load_nodes(batch_size, limit):
-    id_map = {}
-    if os.path.exists(ID_MAP):
-        id_map = json.load(open(ID_MAP))
+    id_map = load_id_map()
+    if id_map:
         print(f"  resume: {len(id_map)} nodi gia' caricati")
 
     rows = []
@@ -116,24 +153,27 @@ def load_nodes(batch_size, limit):
 
         done += len(chunk)
         if start % (batch_size*10) == 0 or done >= total:
-            json.dump(id_map, open(ID_MAP, "w"))
+            save_id_map(id_map)
             rate = done / max(time.time()-t0, .001)
             print(f"  nodi {done}/{total}  ({rate:.0f}/s)  errori={errors}", flush=True)
 
-    json.dump(id_map, open(ID_MAP, "w"))
+    save_id_map(id_map)
     print(f"  ✓ nodi caricati: {len(id_map)} totali, errori={errors}")
     return id_map
 
-def load_links(id_map, workers, limit):
+def collect_edges(id_map):
     edges = []
     skipped = 0
     with open(LINKS_CSV, encoding="utf-8") as f:
-        for i, row in enumerate(csv.DictReader(f)):
-            if limit and i >= limit: break
+        for row in csv.DictReader(f):
             a = id_map.get(row["from_external_id"]); b = id_map.get(row["to_external_id"])
             if a is None or b is None:
                 skipped += 1; continue
             edges.append((f"memory.{a}", f"memory.{b}", row["link_type"], row.get("rationale","")))
+    return edges, skipped
+
+def load_links(id_map, workers, limit):
+    edges, skipped = collect_edges(id_map)
 
     total = len(edges)
     print(f"  da creare: {total} archi (workers={workers}, skip(nomap)={skipped})")
@@ -147,6 +187,9 @@ def load_links(id_map, workers, limit):
             try:
                 st, _ = http("POST", "/v1/memories/links", payload, timeout=30)
                 if st in (200, 201): return True
+                if st == 429:
+                    time.sleep(3 * attempt)
+                    continue
                 raise RuntimeError(f"HTTP {st}")
             except Exception:
                 if attempt == 3: return False
@@ -170,7 +213,7 @@ def main():
     ap.add_argument("--batch", type=int, default=MAX_BATCH,
                     help=f"batch size (max {MAX_BATCH} per PCMI API)")
     ap.add_argument("--link-workers", type=int, default=16)
-    ap.add_argument("--limit", type=int, default=0, help="limita righe (smoke test)")
+    ap.add_argument("--limit", type=int, default=0, help="limita i nodi; i link sono filtrati sugli endpoint caricati")
     ap.add_argument("--nodes-only", action="store_true")
     ap.add_argument("--links-only", action="store_true")
     args = ap.parse_args()
@@ -192,7 +235,9 @@ def main():
         if not id_map:
             if not os.path.exists(ID_MAP):
                 print("✗ id_map.json mancante: esegui prima i nodi."); sys.exit(1)
-            id_map = json.load(open(ID_MAP))
+            id_map = load_id_map()
+            if not id_map:
+                print("✗ id_map.json non valido per i CSV correnti: ricarica prima i nodi."); sys.exit(1)
         print("\n[2/2] LINK (grafo)")
         load_links(id_map, args.link_workers, args.limit)
 

@@ -1,0 +1,142 @@
+{
+  "name": "cognitive-graph-test-matrix",
+  "description": "Deterministic graph dataset that covers traversal, chain, pagination, link-type filtering, cycles, self-loops, isolated nodes, and Cypher passthrough.",
+  "nodes": [
+    {
+      "key": "root",
+      "path": "root.graph.matrix.root",
+      "content": "Root investigation note: customer incident opened after an API regression.",
+      "tags": ["graph", "matrix", "root"],
+      "metadata": {"case": "root", "expected_out_degree": 2}
+    },
+    {
+      "key": "causal_1",
+      "path": "root.graph.matrix.chain.causal_1",
+      "content": "The regression was caused by a cache invalidation bug.",
+      "tags": ["graph", "matrix", "causal"],
+      "metadata": {"case": "chain", "stage": 1}
+    },
+    {
+      "key": "temporal_1",
+      "path": "root.graph.matrix.chain.temporal_1",
+      "content": "The cache issue appeared after the deployment window.",
+      "tags": ["graph", "matrix", "temporal"],
+      "metadata": {"case": "chain", "stage": 2}
+    },
+    {
+      "key": "supports_1",
+      "path": "root.graph.matrix.chain.supports_1",
+      "content": "Log evidence supports the cache invalidation diagnosis.",
+      "tags": ["graph", "matrix", "supports"],
+      "metadata": {"case": "chain", "stage": 3}
+    },
+    {
+      "key": "related_1",
+      "path": "root.graph.matrix.chain.related_1",
+      "content": "A related observability note links this incident to the dashboard rollout.",
+      "tags": ["graph", "matrix", "related"],
+      "metadata": {"case": "chain", "stage": 4}
+    },
+    {
+      "key": "contradict_1",
+      "path": "root.graph.matrix.branch.contradict_1",
+      "content": "An early note incorrectly claimed the database was the primary cause.",
+      "tags": ["graph", "matrix", "contradicts"],
+      "metadata": {"case": "negative_branch"}
+    },
+    {
+      "key": "causal_2",
+      "path": "root.graph.matrix.branch.causal_2",
+      "content": "A second causal branch identifies a retry storm as a contributing factor.",
+      "tags": ["graph", "matrix", "causal"],
+      "metadata": {"case": "branch"}
+    },
+    {
+      "key": "alternate_target",
+      "path": "root.graph.matrix.branch.alternate_target",
+      "content": "This branch contradicts the retry-storm-only explanation.",
+      "tags": ["graph", "matrix", "contradicts"],
+      "metadata": {"case": "branch_negative"}
+    },
+    {
+      "key": "isolated",
+      "path": "root.graph.matrix.isolated",
+      "content": "Standalone note with no graph links; traversal should return no neighbors.",
+      "tags": ["graph", "matrix", "isolated"],
+      "metadata": {"case": "isolated"}
+    },
+    {
+      "key": "fanout_hub",
+      "path": "root.graph.matrix.fanout.hub",
+      "content": "Postmortem summary that supports four individual findings.",
+      "tags": ["graph", "matrix", "fanout"],
+      "metadata": {"case": "fanout", "expected_out_degree": 4}
+    },
+    {
+      "key": "support_a",
+      "path": "root.graph.matrix.fanout.a",
+      "content": "Finding A: cache TTL was too long.",
+      "tags": ["graph", "matrix", "fanout", "supports"],
+      "metadata": {"case": "fanout", "ordinal": 1}
+    },
+    {
+      "key": "support_b",
+      "path": "root.graph.matrix.fanout.b",
+      "content": "Finding B: retry jitter was missing.",
+      "tags": ["graph", "matrix", "fanout", "supports"],
+      "metadata": {"case": "fanout", "ordinal": 2}
+    },
+    {
+      "key": "support_c",
+      "path": "root.graph.matrix.fanout.c",
+      "content": "Finding C: dashboard alerts lagged by five minutes.",
+      "tags": ["graph", "matrix", "fanout", "supports"],
+      "metadata": {"case": "fanout", "ordinal": 3}
+    },
+    {
+      "key": "support_d",
+      "path": "root.graph.matrix.fanout.d",
+      "content": "Finding D: rollback automation was manually triggered.",
+      "tags": ["graph", "matrix", "fanout", "supports"],
+      "metadata": {"case": "fanout", "ordinal": 4}
+    },
+    {
+      "key": "cycle_a",
+      "path": "root.graph.matrix.cycle.a",
+      "content": "Cycle node A references cycle node B.",
+      "tags": ["graph", "matrix", "cycle"],
+      "metadata": {"case": "cycle"}
+    },
+    {
+      "key": "cycle_b",
+      "path": "root.graph.matrix.cycle.b",
+      "content": "Cycle node B references cycle node A.",
+      "tags": ["graph", "matrix", "cycle"],
+      "metadata": {"case": "cycle"}
+    },
+    {
+      "key": "self_loop",
+      "path": "root.graph.matrix.self_loop",
+      "content": "Self-loop node used to ensure traversal handles a node linked to itself.",
+      "tags": ["graph", "matrix", "self-loop"],
+      "metadata": {"case": "self_loop"}
+    }
+  ],
+  "links": [
+    {"from": "root", "to": "causal_1", "type": "causal", "weight": 1.0, "rationale": "Root cause begins at cache invalidation."},
+    {"from": "causal_1", "to": "temporal_1", "type": "temporal", "weight": 0.95, "rationale": "The symptom followed the deployment window."},
+    {"from": "temporal_1", "to": "supports_1", "type": "supports", "weight": 0.9, "rationale": "Logs support the timeline."},
+    {"from": "root", "to": "supports_1", "type": "supports", "weight": 0.72, "rationale": "Direct evidence path intentionally duplicates the multi-hop target for dedup testing."},
+    {"from": "supports_1", "to": "related_1", "type": "related", "weight": 0.6, "rationale": "Observability context is related but not causal."},
+    {"from": "causal_1", "to": "contradict_1", "type": "contradicts", "weight": 0.4, "rationale": "Database-cause note contradicts cache diagnosis."},
+    {"from": "root", "to": "causal_2", "type": "causal", "weight": 0.8, "rationale": "Retry storm is a second causal branch."},
+    {"from": "causal_2", "to": "alternate_target", "type": "contradicts", "weight": 0.5, "rationale": "Contradicts retry-only explanation."},
+    {"from": "fanout_hub", "to": "support_a", "type": "supports", "weight": 1.0, "rationale": "Postmortem supports finding A."},
+    {"from": "fanout_hub", "to": "support_b", "type": "supports", "weight": 1.0, "rationale": "Postmortem supports finding B."},
+    {"from": "fanout_hub", "to": "support_c", "type": "supports", "weight": 1.0, "rationale": "Postmortem supports finding C."},
+    {"from": "fanout_hub", "to": "support_d", "type": "supports", "weight": 1.0, "rationale": "Postmortem supports finding D."},
+    {"from": "cycle_a", "to": "cycle_b", "type": "related", "weight": 0.7, "rationale": "Cycle forward edge."},
+    {"from": "cycle_b", "to": "cycle_a", "type": "related", "weight": 0.7, "rationale": "Cycle reverse edge."},
+    {"from": "self_loop", "to": "self_loop", "type": "related", "weight": 0.3, "rationale": "Self loop edge."}
+  ]
+}

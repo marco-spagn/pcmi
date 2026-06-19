@@ -81,6 +81,21 @@ func TestCognitiveGraphTriggerSyncsOnUpdate(t *testing.T) {
 	}
 }
 
+func TestCognitiveGraphTriggerDeletesStaleEdges(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "migrations", "019_cognitive_graph_age.sql")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read 019_cognitive_graph_age.sql: %v", err)
+	}
+	body := string(data)
+	if !strings.Contains(body, "delete_memory_link_from_graph") {
+		t.Error("019 migration should define delete_memory_link_from_graph for stale AGE edge cleanup")
+	}
+	if !strings.Contains(body, "AFTER INSERT OR UPDATE OR DELETE") {
+		t.Error("019 trigger should fire on DELETE to remove stale AGE edges")
+	}
+}
+
 func TestCognitiveGraphDockerfileExists(t *testing.T) {
 	path := filepath.Join(repoRoot(t), "docker", "postgres-age", "Dockerfile.postgres-age")
 	data, err := os.ReadFile(path)
@@ -125,5 +140,108 @@ func TestCognitiveGraphDockerComposeProfile(t *testing.T) {
 	}
 	if !strings.Contains(body, "Dockerfile.postgres-age") {
 		t.Error("docker-compose.yml postgres-age should use the custom Dockerfile.postgres-age image")
+	}
+}
+
+func TestCognitiveGraphMatrixDatasetExists(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "examples", "cognitive-graph-test-matrix", "graph_matrix.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("graph_matrix.json not found: %v", err)
+	}
+	body := string(data)
+	for _, want := range []string{
+		`"causal"`,
+		`"temporal"`,
+		`"supports"`,
+		`"contradicts"`,
+		`"related"`,
+		`"isolated"`,
+		`"self_loop"`,
+		`"cycle_a"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("graph_matrix.json missing %s case", want)
+		}
+	}
+}
+
+func TestCognitiveGraphMatrixScriptAndMakeTarget(t *testing.T) {
+	root := repoRoot(t)
+	script := filepath.Join(root, "scripts", "e2e", "test_cognitive_graph_matrix.sh")
+	if _, err := os.Stat(script); err != nil {
+		t.Fatalf("test_cognitive_graph_matrix.sh not found: %v", err)
+	}
+	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		t.Fatalf("could not read Makefile: %v", err)
+	}
+	if !strings.Contains(string(makefile), "test-cognitive-graph-matrix") {
+		t.Error("Makefile should expose test-cognitive-graph-matrix target")
+	}
+}
+
+func TestCognitiveGraphRealisticDatasetExists(t *testing.T) {
+	root := repoRoot(t)
+	for _, rel := range []string{
+		filepath.Join("examples", "cognitive-graph-realistic", "README.md"),
+		filepath.Join("examples", "cognitive-graph-realistic", "generate_realistic_graph.py"),
+		filepath.Join("examples", "cognitive-graph-realistic", "smoke_load_to_pcmi.py"),
+		filepath.Join("examples", "cognitive-graph-realistic", "validate_realistic_graph.py"),
+		filepath.Join("examples", "cognitive-graph-realistic", "graph_realistic_large.json"),
+	} {
+		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
+			t.Fatalf("%s not found: %v", rel, err)
+		}
+	}
+}
+
+func TestCognitiveGraphDatasetTestTargets(t *testing.T) {
+	root := repoRoot(t)
+	for _, rel := range []string{
+		filepath.Join("examples", "soc-incident-graph", "test_loader.py"),
+		filepath.Join("examples", "soc-incident-graph", "load_to_pcmi.py"),
+	} {
+		if _, err := os.Stat(filepath.Join(root, rel)); err != nil {
+			t.Fatalf("%s not found: %v", rel, err)
+		}
+	}
+	makefile, err := os.ReadFile(filepath.Join(root, "Makefile"))
+	if err != nil {
+		t.Fatalf("could not read Makefile: %v", err)
+	}
+	body := string(makefile)
+	for _, want := range []string{"graph-realistic-smoke", "graph-soc-loader-test"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("Makefile should expose %s target", want)
+		}
+	}
+}
+
+func TestCognitiveGraphRealisticDatasetCoverageMarkers(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "examples", "cognitive-graph-realistic", "graph_realistic_large.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read graph_realistic_large.json: %v", err)
+	}
+	body := string(data)
+	for _, want := range []string{
+		`"node_count": 1200`,
+		`"causal"`,
+		`"temporal"`,
+		`"supports"`,
+		`"contradicts"`,
+		`"related"`,
+		`"kind": "campaign"`,
+		`"kind": "evidence"`,
+		`"kind": "hypothesis"`,
+		`"kind": "postmortem"`,
+		`"false_positive"`,
+		`"benign_true_positive"`,
+		`"duplicate"`,
+	} {
+		if !strings.Contains(body, want) {
+			t.Errorf("graph_realistic_large.json missing coverage marker %s", want)
+		}
 	}
 }

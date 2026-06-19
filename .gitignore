@@ -64,6 +64,9 @@ coverage-summary.txt
 coverage-badge.txt
 
 # ====================== PCMI SPECIFIC ======================
+# Bug-hunt output artifacts (local only)
+.bug_hunt/
+
 # Distillation e2e test artifacts (local only)
 .venv_e2e/
 .pcmi_test_out/

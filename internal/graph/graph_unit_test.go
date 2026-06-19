@@ -172,11 +172,8 @@ func TestBuildRelPattern_withTypes(t *testing.T) {
 	if pattern != "[e*1..2]" {
 		t.Errorf("unexpected pattern: %s", pattern)
 	}
-	if typeFilter == "" {
-		t.Error("expected non-empty type filter")
-	}
-	if !contains(typeFilter, "type(e[0])") {
-		t.Errorf("type filter missing type() call: %s", typeFilter)
+	if typeFilter != "" {
+		t.Errorf("expected empty type filter when filtering happens after AGE returns paths, got: %s", typeFilter)
 	}
 }
 

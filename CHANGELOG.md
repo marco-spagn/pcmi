@@ -17,6 +17,9 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - **`GET /v1/graph/ui`**: browser **Cognitive Graph Explorer** (traversal, chain highlight, inspector, layouts, clusters, timeline).
 - **Demo video**: [docs/assets/graph-ui-demo.mp4](docs/assets/graph-ui-demo.mp4); regenerate with `scripts/e2e/record_graph_ui_demo.mjs`.
 - **`internal/graph`**, **`docs/cognitive-graph.md`**, optional `docker compose --profile graph` `postgres-age` service; `make graph-ui` one-command SOC dataset + UI.
+- **Cognitive Graph test matrix**: deterministic dataset and `make test-cognitive-graph-matrix` E2E script covering all link types, mixed paths, filters, pagination, cycles, self-loops, isolated nodes, Cypher passthrough, and invalid requests.
+- **Cognitive Graph realistic dataset**: 1200-node SOC/incident-response JSON graph with campaigns, alerts, evidence, hypotheses, postmortems, false positives, duplicates, all link types, and generator/validator targets.
+- **Cognitive Graph integration coverage**: `make test-cognitive-graph-matrix` now also exercises multi-tenant isolation, duplicate-path deduplication, numeric pagination boundaries, stale AGE edge cleanup, partial AGE setup, self-loop chains, realistic load smoke, and SOC loader structural checks.
 
 ### Added — audit fixes (10 missing features)
 
@@ -28,6 +31,12 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed
 
+- **Cognitive Graph**: Cypher tenant scoping now preserves the original `WHERE` body before `RETURN`, escapes tenant literals, and applies `link_types` filters to every edge in a multi-hop path instead of only the first edge.
+- **Cognitive Graph**: graph availability now requires the specific `pcmi_memory_graph`; Cypher passthrough scopes every `:Memory` alias and rejects dollar-quote delimiters, semicolon-separated statements, SQL write/control keywords, and dangerous keywords split by tabs/newlines.
+- **Cognitive Graph**: related traversal now tenant-scopes target nodes, deduplicates memories reachable through multiple paths, and paginates over numerically sorted memory IDs instead of AGE's lexicographic `memory.<id>` strings.
+- **Cognitive Graph**: AGE sync trigger now removes stale graph edges when `memory_links` rows are deleted or re-keyed, with integration coverage for graph drift cleanup.
+- **Graph datasets**: SOC loader checkpoints are tied to the current CSV fingerprint, partial `--limit` loads now create links between loaded endpoints even when matching link rows appear later in the CSV, and link creation retries handle API 429 rate limits.
+- **SDK docs**: README, SDK guides, and quickstart commands now point to the published PyPI `pcmi` and npm `@marco-spagn/pcmi-sdk` packages instead of stale pending/local-only install text.
 - **Worker expiry**: the expiry worker now honours the first-class `expires_at` column (set via the `expires_at` API/gRPC field and indexed by migration 011), not only the legacy `metadata.ttl_seconds`. Memories stored with an explicit `expires_at` previously never expired despite the documented behaviour in `docs/WORKERS-AND-EVENTS.md`.
 - **Worker contradiction detection**: the recent-memory scan queried a non-existent `text_content` column and used an invalid `path !~ '*.consolidated.*'` predicate, so the query errored on every run and the feature (enabled by default) silently did nothing. It now selects `content`, excludes consolidated entries with a valid ltree filter, and only compares current (`valid_to IS NULL`) rows.
 - **Worker distillation**: 3-minute job timeout; `distillation_runs` rows marked `completed` after success.

@@ -1,0 +1,15 @@
+{
+  "name": "e2e",
+  "version": "1.0.0",
+  "description": "| Script | Purpose | |--------|---------| | [`test_pcmi.sh`](test_pcmi.sh) | Docker compose smoke: store + retrieve (used by CI when OpenAI E2E runs) |",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "playwright": "^1.49.1"
+  }
+}

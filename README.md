@@ -258,16 +258,16 @@ GET /v1/retrieve
       │
       ▼
 ┌─────────────────────────────────────────────────────┐
-│ Single SQL query, 5 fused signals:                   │
-│                                                      │
-│  score = W_semantic · cosine_similarity(query, emb)  │
-│        + W_lexical  · ts_rank_cd(tsv, websearch)     │
-│        + W_import   · importance                     │
-│        + W_temporal · exp(-λ · age_hours)            │
-│                                                      │
+│ Single SQL query, 5 fused signals:                  │
+│                                                     │
+│  score = W_semantic · cosine_similarity(query, emb) │
+│        + W_lexical  · ts_rank_cd(tsv, websearch)    │
+│        + W_import   · importance                    │
+│        + W_temporal · exp(-λ · age_hours)           │
+│                                                     │
 │  Default weights: 0.40 / 0.30 / 0.15 / 0.15         │
-│  Per-tenant configurable via tenant_memory_config     │
-│  Per-request overrides for ad-hoc tuning              │
+│  Per-tenant configurable via tenant_memory_config   │
+│  Per-request overrides for ad-hoc tuning            │
 └─────────────────────────────────────────────────────┘
 ```
 

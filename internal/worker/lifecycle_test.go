@@ -16,11 +16,15 @@ func TestNewDistillationWorker_withConfig(t *testing.T) {
 		DistillationConcurrency: 8,
 	}
 	w := NewDistillationWorker(nil, cfg)
-	if w.apiKey != "sk-test" {
-		t.Fatalf("apiKey=%q", w.apiKey)
+	llm, ok := w.llm.(*openAILLMClient)
+	if !ok {
+		t.Fatalf("expected *openAILLMClient, got %T", w.llm)
 	}
-	if w.modelName != "custom-model" {
-		t.Fatalf("modelName=%q", w.modelName)
+	if llm.apiKey != "sk-test" {
+		t.Fatalf("apiKey=%q", llm.apiKey)
+	}
+	if llm.modelName != "custom-model" {
+		t.Fatalf("modelName=%q", llm.modelName)
 	}
 	if w.batchSize != 25 {
 		t.Fatalf("batchSize=%d", w.batchSize)
@@ -35,8 +39,12 @@ func TestNewDistillationWorker_nilConfigUsesDefaults(t *testing.T) {
 	if w.batchSize != defaultDistillationBatchSize {
 		t.Fatalf("batchSize=%d", w.batchSize)
 	}
-	if w.modelName != "gpt-4o-mini" {
-		t.Fatalf("modelName=%q", w.modelName)
+	llm, ok := w.llm.(*openAILLMClient)
+	if !ok {
+		t.Fatalf("expected *openAILLMClient, got %T", w.llm)
+	}
+	if llm.modelName != defaultModelOpenAI {
+		t.Fatalf("modelName=%q", llm.modelName)
 	}
 	if cap(w.sem) != defaultDistillationConcurrency {
 		t.Fatalf("sem cap=%d", cap(w.sem))

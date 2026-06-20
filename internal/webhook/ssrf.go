@@ -1,7 +1,6 @@
 package webhook
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -26,19 +25,18 @@ func SetAllowPrivateTargets(v bool) { allowPrivate.Store(v) }
 
 func privateTargetsAllowed() bool { return allowPrivate.Load() }
 
-// resolver is overridable in tests.
-type ipLookup func(ctx context.Context, host string) ([]net.IPAddr, error)
-
 // ValidateTargetURL rejects webhook URLs that are malformed, not http(s), or —
-// unless private targets are allowed — resolve to a blocked address. It is used
-// at registration time to fail fast with a clear error; the dial-time guard in
-// GuardedHTTPClient is the actual security boundary against DNS rebinding and
-// redirect-to-internal.
+// unless private targets are allowed — point at a literal private/internal IP.
+// It runs at registration for fast, network-free feedback and deliberately does
+// NOT resolve hostnames: a host that is currently unresolvable (placeholder,
+// receiver temporarily down) is still accepted, and any host that resolves to a
+// blocked address — including via DNS rebinding — is refused at dial time by
+// GuardedHTTPClient, which is the actual enforcement boundary.
 func ValidateTargetURL(raw string) error {
-	return validateTargetURL(raw, privateTargetsAllowed(), net.DefaultResolver.LookupIPAddr)
+	return validateTargetURL(raw, privateTargetsAllowed())
 }
 
-func validateTargetURL(raw string, allow bool, lookup ipLookup) error {
+func validateTargetURL(raw string, allow bool) error {
 	u, err := url.Parse(strings.TrimSpace(raw))
 	if err != nil {
 		return fmt.Errorf("invalid webhook url: %w", err)
@@ -53,25 +51,8 @@ func validateTargetURL(raw string, allow bool, lookup ipLookup) error {
 	if allow {
 		return nil
 	}
-	if ip := net.ParseIP(host); ip != nil {
-		if blockedIP(ip) {
-			return fmt.Errorf("webhook url targets a blocked address (%s)", ip)
-		}
-		return nil
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	addrs, err := lookup(ctx, host)
-	if err != nil {
-		return fmt.Errorf("webhook url host does not resolve: %w", err)
-	}
-	if len(addrs) == 0 {
-		return fmt.Errorf("webhook url host does not resolve")
-	}
-	for _, a := range addrs {
-		if blockedIP(a.IP) {
-			return fmt.Errorf("webhook url resolves to a blocked address (%s)", a.IP)
-		}
+	if ip := net.ParseIP(host); ip != nil && blockedIP(ip) {
+		return fmt.Errorf("webhook url targets a blocked address (%s)", ip)
 	}
 	return nil
 }

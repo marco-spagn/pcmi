@@ -11,7 +11,7 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Security
 
-- **Webhook SSRF egress filter** (`internal/webhook/ssrf.go`): webhook target URLs were stored and called with no validation, letting an authenticated tenant point a webhook at internal services or the cloud metadata endpoint (`169.254.169.254`) — a server-side request forgery / credential-theft vector. Registration (HTTP `POST /v1/webhooks` and gRPC `RegisterWebhook`) now rejects non-http(s) URLs and hosts that resolve to private/loopback/link-local/ULA/metadata addresses, and the delivery client refuses such addresses **at dial time** (defends DNS rebinding and redirect-to-internal). Secure by default; set `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` to allow trusted internal receivers.
+- **Webhook SSRF egress filter** (`internal/webhook/ssrf.go`): webhook target URLs were stored and called with no validation, letting an authenticated tenant point a webhook at internal services or the cloud metadata endpoint (`169.254.169.254`) — a server-side request forgery / credential-theft vector. Registration (HTTP `POST /v1/webhooks` and gRPC `RegisterWebhook`) now rejects non-http(s) URLs and literal private/loopback/link-local/ULA/metadata IP addresses, and the delivery client refuses **any** private/internal address **at dial time** — which also covers hostnames that resolve to such addresses, DNS rebinding, and redirect-to-internal. Secure by default; set `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` to allow trusted internal receivers.
 
 ### Fixed — data integrity
 

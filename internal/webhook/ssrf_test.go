@@ -1,8 +1,6 @@
 package webhook
 
 import (
-	"context"
-	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -14,20 +12,20 @@ func TestBlockedIP(t *testing.T) {
 		ip      string
 		blocked bool
 	}{
-		{"127.0.0.1", true},      // loopback
-		{"10.1.2.3", true},       // RFC1918
-		{"172.16.5.4", true},     // RFC1918
-		{"192.168.0.1", true},    // RFC1918
-		{"169.254.169.254", true}, // link-local / cloud metadata
-		{"0.0.0.0", true},        // unspecified
-		{"224.0.0.1", true},      // multicast
-		{"::1", true},            // IPv6 loopback
-		{"fe80::1", true},        // IPv6 link-local
-		{"fc00::1", true},        // IPv6 unique-local
-		{"::", true},             // IPv6 unspecified
-		{"8.8.8.8", false},       // public
-		{"1.1.1.1", false},       // public
-		{"93.184.216.34", false}, // public (example.com)
+		{"127.0.0.1", true},                           // loopback
+		{"10.1.2.3", true},                            // RFC1918
+		{"172.16.5.4", true},                          // RFC1918
+		{"192.168.0.1", true},                         // RFC1918
+		{"169.254.169.254", true},                     // link-local / cloud metadata
+		{"0.0.0.0", true},                             // unspecified
+		{"224.0.0.1", true},                           // multicast
+		{"::1", true},                                 // IPv6 loopback
+		{"fe80::1", true},                             // IPv6 link-local
+		{"fc00::1", true},                             // IPv6 unique-local
+		{"::", true},                                  // IPv6 unspecified
+		{"8.8.8.8", false},                            // public
+		{"1.1.1.1", false},                            // public
+		{"93.184.216.34", false},                      // public (example.com)
 		{"2606:2800:220:1:248:1893:25c8:1946", false}, // public IPv6
 	}
 	for _, c := range cases {
@@ -41,28 +39,10 @@ func TestBlockedIP(t *testing.T) {
 	}
 }
 
-func stubLookup(table map[string][]string) ipLookup {
-	return func(_ context.Context, host string) ([]net.IPAddr, error) {
-		ips, ok := table[host]
-		if !ok {
-			return nil, errors.New("no such host")
-		}
-		out := make([]net.IPAddr, 0, len(ips))
-		for _, s := range ips {
-			out = append(out, net.IPAddr{IP: net.ParseIP(s)})
-		}
-		return out, nil
-	}
-}
-
 func TestValidateTargetURL(t *testing.T) {
 	t.Parallel()
-	lookup := stubLookup(map[string][]string{
-		"safe.example.com":     {"93.184.216.34"},
-		"internal.example.com": {"10.0.0.5"},
-		"mixed.example.com":    {"8.8.8.8", "127.0.0.1"}, // one bad → blocked
-	})
-
+	// Registration validation is network-free: it blocks literal private IPs but
+	// accepts hostnames (resolution-based blocking happens at dial time).
 	cases := []struct {
 		name    string
 		raw     string
@@ -70,21 +50,21 @@ func TestValidateTargetURL(t *testing.T) {
 		wantErr string // substring; "" means no error
 	}{
 		{"public host ok", "https://safe.example.com/hook", false, ""},
+		{"unresolvable placeholder accepted", "https://example.invalid/hook", false, ""},
 		{"literal public ok", "https://8.8.8.8/hook", false, ""},
 		{"ftp scheme rejected", "ftp://safe.example.com", false, "scheme"},
 		{"no scheme rejected", "safe.example.com/hook", false, "scheme"},
 		{"empty host rejected", "http:///hook", false, "host"},
 		{"loopback literal blocked", "http://127.0.0.1:9000/x", false, "blocked"},
 		{"metadata literal blocked", "http://169.254.169.254/latest/meta-data/", false, "blocked"},
-		{"private resolve blocked", "https://internal.example.com/hook", false, "blocked"},
-		{"mixed resolve blocked", "https://mixed.example.com/hook", false, "blocked"},
-		{"unresolvable rejected", "https://nope.example.com/hook", false, "resolve"},
+		{"private literal blocked", "http://10.0.0.5/hook", false, "blocked"},
+		{"ipv6 loopback literal blocked", "http://[::1]:9000/x", false, "blocked"},
 		{"allowPrivate bypasses", "http://127.0.0.1:9000/x", true, ""},
 		{"allowPrivate still needs scheme", "ftp://127.0.0.1", true, "scheme"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			err := validateTargetURL(c.raw, c.allow, lookup)
+			err := validateTargetURL(c.raw, c.allow)
 			if c.wantErr == "" {
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)

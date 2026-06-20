@@ -15,6 +15,7 @@ import (
 	pcmiv1 "github.com/marco-spagn/pcmi/internal/grpc/pcmiv1"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
 func (s *memoryServer) Refine(ctx context.Context, req *pcmiv1.RefineRequest) (*pcmiv1.RefineResponse, error) {
@@ -166,6 +167,9 @@ func (s *memoryServer) RegisterWebhook(ctx context.Context, req *pcmiv1.Register
 	url := strings.TrimSpace(req.GetUrl())
 	if url == "" {
 		return nil, status.Error(codes.InvalidArgument, "url is required")
+	}
+	if err := webhook.ValidateTargetURL(url); err != nil {
+		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	if err := s.setTenant(ctx, tenantID); err != nil {
 		return nil, status.Errorf(codes.Internal, "tenant context: %v", err)

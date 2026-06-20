@@ -132,6 +132,15 @@ Test: `make test-circuit-breaker`.
 
 gRPC: `RegisterWebhook`, `ListWebhooks`, `ListWebhookDeadLetter`.
 
+### SSRF egress filter
+
+Webhook targets must be `http(s)` and resolve to a public address. Registration
+and delivery both reject private, loopback, link-local (incl. the
+`169.254.169.254` cloud-metadata endpoint), and unique-local addresses — the
+dial-time check also stops DNS rebinding and redirects to internal hosts. To
+allow trusted internal receivers (e.g. a collector on your private network), set
+`WEBHOOK_ALLOW_PRIVATE_TARGETS=true`.
+
 ### HMAC-SHA256 signature (v1.39+)
 
 Every delivery includes:

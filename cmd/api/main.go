@@ -80,6 +80,7 @@ func main() {
 
 	event.InitRedis(cfg.RedisAddr)
 	event.SetEventBackend(cfg.EventBackend)
+	webhook.SetAllowPrivateTargets(cfg.WebhookAllowPrivateTargets)
 	webhookDispatch := webhook.NewDispatcher(db, cfg.WebhookMaxAttempts)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 

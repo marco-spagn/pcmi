@@ -17,8 +17,8 @@ type Config struct {
 	DatabaseReadURL string // optional: read replica
 
 	// Redis
-	RedisAddr     string
-	EventBackend  string // streams (default) or pubsub — see EVENT_BACKEND
+	RedisAddr    string
+	EventBackend string // streams (default) or pubsub — see EVENT_BACKEND
 
 	// API Server
 	APIPort string
@@ -42,8 +42,8 @@ type Config struct {
 	// LLM provider selection for distillation.
 	// LLM_PROVIDER: openai (default) | grok | anthropic | deepseek
 	// DISTILLATION_MODEL overrides the per-provider default model name.
-	LLMProvider    string
-	GrokAPIKey     string // GROK_API_KEY — xAI Grok
+	LLMProvider     string
+	GrokAPIKey      string // GROK_API_KEY — xAI Grok
 	AnthropicAPIKey string // ANTHROPIC_API_KEY — Claude
 	DeepSeekAPIKey  string // DEEPSEEK_API_KEY — DeepSeek
 
@@ -51,20 +51,23 @@ type Config struct {
 	MigrationsDir string // directory containing .sql files; default "migrations"
 
 	// Distillation / Worker
-	DistillationModel            string
-	DistillationBatchSize        int
-	DistillationConcurrency      int // max parallel LLM jobs, default 4
-	DistillationPolicyDisabled   bool // skip policy engine (e2e smoke, explicit refine only)
-	PruneRetentionDays      int
-	PruneIntervalSecs    int
-	ExpiryIntervalSecs   int
-	WebhookMaxAttempts   int
+	DistillationModel          string
+	DistillationBatchSize      int
+	DistillationConcurrency    int  // max parallel LLM jobs, default 4
+	DistillationPolicyDisabled bool // skip policy engine (e2e smoke, explicit refine only)
+	PruneRetentionDays         int
+	PruneIntervalSecs          int
+	ExpiryIntervalSecs         int
+	WebhookMaxAttempts         int
+	// WebhookAllowPrivateTargets disables SSRF egress filtering for webhook
+	// delivery (allows private/internal/metadata addresses). Default false.
+	WebhookAllowPrivateTargets bool
 
 	// Cognitive Graph
 	GraphQueryTimeoutSecs int // max seconds for any Cypher query (default 30)
 
 	// Cognitive Graph — Contradiction Detection
-	ContradictionDetectionEnabled     bool
+	ContradictionDetectionEnabled      bool
 	ContradictionDetectionIntervalSecs int
 
 	// Rate limiting
@@ -109,35 +112,36 @@ func Load() *Config {
 
 		RedisAddr:    envOr("REDIS_ADDR", "redis:6379"),
 		EventBackend: envOr("EVENT_BACKEND", "streams"),
-		APIPort:   envOr("API_PORT", "8000"),
-		GRPCPort:  envOr("GRPC_PORT", "50051"),
+		APIPort:      envOr("API_PORT", "8000"),
+		GRPCPort:     envOr("GRPC_PORT", "50051"),
 
 		AdminAPIKey:        os.Getenv("ADMIN_API_KEY"),
 		MetricsScrapeToken: strings.TrimSpace(os.Getenv("METRICS_SCRAPE_TOKEN")),
 		PCMIBaseURL:        strings.TrimSpace(os.Getenv("PCMI_BASE_URL")),
 		PCMIAPIKey:         strings.TrimSpace(os.Getenv("PCMI_API_KEY")),
-		OpenAIAPIKey:  os.Getenv("OPENAI_API_KEY"),
-		OpenAIBaseURL: strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
-		EmbeddingModel: envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
+		OpenAIAPIKey:       os.Getenv("OPENAI_API_KEY"),
+		OpenAIBaseURL:      strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
+		EmbeddingModel:     envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 
 		LLMProvider:     strings.ToLower(strings.TrimSpace(os.Getenv("LLM_PROVIDER"))),
 		GrokAPIKey:      strings.TrimSpace(os.Getenv("GROK_API_KEY")),
 		AnthropicAPIKey: strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")),
 		DeepSeekAPIKey:  strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
-		MigrationsDir:    envOr("MIGRATIONS_DIR", "migrations"),
+		MigrationsDir:   envOr("MIGRATIONS_DIR", "migrations"),
 
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
 
-		DistillationBatchSize:        envInt("DISTILLATION_BATCH_SIZE", 10),
-		DistillationConcurrency:      envInt("DISTILLATION_CONCURRENCY", 4),
-		DistillationPolicyDisabled:   envBool("DISTILLATION_POLICY_DISABLED", false),
-		PruneRetentionDays:   envInt("PRUNE_RETENTION_DAYS", 30),
-		PruneIntervalSecs:    envInt("PRUNE_INTERVAL_SECS", 3600),
-		ExpiryIntervalSecs:   envInt("EXPIRY_INTERVAL_SECS", 3600),
-		WebhookMaxAttempts:   envInt("WEBHOOK_MAX_ATTEMPTS", 5),
+		DistillationBatchSize:      envInt("DISTILLATION_BATCH_SIZE", 10),
+		DistillationConcurrency:    envInt("DISTILLATION_CONCURRENCY", 4),
+		DistillationPolicyDisabled: envBool("DISTILLATION_POLICY_DISABLED", false),
+		PruneRetentionDays:         envInt("PRUNE_RETENTION_DAYS", 30),
+		PruneIntervalSecs:          envInt("PRUNE_INTERVAL_SECS", 3600),
+		ExpiryIntervalSecs:         envInt("EXPIRY_INTERVAL_SECS", 3600),
+		WebhookMaxAttempts:         envInt("WEBHOOK_MAX_ATTEMPTS", 5),
+		WebhookAllowPrivateTargets: envBool("WEBHOOK_ALLOW_PRIVATE_TARGETS", false),
 
-		GraphQueryTimeoutSecs:             envInt("GRAPH_QUERY_TIMEOUT_SECS", 30),
-		ContradictionDetectionEnabled:     envBool("CONTRADICTION_DETECTION_ENABLED", true),
+		GraphQueryTimeoutSecs:              envInt("GRAPH_QUERY_TIMEOUT_SECS", 30),
+		ContradictionDetectionEnabled:      envBool("CONTRADICTION_DETECTION_ENABLED", true),
 		ContradictionDetectionIntervalSecs: envInt("CONTRADICTION_DETECTION_INTERVAL_SECS", 120),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),

@@ -9,6 +9,10 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Security
+
+- **Import entry cap** (`internal/service/memory_service.go`): `POST /v1/memories/import` and gRPC `ImportMemories` iterated entries with no limit, while sibling batch endpoints cap at 50/20. In `skip` mode each entry drives a `GetByPath` lookup plus a `Store` transaction, so one authenticated request could fan out into tens of thousands of DB round-trips (asymmetric resource exhaustion). Import now rejects more than 1000 entries per request with HTTP 400 / gRPC `InvalidArgument`, fail-fast before any database work; clients with larger datasets paginate.
+
 ### Fixed — data integrity
 
 - **Concurrent-write versioning race** (`internal/repository/memory_repository.go`, `migrations/020_memory_open_version_unique.sql`): two simultaneous `POST /v1/memories` to the same `(tenant_id, path)` could each leave a row with `valid_to IS NULL` (two "current" versions with regressed/duplicate version numbers), making `GetByPath` and `as_of` reads non-deterministic. Migration 020 heals any existing duplicates and adds a partial unique index `uq_memory_entries_open_version`; `Store` now retries (bounded) when the losing transaction collides, recomputing the correct next version.

@@ -14,9 +14,9 @@ import (
 )
 
 type MemoryService struct {
-	repo            repository.MemoryRepo
-	embedder        embedding.Provider
-	defaultDedup    model.DedupMode
+	repo         repository.MemoryRepo
+	embedder     embedding.Provider
+	defaultDedup model.DedupMode
 }
 
 type StoreResult struct {
@@ -315,7 +315,16 @@ func (s *MemoryService) Export(ctx context.Context, tenantID string, req *model.
 	}, nil
 }
 
+// maxImportEntries bounds a single Import request. Each entry can drive a
+// GetByPath lookup plus a Store transaction, so an uncapped import lets one
+// authenticated request fan out into tens of thousands of DB round-trips
+// (asymmetric resource exhaustion). Clients with larger datasets paginate.
+const maxImportEntries = 1000
+
 func (s *MemoryService) Import(ctx context.Context, tenantID string, req *model.MemoryImportRequest) (*model.MemoryImportResponse, error) {
+	if len(req.Entries) > maxImportEntries {
+		return nil, fmt.Errorf("maximum %d entries per import (got %d)", maxImportEntries, len(req.Entries))
+	}
 	mode := strings.TrimSpace(req.Mode)
 	if mode == "" {
 		mode = "skip"

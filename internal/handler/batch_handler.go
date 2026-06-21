@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"strings"
+
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/marco-spagn/pcmi/internal/middleware"
@@ -56,7 +58,11 @@ func registerBatchRoutes(api fiber.Router, svc *service.MemoryService) {
 		tenantID := c.Locals(middleware.TenantContextKey).(string)
 		result, err := svc.Import(c.Context(), tenantID, &req)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+			status := 500
+			if strings.Contains(err.Error(), "maximum") || strings.Contains(err.Error(), "required") {
+				status = 400 // client input error, not a server fault
+			}
+			return c.Status(status).JSON(fiber.Map{"error": err.Error()})
 		}
 		return c.JSON(result)
 	})

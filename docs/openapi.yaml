@@ -1221,6 +1221,7 @@ components:
       properties:
         session_id: { type: string, format: uuid }
         promoted: { type: integer }
+        skipped: { type: integer, description: "Items not promoted because the target path already held a current memory" }
         target_prefix: { type: string }
         status: { type: string }
     CreateDistillationPolicyRequest:

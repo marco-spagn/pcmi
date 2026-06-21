@@ -11,7 +11,11 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Security
 
+
 - **Import entry cap** (`internal/service/memory_service.go`): `POST /v1/memories/import` and gRPC `ImportMemories` iterated entries with no limit, while sibling batch endpoints cap at 50/20. In `skip` mode each entry drives a `GetByPath` lookup plus a `Store` transaction, so one authenticated request could fan out into tens of thousands of DB round-trips (asymmetric resource exhaustion). Import now rejects more than 1000 entries per request with HTTP 400 / gRPC `InvalidArgument`, fail-fast before any database work; clients with larger datasets paginate.
+
+- **Webhook SSRF egress filter** (`internal/webhook/ssrf.go`): webhook target URLs were stored and called with no validation, letting an authenticated tenant point a webhook at internal services or the cloud metadata endpoint (`169.254.169.254`) — a server-side request forgery / credential-theft vector. Registration (HTTP `POST /v1/webhooks` and gRPC `RegisterWebhook`) now rejects non-http(s) URLs and literal private/loopback/link-local/ULA/metadata IP addresses, and the delivery client refuses **any** private/internal address **at dial time** — which also covers hostnames that resolve to such addresses, DNS rebinding, and redirect-to-internal. Secure by default; set `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` to allow trusted internal receivers.
+ 
 
 ### Fixed — data integrity
 

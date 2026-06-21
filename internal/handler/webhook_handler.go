@@ -10,6 +10,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/webhook"
 )
 
 const sortKeyWebhookCreatedAt = model.SortKeyCreatedAtDesc
@@ -39,6 +40,9 @@ func (h *WebhookHandler) Register(c *fiber.Ctx) error {
 	}
 	if req.URL == "" {
 		return c.Status(400).JSON(fiber.Map{"error": "url is required"})
+	}
+	if err := webhook.ValidateTargetURL(req.URL); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": err.Error()})
 	}
 	types := req.EventTypes
 	if types == nil {
@@ -102,10 +106,10 @@ func (h *WebhookHandler) List(c *fiber.Ctx) error {
 	defer rows.Close()
 
 	type whRow struct {
-		id, url  string
-		types    []string
-		enabled  bool
-		created  time.Time
+		id, url string
+		types   []string
+		enabled bool
+		created time.Time
 	}
 	var scanned []whRow
 	for rows.Next() {

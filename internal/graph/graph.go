@@ -376,9 +376,23 @@ func validateCypherQuery(query string) (string, error) {
 		"INSERT": {}, "LOAD": {}, "MERGE": {}, "REMOVE": {}, "REVOKE": {}, "SET": {}, "TRUNCATE": {},
 		"UPDATE": {}, "VACUUM": {},
 	}
+	// Multi-part and set-combination keywords are rejected because automatic
+	// tenant scoping (autoTenantScopeCypher) injects a single tenant filter before
+	// the FIRST RETURN clause. A UNION's second sub-query has its own RETURN that
+	// would never be scoped, leaking other tenants' nodes (e.g.
+	// "MATCH (m:Memory) RETURN m.id UNION MATCH (m:Memory) RETURN m.id" compiles
+	// and returns every tenant's ids). WITH/UNWIND/FOREACH re-scope or introduce
+	// variables the single-injection model cannot reason about, so they are also
+	// rejected rather than silently mis-scoped.
+	unsupported := map[string]struct{}{
+		"UNION": {}, "WITH": {}, "UNWIND": {}, "FOREACH": {},
+	}
 	for _, token := range cypherKeywordTokens(upper) {
 		if _, ok := dangerous[token]; ok {
 			return "", fmt.Errorf("keyword %s is not allowed in Cypher passthrough queries", token)
+		}
+		if _, ok := unsupported[token]; ok {
+			return "", fmt.Errorf("keyword %s is not supported in Cypher passthrough queries: it breaks automatic tenant scoping", token)
 		}
 	}
 	return trimmed, nil

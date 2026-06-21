@@ -244,8 +244,13 @@ Requires write role. Request body:
 ```
 
 Only `MATCH` queries are allowed. Write keywords (`CREATE`, `DELETE`, `SET`,
-`REMOVE`, `MERGE`, `DROP`, `CALL`, `LOAD`) are rejected. Tenant scoping is the
-injected automatically — the `tenant_id` filter is added to the `WHERE` clause by extracting the `:Memory` node alias. Do NOT include `tenant_id` manually.
+`REMOVE`, `MERGE`, `DROP`, `CALL`, `LOAD`, …) are rejected. Multi-part and
+set-combination keywords (`UNION`, `WITH`, `UNWIND`, `FOREACH`) are also rejected
+because tenant scoping is injected as a single `WHERE` filter before the first
+`RETURN`; a `UNION`'s second sub-query would otherwise stay unscoped and leak
+other tenants' nodes. Tenant scoping is injected automatically — the `tenant_id`
+filter is added to the `WHERE` clause by extracting the `:Memory` node alias. Do
+NOT include `tenant_id` manually.
 
 ## Prometheus metrics
 

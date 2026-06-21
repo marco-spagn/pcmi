@@ -1540,6 +1540,41 @@ func TestValidateCypherQuery_ComplexValidQuery(t *testing.T) {
 	}
 }
 
+func TestValidateCypherQuery_RejectsTenantScopeBypassKeywords(t *testing.T) {
+	// UNION/WITH/UNWIND/FOREACH defeat automatic tenant scoping, which injects a
+	// single tenant filter before the first RETURN. They must be rejected.
+	rejected := map[string]string{
+		// A UNION's second sub-query keeps its own unscoped RETURN: without this
+		// guard autoTenantScopeCypher would scope only the first branch, leaking
+		// every tenant's ids via the second.
+		"MATCH (m:Memory) RETURN m.id UNION MATCH (m:Memory) RETURN m.id":     "UNION",
+		"MATCH (m:Memory) RETURN m.id UNION ALL MATCH (m:Memory) RETURN m.id": "UNION ALL",
+		"MATCH (n:Memory) WITH n MATCH (m:Memory) RETURN m.id":                "WITH (mid-query)",
+		"MATCH (n:Memory) UNWIND [1,2,3] AS x RETURN n.id, x":                 "UNWIND",
+		"MATCH (n:Memory) FOREACH (x IN [1] | SET n.bad = x) RETURN n.id":     "FOREACH",
+		"match (m:Memory) return m.id union match (m:Memory) return m.id":     "union (lowercase)",
+	}
+	for q, why := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("tenant-scope-bypass query (%s) must be rejected: %q", why, q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_KeywordSubstringsStillAllowed(t *testing.T) {
+	// The new keyword guard is token-based, so properties/identifiers that merely
+	// contain a blocked keyword as a substring must still pass.
+	for _, q := range []string{
+		"MATCH (n:Memory) RETURN n.unionType",     // contains "union"
+		"MATCH (n:Memory) RETURN n.within_window", // contains "with"
+		"MATCH (n:Memory) RETURN n.unwinding",     // contains "unwind"
+	} {
+		if _, err := validateCypherQuery(q); err != nil {
+			t.Errorf("keyword as substring must NOT be rejected: %q → %v", q, err)
+		}
+	}
+}
+
 func TestValidateCypherQuery_QueryWithTabsAndNewlines(t *testing.T) {
 	trimmed, err := validateCypherQuery("\tMATCH (n:Memory)\nRETURN n.id\n")
 	if err != nil {

@@ -11,6 +11,7 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Security
 
+- **RLS enforcement accuracy (docs)**: clarified that PostgreSQL Row-Level Security is **not enforced in the default single-role setup** — the application connects as the table-owning role (`pcmi`) and no table uses `FORCE ROW LEVEL SECURITY`, so Postgres bypasses RLS for the owner. Tenant isolation is enforced by explicit `tenant_id` query scoping; RLS ships as opt-in defense-in-depth. `docs/DATA-MODEL.md#tenant-isolation` now documents the two-layer model and the steps to make RLS actively enforce (dedicated non-owner role, `FORCE`, per-transaction context). README RLS claims updated to point at this. No code/schema change.
 
 - **Import entry cap** (`internal/service/memory_service.go`): `POST /v1/memories/import` and gRPC `ImportMemories` iterated entries with no limit, while sibling batch endpoints cap at 50/20. In `skip` mode each entry drives a `GetByPath` lookup plus a `Store` transaction, so one authenticated request could fan out into tens of thousands of DB round-trips (asymmetric resource exhaustion). Import now rejects more than 1000 entries per request with HTTP 400 / gRPC `InvalidArgument`, fail-fast before any database work; clients with larger datasets paginate.
 

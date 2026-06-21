@@ -391,7 +391,7 @@ func TestAutoTenantScopeCypher_WithWhere(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	want := "MATCH (n:Memory) WHERE n.tenant_id = 't2' AND ( n.color = 'red' RETURN n)"
+	want := "MATCH (n:Memory) WHERE n.tenant_id = 't2' AND (n.color = 'red') RETURN n"
 	if got != want {
 		t.Errorf("got  %q\nwant %q", got, want)
 	}
@@ -550,7 +550,6 @@ func TestParseAGEPath_MissingVertexProperties(t *testing.T) {
 // ─── autoTenantScopeCypher extra coverage ────────────────────────────────────
 
 func TestAutoTenantScopeCypher_MultipleMemoryNodes(t *testing.T) {
-	// First :Memory alias is used for tenant scoping.
 	got, err := autoTenantScopeCypher(
 		"MATCH (a:Memory)-[r]->(b:Memory) RETURN a, b",
 		"t1",
@@ -560,6 +559,28 @@ func TestAutoTenantScopeCypher_MultipleMemoryNodes(t *testing.T) {
 	}
 	if !strings.Contains(got, "a.tenant_id = 't1'") {
 		t.Errorf("expected filter on first alias 'a', got %q", got)
+	}
+	if !strings.Contains(got, "b.tenant_id = 't1'") {
+		t.Errorf("expected filter on second alias 'b', got %q", got)
+	}
+}
+
+func TestAutoTenantScopeCypher_MultipleMemoryNodesWithExistingWhere(t *testing.T) {
+	got, err := autoTenantScopeCypher(
+		"MATCH (a:Memory), (b:Memory) WHERE b.id IS NOT NULL RETURN b.id LIMIT 10",
+		"tenant-42",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, want := range []string{
+		"a.tenant_id = 'tenant-42'",
+		"b.tenant_id = 'tenant-42'",
+		"AND (b.id IS NOT NULL)",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("scoped query missing %q: %q", want, got)
+		}
 	}
 }
 
@@ -577,6 +598,9 @@ func TestAutoTenantScopeCypher_ComplexWhere(t *testing.T) {
 	if !strings.Contains(got, "AND (") {
 		t.Errorf("existing WHERE conditions should be wrapped: %q", got)
 	}
+	if strings.Contains(got, "ORDER BY n.score DESC)") {
+		t.Errorf("RETURN/ORDER BY clauses must stay outside injected WHERE parentheses: %q", got)
+	}
 }
 
 func TestAutoTenantScopeCypher_WhitespaceInAlias(t *testing.T) {
@@ -590,9 +614,15 @@ func TestAutoTenantScopeCypher_WhitespaceInAlias(t *testing.T) {
 }
 
 func TestAutoTenantScopeCypher_SingleQuotesInTenantID(t *testing.T) {
-	_, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n", "tenant'DROP")
+	got, err := autoTenantScopeCypher("MATCH (n:Memory) RETURN n", "tenant'DROP")
 	if err != nil {
 		t.Fatalf("should not error — tenantID injected as literal: %v", err)
+	}
+	if strings.Contains(got, "tenant'DROP") {
+		t.Fatalf("tenant literal must be escaped in Cypher query: %q", got)
+	}
+	if !strings.Contains(got, `tenant\'DROP`) {
+		t.Fatalf("escaped tenant literal not found: %q", got)
 	}
 }
 
@@ -1411,14 +1441,14 @@ func TestValidateCypherQuery_NotMatchPrefix(t *testing.T) {
 
 func TestValidateCypherQuery_EachDangerousKeyword(t *testing.T) {
 	dangerous := map[string]string{
-		"MATCH (n) CREATE (x)":                 "CREATE",
-		"MATCH (n) DELETE n":                   "DELETE",
+		"MATCH (n) CREATE (x)":                "CREATE",
+		"MATCH (n) DELETE n":                  "DELETE",
 		"MATCH (n) SET n.x = 1":               "SET",
-		"MATCH (n) REMOVE n.x":                  "REMOVE",
+		"MATCH (n) REMOVE n.x":                "REMOVE",
 		"MATCH (n) MERGE (x:Memory {id:'y'})": "MERGE",
-		"MATCH (n) DROP TABLE memory_entries":  "DROP",
-		"MATCH (n) CALL proc()":                "CALL",
-		"MATCH (n) LOAD CSV FROM 'f.csv'":      "LOAD",
+		"MATCH (n) DROP TABLE memory_entries": "DROP",
+		"MATCH (n) CALL proc()":               "CALL",
+		"MATCH (n) LOAD CSV FROM 'f.csv'":     "LOAD",
 	}
 	for q, kw := range dangerous {
 		_, err := validateCypherQuery(q)
@@ -1440,6 +1470,47 @@ func TestValidateCypherQuery_DangerousInLowerCase(t *testing.T) {
 		_, err := validateCypherQuery(q)
 		if err == nil {
 			t.Errorf("lowercase dangerous keyword should be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_DangerousKeywordSeparatedByWhitespace(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) DELETE\nn",
+		"MATCH (n:Memory) SET\tn.x = 1 RETURN n",
+		"MATCH (n:Memory) LOAD\nCSV FROM 'file.csv'",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("dangerous keyword with non-space whitespace must be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_RejectsSQLInjectionDelimiters(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) RETURN n; MATCH (m:Memory) RETURN m",
+		"MATCH (n:Memory) RETURN n $$) AS (x ag_catalog.agtype) SELECT 1",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("query with SQL statement/dollar delimiter must be rejected: %q", q)
+		}
+	}
+}
+
+func TestValidateCypherQuery_RejectsSQLWriteKeywordsAfterMatch(t *testing.T) {
+	rejected := []string{
+		"MATCH (n:Memory) RETURN n INSERT INTO memory_links VALUES (1)",
+		"MATCH (n:Memory) RETURN n UPDATE memory_entries SET content = 'x'",
+		"MATCH (n:Memory) RETURN n ALTER TABLE memory_links ADD COLUMN x int",
+		"MATCH (n:Memory) RETURN n TRUNCATE memory_links",
+		"MATCH (n:Memory) RETURN n GRANT SELECT ON memory_entries TO public",
+		"MATCH (n:Memory) RETURN n COPY memory_entries TO STDOUT",
+	}
+	for _, q := range rejected {
+		if _, err := validateCypherQuery(q); err == nil {
+			t.Errorf("SQL write/control keyword must be rejected: %q", q)
 		}
 	}
 }
@@ -1608,6 +1679,15 @@ func TestIsAvailable_ZeroValueClient(t *testing.T) {
 	}
 }
 
+func TestIsAvailable_QueryRequiresPcmiMemoryGraph(t *testing.T) {
+	if !strings.Contains(graphAvailabilityQuery, "pcmi_memory_graph") {
+		t.Fatalf("availability query must require pcmi_memory_graph, got %q", graphAvailabilityQuery)
+	}
+	if !strings.Contains(graphAvailabilityQuery, "WHERE") {
+		t.Fatalf("availability query must not accept any AGE graph, got %q", graphAvailabilityQuery)
+	}
+}
+
 // ─── buildRelPattern (pure function, extracted from FindRelated/FindChain) ──
 
 func TestBuildRelPattern_NoLinkTypes(t *testing.T) {
@@ -1635,8 +1715,8 @@ func TestBuildRelPattern_SingleLinkType(t *testing.T) {
 	if p != "[r*1..2]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	if !strings.Contains(f, "type(r[0]) = 'causal'") {
-		t.Errorf("typeFilter must reference link type: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty when filtering happens after AGE returns paths: %q", f)
 	}
 }
 
@@ -1645,13 +1725,8 @@ func TestBuildRelPattern_MultipleLinkTypes(t *testing.T) {
 	if p != "[e*1..4]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	for _, lt := range []string{"causal", "temporal", "contradicts"} {
-		if !strings.Contains(f, lt) {
-			t.Errorf("typeFilter missing %q: %q", lt, f)
-		}
-	}
-	if !strings.Contains(f, " OR ") {
-		t.Errorf("typeFilter must contain OR: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty when filtering happens after AGE returns paths: %q", f)
 	}
 }
 
@@ -1660,8 +1735,8 @@ func TestBuildRelPattern_DepthOne(t *testing.T) {
 	if p != "[r*1..1]" {
 		t.Errorf("depth=1: got %q", p)
 	}
-	if !strings.Contains(f, "causal") {
-		t.Errorf("typeFilter: got %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
 	}
 }
 
@@ -1673,12 +1748,12 @@ func TestBuildRelPattern_DepthHigh(t *testing.T) {
 }
 
 func TestBuildRelPattern_LinkTypesWithSpecialChars(t *testing.T) {
-	_, f := buildRelPattern(3, "r", []string{"causal-injection", "has space"})
-	if !strings.Contains(f, "causal_injection") {
-		t.Errorf("dash should be sanitised to underscore: %q", f)
+	p, f := buildRelPattern(3, "r", []string{"causal-injection", "has space"})
+	if p != "[r*1..3]" {
+		t.Errorf("pattern should remain AGE-compatible and unlabelled: %q", p)
 	}
-	if !strings.Contains(f, "has_space") {
-		t.Errorf("space should be sanitised to underscore: %q", f)
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
 	}
 }
 
@@ -1688,10 +1763,34 @@ func TestBuildRelPattern_AllFiveLinkTypes(t *testing.T) {
 	if p != "[r*1..3]" {
 		t.Errorf("pattern: got %q", p)
 	}
-	for _, lt := range all {
-		if !strings.Contains(f, lt) {
-			t.Errorf("missing link type %q in: %q", lt, f)
-		}
+	if f != "" {
+		t.Errorf("typeFilter should be empty: got %q", f)
+	}
+}
+
+func TestPathMatchesLinkTypes_AllEdgesAllowed(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}},
+		{"id": 11, "label": "temporal", "properties": {}},
+		{"id": 3, "label": "Memory", "properties": {"id": "memory.3"}}
+	]`)
+	if !pathMatchesLinkTypes(path, []string{"causal", "temporal"}) {
+		t.Fatal("path with only allowed edge labels should match")
+	}
+}
+
+func TestPathMatchesLinkTypes_RejectsDisallowedEdge(t *testing.T) {
+	path := []byte(`[
+		{"id": 1, "label": "Memory", "properties": {"id": "memory.1"}},
+		{"id": 10, "label": "causal", "properties": {}},
+		{"id": 2, "label": "Memory", "properties": {"id": "memory.2"}},
+		{"id": 11, "label": "contradicts", "properties": {}},
+		{"id": 3, "label": "Memory", "properties": {"id": "memory.3"}}
+	]`)
+	if pathMatchesLinkTypes(path, []string{"causal", "temporal"}) {
+		t.Fatal("path with a disallowed edge label should not match")
 	}
 }
 

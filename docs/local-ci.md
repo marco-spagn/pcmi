@@ -36,10 +36,16 @@ No further configuration needed.
 | Container scan | `trivy-images`| `make act-trivy`| `scripts/ci/trivy_images.sh`|
 | Unit + integration + coverage | `go`| `make act-test`or Phase F | `scripts/ci/phases/a_go_static.sh`, `f_go_integration.sh`, `coverage_env.sh`|
 | HTTP/gRPC/SDK smoke | `integration-smoke`| `make act-integration-smoke`| `scripts/act_integration_smoke_host.sh`, `ci_integration_smoke.sh`|
+| Cognitive Graph matrix | `integration-graph`| `make test-cognitive-graph-matrix`| `scripts/e2e/test_cognitive_graph_matrix.sh`|
 | OpenAI E2E | `integration-e2e`| `OPENAI_API_KEY=… act -j integration-e2e`or `test-full-real`| compose + `scripts/e2e/*`|
 | SAST | CodeQL (separate workflow) | — | `.github/workflows/codeql.yml`|
 
 **Full host parity** (phases A–G, no CodeQL/E2E unless configured): `make ci-like-github`.
+
+The `integration-graph` job intentionally treats `make test-cognitive-graph-matrix`
+as the authoritative graph gate. That target owns the isolated AGE PostgreSQL,
+Redis, API startup, matrix assertions, focused graph integration tests, realistic
+load smoke, and partial AGE setup checks; any failure exits non-zero and fails CI.
 
 API version for smoke (`/v1/health`): resolved at runtime from `internal/version/version.go`via `scripts/ci/resolve_version.sh`— never pin tags in workflow YAML.
 
@@ -89,6 +95,7 @@ act -j trivy-images     # run trivy on both Docker images
 | `security`(govulncheck) |  | Identical |
 | `trivy-images`|  stub in `act`+ `make act-trivy`| Workflow skips when `ACT=true`; `make act-trivy`runs `scripts/ci/trivy_images.sh`(same Trivy flags as GitHub). |
 | `integration-smoke`|  stub in `act`+ `make act-integration-smoke`| `act`runs the job container on `host`network while service containers stay on a bridge — background API + health checks flake. When `ACT=true`, only a notice step runs; `make act-integration-smoke`runs `scripts/act_integration_smoke_host.sh`(compose + local `go build`+ same bash/Go/SDK scripts as CI). On **GitHub-hosted** runners nothing changes (`ACT`is unset). |
+| `integration-graph`|  | Runs `make test-cognitive-graph-matrix`; needs Docker, Go, `curl`, and `jq`. Graph matrix failures fail the job. |
 | `integration-e2e`(OpenAI) |  | Needs `OPENAI_API_KEY`. Pass with `act -j integration-e2e -s OPENAI_API_KEY=$OPENAI_API_KEY`|
 
 ---
@@ -132,6 +139,7 @@ make test-integration-live
 |-------|------------------------|
 | Job `go`| **No** — `GRPC_TEST_API_KEY`unset; live tests in `internal/grpc`are **skipped** |
 | Job `integration-smoke`| **Yes** — builds API on host, then `go test -tags=integration ./internal/grpc/...`with `GRPC_TEST_API_KEY=testkey123`|
+| Job `integration-graph`| **Yes** — runs `make test-cognitive-graph-matrix`; graph failures fail CI |
 | Local `make act-lint && make act-test`| **No** — same as `go`job (Postgres service only) |
 | Local `make act-integration-smoke`| **Yes** — same scripts as `integration-smoke`|
 
@@ -287,15 +295,20 @@ of the `go`job in `.github/workflows/ci.yml`:
 
 ```yaml
 - name: Enforce coverage thresholds
-  env:
-    COVERAGE_MIN_TOTAL: "22"COVERAGE_PKG_FLOORS: "config:70,event:70,eventschema:85,metrics:70"run: scripts/ci_coverage_check.sh
-```Run the same check locally before pushing:
+  run: |
+    source scripts/ci/coverage_env.sh
+    scripts/ci_coverage_check.sh
+```
+
+Run the same check locally before pushing:
 
 ```bash
 make test-cover     # writes coverage.out (race + atomic mode)
 make cover-check    # exits non-zero if any floor is missed
 make cover-report   # human-friendly per-function summary
-````scripts/ci_coverage_check.sh`parses `coverage.out`itself — no `go tool cover`
+```
+
+`scripts/ci_coverage_check.sh` parses `coverage.out` itself — no `go tool cover`
 dependency — and supports the same `COVERAGE_MIN_TOTAL`/ `COVERAGE_PKG_FLOORS`
 overrides as CI. When a PR lifts a package's coverage materially, **bump the
 floor in the same PR** so future regressions are caught.

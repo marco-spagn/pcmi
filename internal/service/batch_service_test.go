@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,5 +102,46 @@ func TestImportSkipExisting(t *testing.T) {
 	}
 	if res.Skipped != 1 || res.Imported != 0 {
 		t.Fatalf("expected skip: %+v", res)
+	}
+}
+
+func TestImportRejectsTooManyEntries(t *testing.T) {
+	repo := &mockMemoryRepo{}
+	svc := NewMemoryService(repo, nil)
+
+	entries := make([]model.StoreRequest, maxImportEntries+1)
+	for i := range entries {
+		entries[i] = model.StoreRequest{Path: "root.a", Content: "x"}
+	}
+
+	_, err := svc.Import(context.Background(), "tenant", &model.MemoryImportRequest{Entries: entries})
+	if err == nil {
+		t.Fatal("expected error for oversized import, got nil")
+	}
+	if !strings.Contains(err.Error(), "maximum") {
+		t.Fatalf("error should mention the maximum: %v", err)
+	}
+	if repo.storeCalls != 0 {
+		t.Fatalf("import must reject before any Store (fail-fast); storeCalls=%d", repo.storeCalls)
+	}
+}
+
+func TestImportAtCapIsAccepted(t *testing.T) {
+	repo := &mockMemoryRepo{}
+	svc := NewMemoryService(repo, nil)
+
+	// Use the skip path (mock GetByPath reports "exists" as present) so exactly
+	// maxImportEntries entries are processed without touching the event bus.
+	entries := make([]model.StoreRequest, maxImportEntries)
+	for i := range entries {
+		entries[i] = model.StoreRequest{Path: "exists", Content: "x"}
+	}
+
+	res, err := svc.Import(context.Background(), "tenant", &model.MemoryImportRequest{Mode: "skip", Entries: entries})
+	if err != nil {
+		t.Fatalf("import at the cap should succeed: %v", err)
+	}
+	if res.Skipped != maxImportEntries {
+		t.Fatalf("expected %d skipped, got %d", maxImportEntries, res.Skipped)
 	}
 }

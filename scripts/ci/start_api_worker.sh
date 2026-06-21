@@ -15,6 +15,9 @@ export PCMI_ENCRYPTION_KEY="${PCMI_ENCRYPTION_KEY:-01234567890123456789012345678
 export PRUNE_INTERVAL_SECS="${PRUNE_INTERVAL_SECS:-3600}"
 export EXPIRY_INTERVAL_SECS="${EXPIRY_INTERVAL_SECS:-2}"
 export WEBHOOK_MAX_ATTEMPTS="${WEBHOOK_MAX_ATTEMPTS:-2}"
+# Integration smoke registers webhooks at 127.0.0.1 receivers; allow private
+# targets in this test launcher only (production blocks them by default).
+export WEBHOOK_ALLOW_PRIVATE_TARGETS="${WEBHOOK_ALLOW_PRIVATE_TARGETS:-true}"
 
 go build -o bin/pcmi-api ./cmd/api
 go build -o bin/pcmi-worker ./cmd/worker

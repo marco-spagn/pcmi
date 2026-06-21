@@ -30,6 +30,7 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 | Topic | Document / command |
 |-------|------------------|
 | Redis Streams (`EVENT_BACKEND`) | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md), `make test-streams-integration` |
+| Multi-LLM provider (`LLM_PROVIDER`) | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md#cambiare-provider-llm) — OpenAI / Grok / Claude / DeepSeek |
 | Embedding circuit breaker | [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md), `make test-circuit-breaker` |
 | Distributed rate limit | [USAGE.md](USAGE.md) (`RATE_LIMIT_BACKEND=redis`), `make test-ratelimit-integration` |
 | Metrics scrape auth | [USAGE.md](USAGE.md) (`METRICS_SCRAPE_TOKEN`) |

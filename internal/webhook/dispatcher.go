@@ -22,12 +22,12 @@ type webhookDB interface {
 }
 
 type Dispatcher struct {
-	db           webhookDB
-	client       *http.Client
-	maxAttempts  int
-	retryBase    time.Duration
-	stopCh       chan struct{}
-	wg           sync.WaitGroup
+	db          webhookDB
+	client      *http.Client
+	maxAttempts int
+	retryBase   time.Duration
+	stopCh      chan struct{}
+	wg          sync.WaitGroup
 }
 
 func NewDispatcher(db webhookDB, maxAttempts int) *Dispatcher {
@@ -35,10 +35,8 @@ func NewDispatcher(db webhookDB, maxAttempts int) *Dispatcher {
 		maxAttempts = 5
 	}
 	d := &Dispatcher{
-		db: db,
-		client: &http.Client{
-			Timeout: 8 * time.Second,
-		},
+		db:          db,
+		client:      GuardedHTTPClient(8 * time.Second),
 		maxAttempts: maxAttempts,
 		retryBase:   2 * time.Second,
 		stopCh:      make(chan struct{}),

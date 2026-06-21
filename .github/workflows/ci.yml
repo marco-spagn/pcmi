@@ -9,7 +9,7 @@
 # Wave 2 (after Wave 1 subsets):
 #   integration-smoke  → needs [go, golangci-lint, security, trivy-images]
 #   integration-e2e    → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; no retry)
-#   integration-graph  → needs [go, golangci-lint]  (cognitive graph v2.0 + integration coverage)
+#   integration-graph  → needs [go, golangci-lint]  (complete cognitive graph matrix gate)
 # CodeQL: separate workflow (.github/workflows/codeql.yml)
 # Local parity: make ci-like-github → scripts/ci_like_github.sh (phases A–G)
 # Version for smoke: scripts/ci/resolve_version.sh (internal/version/version.go)
@@ -63,7 +63,7 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.12.2
 
@@ -99,28 +99,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.14.0
-
-      - name: helm lint --strict
-        run: helm lint deploy/helm/pcmi --strict
-
-      - name: helm template (renders default values)
-        run: helm template pcmi deploy/helm/pcmi > /tmp/pcmi-rendered.yaml
-
-      - name: Install kubeconform
-        run: |
-          curl -sSLo kubeconform.tar.gz \
-            "https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz"
-          tar -xzf kubeconform.tar.gz kubeconform
-          sudo mv kubeconform /usr/local/bin/
-
-      - name: kubeconform validate
-        run: |
-          kubeconform -summary -strict -schema-location default \
-            /tmp/pcmi-rendered.yaml
+      - name: Helm + kubeconform validation
+        run: scripts/ci/phases/d_helm.sh
 
   trivy-images:
     name: Trivy image scan (API + Worker)
@@ -595,20 +575,10 @@ jobs:
         run: docker compose down -v --remove-orphans
 
   integration-graph:
-    name: Integration graph (postgres-age + Redis + Go integration coverage)
+    name: Integration graph (complete AGE matrix)
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     needs: [go, golangci-lint]
-    services:
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     steps:
       - uses: actions/checkout@v6
 
@@ -617,67 +587,25 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+      - name: Install graph matrix tooling
+        run: sudo apt-get update && sudo apt-get install -y jq curl
 
-      - name: Build postgres-age image
-        run: |
-          docker build -f docker/postgres-age/Dockerfile.postgres-age -t pcmi-postgres-age:ci .
-
-      - name: Start postgres-age + apply migrations
-        run: |
-          docker rm -f pcmi-pg-age 2>/dev/null || true
-          docker run -d --name pcmi-pg-age \
-            -e POSTGRES_DB=pcmi \
-            -e POSTGRES_USER=pcmi \
-            -e POSTGRES_PASSWORD=pcmi \
-            -p 5433:5432 \
-            pcmi-postgres-age:ci
-          # Wait for Postgres.
-          for i in $(seq 1 30); do
-            if docker exec pcmi-pg-age pg_isready -U pcmi >/dev/null 2>&1; then
-              break
-            fi
-            sleep 2
-          done
-          # Mount and apply all migrations.
-          for f in migrations/0*.sql; do
-            docker cp "$f" pcmi-pg-age:/tmp/$(basename "$f")
-            docker exec pcmi-pg-age psql -U pcmi -d pcmi -f /tmp/$(basename "$f") 2>/dev/null || true
-          done
-          docker exec pcmi-pg-age rm /tmp/*.sql 2>/dev/null || true
-          # Verify AGE is available.
-          docker exec pcmi-pg-age psql -U pcmi -d pcmi -c "SELECT 1 FROM ag_catalog.ag_graph LIMIT 1" || true
-
-      - name: Run graph integration tests with coverage
+      - name: Complete cognitive graph matrix
         env:
-          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5433/pcmi?sslmode=disable
+          REALISTIC_SMOKE_LIMIT: "180"
         run: |
-          go test -tags=integration -count=1 -coverprofile=graph_integration.out -coverpkg=./internal/graph/... ./internal/graph/...
-          go tool cover -func=graph_integration.out | tail -5
+          make test-cognitive-graph-matrix
 
-      - name: Upload graph integration coverage
-        if: always()
+      - name: Upload graph matrix logs on failure
+        if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: graph-integration-coverage-${{ github.run_id }}
-          path: graph_integration.out
-          retention-days: 14
-
-      - name: Run cognitive graph E2E smoke test
-        env:
-          REDIS_ADDR: localhost:6379
-          API_KEY: testkey123
-          AGE_PORT: "5433"
-        run: |
-          # Override: use the already-running postgres-age instead of starting a new one
-          AGE_IMAGE=pcmi-postgres-age:ci \
-          bash scripts/e2e/test_cognitive_graph.sh || true
-
-      - name: Force cleanup
-        if: always()
-        run: |
-          docker rm -f pcmi-pg-age 2>/dev/null || true
+          name: graph-matrix-logs-${{ github.run_id }}
+          path: |
+            /tmp/graph-matrix-*.log
+            /tmp/graph-realistic-load-smoke.log
+          retention-days: 7
+          if-no-files-found: ignore
 
   # ───────────────────────────────────────────────────────────────────────────
   # Bug-hunt — non-redundant phases only (daily + manual + commit tag)

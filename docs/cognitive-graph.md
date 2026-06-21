@@ -403,6 +403,52 @@ go test ./internal/... -count=1 -coverprofile=coverage.out
 go tool cover -func=coverage.out | grep graph
 ```
 
+### Exhaustive graph matrix
+
+Use this when you want deterministic coverage of the graph API surface rather than demo data volume:
+
+```bash
+make test-cognitive-graph-matrix
+```
+
+The target starts an isolated AGE PostgreSQL, Redis, and PCMI API, then loads [`examples/cognitive-graph-test-matrix/graph_matrix.json`](../examples/cognitive-graph-test-matrix/graph_matrix.json) through the public HTTP API. It validates all five link types, mixed multi-hop paths, `link_types` filtering across every edge in a path, cursor pagination, directionality negatives, cycles with depth limits, self-loop traversal and chain behavior, isolated nodes, Cypher read-only passthrough, and invalid request handling.
+
+The same target also runs focused `-tags=integration` graph tests against the temporary AGE database for multi-tenant Cypher isolation, duplicate-path deduplication, numeric pagination across `memory.9` / `memory.10` boundaries, stale AGE edge cleanup after `memory_links` deletion, realistic dataset load smoke, and partial AGE setup (`pcmi_memory_graph` missing → health unavailable and traversal endpoints return 501).
+
+Coverage checklist:
+
+- Multi-tenant isolation across graph traversal assumptions and multi-alias Cypher passthrough.
+- Duplicate-path traversal deduplication with shortest-depth selection.
+- Numeric cursor pagination independent of lexicographic `memory.<id>` ordering.
+- Graph drift cleanup when `memory_links` rows are deleted.
+- AGE partial setup / missing `pcmi_memory_graph` graceful degradation.
+- Cypher hardening for write keywords, SQL statement separators, dollar-quote delimiters, and newline/tab keyword bypasses.
+- `link_types` filtering across every edge in a multi-hop path.
+- Cycle traversal with explicit depth limits.
+- Self-loop traversal and self-chain behavior.
+- Realistic dataset load smoke through the public API.
+- SOC loader structural tests for stale `id_map.json`, partial `--limit` loads, and link selection.
+
+### Realistic large dataset
+
+Use this when you want a larger graph that behaves like a real SOC / incident-response case-management workload:
+
+```bash
+make graph-realistic-validate
+```
+
+The ready-to-load dataset lives at [`examples/cognitive-graph-realistic/graph_realistic_large.json`](../examples/cognitive-graph-realistic/graph_realistic_large.json). It contains 1200 nodes and 1389 links across multi-stage campaigns, alerts, evidence notes, hypotheses, postmortems, false positives, benign true positives, duplicates, weak correlations, isolated low-signal alerts, all five link types, and 13 MITRE tactics. Regenerate it with:
+
+```bash
+make graph-realistic-generate
+```
+
+With a live API already running, load a realistic smoke sample through the public API:
+
+```bash
+REALISTIC_SMOKE_LIMIT=250 make graph-realistic-smoke
+```
+
 ---
 
 ## SOC Incident Dataset (1000 nodes + 1333 links)
@@ -451,6 +497,12 @@ python3 load_to_pcmi.py --limit 100
 
 # Full load (Ctrl+C safe — resumable)
 python3 load_to_pcmi.py --batch 50 --link-workers 16
+```
+
+Structural loader checks, no live API required:
+
+```bash
+make graph-soc-loader-test
 ```
 
 ---

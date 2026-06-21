@@ -105,7 +105,10 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 	}
 
 	// Sync links to AGE graph.
-	for _, l := range []struct{ from, to int64; lt string }{
+	for _, l := range []struct {
+		from, to int64
+		lt       string
+	}{
 		{ids[0], ids[1], "causal"},
 		{ids[1], ids[2], "causal"},
 		{ids[0], ids[2], "supports"},
@@ -122,6 +125,72 @@ func seedGraph(t *testing.T, pool *pgxpool.Pool, tenantID string) (a, b, c int64
 	}
 
 	return ids[0], ids[1], ids[2]
+}
+
+func seedTenant(t *testing.T, pool *pgxpool.Pool, tenantID string) {
+	t.Helper()
+	ctx := context.Background()
+	slug := "graph-int-" + tenantID[strings.LastIndex(tenantID, "-")+1:]
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO tenants (id, slug, name, settings)
+		VALUES ($1::uuid, $2, 'graph-int-test', '{}')
+		ON CONFLICT (id) DO NOTHING`,
+		tenantID, slug,
+	); err != nil {
+		t.Fatalf("seed tenant: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `SELECT set_tenant_context($1::uuid)`, tenantID); err != nil {
+		t.Fatalf("set_tenant_context: %v", err)
+	}
+}
+
+func insertMemoryWithID(t *testing.T, pool *pgxpool.Pool, tenantID string, id int64, path, content string) {
+	t.Helper()
+	_, err := pool.Exec(context.Background(), `
+		INSERT INTO memory_entries (id, tenant_id, path, content, embedding_model)
+		VALUES ($1, $2::uuid, $3::ltree, $4, 'text-embedding-3-small')
+		ON CONFLICT (id) DO UPDATE
+		    SET tenant_id = EXCLUDED.tenant_id,
+		        path = EXCLUDED.path,
+		        content = EXCLUDED.content,
+		        embedding_model = EXCLUDED.embedding_model`,
+		id, tenantID, path, content,
+	)
+	if err != nil {
+		t.Fatalf("insert memory %d: %v", id, err)
+	}
+}
+
+func insertGraphLink(t *testing.T, pool *pgxpool.Pool, tenantID string, fromID, toID int64, linkType string) {
+	t.Helper()
+	ctx := context.Background()
+	fromPath := fmt.Sprintf("memory.%d", fromID)
+	toPath := fmt.Sprintf("memory.%d", toID)
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO memory_links (tenant_id, from_path, to_path, link_type, metadata)
+		VALUES ($1::uuid, $2::ltree, $3::ltree, $4, jsonb_build_object('weight', 1.0))
+		ON CONFLICT (tenant_id, from_path, to_path, link_type) DO UPDATE
+		    SET metadata = EXCLUDED.metadata`,
+		tenantID, fromPath, toPath, linkType,
+	); err != nil {
+		t.Fatalf("insert link %d-[%s]->%d: %v", fromID, linkType, toID, err)
+	}
+	if _, err := pool.Exec(ctx,
+		`SELECT public.sync_memory_link_to_graph($1, $2, $3, $4, $5::uuid)`,
+		fromPath, toPath, linkType, 1.0, tenantID,
+	); err != nil {
+		t.Fatalf("sync link %d-[%s]->%d: %v", fromID, linkType, toID, err)
+	}
+}
+
+func rowsContainMemoryID(rows []map[string]interface{}, id int64) bool {
+	needle := fmt.Sprintf("memory.%d", id)
+	for _, row := range rows {
+		if strings.Contains(fmt.Sprint(row), needle) {
+			return true
+		}
+	}
+	return false
 }
 
 // ─── Integration tests ─────────────────────────────────────────────────────
@@ -158,6 +227,174 @@ func TestIntegration_FindRelated_WithRealDB(t *testing.T) {
 		a, len(result.Memories), result.Total, result.NextCursor)
 	if len(result.Memories) == 0 {
 		t.Error("expected at least 1 related memory")
+	}
+}
+
+func TestIntegration_FindRelated_DeduplicatesMultiplePaths(t *testing.T) {
+	pool := realDB(t)
+	gc := NewGraphClient(pool)
+	ctx := context.Background()
+
+	if !gc.IsAvailable(ctx) {
+		t.Skip("AGE not available — skipping duplicate-path integration test")
+	}
+
+	tenantID := "00000000-0000-0000-0000-00000000aa11"
+	a, b, c := seedGraph(t, pool, tenantID)
+
+	result, err := gc.FindRelated(ctx, tenantID, a, nil, 3, 0, 50)
+	if err != nil {
+		t.Fatalf("FindRelated: %v", err)
+	}
+	seen := map[int64]int{}
+	depthByID := map[int64]int{}
+	for _, memory := range result.Memories {
+		seen[memory.ID]++
+		depthByID[memory.ID] = memory.Depth
+	}
+	if seen[b] != 1 {
+		t.Fatalf("direct neighbor b should appear once, got %d entries: %#v", seen[b], result.Memories)
+	}
+	if seen[c] != 1 {
+		t.Fatalf("target c reachable by direct and multi-hop paths should be deduplicated, got %d entries: %#v", seen[c], result.Memories)
+	}
+	if depthByID[c] != 1 {
+		t.Fatalf("deduplicated target c should keep shortest depth=1 via direct supports edge, got %d", depthByID[c])
+	}
+	if result.Total != 2 {
+		t.Fatalf("total should count unique related memories, got %d", result.Total)
+	}
+}
+
+func TestIntegration_FindRelated_NumericPaginationBoundary(t *testing.T) {
+	pool := realDB(t)
+	gc := NewGraphClient(pool)
+	ctx := context.Background()
+
+	if !gc.IsAvailable(ctx) {
+		t.Skip("AGE not available — skipping numeric pagination integration test")
+	}
+
+	tenantID := "00000000-0000-0000-0000-00000000aa12"
+	seedTenant(t, pool, tenantID)
+	base := (time.Now().UnixNano() / 1_000_000) * 100
+	hubID := base
+	targetIDs := []int64{base + 8, base + 9, base + 10, base + 11, base + 12}
+
+	insertMemoryWithID(t, pool, tenantID, hubID, fmt.Sprintf("root.graph_int.pagination.hub_%d", hubID), "Graph pagination hub")
+	for _, id := range targetIDs {
+		insertMemoryWithID(t, pool, tenantID, id, fmt.Sprintf("root.graph_int.pagination.node_%d", id), fmt.Sprintf("Graph pagination target %d", id))
+		insertGraphLink(t, pool, tenantID, hubID, id, LinkTypeRelated)
+	}
+
+	var got []int64
+	cursor := int64(0)
+	for {
+		page, err := gc.FindRelated(ctx, tenantID, hubID, []string{LinkTypeRelated}, 1, cursor, 2)
+		if err != nil {
+			t.Fatalf("FindRelated page cursor=%d: %v", cursor, err)
+		}
+		for _, memory := range page.Memories {
+			got = append(got, memory.ID)
+		}
+		if page.NextCursor == 0 {
+			break
+		}
+		if page.NextCursor <= cursor {
+			t.Fatalf("next cursor must advance numerically: old=%d new=%d", cursor, page.NextCursor)
+		}
+		cursor = page.NextCursor
+	}
+	if len(got) != len(targetIDs) {
+		t.Fatalf("expected %d paginated targets, got %d: %v", len(targetIDs), len(got), got)
+	}
+	for i, want := range targetIDs {
+		if got[i] != want {
+			t.Fatalf("numeric pagination order mismatch at %d: got %v want %v", i, got, targetIDs)
+		}
+	}
+}
+
+func TestIntegration_ExecuteCypher_MultiTenantIsolation(t *testing.T) {
+	pool := realDB(t)
+	gc := NewGraphClient(pool)
+	ctx := context.Background()
+
+	if !gc.IsAvailable(ctx) {
+		t.Skip("AGE not available — skipping multi-tenant Cypher integration test")
+	}
+
+	tenantA := "00000000-0000-0000-0000-00000000aa13"
+	tenantB := "00000000-0000-0000-0000-00000000aa14"
+	a, _, _ := seedGraph(t, pool, tenantA)
+	b, _, _ := seedGraph(t, pool, tenantB)
+
+	result, err := gc.ExecuteCypher(ctx, tenantA, "MATCH (a:Memory), (b:Memory) RETURN b.id LIMIT 100")
+	if err != nil {
+		t.Fatalf("ExecuteCypher multi-alias query: %v", err)
+	}
+	if rowsContainMemoryID(result.Rows, b) {
+		t.Fatalf("tenant A Cypher query leaked tenant B memory id %d in rows: %#v", b, result.Rows)
+	}
+	if !rowsContainMemoryID(result.Rows, a) {
+		t.Fatalf("tenant A Cypher query should still return tenant A memory id %d, rows: %#v", a, result.Rows)
+	}
+}
+
+func TestIntegration_MemoryLinkDeleteRemovesAGEEdge(t *testing.T) {
+	pool := realDB(t)
+	gc := NewGraphClient(pool)
+	ctx := context.Background()
+
+	if !gc.IsAvailable(ctx) {
+		t.Skip("AGE not available — skipping graph drift integration test")
+	}
+
+	tenantID := "00000000-0000-0000-0000-00000000aa15"
+	seedTenant(t, pool, tenantID)
+	base := (time.Now().UnixNano() / 1_000_000) * 100
+	fromID := base + 20
+	toID := base + 21
+	fromPath := fmt.Sprintf("memory.%d", fromID)
+	toPath := fmt.Sprintf("memory.%d", toID)
+
+	insertMemoryWithID(t, pool, tenantID, fromID, fmt.Sprintf("root.graph_int.drift.from_%d", fromID), "Graph drift source")
+	insertMemoryWithID(t, pool, tenantID, toID, fmt.Sprintf("root.graph_int.drift.to_%d", toID), "Graph drift target")
+	insertGraphLink(t, pool, tenantID, fromID, toID, LinkTypeCausal)
+
+	before, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50)
+	if err != nil {
+		t.Fatalf("FindRelated before delete: %v", err)
+	}
+	foundBefore := false
+	for _, memory := range before.Memories {
+		if memory.ID == toID {
+			foundBefore = true
+		}
+	}
+	if !foundBefore {
+		t.Fatalf("expected target %d before deleting SQL link, got %#v", toID, before.Memories)
+	}
+
+	if _, err := pool.Exec(ctx, `
+		DELETE FROM memory_links
+		WHERE tenant_id = $1::uuid
+		  AND from_path = $2::ltree
+		  AND to_path = $3::ltree
+		  AND link_type = $4`,
+		tenantID, fromPath, toPath, LinkTypeCausal,
+	); err != nil {
+		t.Fatalf("delete memory link: %v", err)
+	}
+
+	after, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50)
+	if err != nil {
+		t.Fatalf("FindRelated after delete: %v", err)
+	}
+	for _, memory := range after.Memories {
+		if memory.ID == toID {
+			t.Fatalf("deleted SQL link still appears in AGE traversal: %#v", after.Memories)
+		}
 	}
 }
 

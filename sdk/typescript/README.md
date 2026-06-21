@@ -4,17 +4,17 @@
 
 ## Install
 
-The `@marco-spagn/pcmi-sdk` package is published to npm on each GitHub Release. Until the first publish, install from this directory:
+The [`@marco-spagn/pcmi-sdk`](https://www.npmjs.com/package/@marco-spagn/pcmi-sdk) package is published to npm on each GitHub Release:
+
+```bash
+npm install @marco-spagn/pcmi-sdk
+```
+
+For local SDK development from this directory:
 
 ```bash
 npm ci
 npm run build
-```
-
-After publish:
-
-```bash
-npm install @marco-spagn/pcmi-sdk
 ```
 
 Smoke tests (local checkout):

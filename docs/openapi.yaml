@@ -248,6 +248,9 @@ paths:
   /v1/memories/import:
     post:
       summary: Import memories (skip or overwrite existing paths)
+      description: >
+        Imports up to 1000 entries per request. Larger datasets must be split
+        across multiple calls; exceeding the limit returns 400.
       requestBody:
         content:
           application/json:
@@ -257,11 +260,14 @@ paths:
                 mode: { type: string, enum: [skip, overwrite], default: skip }
                 entries:
                   type: array
+                  maxItems: 1000
                   items:
                     $ref: "#/components/schemas/StoreMemoryRequest"
       responses:
         "200":
           description: Import results
+        "400":
+          description: Too many entries (max 1000) or invalid request
   /v1/memories/{path}:
     get:
       summary: Get a single memory by path (optional version or as_of)

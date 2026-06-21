@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ type GraphClient struct {
 	db           *pgxpool.Pool
 	queryTimeout time.Duration
 }
+
+const graphAvailabilityQuery = "SELECT 1 FROM ag_catalog.ag_graph WHERE name = 'pcmi_memory_graph' LIMIT 1"
 
 // NewGraphClient returns a GraphClient backed by db with a default 30s query timeout.
 func NewGraphClient(db *pgxpool.Pool) *GraphClient {
@@ -39,11 +42,14 @@ func (g *GraphClient) IsAvailable(ctx context.Context) bool {
 	if g == nil || g.db == nil {
 		return false
 	}
-	rows, err := g.db.Query(ctx, "SELECT * FROM ag_catalog.ag_graph LIMIT 1")
+	rows, err := g.db.Query(ctx, graphAvailabilityQuery)
 	if err != nil {
 		return false
 	}
-	rows.Close()
+	defer rows.Close()
+	if !rows.Next() {
+		return false
+	}
 	return rows.Err() == nil
 }
 
@@ -98,36 +104,17 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	defer conn.Release()
 
-	relPattern, typeFilter := buildRelPattern(maxDepth, "r", linkTypes)
+	relPattern, _ := buildRelPattern(maxDepth, "r", nil)
 	idStr := fmt.Sprintf("memory.%d", memoryID)
+	tenantLiteral := escapeCypherString(tenantID)
 
-	// Count query.
-	countQuery := fmt.Sprintf(`
-		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
-			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
-			WHERE n.id IS NOT NULL%s
-			RETURN count(n)
-		$$) AS (cnt ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, typeFilter,
-	)
-
-	var total int
-	var cntRaw []byte
-	if err := conn.QueryRow(queryCtx, countQuery).Scan(&cntRaw); err == nil {
-		total, _ = strconv.Atoi(strings.Trim(string(cntRaw), `"`))
-	}
-
-	// Data query with keyset pagination. Fetch limit+1 to detect has_more.
-	cursorClause := buildCursorClause(cursor)
 	dataQuery := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
-			MATCH (m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
-			WHERE n.id IS NOT NULL%s%s
-			RETURN n.id, type(r[0]), size(r)
-			ORDER BY n.id
-			LIMIT %d
-		$$) AS (id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
-		idStr, tenantID, relPattern, typeFilter, cursorClause, limit+1,
+			MATCH p=(m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
+			WHERE n.id IS NOT NULL AND n.tenant_id = '%s'
+			RETURN p, n.id, type(r[0]), size(r)
+		$$) AS (path ag_catalog.agtype, id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
+		idStr, tenantLiteral, relPattern, tenantLiteral,
 	)
 
 	rows, err := conn.Query(queryCtx, dataQuery)
@@ -137,22 +124,41 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	defer rows.Close()
 
 	var all []RelatedMemory
+	seen := make(map[int64]RelatedMemory)
+	total := 0
 	for rows.Next() {
-		var idRaw, ltRaw, depthRaw []byte
-		if err := rows.Scan(&idRaw, &ltRaw, &depthRaw); err != nil {
+		var pathRaw, idRaw, ltRaw, depthRaw []byte
+		if err := rows.Scan(&pathRaw, &idRaw, &ltRaw, &depthRaw); err != nil {
 			return nil, fmt.Errorf("graph FindRelated scan: %w", err)
+		}
+		if !pathMatchesLinkTypes(pathRaw, linkTypes) {
+			continue
 		}
 		id, _ := parseMemoryVertexID(string(idRaw))
 		depth, _ := strconv.Atoi(strings.Trim(string(depthRaw), `"`))
-		all = append(all, RelatedMemory{
+		candidate := RelatedMemory{
 			ID:       id,
 			LinkType: strings.Trim(string(ltRaw), `"`),
 			Depth:    depth,
-		})
+		}
+		if existing, ok := seen[id]; !ok || candidate.Depth < existing.Depth || (candidate.Depth == existing.Depth && candidate.LinkType < existing.LinkType) {
+			seen[id] = candidate
+		}
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("graph FindRelated rows: %w", err)
 	}
+
+	for _, memory := range seen {
+		if memory.ID <= cursor {
+			continue
+		}
+		all = append(all, memory)
+	}
+	sort.Slice(all, func(i, j int) bool {
+		return all[i].ID < all[j].ID
+	})
+	total = len(seen)
 
 	var nextCursor int64
 	if len(all) > limit {
@@ -186,20 +192,20 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 	}
 	defer conn.Release()
 
-	relPattern, typeFilter := buildRelPattern(maxDepth, "e", linkTypes)
+	relPattern, _ := buildRelPattern(maxDepth, "e", nil)
 
 	fromStr := fmt.Sprintf("memory.%d", fromID)
 	toStr := fmt.Sprintf("memory.%d", toID)
+	tenantLiteral := escapeCypherString(tenantID)
 
 	query := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
 			MATCH p=(a:Memory {id: '%s', tenant_id: '%s'})-%s->(b:Memory {id: '%s', tenant_id: '%s'})
-			WHERE a.id IS NOT NULL%s
+			WHERE a.id IS NOT NULL
 			RETURN p, length(p)
 			ORDER BY length(p) ASC
-			LIMIT 1
 		$$) AS (path ag_catalog.agtype, hops ag_catalog.agtype)`,
-		fromStr, tenantID, relPattern, toStr, tenantID, typeFilter,
+		fromStr, tenantLiteral, relPattern, toStr, tenantLiteral,
 	)
 
 	rows, err := conn.Query(queryCtx, query)
@@ -208,23 +214,22 @@ func (g *GraphClient) FindChain(ctx context.Context, tenantID string, fromID, to
 	}
 	defer rows.Close()
 
-	if !rows.Next() {
+	for rows.Next() {
+		var pathRaw, hopsRaw []byte
+		if err := rows.Scan(&pathRaw, &hopsRaw); err != nil {
+			return nil, fmt.Errorf("graph FindChain scan: %w", err)
+		}
+		if !pathMatchesLinkTypes(pathRaw, linkTypes) {
+			continue
+		}
+		result.Connected = true
+		result.Hops, _ = strconv.Atoi(strings.Trim(string(hopsRaw), `"`))
+		result.Path = parseAGEPath(pathRaw)
 		return result, nil
 	}
-
-	var pathRaw, hopsRaw []byte
-	if err := rows.Scan(&pathRaw, &hopsRaw); err != nil {
-		return nil, fmt.Errorf("graph FindChain scan: %w", err)
-	}
-	if rows.Err() != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("graph FindChain rows: %w", err)
 	}
-
-	result.Connected = true
-	result.Hops, _ = strconv.Atoi(strings.Trim(string(hopsRaw), `"`))
-
-	chainLinks := parseAGEPath(pathRaw)
-	result.Path = chainLinks
 
 	return result, nil
 }
@@ -356,40 +361,41 @@ func validateCypherQuery(query string) (string, error) {
 	if trimmed == "" {
 		return "", fmt.Errorf("query must not be empty")
 	}
+	if strings.Contains(trimmed, "$$") {
+		return "", fmt.Errorf("dollar-quote delimiters are not allowed in Cypher passthrough queries")
+	}
+	if strings.Contains(trimmed, ";") {
+		return "", fmt.Errorf("multiple statements are not allowed in Cypher passthrough queries")
+	}
 	upper := strings.ToUpper(trimmed)
 	if !strings.HasPrefix(upper, "MATCH") {
 		return "", fmt.Errorf("only MATCH queries are allowed in Cypher passthrough")
 	}
-	dangerous := []string{"CREATE ", "DELETE ", "SET ", "REMOVE ", "MERGE ", "DROP ", "CALL ", "LOAD "}
-	for _, kw := range dangerous {
-		if strings.Contains(upper, kw) {
-			return "", fmt.Errorf("keyword %s is not allowed in Cypher passthrough queries", strings.TrimSpace(kw))
+	dangerous := map[string]struct{}{
+		"ALTER": {}, "CALL": {}, "COPY": {}, "CREATE": {}, "DELETE": {}, "DROP": {}, "GRANT": {},
+		"INSERT": {}, "LOAD": {}, "MERGE": {}, "REMOVE": {}, "REVOKE": {}, "SET": {}, "TRUNCATE": {},
+		"UPDATE": {}, "VACUUM": {},
+	}
+	for _, token := range cypherKeywordTokens(upper) {
+		if _, ok := dangerous[token]; ok {
+			return "", fmt.Errorf("keyword %s is not allowed in Cypher passthrough queries", token)
 		}
 	}
 	return trimmed, nil
 }
 
+func cypherKeywordTokens(query string) []string {
+	return strings.FieldsFunc(query, func(r rune) bool {
+		return (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_'
+	})
+}
+
 // autoTenantScopeCypher injects a tenant_id filter into a read-only Cypher query.
 func autoTenantScopeCypher(query, tenantID string) (string, error) {
-	alias := ""
 	upper := strings.ToUpper(query)
-	memIdx := strings.Index(upper, ":MEMORY")
-	if memIdx < 0 {
-		return "", fmt.Errorf("query must reference at least one :Memory node for tenant scoping")
-	}
-
-	parenIdx := strings.LastIndex(query[:memIdx], "(")
-	if parenIdx < 0 {
-		return "", fmt.Errorf("invalid MATCH pattern: missing ( before :Memory")
-	}
-	aliasPart := strings.TrimSpace(query[parenIdx+1 : memIdx])
-	if idx := strings.IndexAny(aliasPart, " :{"); idx >= 0 {
-		alias = aliasPart[:idx]
-	} else {
-		alias = aliasPart
-	}
-	if alias == "" {
-		return "", fmt.Errorf("could not determine Memory node alias for tenant scoping")
+	aliases, err := memoryAliases(query)
+	if err != nil {
+		return "", err
 	}
 
 	returnIdx := strings.Index(upper, "RETURN")
@@ -397,17 +403,57 @@ func autoTenantScopeCypher(query, tenantID string) (string, error) {
 		return "", fmt.Errorf("query must contain a RETURN clause")
 	}
 
-	tenantFilter := fmt.Sprintf("%s.tenant_id = '%s'", alias, tenantID)
+	tenantLiteral := escapeCypherString(tenantID)
+	filters := make([]string, 0, len(aliases))
+	for _, alias := range aliases {
+		filters = append(filters, fmt.Sprintf("%s.tenant_id = '%s'", alias, tenantLiteral))
+	}
+	tenantFilter := strings.Join(filters, " AND ")
 
 	whereIdx := strings.Index(upper, "WHERE")
 	if whereIdx >= 0 && whereIdx < returnIdx {
-		suffix := query[whereIdx+5:]
-		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + suffix + ")"
+		existingWhere := strings.TrimSpace(query[whereIdx+5 : returnIdx])
+		query = query[:whereIdx+5] + " " + tenantFilter + " AND (" + existingWhere + ") " + query[returnIdx:]
 	} else {
 		query = query[:returnIdx] + "WHERE " + tenantFilter + " " + query[returnIdx:]
 	}
 
 	return query, nil
+}
+
+func memoryAliases(query string) ([]string, error) {
+	upper := strings.ToUpper(query)
+	seen := make(map[string]struct{})
+	var aliases []string
+	offset := 0
+	for {
+		relIdx := strings.Index(upper[offset:], ":MEMORY")
+		if relIdx < 0 {
+			break
+		}
+		memIdx := offset + relIdx
+		parenIdx := strings.LastIndex(query[:memIdx], "(")
+		if parenIdx < 0 {
+			return nil, fmt.Errorf("invalid MATCH pattern: missing ( before :Memory")
+		}
+		aliasPart := strings.TrimSpace(query[parenIdx+1 : memIdx])
+		if idx := strings.IndexAny(aliasPart, " :{"); idx >= 0 {
+			aliasPart = aliasPart[:idx]
+		}
+		alias := strings.TrimSpace(aliasPart)
+		if alias == "" {
+			return nil, fmt.Errorf("could not determine Memory node alias for tenant scoping")
+		}
+		if _, ok := seen[alias]; !ok {
+			seen[alias] = struct{}{}
+			aliases = append(aliases, alias)
+		}
+		offset = memIdx + len(":MEMORY")
+	}
+	if len(aliases) == 0 {
+		return nil, fmt.Errorf("query must reference at least one :Memory node for tenant scoping")
+	}
+	return aliases, nil
 }
 
 // CreateLink inserts a link into memory_links and syncs it to the AGE graph.
@@ -453,16 +499,7 @@ func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, to
 // buildRelPattern builds the Cypher relationship pattern and WHERE type filter
 // for graph traversals.  relVar is the edge variable name ("r" or "e").
 func buildRelPattern(maxDepth int, relVar string, linkTypes []string) (string, string) {
-	pattern := fmt.Sprintf("[%s*1..%d]", relVar, maxDepth)
-	typeFilter := ""
-	if len(linkTypes) > 0 {
-		parts := make([]string, len(linkTypes))
-		for i, lt := range linkTypes {
-			parts[i] = fmt.Sprintf("type(%s[0]) = '%s'", relVar, sanitizeLinkType(lt))
-		}
-		typeFilter = fmt.Sprintf(" AND (%s)", strings.Join(parts, " OR "))
-	}
-	return pattern, typeFilter
+	return fmt.Sprintf("[%s*1..%d]", relVar, maxDepth), ""
 }
 
 // buildCursorClause returns a Cypher WHERE fragment for keyset pagination.
@@ -490,4 +527,34 @@ func sanitizeLinkType(lt string) string {
 		}
 	}
 	return b.String()
+}
+
+func escapeCypherString(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	return strings.ReplaceAll(s, `'`, `\'`)
+}
+
+func pathMatchesLinkTypes(raw []byte, linkTypes []string) bool {
+	if len(linkTypes) == 0 {
+		return true
+	}
+	allowed := make(map[string]struct{}, len(linkTypes))
+	for _, lt := range linkTypes {
+		if sanitized := sanitizeLinkType(lt); sanitized != "" {
+			allowed[sanitized] = struct{}{}
+		}
+	}
+	if len(allowed) == 0 {
+		return true
+	}
+	links := parseAGEPath(raw)
+	if len(links) == 0 {
+		return false
+	}
+	for _, link := range links {
+		if _, ok := allowed[link.LinkType]; !ok {
+			return false
+		}
+	}
+	return true
 }

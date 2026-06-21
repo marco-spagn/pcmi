@@ -12,40 +12,31 @@ import (
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
-	"github.com/sashabaranov/go-openai"
 )
 
 type DistillationWorker struct {
-	db         workerDB
-	openai     *openai.Client
-	modelName  string
-	apiKey     string
-	batchSize  int
-	sem        chan struct{}
+	db        workerDB
+	llm       LLMClient
+	batchSize int
+	sem       chan struct{}
 }
 
 func NewDistillationWorker(db workerDB, cfg *config.Config) *DistillationWorker {
-	apiKey := ""
-	model := "gpt-4o-mini"
 	batchSize := defaultDistillationBatchSize
 	concurrency := defaultDistillationConcurrency
 	if cfg != nil {
-		apiKey = cfg.OpenAIAPIKey
-		if strings.TrimSpace(cfg.DistillationModel) != "" {
-			model = strings.TrimSpace(cfg.DistillationModel)
-		}
 		batchSize = distillationBatchSizeFrom(cfg.DistillationBatchSize)
 		concurrency = distillationConcurrencyFrom(cfg.DistillationConcurrency)
 	}
-	if apiKey == "" {
-		log.Println("OPENAI_API_KEY unset — distillation LLM calls will fail")
+	llm, err := NewLLMClient(cfg)
+	if err != nil {
+		log.Printf("⚠️  LLM client init error: %v — distillation will be skipped", err)
+		llm, _ = NewLLMClient(nil) // fallback to unconfigured OpenAI client
 	}
 	log.Printf("Distillation concurrency limit: %d parallel LLM jobs", concurrency)
 	return &DistillationWorker{
 		db:        db,
-		openai:    openai.NewClient(apiKey),
-		modelName: model,
-		apiKey:    apiKey,
+		llm:       llm,
 		batchSize: batchSize,
 		sem:       make(chan struct{}, concurrency),
 	}
@@ -174,53 +165,33 @@ func (w *DistillationWorker) runDistillationJobWithPrefix(tenantID, pathPrefix s
 
 	metrics.ObserveDistillationSources(len(entries))
 
-	if w.apiKey == "" {
-		log.Println("Skipping LLM distillation (no OPENAI_API_KEY)")
+	if w.llm == nil || !w.llm.IsConfigured() {
+		log.Println("⚠️  Skipping LLM distillation (no API key configured)")
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "skipped")
 		return
 	}
 
 	log.Printf("Distilling %d raw memories under %s...", len(entries), pathPrefix)
 
-	prompt := `Summarize these memories into higher-order knowledge.
+	systemPrompt := `Summarize these memories into higher-order knowledge.
 Return ONLY valid JSON:
 {"summary": "...", "insights": ["insight1", "insight2"]}`
 
-	var messages []openai.ChatCompletionMessage
-	messages = append(messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: prompt,
-	})
-	for _, e := range entries {
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: e.Content,
-		})
+	userMessages := make([]string, len(entries))
+	for i, e := range entries {
+		userMessages[i] = e.Content
 	}
 
-	resp, err := w.openai.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-		Model:    w.modelName,
-		Messages: messages,
-		ResponseFormat: &openai.ChatCompletionResponseFormat{
-			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-		},
-	})
+	rawResponse, err := w.llm.Complete(ctx, systemPrompt, userMessages)
 	if err != nil {
 		log.Printf("LLM distillation error: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}
 
-	// BUG-FIX-1: guard against empty Choices (OpenAI API can return 0 choices on
-	// content-filter or rate-limit soft errors without returning an HTTP error code).
-	if len(resp.Choices) == 0 {
-		log.Printf("LLM returned 0 choices (finish_reason may be 'content_filter')")
-		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
-		return
-	}
-	result, err := parseDistillationLLMResponse(resp.Choices[0].Message.Content)
+	result, err := parseDistillationLLMResponse(rawResponse)
 	if err != nil {
-		log.Printf("JSON parse error: %v (raw: %s)", err, resp.Choices[0].Message.Content)
+		log.Printf("❌ JSON parse error: %v (raw: %s)", err, rawResponse)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
 		return
 	}

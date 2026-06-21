@@ -9,6 +9,19 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Security
+
+- **RLS enforcement accuracy (docs)**: clarified that PostgreSQL Row-Level Security is **not enforced in the default single-role setup** — the application connects as the table-owning role (`pcmi`) and no table uses `FORCE ROW LEVEL SECURITY`, so Postgres bypasses RLS for the owner. Tenant isolation is enforced by explicit `tenant_id` query scoping; RLS ships as opt-in defense-in-depth. `docs/DATA-MODEL.md#tenant-isolation` now documents the two-layer model and the steps to make RLS actively enforce (dedicated non-owner role, `FORCE`, per-transaction context). README RLS claims updated to point at this. No code/schema change.
+
+- **Import entry cap** (`internal/service/memory_service.go`): `POST /v1/memories/import` and gRPC `ImportMemories` iterated entries with no limit, while sibling batch endpoints cap at 50/20. In `skip` mode each entry drives a `GetByPath` lookup plus a `Store` transaction, so one authenticated request could fan out into tens of thousands of DB round-trips (asymmetric resource exhaustion). Import now rejects more than 1000 entries per request with HTTP 400 / gRPC `InvalidArgument`, fail-fast before any database work; clients with larger datasets paginate.
+
+- **Webhook SSRF egress filter** (`internal/webhook/ssrf.go`): webhook target URLs were stored and called with no validation, letting an authenticated tenant point a webhook at internal services or the cloud metadata endpoint (`169.254.169.254`) — a server-side request forgery / credential-theft vector. Registration (HTTP `POST /v1/webhooks` and gRPC `RegisterWebhook`) now rejects non-http(s) URLs and literal private/loopback/link-local/ULA/metadata IP addresses, and the delivery client refuses **any** private/internal address **at dial time** — which also covers hostnames that resolve to such addresses, DNS rebinding, and redirect-to-internal. Secure by default; set `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` to allow trusted internal receivers.
+ 
+
+### Fixed — data integrity
+
+- **Concurrent-write versioning race** (`internal/repository/memory_repository.go`, `migrations/020_memory_open_version_unique.sql`): two simultaneous `POST /v1/memories` to the same `(tenant_id, path)` could each leave a row with `valid_to IS NULL` (two "current" versions with regressed/duplicate version numbers), making `GetByPath` and `as_of` reads non-deterministic. Migration 020 heals any existing duplicates and adds a partial unique index `uq_memory_entries_open_version`; `Store` now retries (bounded) when the losing transaction collides, recomputing the correct next version.
+
 ### Added — Cognitive Graph spike (experimental)
 
 - **`migrations/019_cognitive_graph_age.sql`**: optional Apache AGE setup (`pcmi_memory_graph`, `sync_memory_link_to_graph`, trigger on `memory_links` insert/update); skipped when AGE is absent.
@@ -17,6 +30,9 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 - **`GET /v1/graph/ui`**: browser **Cognitive Graph Explorer** (traversal, chain highlight, inspector, layouts, clusters, timeline).
 - **Demo video**: [docs/assets/graph-ui-demo.mp4](docs/assets/graph-ui-demo.mp4); regenerate with `scripts/e2e/record_graph_ui_demo.mjs`.
 - **`internal/graph`**, **`docs/cognitive-graph.md`**, optional `docker compose --profile graph` `postgres-age` service; `make graph-ui` one-command SOC dataset + UI.
+- **Cognitive Graph test matrix**: deterministic dataset and `make test-cognitive-graph-matrix` E2E script covering all link types, mixed paths, filters, pagination, cycles, self-loops, isolated nodes, Cypher passthrough, and invalid requests.
+- **Cognitive Graph realistic dataset**: 1200-node SOC/incident-response JSON graph with campaigns, alerts, evidence, hypotheses, postmortems, false positives, duplicates, all link types, and generator/validator targets.
+- **Cognitive Graph integration coverage**: `make test-cognitive-graph-matrix` now also exercises multi-tenant isolation, duplicate-path deduplication, numeric pagination boundaries, stale AGE edge cleanup, partial AGE setup, self-loop chains, realistic load smoke, and SOC loader structural checks.
 
 ### Added — audit fixes (10 missing features)
 
@@ -28,6 +44,12 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed
 
+- **Cognitive Graph**: Cypher tenant scoping now preserves the original `WHERE` body before `RETURN`, escapes tenant literals, and applies `link_types` filters to every edge in a multi-hop path instead of only the first edge.
+- **Cognitive Graph**: graph availability now requires the specific `pcmi_memory_graph`; Cypher passthrough scopes every `:Memory` alias and rejects dollar-quote delimiters, semicolon-separated statements, SQL write/control keywords, and dangerous keywords split by tabs/newlines.
+- **Cognitive Graph**: related traversal now tenant-scopes target nodes, deduplicates memories reachable through multiple paths, and paginates over numerically sorted memory IDs instead of AGE's lexicographic `memory.<id>` strings.
+- **Cognitive Graph**: AGE sync trigger now removes stale graph edges when `memory_links` rows are deleted or re-keyed, with integration coverage for graph drift cleanup.
+- **Graph datasets**: SOC loader checkpoints are tied to the current CSV fingerprint, partial `--limit` loads now create links between loaded endpoints even when matching link rows appear later in the CSV, and link creation retries handle API 429 rate limits.
+- **SDK docs**: README, SDK guides, and quickstart commands now point to the published PyPI `pcmi` and npm `@marco-spagn/pcmi-sdk` packages instead of stale pending/local-only install text.
 - **Worker expiry**: the expiry worker now honours the first-class `expires_at` column (set via the `expires_at` API/gRPC field and indexed by migration 011), not only the legacy `metadata.ttl_seconds`. Memories stored with an explicit `expires_at` previously never expired despite the documented behaviour in `docs/WORKERS-AND-EVENTS.md`.
 - **Worker contradiction detection**: the recent-memory scan queried a non-existent `text_content` column and used an invalid `path !~ '*.consolidated.*'` predicate, so the query errored on every run and the feature (enabled by default) silently did nothing. It now selects `content`, excludes consolidated entries with a valid ltree filter, and only compares current (`valid_to IS NULL`) rows.
 - **Worker distillation**: 3-minute job timeout; `distillation_runs` rows marked `completed` after success.

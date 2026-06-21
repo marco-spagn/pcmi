@@ -8,8 +8,8 @@
 [![Go](https://img.shields.io/badge/go-1.25+-00ADD8?logo=go)](go.mod)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![API](https://img.shields.io/badge/API-v1.51.0-22c55e)](internal/version/version.go)
-[![PyPI](https://img.shields.io/badge/PyPI-pcmi%20(pending)-3775A9?logo=python)](sdk/README.md#installation)
-[![npm](https://img.shields.io/badge/npm-%40marco--spagn%2Fpcmi--sdk%20(pending)-CB3837?logo=npm)](sdk/README.md#installation)
+[![PyPI](https://img.shields.io/pypi/v/pcmi?logo=python&label=PyPI)](https://pypi.org/project/pcmi/)
+[![npm](https://img.shields.io/npm/v/%40marco-spagn%2Fpcmi-sdk?logo=npm&label=npm)](https://www.npmjs.com/package/@marco-spagn/pcmi-sdk)
 
 <br/>
 
@@ -258,16 +258,16 @@ GET /v1/retrieve
       │
       ▼
 ┌─────────────────────────────────────────────────────┐
-│ Single SQL query, 5 fused signals:                   │
-│                                                      │
-│  score = W_semantic · cosine_similarity(query, emb)  │
-│        + W_lexical  · ts_rank_cd(tsv, websearch)     │
-│        + W_import   · importance                     │
-│        + W_temporal · exp(-λ · age_hours)            │
-│                                                      │
+│ Single SQL query, 5 fused signals:                  │
+│                                                     │
+│  score = W_semantic · cosine_similarity(query, emb) │
+│        + W_lexical  · ts_rank_cd(tsv, websearch)    │
+│        + W_import   · importance                    │
+│        + W_temporal · exp(-λ · age_hours)           │
+│                                                     │
 │  Default weights: 0.40 / 0.30 / 0.15 / 0.15         │
-│  Per-tenant configurable via tenant_memory_config     │
-│  Per-request overrides for ad-hoc tuning              │
+│  Per-tenant configurable via tenant_memory_config   │
+│  Per-request overrides for ad-hoc tuning            │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -303,13 +303,13 @@ make bench            # Worker, model, crypto — full suite
 | **Database** | PostgreSQL + pgvector + ltree | SQLite / Postgres | Postgres + pgvector | In-memory, SQLite, or Postgres |
 | **API surface** | HTTP REST + gRPC + MCP | HTTP REST (Python SDK) | HTTP REST | LangGraph Python API only |
 | **SDK languages** | Python, TypeScript, Go | Python only | Python, TypeScript, Go | Python, JavaScript |
-| **Multi-tenant** | ✅ Native (RLS, tenant-scoped) | ❌ Per-user (no org isolation) | ✅ User/group model | ❌ Not designed for multi-tenant |
+| **Multi-tenant** | ✅ Native (tenant-scoped queries; RLS policies, [opt-in enforcement](docs/DATA-MODEL.md#tenant-isolation)) | ❌ Per-user (no org isolation) | ✅ User/group model | ❌ Not designed for multi-tenant |
 | **Append-only versioning** | ✅ `as_of` temporal queries | ❌ Latest state only | ❌ Latest state only | ✅ Checkpoint versioning |
 | **Retrieval ranking** | BM25 + semantic + importance + decay | Semantic only | Semantic + graph + BM25 | None (state fetch) |
 | **Session working memory** | ✅ Promote to long-term | ❌ | ✅ Fact memory | ✅ State checkpointing |
 | **Automated distillation** | ✅ LLM-powered, policy-driven | ❌ | ❌ | ❌ |
 | **Event streaming** | Redis Streams + SSE + gRPC + webhooks | Basic callbacks | Webhooks | None (framework-level) |
-| **RBAC / API keys** | ✅ Admin/Write/Read/ReadOnly + rotation | ❌ API key only | ❌ API key only | ❌ |
+| **RBAC / API keys** | ✅ Admin / User (read-write) / ReadOnly + rotation | ❌ API key only | ❌ API key only | ❌ |
 | **Audit log** | ✅ Full per-request audit | ❌ | Paid tier | ❌ |
 | **Rate limiting** | ✅ Redis-backed, per-key | ❌ | Paid tier | ❌ |
 | **Encryption at rest** | ✅ Column-level AES | ❌ | Paid tier | ❌ |
@@ -343,7 +343,7 @@ PCMI ships as a complete, production-ready stack — not just a library.
 
 | Deliverable | Location | Description |
 |-------------|----------|-------------|
-| **PostgreSQL schema** | [`migrations/`](migrations/) | 19 migration files: tenants, memories (ltree + pgvector), RBAC, sessions, dedup, distillation, cognitive graph |
+| **PostgreSQL schema** | [`migrations/`](migrations/) | 20 migration files: tenants, memories (ltree + pgvector), RBAC, sessions, dedup, distillation, cognitive graph |
 | **OpenAPI 3.0 spec** | [`docs/openapi.yaml`](docs/openapi.yaml) | Complete REST API specification, versioned at v1.51.0 |
 | **Protobuf definitions** | [`proto/pcmi/v1/`](proto/pcmi/v1/) | gRPC: `MemoryService` (45 RPCs), `AdminService`, `MetricsService` |
 | **Docker Compose** | [`docker-compose.yml`](docker-compose.yml) | Full stack: API, Worker, PostgreSQL+pgvector, Redis, optional AGE |
@@ -524,7 +524,7 @@ async def store_to_pcmi(state: dict) -> dict:
 | **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams; webhooks with HMAC |
 | **Webhooks** | HMAC-SHA256 (`timestamp.body`), retry with dead-letter queue, per-endpoint event type filtering |
 | **Graph** *(experimental)* | Typed `memory_links` synced to **Apache AGE** — multi-hop traversal, shortest paths, Cypher (`MATCH` only), browser explorer at `/v1/graph/ui` |
-| **Security** | API-key RBAC + rotation/lifecycle, PostgreSQL RLS, column encryption, optional metrics Bearer token |
+| **Security** | API-key RBAC + rotation/lifecycle, tenant-scoped queries with [opt-in PostgreSQL RLS](docs/DATA-MODEL.md#tenant-isolation), column encryption, optional metrics Bearer token |
 | **Rate limit** | Per-key limits; `RATE_LIMIT_BACKEND=redis` for multi-instance API |
 | **Idempotency** | `X-Idempotency-Key` with 24h cache per tenant |
 | **Ops** | Prometheus metrics (`/metrics`), OpenTelemetry, health/readiness probes, Helm chart, Kustomize overlays |
@@ -539,8 +539,8 @@ async def store_to_pcmi(state: dict) -> dict:
 |---------|-------------|
 | **HTTP REST** | OpenAPI tooling, browsers, SSE, Prometheus scrape, admin UI |
 | **gRPC** | Agents, batch workloads, streaming retrieve/events; 45 RPCs across `MemoryService`, `AdminService`, `MetricsService` |
-| **Python SDK** | `pip install -e sdk/python` (PyPI `pcmi` after first release) — async `httpx` client |
-| **TypeScript SDK** | `npm ci` in `sdk/typescript` (npm `@marco-spagn/pcmi-sdk` after first release) — Node/browser `fetch` |
+| **Python SDK** | `pip install pcmi` ([PyPI](https://pypi.org/project/pcmi/)) — async `httpx` client |
+| **TypeScript SDK** | `npm install @marco-spagn/pcmi-sdk` ([npm](https://www.npmjs.com/package/@marco-spagn/pcmi-sdk)) — Node/browser `fetch` |
 | **Go SDK** | `go get github.com/marco-spagn/pcmi/sdk/go/pcmi` — stdlib `net/http` |
 | **MCP** | stdio server for Cursor / Claude Code — [docs/MCP.md](docs/MCP.md) |
 
@@ -586,7 +586,7 @@ pcmi/
 │   └── mcp/            # MCP stdio server (pcmi-mcp)
 ├── internal/           # Go domain logic (handler, service, repository, worker, grpc, graph)
 ├── proto/pcmi/v1/      # Protobuf definitions (MemoryService, AdminService, MetricsService)
-├── migrations/         # 19 SQL migrations (001 → 019)
+├── migrations/         # 20 SQL migrations (001 → 020)
 ├── sdk/
 │   ├── python/         # Python SDK (pcmi on PyPI)
 │   ├── typescript/     # TypeScript SDK (npm package)

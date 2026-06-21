@@ -9,6 +9,10 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Security
+
+- **Webhook SSRF egress filter** (`internal/webhook/ssrf.go`): webhook target URLs were stored and called with no validation, letting an authenticated tenant point a webhook at internal services or the cloud metadata endpoint (`169.254.169.254`) — a server-side request forgery / credential-theft vector. Registration (HTTP `POST /v1/webhooks` and gRPC `RegisterWebhook`) now rejects non-http(s) URLs and literal private/loopback/link-local/ULA/metadata IP addresses, and the delivery client refuses **any** private/internal address **at dial time** — which also covers hostnames that resolve to such addresses, DNS rebinding, and redirect-to-internal. Secure by default; set `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` to allow trusted internal receivers.
+
 ### Fixed — data integrity
 
 - **Concurrent-write versioning race** (`internal/repository/memory_repository.go`, `migrations/020_memory_open_version_unique.sql`): two simultaneous `POST /v1/memories` to the same `(tenant_id, path)` could each leave a row with `valid_to IS NULL` (two "current" versions with regressed/duplicate version numbers), making `GetByPath` and `as_of` reads non-deterministic. Migration 020 heals any existing duplicates and adds a partial unique index `uq_memory_entries_open_version`; `Store` now retries (bounded) when the losing transaction collides, recomputing the correct next version.

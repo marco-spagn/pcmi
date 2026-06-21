@@ -54,6 +54,10 @@ services:
       DATABASE_URL: postgres://pcmi:pcmi@postgres:5432/pcmi
       REDIS_ADDR: redis:6379
       RATE_LIMIT_DISABLED: "${RATE_LIMIT_DISABLED:-true}"
+      # SSRF egress filter for webhook delivery. Secure default: false (block
+      # private/internal/metadata targets). Set true only if your webhook
+      # receivers live on a private network you trust.
+      WEBHOOK_ALLOW_PRIVATE_TARGETS: "${WEBHOOK_ALLOW_PRIVATE_TARGETS:-false}"
     restart: unless-stopped
 
   worker:

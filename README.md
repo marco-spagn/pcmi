@@ -303,7 +303,7 @@ make bench            # Worker, model, crypto — full suite
 | **Database** | PostgreSQL + pgvector + ltree | SQLite / Postgres | Postgres + pgvector | In-memory, SQLite, or Postgres |
 | **API surface** | HTTP REST + gRPC + MCP | HTTP REST (Python SDK) | HTTP REST | LangGraph Python API only |
 | **SDK languages** | Python, TypeScript, Go | Python only | Python, TypeScript, Go | Python, JavaScript |
-| **Multi-tenant** | ✅ Native (RLS, tenant-scoped) | ❌ Per-user (no org isolation) | ✅ User/group model | ❌ Not designed for multi-tenant |
+| **Multi-tenant** | ✅ Native (tenant-scoped queries; RLS policies, [opt-in enforcement](docs/DATA-MODEL.md#tenant-isolation)) | ❌ Per-user (no org isolation) | ✅ User/group model | ❌ Not designed for multi-tenant |
 | **Append-only versioning** | ✅ `as_of` temporal queries | ❌ Latest state only | ❌ Latest state only | ✅ Checkpoint versioning |
 | **Retrieval ranking** | BM25 + semantic + importance + decay | Semantic only | Semantic + graph + BM25 | None (state fetch) |
 | **Session working memory** | ✅ Promote to long-term | ❌ | ✅ Fact memory | ✅ State checkpointing |
@@ -571,7 +571,7 @@ async def my_agent_memory(action: str, **kwargs):
 | **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams; webhooks with HMAC |
 | **Webhooks** | HMAC-SHA256 (`timestamp.body`), retry with dead-letter queue, per-endpoint event type filtering |
 | **Graph** *(experimental)* | Typed `memory_links` synced to **Apache AGE** — multi-hop traversal, shortest paths, Cypher (`MATCH` only), browser explorer at `/v1/graph/ui` |
-| **Security** | API-key RBAC + rotation/lifecycle, PostgreSQL RLS, column encryption, optional metrics Bearer token |
+| **Security** | API-key RBAC + rotation/lifecycle, tenant-scoped queries with [opt-in PostgreSQL RLS](docs/DATA-MODEL.md#tenant-isolation), column encryption, optional metrics Bearer token |
 | **Rate limit** | Per-key limits; `RATE_LIMIT_BACKEND=redis` for multi-instance API |
 | **Idempotency** | `X-Idempotency-Key` with 24h cache per tenant |
 | **Ops** | Prometheus metrics (`/metrics`), OpenTelemetry, health/readiness probes, Helm chart, Kustomize overlays |

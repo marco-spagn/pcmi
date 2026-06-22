@@ -46,6 +46,14 @@ func (w *ExpiryWorker) runOnce() {
 	//      docs/WORKERS-AND-EVENTS.md ("Closes rows with past expires_at").
 	//   2. The legacy metadata.ttl_seconds convention (relative to created_at).
 	// Both are evaluated in a single UPDATE so expiry stays one round-trip.
+	//
+	// metadata is free-form client JSONB, so ttl_seconds may be any JSON value.
+	// A naked (metadata->>'ttl_seconds')::int aborts the ENTIRE statement when any
+	// current row carries a non-integer (e.g. "abc", 1.5, true) or out-of-range
+	// value — one tenant could then disable expiry for every tenant. The CASE
+	// guards the cast (AND evaluation order is not guaranteed in Postgres) and the
+	// ^[0-9]{1,9}$ pattern admits only plain integers within int4 range (max
+	// 999,999,999s ≈ 31y); malformed/oversized TTLs are ignored, not fatal.
 	tag, err := w.db.Exec(ctx, `
 		UPDATE memory_entries
 		SET valid_to = NOW()
@@ -53,7 +61,11 @@ func (w *ExpiryWorker) runOnce() {
 		  AND (
 		        (expires_at IS NOT NULL AND expires_at <= NOW())
 		     OR (metadata ? 'ttl_seconds'
-		         AND created_at + (metadata->>'ttl_seconds')::int * interval '1 second' < NOW())
+		         AND CASE
+		               WHEN metadata->>'ttl_seconds' ~ '^[0-9]{1,9}$'
+		               THEN created_at + (metadata->>'ttl_seconds')::int * interval '1 second' < NOW()
+		               ELSE false
+		             END)
 		  )`)
 	if err != nil {
 		log.Printf("expiry error: %v", err)

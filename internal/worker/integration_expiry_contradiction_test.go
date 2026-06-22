@@ -51,6 +51,60 @@ func TestIntegration_ExpiryWorker_closesExpiresAt(t *testing.T) {
 	}
 }
 
+// TestIntegration_ExpiryWorker_toleratesNonIntegerTTL verifies that a current row
+// carrying a non-integer metadata.ttl_seconds (free-form client JSONB) does NOT
+// abort the whole expiry UPDATE: a sibling row with a valid, past integer TTL must
+// still be closed, and the poison row must be left untouched (not crash, not
+// expired). Against the pre-fix SQL the (metadata->>'ttl_seconds')::int cast errors
+// and zero rows expire for every tenant.
+func TestIntegration_ExpiryWorker_toleratesNonIntegerTTL(t *testing.T) {
+	p := testWorkerPool(t)
+	ctx := context.Background()
+	prefix := fmt.Sprintf("root.itest_ttl_%d", time.Now().UnixNano())
+	poisonPath := prefix + ".poison"
+	validPath := prefix + ".valid"
+
+	if _, err := p.Exec(ctx, "SELECT set_tenant_context($1::uuid)", itestTenant); err != nil {
+		t.Fatalf("set_tenant_context: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = p.Exec(ctx, "DELETE FROM memory_entries WHERE path <@ $1::ltree", prefix)
+	})
+
+	insert := func(path, ttlJSON string) {
+		_, err := p.Exec(ctx, `
+			INSERT INTO memory_entries (tenant_id, path, content, embedding_model, version, valid_from, created_at, metadata)
+			VALUES ($1::uuid, $2::ltree, 'c', 'unspecified', 1, NOW()-interval '2 hours', NOW()-interval '2 hours', $3::jsonb)`,
+			itestTenant, path, ttlJSON)
+		if err != nil {
+			t.Fatalf("insert %s: %v", path, err)
+		}
+	}
+	// Non-integer ttl_seconds (would crash the cast) and a valid, already-elapsed one.
+	insert(poisonPath, `{"ttl_seconds": "not-a-number"}`)
+	insert(validPath, `{"ttl_seconds": 3600}`)
+
+	w := &ExpiryWorker{db: p, interval: time.Hour}
+	w.runOnce()
+
+	closed := func(path string) bool {
+		var set bool
+		if err := p.QueryRow(ctx,
+			"SELECT valid_to IS NOT NULL FROM memory_entries WHERE path = $1::ltree", path,
+		).Scan(&set); err != nil {
+			t.Fatalf("select valid_to for %s: %v", path, err)
+		}
+		return set
+	}
+
+	if !closed(validPath) {
+		t.Fatal("expected row with valid past ttl_seconds to be closed, but it is still current")
+	}
+	if closed(poisonPath) {
+		t.Fatal("row with non-integer ttl_seconds must be ignored, not closed")
+	}
+}
+
 // TestIntegration_ContradictionWorker_checkPrefix verifies checkPrefix runs the
 // corrected query (column `content`, valid ltree exclusion) without error and
 // writes a `contradicts` link for a contradictory pair. Against the previous

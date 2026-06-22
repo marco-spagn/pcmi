@@ -117,7 +117,7 @@ func extractiveSummary(parts []string, style string) string {
 	if len(combined) <= maxLen {
 		return combined
 	}
-	return combined[:maxLen] + "…"
+	return truncateUTF8(combined, maxLen) + "…"
 }
 
 func (s *SummarizeService) llmSummarize(ctx context.Context, parts []string, style string) (string, error) {

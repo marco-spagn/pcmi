@@ -128,10 +128,7 @@ func (w *ConsolidationWorker) runConsolidation(ctx context.Context, tenantID, pr
 	}
 
 	consolidatedPath := prefix + ".consolidated"
-	content := strings.Join(parts, "\n---\n")
-	if len(content) > 16000 {
-		content = content[:16000]
-	}
+	content := truncateUTF8(strings.Join(parts, "\n---\n"), 16000)
 
 	storeReq := model.StoreRequest{
 		Path:     consolidatedPath,

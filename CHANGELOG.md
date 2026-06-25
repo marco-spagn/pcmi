@@ -9,6 +9,10 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Session promote path collision** (`internal/repository/session_repository.go`): `POST /v1/sessions/:id/promote` re-paths working-memory rows in place. When a target long-term path already held a current memory, the `UPDATE` violated the `uq_memory_entries_open_version` unique index (added in the versioning-race fix), aborting the **entire** promotion with an opaque DB error (and, before that index, silently created two "current" rows at the same path). Promote now detects an occupied target — including two session rows that map to the same path — skips those items instead of failing or overwriting, and reports them in a new `skipped` field on the promote response.
+
 ### Security
 
 - **Expiry worker poison-row DoS** (`internal/worker/expiry.go`): the expiry sweep cast `(metadata->>'ttl_seconds')::int` for every current row whose free-form `metadata` JSONB contains a `ttl_seconds` key. Because metadata is stored verbatim from client input, one authenticated tenant storing a non-integer or out-of-range value (`"abc"`, `1.5`, `true`, a 12-digit number) made that cast abort the **entire** UPDATE — so memories stopped expiring for **every** tenant until the offending row was removed (a cross-tenant availability bug, accidentally triggerable with a JSON float). The TTL branch now guards the cast with a `CASE` (Postgres does not guarantee `AND` evaluation order) and a `^[0-9]{1,9}$` pattern that admits only plain int4-range integers; malformed/oversized TTLs are ignored rather than fatal. The first-class `expires_at` path is unchanged.

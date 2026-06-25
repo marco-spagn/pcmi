@@ -195,18 +195,61 @@ func TestSessionRepository_Promote_success(t *testing.T) {
 	mock.ExpectQuery(`FOR UPDATE`).
 		WithArgs(tenantID, sessionID).
 		WillReturnRows(selectRows)
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs(tenantID, pgxmock.AnyArg(), int64(9)).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(false))
 	mock.ExpectExec(`UPDATE memory_entries`).
 		WithArgs(int64(9), pgxmock.AnyArg(), pgxmock.AnyArg()).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectCommit()
 
 	repo := NewSessionRepositoryFromDB(mock, mock)
-	n, err := repo.Promote(context.Background(), tenantID, sessionID, "root")
+	n, skipped, err := repo.Promote(context.Background(), tenantID, sessionID, "root")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != 1 {
-		t.Fatalf("promoted=%d", n)
+	if n != 1 || skipped != 0 {
+		t.Fatalf("promoted=%d skipped=%d", n, skipped)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestSessionRepository_Promote_skipsOccupiedTarget(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	tenantID := uuid.New().String()
+	sessionID := uuid.New().String()
+	meta, _ := json.Marshal(map[string]any{
+		sessionMetadataKey: sessionID,
+		sessionScopeKey:    sessionScopeWorking,
+	})
+
+	mock.ExpectBegin()
+	mock.ExpectQuery(`FOR UPDATE`).
+		WithArgs(tenantID, sessionID).
+		WillReturnRows(pgxmock.NewRows([]string{"id", "path", "metadata"}).
+			AddRow(int64(9), "sessions."+sessionID+".note", meta))
+	// Target path already has a current memory → skip, no UPDATE.
+	mock.ExpectQuery(`SELECT EXISTS`).
+		WithArgs(tenantID, pgxmock.AnyArg(), int64(9)).
+		WillReturnRows(pgxmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectCommit()
+
+	repo := NewSessionRepositoryFromDB(mock, mock)
+	n, skipped, err := repo.Promote(context.Background(), tenantID, sessionID, "root")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 || skipped != 1 {
+		t.Fatalf("expected promoted=0 skipped=1, got promoted=%d skipped=%d", n, skipped)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
@@ -225,7 +268,7 @@ func TestSessionRepository_Promote_beginError(t *testing.T) {
 	mock.ExpectBegin().WillReturnError(errors.New("begin failed"))
 
 	repo := NewSessionRepositoryFromDB(mock, mock)
-	_, err = repo.Promote(context.Background(), uuid.New().String(), uuid.New().String(), "root")
+	_, _, err = repo.Promote(context.Background(), uuid.New().String(), uuid.New().String(), "root")
 	if err == nil {
 		t.Fatal("expected error")
 	}

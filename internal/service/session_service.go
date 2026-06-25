@@ -73,13 +73,14 @@ func (s *SessionService) Promote(ctx context.Context, tenantID, sessionID string
 	if req != nil && strings.TrimSpace(req.TargetPrefix) != "" {
 		target = strings.TrimSpace(req.TargetPrefix)
 	}
-	n, err := s.sessions.Promote(ctx, tenantID, sessionID, target)
+	n, skipped, err := s.sessions.Promote(ctx, tenantID, sessionID, target)
 	if err != nil {
 		return nil, err
 	}
 	return &model.PromoteSessionResponse{
 		SessionID:    sessionID,
 		Promoted:     n,
+		Skipped:      skipped,
 		TargetPrefix: target,
 		Status:       "promoted",
 	}, nil

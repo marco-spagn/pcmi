@@ -45,8 +45,9 @@ type PromoteSessionRequest struct {
 
 // PromoteSessionResponse summarizes promotion results.
 type PromoteSessionResponse struct {
-	SessionID   string `json:"session_id"`
-	Promoted    int    `json:"promoted"`
+	SessionID    string `json:"session_id"`
+	Promoted     int    `json:"promoted"`
+	Skipped      int    `json:"skipped"` // target path already had a current memory
 	TargetPrefix string `json:"target_prefix"`
-	Status      string `json:"status"`
+	Status       string `json:"status"`
 }

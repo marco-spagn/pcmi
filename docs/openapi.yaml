@@ -1221,6 +1221,7 @@ components:
       properties:
         session_id: { type: string, format: uuid }
         promoted: { type: integer }
+        skipped: { type: integer, description: "Items not promoted because the target path already held a current memory" }
         target_prefix: { type: string }
         status: { type: string }
     CreateDistillationPolicyRequest:
@@ -1306,11 +1307,18 @@ components:
             additionalProperties: true
     CreateLinkRequest:
       type: object
-      required: [from_path, to_path, link_type]
+      required: [from_path, to_path]
       properties:
         from_path: { type: string }
         to_path: { type: string }
-        link_type: { type: string }
+        link_type:
+          type: string
+          enum: [causal, temporal, contradicts, supports, related]
+          default: related
+          description: >-
+            Relationship type. Defaults to "related" when omitted. Values outside
+            this set are rejected with 400. The "duplicate" type is reserved for
+            the dedup engine and is not assignable here.
         metadata: { type: object, additionalProperties: true }
     MemoryLink:
       type: object

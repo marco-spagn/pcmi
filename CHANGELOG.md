@@ -28,6 +28,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed — data integrity
 
+- **UTF-8-safe content truncation** (`internal/worker/consolidation.go`, `internal/service/summarize_service.go`): both clamped text with a byte slice (`content[:16000]`, `combined[:maxLen]`) that can land in the middle of a multi-byte rune. The consolidation path then persists the result, so truncating non-ASCII content on a rune boundary produced an invalid UTF-8 byte sequence that PostgreSQL rejects on `INSERT` — the consolidation run failed permanently for that prefix. Both call sites now use a `truncateUTF8` helper that drops the partial trailing rune, guaranteeing valid UTF-8 (the summarize path likewise no longer emits a garbled trailing character).
+
 - **Concurrent-write versioning race** (`internal/repository/memory_repository.go`, `migrations/020_memory_open_version_unique.sql`): two simultaneous `POST /v1/memories` to the same `(tenant_id, path)` could each leave a row with `valid_to IS NULL` (two "current" versions with regressed/duplicate version numbers), making `GetByPath` and `as_of` reads non-deterministic. Migration 020 heals any existing duplicates and adds a partial unique index `uq_memory_entries_open_version`; `Store` now retries (bounded) when the losing transaction collides, recomputing the correct next version.
 
 ### Added — Cognitive Graph spike (experimental)

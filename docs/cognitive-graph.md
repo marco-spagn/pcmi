@@ -520,15 +520,13 @@ The **Cognitive Graph Explorer** is a single-page app served at **`GET /v1/graph
 and `/v1/retrieve` (path_prefix `root`) to build its node-label cache, all with your API key,
 and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
 
-### Watch the walkthrough
+### Watch the walkthrough (~90s)
 
-The animation below is a **silent ~18s preview loop** — not the full tour. For the
-complete **~90-second** walkthrough (with playback controls), click the preview or use
-the link beneath it.
+https://github.com/user-attachments/assets/c66b5526-744c-4060-9f29-0547a303b674
 
-[![~18s silent preview loop — click for the full ~90s walkthrough](assets/graph-ui-demo.gif)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)
-
-**[▶ Play the full ~90s video on GitHub (with controls)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)**
+> **No player above?** GitHub renders the inline video only on github.com. In other
+> viewers (npm, IDEs, offline clones) use the [~18s GIF preview](assets/graph-ui-demo.gif)
+> or the download links below.
 
 | | |
 |--|--|

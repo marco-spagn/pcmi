@@ -121,9 +121,9 @@ flowchart TB
 
 Beyond direct path links, PCMI ships a **graph traversal layer** over `memory_links` powered by [Apache AGE](https://github.com/apache/age) (Cypher on PostgreSQL). Memories become nodes; links become **typed, weighted edges**. You can walk multi-hop chains over memory that evolves over time (*"which memories are causally related to this one within 3 hops?"*), reconstruct the **shortest path** between two memories, and run **read-only Cypher** — all automatically scoped per tenant. It is fully **opt-in**: without AGE the graph endpoints return `501` and the rest of PCMI runs unchanged.
 
-[![Cognitive Graph Explorer](docs/assets/graph-ui-demo.gif)](docs/cognitive-graph.md)
+https://github.com/user-attachments/assets/c66b5526-744c-4060-9f29-0547a303b674
 
-<sub>↑ ~18s silent preview loop — see the full ~90s walkthrough in [docs/cognitive-graph.md](docs/cognitive-graph.md#graph-ui--demo-video).</sub>
+<sub>▶ ~90s walkthrough of the Cognitive Graph Explorer. No player (non-GitHub viewer)? See the [GIF preview and download links](docs/cognitive-graph.md#graph-ui--demo-video).</sub>
 
 ```mermaid
 mindmap

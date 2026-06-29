@@ -520,18 +520,22 @@ The **Cognitive Graph Explorer** is a single-page app served at **`GET /v1/graph
 and `/v1/retrieve` (path_prefix `root`) to build its node-label cache, all with your API key,
 and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
 
-### Watch the walkthrough (~90s)
+### Watch the walkthrough
 
-[![Click to play full video with controls](assets/graph-ui-demo.gif)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)
+The animation below is a **silent ~18s preview loop** — not the full tour. For the
+complete **~90-second** walkthrough (with playback controls), click the preview or use
+the link beneath it.
 
-**[▶ Play full video on GitHub (90s, with controls)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)**
+[![~18s silent preview loop — click for the full ~90s walkthrough](assets/graph-ui-demo.gif)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)
+
+**[▶ Play the full ~90s video on GitHub (with controls)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)**
 
 | | |
 |--|--|
 | **In repo** | [docs/assets/graph-ui-demo.mp4](assets/graph-ui-demo.mp4) — playable in GitHub’s file viewer and locally after `git clone` |
 | **Release** | [graph-ui-demo.mp4](https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4) |
-| **Preview** | [graph-ui-demo.gif](assets/graph-ui-demo.gif) — animated excerpt for README (GitHub cannot inline `<video>`) |
-| **Covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
+| **Inline preview** | [graph-ui-demo.gif](assets/graph-ui-demo.gif) — ~18s silent loop excerpt (GitHub cannot inline `<video>`) |
+| **Full ~90s video covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
 | **Regenerate** | `node scripts/e2e/record_graph_ui_demo.mjs` then `gh release upload graph-ui-demo docs/assets/graph-ui-demo.mp4 --clobber` |
 
 ### Open the UI

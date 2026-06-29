@@ -123,6 +123,8 @@ Beyond direct path links, PCMI ships a **graph traversal layer** over `memory_li
 
 [![Cognitive Graph Explorer](docs/assets/graph-ui-demo.gif)](docs/cognitive-graph.md)
 
+<sub>↑ ~18s silent preview loop — see the full ~90s walkthrough in [docs/cognitive-graph.md](docs/cognitive-graph.md#graph-ui--demo-video).</sub>
+
 ```mermaid
 mindmap
   root((Cognitive Graph))

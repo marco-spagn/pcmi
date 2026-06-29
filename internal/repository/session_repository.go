@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	sessionMetadataKey = "session_id"
-	sessionScopeKey    = "memory_scope"
-	sessionScopeWorking = "working"
+	sessionMetadataKey   = "session_id"
+	sessionScopeKey      = "memory_scope"
+	sessionScopeWorking  = "working"
 	sessionScopeLongTerm = "long_term"
 )
 
@@ -226,15 +226,18 @@ func scanMemoryRows(rows pgx.Rows, includeScore bool) ([]model.MemoryEntry, erro
 	return out, rows.Err()
 }
 
-// Promote copies session working memories to long-term paths and clears session scope metadata.
-func (r *SessionRepository) Promote(ctx context.Context, tenantID, sessionID, targetPrefix string) (int, error) {
+// Promote re-paths a session's working-memory rows to long-term paths under
+// targetPrefix, clearing session-scope metadata. It returns how many were
+// promoted and how many were skipped because the target path already holds a
+// current memory (see below).
+func (r *SessionRepository) Promote(ctx context.Context, tenantID, sessionID, targetPrefix string) (promoted int, skipped int, err error) {
 	targetPrefix = strings.TrimSpace(targetPrefix)
 	if targetPrefix == "" {
 		targetPrefix = "root"
 	}
 	tx, err := r.w.Begin(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("promote begin: %w", err)
+		return 0, 0, fmt.Errorf("promote begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
@@ -248,7 +251,7 @@ func (r *SessionRepository) Promote(ctx context.Context, tenantID, sessionID, ta
 		tenantID, sessionID,
 	)
 	if err != nil {
-		return 0, fmt.Errorf("promote select: %w", err)
+		return 0, 0, fmt.Errorf("promote select: %w", err)
 	}
 	defer rows.Close()
 
@@ -263,43 +266,63 @@ func (r *SessionRepository) Promote(ctx context.Context, tenantID, sessionID, ta
 		var path string
 		var metaJSON []byte
 		if err := rows.Scan(&id, &path, &metaJSON); err != nil {
-			return 0, fmt.Errorf("promote scan: %w", err)
+			return 0, 0, fmt.Errorf("promote scan: %w", err)
 		}
 		meta := map[string]any{}
 		_ = json.Unmarshal(metaJSON, &meta)
 		batch = append(batch, row{id: id, path: path, metadata: meta})
 	}
 	if err := rows.Err(); err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	promoted := 0
 	for _, item := range batch {
 		newPath := promotePath(item.path, sessionID, targetPrefix)
+
+		// A promote is an in-place re-path of the working-memory row. If a
+		// current (valid_to IS NULL) memory already occupies the target path,
+		// the UPDATE would violate uq_memory_entries_open_version (migration
+		// 020) and abort the whole transaction. Skip such items — including two
+		// session rows that map to the same target — and report them, rather
+		// than failing the entire promotion or overwriting existing long-term
+		// data.
+		var occupied bool
+		if err := tx.QueryRow(ctx, `
+			SELECT EXISTS (
+				SELECT 1 FROM memory_entries
+				WHERE tenant_id = $1::uuid AND path = $2::ltree
+				  AND valid_to IS NULL AND id <> $3
+			)`, tenantID, newPath, item.id).Scan(&occupied); err != nil {
+			return 0, 0, fmt.Errorf("promote collision check id=%d: %w", item.id, err)
+		}
+		if occupied {
+			skipped++
+			continue
+		}
+
 		meta := cloneMetadata(item.metadata)
 		delete(meta, sessionMetadataKey)
 		meta[sessionScopeKey] = sessionScopeLongTerm
 		meta["promoted_from_session"] = sessionID
 		metaJSON, err := json.Marshal(meta)
 		if err != nil {
-			return 0, err
+			return 0, 0, err
 		}
-		_, err = tx.Exec(ctx, `
+		if _, err = tx.Exec(ctx, `
 			UPDATE memory_entries
 			SET path = $2::ltree, metadata = $3::jsonb
 			WHERE id = $1`,
 			item.id, newPath, metaJSON,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("promote update id=%d: %w", item.id, err)
+		); err != nil {
+			return 0, 0, fmt.Errorf("promote update id=%d: %w", item.id, err)
 		}
 		promoted++
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return 0, fmt.Errorf("promote commit: %w", err)
+		return 0, 0, fmt.Errorf("promote commit: %w", err)
 	}
-	return promoted, nil
+	return promoted, skipped, nil
 }
 
 func promotePath(currentPath, sessionID, targetPrefix string) string {

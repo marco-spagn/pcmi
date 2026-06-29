@@ -69,6 +69,30 @@ func TestLinksRepository_List_clampsHighLimit(t *testing.T) {
 	}
 }
 
+func TestLinksRepository_Create_rejectsInvalidLinkType(t *testing.T) {
+	t.Parallel()
+
+	mock, err := pgxmock.NewPool()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { mock.Close() })
+
+	// No ExpectQuery: validation must fail before any SQL is issued.
+	repo := NewLinksRepositoryReadOnly(mock)
+	_, err = repo.Create(context.Background(), uuid.New().String(), model.CreateLinkRequest{
+		FromPath: "root.a",
+		ToPath:   "root.b",
+		LinkType: "caused_by",
+	})
+	if err == nil {
+		t.Fatal("expected error for invalid link_type, got nil")
+	}
+	if mErr := mock.ExpectationsWereMet(); mErr != nil {
+		t.Fatalf("DB should not have been touched: %v", mErr)
+	}
+}
+
 func TestLinksRepository_List_fromPathFilter(t *testing.T) {
 	t.Parallel()
 

@@ -110,7 +110,8 @@ Your system (CRM, SIEM, agent, spreadsheet ETL)
 ### 1. Start the AGE-enabled Postgres instance
 
 The `docker/postgres-age/Dockerfile.postgres-age` builds a custom image on top of
-`pgvector/pgvector:pg16` that bundles **both pgvector and Apache AGE** v1.5.0.
+`pgvector/pgvector:pg16` that bundles **both pgvector and Apache AGE** v1.6.0
+(the `PG16/v1.6.0-rc0` branch built from source via PGXS).
 A `postgres-age` service is available under the `graph` profile:
 
 ```bash
@@ -515,8 +516,9 @@ make graph-soc-loader-test
 ## Graph UI — demo video
 
 The **Cognitive Graph Explorer** is a single-page app served at **`GET /v1/graph/ui`**
-(same origin as the API). It calls `/v1/graph/related`, `/chain`, and `/graph/memories`
-with your API key and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
+(same origin as the API). It calls `/v1/graph/related` and `/v1/graph/chain` for traversal,
+and `/v1/retrieve` (path_prefix `root`) to build its node-label cache, all with your API key,
+and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
 
 ### Watch the walkthrough (~90s)
 
@@ -631,9 +633,10 @@ curl -s -H "X-API-Key: $API_KEY" \
 curl -s -H "X-API-Key: $API_KEY" \
   "$BASE/graph/chain?from=14&to=22&link_types=causal&max_depth=10" | jq '{connected,hops,path:[.path[]|{from_id,to_id,link_type}]}'
 
-# List memories to find other IDs
-curl -s -H "X-API-Key: $API_KEY" \
-  "$BASE/graph/memories?limit=10" | jq '.entries[] | {id, path, preview: .preview[:80]}'
+# List memories to find other IDs (the Graph UI uses /v1/retrieve, not a graph endpoint)
+curl -s -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"path_prefix":"root","limit":10}' \
+  "$BASE/retrieve" | jq '.entries[] | {id, path, content: (.content[:80])}'
 
 # Cypher passthrough (write role)
 curl -s -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \

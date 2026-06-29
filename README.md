@@ -23,6 +23,7 @@
 
 - [The Problem](#the-problem)
 - [The Solution](#the-solution)
+- [Cognitive Graph](#cognitive-graph)
 - [Why Another Memory Layer?](#why-another-memory-layer)
 - [Quickstart (5 minutes)](#quickstart-5-minutes)
 - [Architecture](#architecture)
@@ -111,6 +112,65 @@ flowchart TB
 | **Automated distillation** | LLM-powered summarization of memory clusters into concise knowledge — configurable policies, worker-driven. |
 | **Events everywhere** | Redis Streams, SSE, gRPC streams, webhooks (HMAC-signed). Every mutation is observable. |
 | **Enterprise controls** | RLS per tenant, RBAC per API key, key rotation/revocation, column encryption, audit log, rate limiting. |
+
+---
+
+## Cognitive Graph
+
+> **Experimental (v2.0 spike).** Opt-in. The API and schema may change before the full release.
+
+Beyond direct path links, PCMI ships a **graph traversal layer** over `memory_links` powered by [Apache AGE](https://github.com/apache/age) (Cypher on PostgreSQL). Memories become nodes; links become **typed, weighted edges**. You can walk multi-hop chains over memory that evolves over time (*"which memories are causally related to this one within 3 hops?"*), reconstruct the **shortest path** between two memories, and run **read-only Cypher** — all automatically scoped per tenant. It is fully **opt-in**: without AGE the graph endpoints return `501` and the rest of PCMI runs unchanged.
+
+[![Cognitive Graph Explorer](docs/assets/graph-ui-demo.gif)](docs/cognitive-graph.md)
+
+```mermaid
+mindmap
+  root((Cognitive Graph))
+    Apache AGE
+      Cypher on PostgreSQL
+      opt-in / graceful 501
+    5 link types
+      causal
+      temporal
+      contradicts
+      supports
+      related
+    Traversal
+      multi-hop /related
+      shortest path /chain
+      keyset pagination
+    Cypher passthrough
+      MATCH only
+      auto tenant scope
+    Graph Explorer UI
+      vis-network
+      force / tree / radial
+      inspector + Find Chain
+```
+
+**Enable it:**
+
+```bash
+# 1. Start the AGE-enabled Postgres (one image bundling pgvector + Apache AGE)
+docker compose --profile graph up postgres-age
+
+# 2. Point the API at it and apply the graph migration
+export DATABASE_URL=postgres://pcmi:pcmi@localhost:5433/pcmi
+psql "$DATABASE_URL" -f migrations/019_cognitive_graph_age.sql
+
+# 3. Health check (unauthenticated probe, like /v1/ready)
+curl http://localhost:8000/v1/graph/health
+# {"available":true,"extension":"apache-age"}
+```
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /v1/graph/related` | Multi-hop traversal from a memory (`memory_id`, `depth`, `link_types`, keyset pagination) |
+| `GET /v1/graph/chain` | Shortest path between two memories (`from`, `to`, `max_depth`) |
+| `POST /v1/graph/cypher` | Read-only Cypher passthrough (`MATCH` only, write keywords rejected, tenant scope injected) |
+| `GET /v1/graph/ui` | Browser Graph Explorer (vis-network: force/tree/radial layouts, node inspector, Find Chain) |
+
+Link types: `causal`, `temporal`, `contradicts`, `supports`, `related`. Edges are mirrored into AGE by a PostgreSQL trigger (`trg_memory_links_sync_graph`) on `memory_links`. Full reference, Cypher examples, and the SOC demo dataset: **[docs/cognitive-graph.md](docs/cognitive-graph.md)**.
 
 ---
 
@@ -570,7 +630,7 @@ async def my_agent_memory(action: str, **kwargs):
 | **Workers** | Embedding with circuit breaker, distillation (LLM summarization), consolidation, pruning, compaction, expiry |
 | **Events** | Redis **Streams** by default (`EVENT_BACKEND=streams`); legacy pub/sub; SSE + gRPC streams; webhooks with HMAC |
 | **Webhooks** | HMAC-SHA256 (`timestamp.body`), retry with dead-letter queue, per-endpoint event type filtering |
-| **Graph** *(experimental)* | Typed `memory_links` synced to **Apache AGE** — multi-hop traversal, shortest paths, Cypher (`MATCH` only), browser explorer at `/v1/graph/ui` |
+| **Graph** *(experimental)* | Typed `memory_links` synced to **Apache AGE** — multi-hop traversal, shortest path, 5 link types (`causal`/`temporal`/`contradicts`/`supports`/`related`), Cypher passthrough (`MATCH` only), Graph Explorer UI at `/v1/graph/ui` — [docs](docs/cognitive-graph.md) |
 | **Security** | API-key RBAC + rotation/lifecycle, tenant-scoped queries with [opt-in PostgreSQL RLS](docs/DATA-MODEL.md#tenant-isolation), column encryption, optional metrics Bearer token |
 | **Rate limit** | Per-key limits; `RATE_LIMIT_BACKEND=redis` for multi-instance API |
 | **Idempotency** | `X-Idempotency-Key` with 24h cache per tenant |

@@ -110,7 +110,8 @@ Your system (CRM, SIEM, agent, spreadsheet ETL)
 ### 1. Start the AGE-enabled Postgres instance
 
 The `docker/postgres-age/Dockerfile.postgres-age` builds a custom image on top of
-`pgvector/pgvector:pg16` that bundles **both pgvector and Apache AGE** v1.5.0.
+`pgvector/pgvector:pg16` that bundles **both pgvector and Apache AGE** v1.6.0
+(the `PG16/v1.6.0-rc0` branch built from source via PGXS).
 A `postgres-age` service is available under the `graph` profile:
 
 ```bash
@@ -515,21 +516,24 @@ make graph-soc-loader-test
 ## Graph UI — demo video
 
 The **Cognitive Graph Explorer** is a single-page app served at **`GET /v1/graph/ui`**
-(same origin as the API). It calls `/v1/graph/related`, `/chain`, and `/graph/memories`
-with your API key and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
+(same origin as the API). It calls `/v1/graph/related` and `/v1/graph/chain` for traversal,
+and `/v1/retrieve` (path_prefix `root`) to build its node-label cache, all with your API key,
+and renders the result with [vis-network](https://visjs.github.io/vis-network/docs/network/).
 
 ### Watch the walkthrough (~90s)
 
-[![Click to play full video with controls](assets/graph-ui-demo.gif)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)
+https://github.com/user-attachments/assets/c66b5526-744c-4060-9f29-0547a303b674
 
-**[▶ Play full video on GitHub (90s, with controls)](https://github.com/marco-spagn/pcmi/blob/feat/pcmi-cognitive-graph-v3-spike/docs/assets/graph-ui-demo.mp4)**
+> **No player above?** GitHub renders the inline video only on github.com. In other
+> viewers (npm, IDEs, offline clones) use the [~18s GIF preview](assets/graph-ui-demo.gif)
+> or the download links below.
 
 | | |
 |--|--|
 | **In repo** | [docs/assets/graph-ui-demo.mp4](assets/graph-ui-demo.mp4) — playable in GitHub’s file viewer and locally after `git clone` |
 | **Release** | [graph-ui-demo.mp4](https://github.com/marco-spagn/pcmi/releases/download/graph-ui-demo/graph-ui-demo.mp4) |
-| **Preview** | [graph-ui-demo.gif](assets/graph-ui-demo.gif) — animated excerpt for README (GitHub cannot inline `<video>`) |
-| **Covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
+| **Inline preview** | [graph-ui-demo.gif](assets/graph-ui-demo.gif) — ~18s silent loop excerpt (GitHub cannot inline `<video>`) |
+| **Full ~90s video covers** | AGE health, kill-chain traversal (memory 14), Tree/Radial layouts, inspector, Find Chain, five link types, Royal campaign (35), supports fan-out, related cross-campaign links, clusters, timeline |
 | **Regenerate** | `node scripts/e2e/record_graph_ui_demo.mjs` then `gh release upload graph-ui-demo docs/assets/graph-ui-demo.mp4 --clobber` |
 
 ### Open the UI
@@ -631,9 +635,10 @@ curl -s -H "X-API-Key: $API_KEY" \
 curl -s -H "X-API-Key: $API_KEY" \
   "$BASE/graph/chain?from=14&to=22&link_types=causal&max_depth=10" | jq '{connected,hops,path:[.path[]|{from_id,to_id,link_type}]}'
 
-# List memories to find other IDs
-curl -s -H "X-API-Key: $API_KEY" \
-  "$BASE/graph/memories?limit=10" | jq '.entries[] | {id, path, preview: .preview[:80]}'
+# List memories to find other IDs (the Graph UI uses /v1/retrieve, not a graph endpoint)
+curl -s -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
+  -d '{"path_prefix":"root","limit":10}' \
+  "$BASE/retrieve" | jq '.entries[] | {id, path, content: (.content[:80])}'
 
 # Cypher passthrough (write role)
 curl -s -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \

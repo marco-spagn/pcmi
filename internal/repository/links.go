@@ -43,9 +43,9 @@ func (r *LinksRepository) Create(ctx context.Context, tenantID string, req model
 	if from == "" || to == "" {
 		return nil, fmt.Errorf("from_path and to_path are required")
 	}
-	linkType := strings.TrimSpace(req.LinkType)
-	if linkType == "" {
-		linkType = "related"
+	linkType, err := model.NormalizeLinkType(req.LinkType)
+	if err != nil {
+		return nil, err
 	}
 	meta := req.Metadata
 	if meta == nil {

@@ -66,9 +66,8 @@ The result: **agents that forget, teams that can't share knowledge, and organiza
 PCMI is a **single, self-hosted memory service** that any agent — regardless of framework, language, or LLM provider — reads from and writes to.
 
 ```mermaid
-flowchart TB
+flowchart LR
   subgraph Agents["Any Agent / Framework"]
-    direction LR
     A1[LangChain]
     A2[CrewAI]
     A3[AutoGen]
@@ -77,14 +76,12 @@ flowchart TB
   end
 
   subgraph PCMI["PCMI Memory Layer"]
-    direction LR
     HTTP[HTTP REST<br/>:8000]
     GRPC[gRPC<br/>:50051]
     MCP[MCP stdio<br/>Cursor / Claude]
   end
 
   subgraph Store["Storage & Processing"]
-    direction LR
     PG[(PostgreSQL<br/>+ pgvector<br/>+ ltree)]
     RD[(Redis<br/>Streams)]
     W[Background<br/>Workers]

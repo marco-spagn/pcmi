@@ -10,6 +10,7 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/extraction"
+	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/middleware"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
@@ -25,7 +26,7 @@ func NewExtractionHandler(dbWrite, readReplica *pgxpool.Pool, cfg *config.Config
 	profiles := repository.NewExtractionRepository(dbWrite, readReplica)
 	memRepo := repository.NewMemoryRepository(dbWrite, readReplica)
 	llm, _ := worker.NewLLMClient(cfg)
-	svc := service.NewExtractionService(profiles, memRepo, llm, cfg)
+	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graph.NewGraphClient(dbWrite))
 	return &ExtractionHandler{svc: svc}
 }
 

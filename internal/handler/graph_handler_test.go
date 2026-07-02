@@ -29,6 +29,10 @@ type fakeGraphClient struct {
 
 	cypherResult *graph.CypherResult
 	cypherErr    error
+
+	entityMentions []graph.EntityMention
+	entityMemories *graph.EntityMemoriesResult
+	entityErr      error
 }
 
 func (f *fakeGraphClient) IsAvailable(_ context.Context) bool { return f.available }
@@ -60,12 +64,35 @@ func (f *fakeGraphClient) ExecuteCypher(_ context.Context, _ string, _ string) (
 	return f.cypherResult, f.cypherErr
 }
 
+func (f *fakeGraphClient) FindEntitiesForMemory(_ context.Context, _ string, _ int64) ([]graph.EntityMention, error) {
+	if f.entityMentions == nil {
+		return []graph.EntityMention{}, f.entityErr
+	}
+	return f.entityMentions, f.entityErr
+}
+
+func (f *fakeGraphClient) FindMemoriesByEntity(_ context.Context, _, _, _ string, _ int64, _ int) (*graph.EntityMemoriesResult, error) {
+	if f.entityMemories == nil {
+		return &graph.EntityMemoriesResult{Memories: []graph.EntityMemory{}}, f.entityErr
+	}
+	return f.entityMemories, f.entityErr
+}
+
+func (f *fakeGraphClient) FindRelatedViaEntity(_ context.Context, _ string, _ int64, _ int64, _ int) (*graph.EntityMemoriesResult, error) {
+	if f.entityMemories == nil {
+		return &graph.EntityMemoriesResult{Memories: []graph.EntityMemory{}}, f.entityErr
+	}
+	return f.entityMemories, f.entityErr
+}
+
 func newGraphApp(tenantID, role string, fake graphClientIface) *fiber.App {
 	app := newTestApp(tenantID, role)
 	h := &GraphHandler{client: fake}
 	app.Get("/v1/graph/health", h.Health)
 	app.Get("/v1/graph/related", h.FindRelated)
 	app.Get("/v1/graph/chain", h.FindChain)
+	app.Get("/v1/graph/entities/memory", h.FindEntitiesForMemory)
+	app.Get("/v1/graph/entities/related", h.FindEntitiesRelated)
 	app.Post("/v1/graph/cypher", middleware.RequireWriteRole, h.ExecuteCypher)
 	return app
 }
@@ -819,3 +846,64 @@ func TestNewGraphHandler_NilClient(t *testing.T) {
 // ─── Health handler nil-safe ──────────────────────────────────────────────────
 // Nil client is not a valid use case — NewGraphHandler always receives a
 // non-nil client from RegisterGraphRoutes. A nil client panics (by design).
+
+func TestGraphHandler_FindEntitiesForMemory_Success(t *testing.T) {
+	fake := &fakeGraphClient{
+		available: true,
+		entityMentions: []graph.EntityMention{
+			{Slot: "src_ip", Kind: "IPAddress", Key: "10.0.4.22", Confidence: 0.9},
+		},
+	}
+	resp, err := newGraphApp("tid", "user", fake).
+		Test(httptest.NewRequest("GET", "/v1/graph/entities/memory?memory_id=42", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindEntitiesRelated_ByKindKey(t *testing.T) {
+	fake := &fakeGraphClient{
+		available: true,
+		entityMemories: &graph.EntityMemoriesResult{
+			Memories: []graph.EntityMemory{{ID: 7, SharedKind: "IPAddress", SharedKey: "10.0.4.22"}},
+			Total:    1,
+		},
+	}
+	resp, err := newGraphApp("tid", "user", fake).
+		Test(httptest.NewRequest("GET", "/v1/graph/entities/related?kind=IPAddress&key=10.0.4.22", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindEntitiesRelated_MissingParams(t *testing.T) {
+	resp, err := newGraphApp("tid", "user", &fakeGraphClient{available: true}).
+		Test(httptest.NewRequest("GET", "/v1/graph/entities/related", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindEntitiesRelated_AGENotAvailable(t *testing.T) {
+	resp, err := newGraphApp("tid", "user", &fakeGraphClient{available: false}).
+		Test(httptest.NewRequest("GET", "/v1/graph/entities/related?kind=User&key=alice", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 501 {
+		t.Fatalf("status %d want 501", resp.StatusCode)
+	}
+}

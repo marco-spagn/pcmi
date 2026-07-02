@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -21,6 +22,9 @@ type graphClientIface interface {
 	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*graph.RelatedResult, error)
 	FindChain(ctx context.Context, tenantID string, fromID, toID int64, linkTypes []string, maxDepth int) (*graph.ChainResult, error)
 	ExecuteCypher(ctx context.Context, tenantID, query string) (*graph.CypherResult, error)
+	FindEntitiesForMemory(ctx context.Context, tenantID string, memoryID int64) ([]graph.EntityMention, error)
+	FindMemoriesByEntity(ctx context.Context, tenantID, kind, key string, cursor int64, limit int) (*graph.EntityMemoriesResult, error)
+	FindRelatedViaEntity(ctx context.Context, tenantID string, memoryID int64, cursor int64, limit int) (*graph.EntityMemoriesResult, error)
 }
 
 // GraphHandler exposes the v2.0 Cognitive Graph endpoints.
@@ -44,6 +48,8 @@ func RegisterGraphRoutes(app *fiber.App, graphClient *graph.GraphClient) {
 	app.Get("/v1/graph/health", h.Health)
 	app.Get("/v1/graph/related", h.FindRelated)
 	app.Get("/v1/graph/chain", h.FindChain)
+	app.Get("/v1/graph/entities/memory", h.FindEntitiesForMemory)
+	app.Get("/v1/graph/entities/related", h.FindEntitiesRelated)
 	app.Post("/v1/graph/cypher", middleware.RequireWriteRole, h.ExecuteCypher)
 
 	// Graph visual explorer (no auth — same as health).
@@ -224,6 +230,117 @@ func (h *GraphHandler) FindChain(c *fiber.Ctx) error {
 		result.Path = []graph.ChainLink{}
 	}
 	return c.JSON(result)
+}
+
+// FindEntitiesForMemory lists promoted entity vertices linked from a memory.
+//
+// GET /v1/graph/entities/memory?memory_id=123
+func (h *GraphHandler) FindEntitiesForMemory(c *fiber.Ctx) error {
+	if !h.client.IsAvailable(c.Context()) {
+		return h.ageNotAvailable(c)
+	}
+	tid := h.tenantID(c)
+	memID, err := parseGraphMemoryID(c.Query("memory_id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+	var entities []graph.EntityMention
+	err = h.timed(c, func() error {
+		entities, err = h.client.FindEntitiesForMemory(c.Context(), tid, memID)
+		return err
+	})
+	if err != nil {
+		return h.graphError(c, err, "try again later")
+	}
+	if entities == nil {
+		entities = []graph.EntityMention{}
+	}
+	return c.JSON(fiber.Map{
+		"memory_id": memID,
+		"entities":  entities,
+		"count":     len(entities),
+	})
+}
+
+// FindEntitiesRelated returns memories correlated via shared entity vertices.
+//
+// GET /v1/graph/entities/related?kind=IPAddress&key=10.0.4.22
+// GET /v1/graph/entities/related?memory_id=123
+func (h *GraphHandler) FindEntitiesRelated(c *fiber.Ctx) error {
+	if !h.client.IsAvailable(c.Context()) {
+		return h.ageNotAvailable(c)
+	}
+	tid := h.tenantID(c)
+	cursor, limit := parseGraphPagination(c)
+
+	kind := strings.TrimSpace(c.Query("kind"))
+	key := strings.TrimSpace(c.Query("key"))
+	memIDStr := strings.TrimSpace(c.Query("memory_id"))
+
+	var result *graph.EntityMemoriesResult
+	var err error
+	err = h.timed(c, func() error {
+		switch {
+		case kind != "" && key != "":
+			result, err = h.client.FindMemoriesByEntity(c.Context(), tid, kind, key, cursor, limit)
+		case memIDStr != "":
+			memID, parseErr := parseGraphMemoryID(memIDStr)
+			if parseErr != nil {
+				err = parseErr
+				return err
+			}
+			result, err = h.client.FindRelatedViaEntity(c.Context(), tid, memID, cursor, limit)
+		default:
+			err = fmt.Errorf("provide kind+key or memory_id")
+		}
+		return err
+	})
+	if err != nil {
+		if err.Error() == "provide kind+key or memory_id" || strings.Contains(err.Error(), "memory_id") {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+		}
+		return h.graphError(c, err, "try reducing limit")
+	}
+	if result.Memories == nil {
+		result.Memories = []graph.EntityMemory{}
+	}
+	return c.JSON(fiber.Map{
+		"kind":        kind,
+		"key":         key,
+		"memory_id":   memIDStr,
+		"entries":     result.Memories,
+		"count":       len(result.Memories),
+		"total":       result.Total,
+		"next_cursor": result.NextCursor,
+		"limit":       limit,
+	})
+}
+
+func parseGraphMemoryID(raw string) (int64, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, fmt.Errorf("memory_id is required")
+	}
+	id, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("memory_id must be a positive integer")
+	}
+	return id, nil
+}
+
+func parseGraphPagination(c *fiber.Ctx) (cursor int64, limit int) {
+	limit = 50
+	if l := c.Query("limit"); l != "" {
+		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 200 {
+			limit = n
+		}
+	}
+	if cur := c.Query("cursor"); cur != "" {
+		if n, err := strconv.ParseInt(cur, 10, 64); err == nil && n >= 0 {
+			cursor = n
+		}
+	}
+	return cursor, limit
 }
 
 // ExecuteCypher runs a read-only Cypher query against pcmi_memory_graph.

@@ -8,6 +8,7 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/extraction"
+	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 )
@@ -22,6 +23,7 @@ type LLMCompleter interface {
 type ExtractionService struct {
 	profiles extractionProfileStore
 	memories repository.MemoryRepo
+	graph    *graph.GraphClient
 	llm      LLMCompleter
 	model    string
 	enabled  bool
@@ -36,10 +38,11 @@ type extractionProfileStore interface {
 	GetCurrentMemoryByID(ctx context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, error)
 }
 
-func NewExtractionService(profiles extractionProfileStore, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config) *ExtractionService {
+func NewExtractionService(profiles extractionProfileStore, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config, graphClient *graph.GraphClient) *ExtractionService {
 	s := &ExtractionService{
 		profiles: profiles,
 		memories: memories,
+		graph:    graphClient,
 		llm:      llm,
 		model:    "gpt-4o-mini",
 	}
@@ -199,7 +202,15 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 	if err := s.persistRecord(ctx, tenantID, entry.Path, parsed); err != nil {
 		return parsed, err
 	}
+	s.syncEntityGraph(ctx, tenantID, entry, profile, parsed)
 	return parsed, nil
+}
+
+func (s *ExtractionService) syncEntityGraph(ctx context.Context, tenantID string, entry *model.MemoryEntry, profile *extraction.Profile, rec *extraction.Record) {
+	if s == nil || s.graph == nil || profile == nil || rec == nil {
+		return
+	}
+	_ = s.graph.SyncPromotedEntities(ctx, tenantID, entry.ID, entry.Version, profile, rec)
 }
 
 func (s *ExtractionService) persistRecord(ctx context.Context, tenantID, path string, rec *extraction.Record) error {

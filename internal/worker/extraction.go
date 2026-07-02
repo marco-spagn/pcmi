@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 )
@@ -22,7 +23,7 @@ func NewExtractionWorker(db *pgxpool.Pool, cfg *config.Config) *ExtractionWorker
 	profiles := repository.NewExtractionRepository(db, nil)
 	memRepo := repository.NewMemoryRepository(db, nil)
 	llm, _ := NewLLMClient(cfg)
-	svc := service.NewExtractionService(profiles, memRepo, llm, cfg)
+	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graph.NewGraphClient(db))
 	return &ExtractionWorker{svc: svc}
 }
 

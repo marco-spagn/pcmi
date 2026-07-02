@@ -837,6 +837,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GraphUnavailableResponse"
+  /v1/graph/entities/memory:
+    get:
+      summary: List entity vertices mentioned by a memory (Phase B)
+      description: |
+        Returns promoted `:Entity` vertices linked from the memory via `:mentions`.
+        Requires AGE and prior successful extraction with `entity_promotion` rules.
+        Returns 501 when AGE is unavailable. See [cognitive-graph-entities.md](cognitive-graph-entities.md).
+      parameters:
+        - name: memory_id
+          in: query
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Entity mentions for the memory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphEntitiesForMemoryResponse"
+        "400":
+          description: Invalid query
+        "501":
+          description: AGE not installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphUnavailableResponse"
+  /v1/graph/entities/related:
+    get:
+      summary: Correlate memories via shared entity vertices (Phase B)
+      description: |
+        Returns memories that mention the same entity (`kind` + `key`) or, when
+        `memory_id` is given, other memories sharing any promoted entity with that memory.
+        Requires AGE. Returns 501 when unavailable.
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string }
+          description: Entity kind (e.g. IPAddress) — required with key unless memory_id is set
+        - name: key
+          in: query
+          schema: { type: string }
+          description: Normalized entity key — required with kind unless memory_id is set
+        - name: memory_id
+          in: query
+          schema: { type: integer, format: int64 }
+          description: Find memories sharing entities with this memory
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64, minimum: 0, default: 0 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Correlated memories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphEntitiesRelatedResponse"
+        "400":
+          description: Invalid query
+        "501":
+          description: AGE not installed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GraphUnavailableResponse"
   /v1/graph/cypher:
     post:
       summary: Execute a read-only Cypher query (experimental spike; requires write role)
@@ -1370,6 +1438,42 @@ components:
         path:
           type: array
           items: { $ref: "#/components/schemas/GraphChainLink" }
+    GraphEntityMention:
+      type: object
+      properties:
+        slot: { type: string }
+        kind: { type: string }
+        key: { type: string }
+        confidence: { type: number, format: float }
+    GraphEntitiesForMemoryResponse:
+      type: object
+      properties:
+        memory_id: { type: integer, format: int64 }
+        count: { type: integer }
+        entities:
+          type: array
+          items: { $ref: "#/components/schemas/GraphEntityMention" }
+    GraphEntityRelatedEntry:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        shared_kind: { type: string }
+        shared_key: { type: string }
+        slot: { type: string }
+        confidence: { type: number, format: float }
+    GraphEntitiesRelatedResponse:
+      type: object
+      properties:
+        kind: { type: string }
+        key: { type: string }
+        memory_id: { type: string }
+        count: { type: integer }
+        total: { type: integer }
+        next_cursor: { type: integer, format: int64 }
+        limit: { type: integer }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/GraphEntityRelatedEntry" }
     CypherQueryRequest:
       type: object
       required: [query]

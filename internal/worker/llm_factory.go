@@ -23,7 +23,7 @@ const (
 // runtime, matching the existing "no OPENAI_API_KEY" behaviour.
 func NewLLMClient(cfg *config.Config) (LLMClient, error) {
 	if cfg == nil {
-		return newOpenAIClient("", defaultModelOpenAI), nil
+		return newOpenAIClient("", defaultModelOpenAI, ""), nil
 	}
 
 	provider := strings.ToLower(strings.TrimSpace(cfg.LLMProvider))
@@ -41,7 +41,7 @@ func NewLLMClient(cfg *config.Config) (LLMClient, error) {
 		if cfg.OpenAIAPIKey == "" {
 			log.Println("⚠️  LLM_PROVIDER=openai but OPENAI_API_KEY is unset — distillation will be skipped")
 		}
-		return newOpenAIClient(cfg.OpenAIAPIKey, model), nil
+		return newOpenAIClient(cfg.OpenAIAPIKey, model, cfg.OpenAIBaseURL), nil
 
 	case "grok", "xai":
 		if model == "" {

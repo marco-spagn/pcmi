@@ -169,10 +169,10 @@ func TestDefaultModels(t *testing.T) {
 // ─── openAILLMClient unit tests ───────────────────────────────────────────────
 
 func TestOpenAILLMClient_IsConfigured(t *testing.T) {
-	if newOpenAIClient("", "m").IsConfigured() {
+	if newOpenAIClient("", "m", "").IsConfigured() {
 		t.Fatal("empty key should not be configured")
 	}
-	if !newOpenAIClient("sk-x", "m").IsConfigured() {
+	if !newOpenAIClient("sk-x", "m", "").IsConfigured() {
 		t.Fatal("non-empty key should be configured")
 	}
 }

@@ -20,14 +20,23 @@ type LLMCompleter interface {
 
 // ExtractionService runs profile matching, LLM extraction, and metadata merge.
 type ExtractionService struct {
-	profiles *repository.ExtractionRepository
+	profiles extractionProfileStore
 	memories repository.MemoryRepo
 	llm      LLMCompleter
 	model    string
 	enabled  bool
 }
 
-func NewExtractionService(profiles *repository.ExtractionRepository, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config) *ExtractionService {
+// extractionProfileStore is the profile + memory read surface used by ExtractionService.
+type extractionProfileStore interface {
+	ListProfiles(ctx context.Context, tenantID string) ([]repository.ExtractionProfileRow, error)
+	MatchProfile(ctx context.Context, tenantID, path string) (*extraction.Profile, string, error)
+	UpsertProfile(ctx context.Context, tenantID, profileID, pathPrefix string, profile *extraction.Profile, enabled bool) (*repository.ExtractionProfileRow, error)
+	DeleteProfile(ctx context.Context, tenantID, profileID string) (bool, error)
+	GetCurrentMemoryByID(ctx context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, error)
+}
+
+func NewExtractionService(profiles extractionProfileStore, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config) *ExtractionService {
 	s := &ExtractionService{
 		profiles: profiles,
 		memories: memories,

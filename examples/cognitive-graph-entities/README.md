@@ -3,8 +3,8 @@
 Reference JSON for the proposed **domain profile** mechanism described in
 [docs/cognitive-graph-entities.md](../../docs/cognitive-graph-entities.md).
 
-These files are **not consumed by PCMI today** — they document the intended
-contract for Phase A (LLM slot extraction) and Phase B (entity vertex promotion).
+These files are **not consumed automatically** — register them via
+`PUT /v1/extraction-profiles/{profile_id}` (see [cognitive-graph-entities.md](../../docs/cognitive-graph-entities.md)).
 
 | File | Use case |
 |------|----------|

@@ -664,6 +664,87 @@ paths:
           description: Invalid request
         "503":
           description: Event bus unavailable
+  /v1/extraction-profiles:
+    get:
+      summary: List tenant extraction profiles (Phase A entity layer)
+      description: |
+        Returns domain profiles that drive LLM attribute slot extraction into
+        `metadata.pcmi_extract`. See [cognitive-graph-entities.md](cognitive-graph-entities.md).
+      responses:
+        "200":
+          description: Profile list
+    put:
+      summary: Upsert extraction profile (not supported at collection path)
+      responses:
+        "405":
+          description: Use PUT /v1/extraction-profiles/{profile_id}
+  /v1/extraction-profiles/{profile_id}:
+    put:
+      summary: Create or update a tenant extraction profile
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [profile]
+              properties:
+                path_prefix: { type: string, default: root }
+                enabled: { type: boolean, default: true }
+                profile:
+                  type: object
+                  description: Domain profile JSON (required_slots, entity_promotion, …)
+      responses:
+        "200":
+          description: Stored profile
+        "400":
+          description: Invalid profile
+    delete:
+      summary: Delete an extraction profile
+      parameters:
+        - name: profile_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+  /v1/memories/extraction/{memory_id}:
+    get:
+      summary: Read pcmi_extract for a memory (current version)
+      parameters:
+        - name: memory_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Extraction record or null
+        "404":
+          description: Memory not found
+    post:
+      summary: Force LLM attribute extraction for a memory
+      parameters:
+        - name: memory_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Extraction completed
+        "404":
+          description: No memory or matching profile
+        "422":
+          description: LLM/validation failure (partial extraction may be returned)
+        "503":
+          description: EXTRACTION_ENABLED=false or LLM not configured
   /v1/graph/health:
     get:
       summary: Cognitive Graph (AGE) availability probe (experimental spike; no auth)

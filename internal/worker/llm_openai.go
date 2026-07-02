@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/sashabaranov/go-openai"
 )
@@ -48,9 +49,12 @@ func (c *openAILLMClient) Complete(ctx context.Context, systemPrompt string, use
 	return resp.Choices[0].Message.Content, nil
 }
 
-// newOpenAIClient builds a client targeting the default OpenAI endpoint.
-func newOpenAIClient(apiKey, model string) *openAILLMClient {
+// newOpenAIClient builds a client targeting the default OpenAI endpoint or baseURL when set.
+func newOpenAIClient(apiKey, model, baseURL string) *openAILLMClient {
 	cfg := openai.DefaultConfig(apiKey)
+	if b := strings.TrimSpace(baseURL); b != "" {
+		cfg.BaseURL = b
+	}
 	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey}
 }
 

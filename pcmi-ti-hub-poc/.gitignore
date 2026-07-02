@@ -1,0 +1,7 @@
+# Runtime logs / PID files from scripts/run_e2e.sh
+.run/
+# Generated brief artifacts
+reports/*.md
+# Python
+__pycache__/
+*.pyc

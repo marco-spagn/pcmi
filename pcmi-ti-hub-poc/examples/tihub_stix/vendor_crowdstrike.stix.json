@@ -1,0 +1,474 @@
+{
+  "type": "bundle",
+  "id": "bundle--ca80e6c8-cb2d-5d2a-b7f3-02c142abe1ea",
+  "objects": [
+    {
+      "type": "report",
+      "id": "report--97cd0fc6-92b0-56f5-8556-4a5cd5a54da8",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "published": "2026-02-24T00:00:00.000Z",
+      "name": "CrowdStrike 2026 Global Threat Report",
+      "x_vendor": "CrowdStrike",
+      "x_data_period": "2025",
+      "description": "STIX 2.1 bundle transcoded from curated CTI for vendor CrowdStrike.",
+      "report_types": [
+        "threat-report"
+      ],
+      "object_refs": [
+        "note--4320b2c9-e700-5dcc-80ce-8b68e1dd1db4",
+        "note--e378e666-2821-5926-a258-a93393323b01",
+        "note--9deedcce-af12-59bb-8962-6f6d527d4bed",
+        "threat-actor--fc97cc32-6c7c-5c71-ae6b-e0a6aa1c7ccb",
+        "note--b756792c-3e20-5caa-8399-511e3a960974",
+        "note--e15252c4-9862-535a-813e-09c0a56026d6",
+        "threat-actor--dceb0e68-3896-51fa-abca-aeff21ea29f8",
+        "note--66dc9073-850b-56d8-9240-734bbfee7238",
+        "note--ff8bda39-ca57-5406-874c-0104ba9c5120",
+        "note--f786d635-3e9d-5fa6-8a9c-5224effcc22c",
+        "note--8222cebb-4780-5d9c-a934-8a78f334d219"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--4320b2c9-e700-5dcc-80ce-8b68e1dd1db4",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Landscape",
+      "description": "2025: the year of the evasive adversary. Threat landscape defined by attacks that targeted trusted relationships, demonstrated fluency with AI tools, and incorporated tradecraft tailored to exploit security blind spots. CrowdStrike tracked 24 new adversaries in 2025, bringing the total to 281. 82% of detections were malware-free. 89% increase in attacks by AI-enabled adversaries.",
+      "abstract": "Landscape",
+      "content": "2025: the year of the evasive adversary. Threat landscape defined by attacks that targeted trusted relationships, demonstrated fluency with AI tools, and incorporated tradecraft tailored to exploit security blind spots. CrowdStrike tracked 24 new adversaries in 2025, bringing the total to 281. 82% of detections were malware-free. 89% increase in attacks by AI-enabled adversaries.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "landscape_overview",
+        "total_adversaries": 281,
+        "new_adversaries": 24,
+        "malware_free_pct": 82,
+        "ai_enabled_increase_pct": 89
+      },
+      "x_cti_tags": [
+        "landscape",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--e378e666-2821-5926-a258-a93393323b01",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Breakout Time",
+      "description": "Average eCrime breakout time fell to 29 minutes in 2025, a 65% increase in speed from 2024. Fastest observed breakout time: 27 seconds. Breakout time has decreased roughly 70% from 2021 to 2025.",
+      "abstract": "Breakout Time",
+      "content": "Average eCrime breakout time fell to 29 minutes in 2025, a 65% increase in speed from 2024. Fastest observed breakout time: 27 seconds. Breakout time has decreased roughly 70% from 2021 to 2025.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "avg_breakout_minutes": 29,
+        "fastest_breakout_seconds": 27,
+        "yoy_speed_increase_pct": 65,
+        "five_year_reduction_pct": 70
+      },
+      "x_cti_tags": [
+        "breakout-time",
+        "crowdstrike",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--9deedcce-af12-59bb-8962-6f6d527d4bed",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "PRESSURE CHOLLIMA / Lazarus Group / TraderTraitor",
+      "description": "PRESSURE CHOLLIMA stole $1.46 billion USD worth of cryptocurrency from Bybit exchange on February 21, 2025, through trojanized software delivered via supply chain compromise of Safe{Wallet}. The largest single financial theft ever reported. Attackers compromised a developer's macOS workstation, injected malicious JavaScript into Safe{Wallet}'s front-end during routine update, spoofed the signing UI to redirect multi-sig cold wallet transaction. Over 400,000 ETH stolen.",
+      "abstract": "PRESSURE CHOLLIMA / Lazarus Group / TraderTraitor",
+      "content": "PRESSURE CHOLLIMA stole $1.46 billion USD worth of cryptocurrency from Bybit exchange on February 21, 2025, through trojanized software delivered via supply chain compromise of Safe{Wallet}. The largest single financial theft ever reported. Attackers compromised a developer's macOS workstation, injected malicious JavaScript into Safe{Wallet}'s front-end during routine update, spoofed the signing UI to redirect multi-sig cold wallet transaction. Over 400,000 ETH stolen.",
+      "external_references": [
+        {
+          "source_name": "mitre-attack",
+          "external_id": "T1195.002"
+        },
+        {
+          "source_name": "mitre-attack",
+          "external_id": "T1059.007"
+        }
+      ],
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "incident",
+        "actor": "PRESSURE CHOLLIMA / Lazarus Group / TraderTraitor",
+        "target": "Bybit cryptocurrency exchange",
+        "amount_stolen": "$1.46B",
+        "asset": "ETH",
+        "date": "2025-02-21",
+        "technique": "supply chain compromise of Safe{Wallet}",
+        "mitre_techniques": [
+          "T1195.002",
+          "T1059.007"
+        ],
+        "fbi_attribution": true
+      },
+      "x_cti_tags": [
+        "pressure-chollima",
+        "lazarus",
+        "bybit",
+        "crypto-theft",
+        "supply-chain",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--fc97cc32-6c7c-5c71-ae6b-e0a6aa1c7ccb",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "FAMOUS CHOLLIMA",
+      "description": "FAMOUS CHOLLIMA activity more than doubled in 2025. Accounted for 47% of all state-sponsored hands-on-keyboard operations against the tech sector. IT worker infiltration campaigns: sought fraudulent employment at tech companies across North America, Europe, and Asia. Primary motivation is financial gain for the DPRK regime. DPRK-linked incidents rose more than 130% overall.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_actor_activity",
+        "actor": "FAMOUS CHOLLIMA",
+        "activity_increase_pct": ">100%",
+        "tech_sector_keyboard_pct": 47,
+        "dprk_incidents_increase_pct": 130,
+        "technique": "fraudulent IT worker employment"
+      },
+      "x_cti_tags": [
+        "famous-chollima",
+        "dprk",
+        "insider-threat",
+        "it-worker",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--b756792c-3e20-5caa-8399-511e3a960974",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "STARDUST CHOLLIMA",
+      "description": "STARDUST CHOLLIMA compromised the Axios npm package, downloaded 100 million times per week, in operations that likely exposed millions of downstream systems. Supply chain compromise through public code repositories.",
+      "abstract": "STARDUST CHOLLIMA",
+      "content": "STARDUST CHOLLIMA compromised the Axios npm package, downloaded 100 million times per week, in operations that likely exposed millions of downstream systems. Supply chain compromise through public code repositories.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "incident",
+        "actor": "STARDUST CHOLLIMA",
+        "target": "Axios npm package",
+        "weekly_downloads": "100M",
+        "technique": "npm supply chain compromise"
+      },
+      "x_cti_tags": [
+        "stardust-chollima",
+        "dprk",
+        "npm",
+        "supply-chain",
+        "axios",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--e15252c4-9862-535a-813e-09c0a56026d6",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "China Nexus",
+      "description": "China-nexus activity increased 38% in 2025. Logistics vertical had greatest increase in targeting, up 85%. 67% of all exploited vulnerabilities by China-nexus actors delivered immediate system access. 40% targeted internet-facing edge devices. Adversaries including MURKY PANDA, MUSTANG PANDA, OVERCAST PANDA, SUNRISE PANDA, and WARP PANDA targeted the tech sector more than any other industry. 58% of state-sponsored targeted intrusions attributed to China-nexus adversaries.",
+      "abstract": "China Nexus",
+      "content": "China-nexus activity increased 38% in 2025. Logistics vertical had greatest increase in targeting, up 85%. 67% of all exploited vulnerabilities by China-nexus actors delivered immediate system access. 40% targeted internet-facing edge devices. Adversaries including MURKY PANDA, MUSTANG PANDA, OVERCAST PANDA, SUNRISE PANDA, and WARP PANDA targeted the tech sector more than any other industry. 58% of state-sponsored targeted intrusions attributed to China-nexus adversaries.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_landscape_regional",
+        "region": "China-nexus",
+        "activity_increase_pct": 38,
+        "logistics_increase_pct": 85,
+        "immediate_access_vuln_pct": 67,
+        "edge_device_targeting_pct": 40,
+        "actors": [
+          "MURKY PANDA",
+          "MUSTANG PANDA",
+          "OVERCAST PANDA",
+          "SUNRISE PANDA",
+          "WARP PANDA"
+        ],
+        "state_intrusions_pct": 58
+      },
+      "x_cti_tags": [
+        "china",
+        "panda",
+        "edge-device",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--dceb0e68-3896-51fa-abca-aeff21ea29f8",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "COZY BEAR (APT-29)",
+      "description": "COZY BEAR used OAuth device-code phishing that kept victims on Microsoft's authentic infrastructure. Cloud-conscious intrusions rose 37% year-over-year, with a 266% increase among named state-nexus actors. Valid account abuse accounted for 35% of cloud incidents.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_actor_activity",
+        "actor": "COZY BEAR (APT-29)",
+        "technique": "OAuth device-code phishing on Microsoft infra",
+        "cloud_intrusions_increase_pct": 37,
+        "state_nexus_cloud_increase_pct": 266,
+        "valid_account_abuse_pct": 35
+      },
+      "x_cti_tags": [
+        "cozy-bear",
+        "oauth",
+        "cloud",
+        "identity",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--66dc9073-850b-56d8-9240-734bbfee7238",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Zero Day",
+      "description": "42% year-over-year increase in zero-days exploited prior to public disclosure. China-nexus actors operationalised exploits within days of disclosure. GRACEFUL SPIDER repeatedly leveraged zero-days in large-scale campaigns.",
+      "abstract": "Zero Day",
+      "content": "42% year-over-year increase in zero-days exploited prior to public disclosure. China-nexus actors operationalised exploits within days of disclosure. GRACEFUL SPIDER repeatedly leveraged zero-days in large-scale campaigns.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "zero_day_increase_yoy_pct": 42,
+        "actors": [
+          "China-nexus",
+          "GRACEFUL SPIDER"
+        ]
+      },
+      "x_cti_tags": [
+        "zero-day",
+        "crowdstrike",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--ff8bda39-ca57-5406-874c-0104ba9c5120",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Fake Captcha",
+      "description": "563% increase in incidents using fake CAPTCHA lures in 2025. Adversaries trick users into executing malicious code via convincing, socially engineered delivery methods including CAPTCHAs, video conference verifications, driver updates, and enterprise software compliance verification.",
+      "abstract": "Fake Captcha",
+      "content": "563% increase in incidents using fake CAPTCHA lures in 2025. Adversaries trick users into executing malicious code via convincing, socially engineered delivery methods including CAPTCHAs, video conference verifications, driver updates, and enterprise software compliance verification.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "technique_trend",
+        "technique": "fake CAPTCHA lures",
+        "increase_pct": 563
+      },
+      "x_cti_tags": [
+        "fake-captcha",
+        "social-engineering",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--f786d635-3e9d-5fa6-8a9c-5224effcc22c",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Ai Exploitation",
+      "description": "90+ organizations had legitimate AI tools exploited to generate malicious commands and steal sensitive data. ChatGPT was mentioned in criminal forums 550% more than any other model. SparkCat mobile malware uses AI optical character recognition to select image files for exfiltration. FunkLocker and RALord ransomware variants share encryption flaw associated with WormGPT.",
+      "abstract": "Ai Exploitation",
+      "content": "90+ organizations had legitimate AI tools exploited to generate malicious commands and steal sensitive data. ChatGPT was mentioned in criminal forums 550% more than any other model. SparkCat mobile malware uses AI optical character recognition to select image files for exfiltration. FunkLocker and RALord ransomware variants share encryption flaw associated with WormGPT.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "technique_trend",
+        "orgs_with_ai_exploited": 90,
+        "chatgpt_forum_mentions_increase_pct": 550,
+        "malware_ai": [
+          "SparkCat (AI OCR)",
+          "FunkLocker (WormGPT)",
+          "RALord (WormGPT)"
+        ]
+      },
+      "x_cti_tags": [
+        "ai-abuse",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--8222cebb-4780-5d9c-a934-8a78f334d219",
+      "spec_version": "2.1",
+      "created": "2026-02-24T00:00:00.000Z",
+      "modified": "2026-02-24T00:00:00.000Z",
+      "name": "Spam",
+      "description": "141% increase in spam emails in 2025. Combined with increasing cryptocurrency prices amplifying extortion incentives. Big game hunting groups continue to drive high-impact ransomware operations.",
+      "abstract": "Spam",
+      "content": "141% increase in spam emails in 2025. Combined with increasing cryptocurrency prices amplifying extortion incentives. Big game hunting groups continue to drive high-impact ransomware operations.",
+      "x_cti_metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "spam_increase_pct": 141
+      },
+      "x_cti_tags": [
+        "spam",
+        "ransomware",
+        "crowdstrike",
+        "2025"
+      ]
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--aef047ee-f655-5b1c-90be-e19af616d68a",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "note--9deedcce-af12-59bb-8962-6f6d527d4bed",
+      "target_ref": "note--4320b2c9-e700-5dcc-80ce-8b68e1dd1db4",
+      "description": "Bybit theft è il caso più eclatante del 2025.",
+      "x_weight": 0.8
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--4d86c348-298f-51ac-bd13-cabe30bbc9f9",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "note--b756792c-3e20-5caa-8399-511e3a960974",
+      "target_ref": "note--9deedcce-af12-59bb-8962-6f6d527d4bed",
+      "description": "Entrambi DPRK-nexus supply chain attacks nel 2025.",
+      "x_weight": 0.6
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--f8adae81-34c6-5299-bc40-c3319fb6d7f4",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "threat-actor--dceb0e68-3896-51fa-abca-aeff21ea29f8",
+      "target_ref": "note--66dc9073-850b-56d8-9240-734bbfee7238",
+      "description": "Convergenza tra identity abuse e zero-day exploitation.",
+      "x_weight": 0.5
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--0010f4c0-06e5-5080-98ae-2b94fd8f4f8e",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "note--9deedcce-af12-59bb-8962-6f6d527d4bed",
+      "target_ref": "threat-actor--9ba56556-55fe-53e0-a4ce-8af501bb84e4",
+      "description": "Entrambi DPRK-nexus targeting crypto. Vendor diversi, stesso attore ombrello.",
+      "x_weight": 0.6
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--e5726105-6564-5c27-8da9-958e9dd99539",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "threat-actor--fc97cc32-6c7c-5c71-ae6b-e0a6aa1c7ccb",
+      "target_ref": "threat-actor--9ba56556-55fe-53e0-a4ce-8af501bb84e4",
+      "description": "DPRK IT worker + macOS crypto theft: operazioni complementari.",
+      "x_weight": 0.5
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--e42f3f93-75ab-5d84-ad40-5fa81a0431b3",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "threat-actor--dceb0e68-3896-51fa-abca-aeff21ea29f8",
+      "target_ref": "threat-actor--320dde89-b30b-5a81-9ecd-59f78caa3d45",
+      "description": "Stessa campagna OAuth device-code phishing documentata da entrambi. COZY BEAR (CS) = Midnight Blizzard (MS).",
+      "x_weight": 0.9
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--4a631dd0-2ca4-57fb-9d47-3f3c57a8e0b7",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "note--e378e666-2821-5926-a258-a93393323b01",
+      "target_ref": "note--dd3497f5-ea1d-5e62-9147-4e8ecdcec2aa",
+      "description": "CrowdStrike breakout 27s → Unit42 exfil 72min: fasi diverse della kill chain.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--b76e8a2d-f874-5317-8781-d0a0ee43113b",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "note--b756792c-3e20-5caa-8399-511e3a960974",
+      "target_ref": "note--c21b1784-7323-55c2-bb13-1ba5cae6807c",
+      "description": "Axios npm compromise conferma il trend supply chain di Unit42.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--0ec0e4d4-c6ad-5823-b2b3-b97f207cbe4f",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "note--66dc9073-850b-56d8-9240-734bbfee7238",
+      "target_ref": "note--86c9e743-5eca-547a-a225-75c9101fe2be",
+      "description": "CrowdStrike +42% zero-day conferma il -7 giorni medio di Mandiant.",
+      "x_weight": 0.8
+    }
+  ]
+}

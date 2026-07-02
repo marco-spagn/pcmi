@@ -1,0 +1,598 @@
+{
+  "type": "bundle",
+  "id": "bundle--2ae04364-9b00-5c07-a594-127ac3c8793c",
+  "objects": [
+    {
+      "type": "report",
+      "id": "report--d7bbe97c-34b7-5955-b041-89f5fae04649",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "published": "2026-03-23T00:00:00.000Z",
+      "name": "Mandiant M-Trends 2026",
+      "x_vendor": "Mandiant/Google",
+      "x_data_period": "2025",
+      "description": "STIX 2.1 bundle transcoded from curated CTI for vendor Mandiant/Google.",
+      "report_types": [
+        "threat-report"
+      ],
+      "object_refs": [
+        "note--baaec663-8097-5599-ba8e-2979f27e6640",
+        "note--c8eccded-02b5-5018-86e7-fd0e8f6d8c2f",
+        "note--c09ee5cf-5363-5463-95ed-4d62c5da167d",
+        "note--d2c988e5-d614-5579-95a9-ef79d0149836",
+        "note--8ba901ae-ab6e-5b38-a2de-78abd89e3b1f",
+        "note--b3f45fa9-e4b1-538b-acfa-ab1c68858a33",
+        "malware--aa9cc4be-eef4-5694-9e8b-1936864998e7",
+        "malware--e1ef0d9c-34f4-5e3f-badc-08ca904cf087",
+        "malware--e5058d25-d2d0-5e7d-b321-eed1f06da5ef",
+        "vulnerability--3d62034c-3619-5ab7-9e9c-c4f7b3c2ecfb",
+        "vulnerability--e13e4449-7869-5194-96aa-f3824e5bbaf4",
+        "note--6e86d500-e933-5ea3-b4f3-35409bd7c7d1",
+        "note--86c9e743-5eca-547a-a225-75c9101fe2be",
+        "note--e7429331-6a71-5839-bd81-75c490f5fe24",
+        "note--766ac53f-dd06-55ac-9c89-015100faa5e9"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--baaec663-8097-5599-ba8e-2979f27e6640",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Landscape",
+      "description": "In 2025, Mandiant observed a clear divergence in adversary pacing. Cyber criminal groups optimized for immediate impact and deliberate recovery denial. Sophisticated cyber espionage groups and insider threats optimized for extreme persistence, utilizing unmonitored edge devices and native network functionalities to evade detection. Grounded in over 500,000 hours of frontline incident investigations conducted by Mandiant globally in 2025.",
+      "abstract": "Landscape",
+      "content": "In 2025, Mandiant observed a clear divergence in adversary pacing. Cyber criminal groups optimized for immediate impact and deliberate recovery denial. Sophisticated cyber espionage groups and insider threats optimized for extreme persistence, utilizing unmonitored edge devices and native network functionalities to evade detection. Grounded in over 500,000 hours of frontline incident investigations conducted by Mandiant globally in 2025.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "landscape_overview",
+        "investigation_hours": 500000
+      },
+      "x_cti_tags": [
+        "landscape",
+        "mandiant",
+        "mtrends",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--c8eccded-02b5-5018-86e7-fd0e8f6d8c2f",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Initial Vectors",
+      "description": "Exploitation of internet-facing systems remained the leading initial infection vector for the sixth consecutive year, accounting for 32% of cases. Voice phishing climbed to the second-most common initial infection vector at 11%, displacing traditional email phishing which fell to just 6% — less than half its share the prior year.",
+      "abstract": "Initial Vectors",
+      "content": "Exploitation of internet-facing systems remained the leading initial infection vector for the sixth consecutive year, accounting for 32% of cases. Voice phishing climbed to the second-most common initial infection vector at 11%, displacing traditional email phishing which fell to just 6% — less than half its share the prior year.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "exploit_pct": 32,
+        "vishing_pct": 11,
+        "email_phishing_pct": 6,
+        "note": "email phishing declined from 22% in 2022 to 6% in 2025"
+      },
+      "x_cti_tags": [
+        "initial-access",
+        "mandiant",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--c09ee5cf-5363-5463-95ed-4d62c5da167d",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Breakout Handoff",
+      "description": "Access-broker handoffs measured in 22 seconds. A growing share of Mandiant investigations followed a division-of-labor model in which one threat cluster gains initial access and transfers it to a separate group for follow-on operations. This pattern appeared in 9% of 2025 investigations, up from 4% in 2022.",
+      "abstract": "Breakout Handoff",
+      "content": "Access-broker handoffs measured in 22 seconds. A growing share of Mandiant investigations followed a division-of-labor model in which one threat cluster gains initial access and transfers it to a separate group for follow-on operations. This pattern appeared in 9% of 2025 investigations, up from 4% in 2022.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "fastest_handoff_seconds": 22,
+        "division_of_labor_pct": 9,
+        "prior_year_pct": 4
+      },
+      "x_cti_tags": [
+        "breakout-time",
+        "mandiant",
+        "access-broker",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--d2c988e5-d614-5579-95a9-ef79d0149836",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Unc6201",
+      "description": "Threat cluster UNC6201 deliberately targets edge and core network devices — VPNs and routers — that typically lack standard EDR telemetry. Mandiant investigated incidents where UNC6201 deployed the BRICKSTORM backdoor on Linux- and BSD-based appliances from multiple manufacturers. Using valid credentials likely captured on the network device, UNC6201 accessed VMware vCenter servers and ESXi hosts. With access to vCenter, the cluster cloned virtual machines including SSO identity providers, secret vaults, and domain controllers. BRICKSTORM achieved dwell times of nearly 400 days.",
+      "abstract": "Unc6201",
+      "content": "Threat cluster UNC6201 deliberately targets edge and core network devices — VPNs and routers — that typically lack standard EDR telemetry. Mandiant investigated incidents where UNC6201 deployed the BRICKSTORM backdoor on Linux- and BSD-based appliances from multiple manufacturers. Using valid credentials likely captured on the network device, UNC6201 accessed VMware vCenter servers and ESXi hosts. With access to vCenter, the cluster cloned virtual machines including SSO identity providers, secret vaults, and domain controllers. BRICKSTORM achieved dwell times of nearly 400 days.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC6201",
+        "malware": "BRICKSTORM",
+        "targets": [
+          "VPNs",
+          "routers",
+          "vCenter",
+          "ESXi"
+        ],
+        "dwell_time_days": 400,
+        "technique": "cloned VMs of SSO providers and DCs"
+      },
+      "x_cti_tags": [
+        "unc6201",
+        "brickstorm",
+        "edge-device",
+        "espionage",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--8ba901ae-ab6e-5b38-a2de-78abd89e3b1f",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Unc6040",
+      "description": "In first half of 2025, UNC6040 used voice phishing to convince targets to hand over credentials and authorize attacker-controlled versions of legitimate SaaS applications. Victims later received ShinyHunters-branded extortion notes. Threat actors bypass standard defenses by harvesting long-lived OAuth tokens and session cookies.",
+      "abstract": "Unc6040",
+      "content": "In first half of 2025, UNC6040 used voice phishing to convince targets to hand over credentials and authorize attacker-controlled versions of legitimate SaaS applications. Victims later received ShinyHunters-branded extortion notes. Threat actors bypass standard defenses by harvesting long-lived OAuth tokens and session cookies.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC6040",
+        "technique": "voice phishing → SaaS takeover",
+        "extortion_brand": "ShinyHunters",
+        "tokens_harvested": [
+          "OAuth tokens",
+          "session cookies"
+        ]
+      },
+      "x_cti_tags": [
+        "unc6040",
+        "vishing",
+        "saas",
+        "shinyhunters",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--b3f45fa9-e4b1-538b-acfa-ab1c68858a33",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Unc3944",
+      "description": "UNC3944, a financially motivated cluster with overlap with publicly reported Scattered Spider activity, continued targeting help desk staff by impersonating employees requesting password resets and multi-factor authentication changes.",
+      "abstract": "Unc3944",
+      "content": "UNC3944, a financially motivated cluster with overlap with publicly reported Scattered Spider activity, continued targeting help desk staff by impersonating employees requesting password resets and multi-factor authentication changes.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC3944",
+        "public_alias": "Scattered Spider",
+        "technique": "help desk impersonation for MFA bypass"
+      },
+      "x_cti_tags": [
+        "unc3944",
+        "scattered-spider",
+        "social-engineering",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "malware",
+      "id": "malware--aa9cc4be-eef4-5694-9e8b-1936864998e7",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "PROMPTFLUX",
+      "description": "PROMPTFLUX: experimental VBScript dropper first identified by GTIG in June 2025. Uses the Gemini API to rewrite its own source code on an hourly basis, generating fresh malicious code on demand that evades signature-based detection. First observed instance of 'just-in-time' AI integration in malicious software. Still in testing phases and not yet capable of widespread compromise.",
+      "is_family": true,
+      "malware_types": [
+        "dropper"
+      ],
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "PROMPTFLUX",
+        "type": "dropper",
+        "language": "VBScript",
+        "ai_integration": "Gemini API for hourly code rewrite",
+        "status": "experimental/testing",
+        "first_seen": "2025-06"
+      },
+      "x_cti_tags": [
+        "promptflux",
+        "ai-malware",
+        "vbscript",
+        "gemini",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "malware",
+      "id": "malware--e1ef0d9c-34f4-5e3f-badc-08ca904cf087",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "PROMPTSTEAL",
+      "description": "PROMPTSTEAL: attributed to Russian government-backed actor APT28 (also tracked as FROZENLAKE). Queries an LLM to generate one-line Windows commands for document theft. Marking the first confirmed attribution of LLM-assisted malware to a nation-state actor.",
+      "is_family": true,
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "PROMPTSTEAL",
+        "attributed_to": "APT28 / FROZENLAKE",
+        "ai_integration": "LLM query for Windows command generation",
+        "purpose": "document theft",
+        "significance": "first LLM-assisted malware attributed to nation-state"
+      },
+      "x_cti_tags": [
+        "promptsteal",
+        "apt28",
+        "frozenlake",
+        "ai-malware",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "malware",
+      "id": "malware--e5058d25-d2d0-5e7d-b321-eed1f06da5ef",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "QUIETVAULT",
+      "description": "QUIETVAULT credential stealer observed checking targeted machines for local AI command-line tools, executing predefined prompts to search for configuration files.",
+      "is_family": true,
+      "malware_types": [
+        "credential-stealer"
+      ],
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "QUIETVAULT",
+        "type": "credential stealer",
+        "technique": "searches for local AI CLI tools and config files"
+      },
+      "x_cti_tags": [
+        "quietvault",
+        "credential-stealer",
+        "ai-abuse",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "vulnerability",
+      "id": "vulnerability--3d62034c-3619-5ab7-9e9c-c4f7b3c2ecfb",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "CVE-2025-31324",
+      "description": "CVE-2025-31324: improper authorization flaw in SAP NetWeaver Visual Composer component allowing unauthenticated file uploads. Multiple threat clusters exploited it as a zero-day before SAP patched it in April 2025. Several suspected PRC-nexus espionage groups exploited it afterward. Post-compromise activity centered on web shell installation and reconnaissance.",
+      "external_references": [
+        {
+          "source_name": "cve",
+          "external_id": "CVE-2025-31324",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-31324"
+        }
+      ],
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "vulnerability",
+        "cve": "CVE-2025-31324",
+        "product": "SAP NetWeaver Visual Composer",
+        "type": "improper authorization / unauthenticated file upload",
+        "exploited_as": "zero-day",
+        "actors": "multiple PRC-nexus clusters",
+        "patch_date": "2025-04"
+      },
+      "x_cti_tags": [
+        "cve",
+        "sap",
+        "zero-day",
+        "china",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "vulnerability",
+      "id": "vulnerability--e13e4449-7869-5194-96aa-f3824e5bbaf4",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "CVE-2025-61882",
+      "description": "CVE-2025-61882: improper authentication vulnerability in Oracle E-Business Suite allowing unauthenticated remote code execution. A threat cluster claiming CL0P affiliation sent extortion emails in September 2025. Mandiant identified evidence of successful exploitation as early as August 2025 and attributes the activity to a suspected FIN11 cluster.",
+      "external_references": [
+        {
+          "source_name": "cve",
+          "external_id": "CVE-2025-61882",
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-61882"
+        }
+      ],
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "vulnerability",
+        "cve": "CVE-2025-61882",
+        "product": "Oracle E-Business Suite",
+        "type": "improper authentication / unauthenticated RCE",
+        "actors": "FIN11 / CL0P",
+        "first_exploitation": "2025-08"
+      },
+      "x_cti_tags": [
+        "cve",
+        "oracle",
+        "zero-day",
+        "clop",
+        "fin11",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--6e86d500-e933-5ea3-b4f3-35409bd7c7d1",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Malware Stats",
+      "description": "GTIG began tracking 714 new malware families in 2025, a significant increase from 632 in 2024, bringing the total to over 6,000 tracked families. 224 malware families observed in 2025 investigations (126 newly tracked, 98 from prior years). Most frequently observed roles: backdoors 36%, downloaders 11%, ransomware 10%, droppers 10%, credential stealers 9%.",
+      "abstract": "Malware Stats",
+      "content": "GTIG began tracking 714 new malware families in 2025, a significant increase from 632 in 2024, bringing the total to over 6,000 tracked families. 224 malware families observed in 2025 investigations (126 newly tracked, 98 from prior years). Most frequently observed roles: backdoors 36%, downloaders 11%, ransomware 10%, droppers 10%, credential stealers 9%.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "new_families_2025": 714,
+        "total_tracked": 6000,
+        "observed_in_investigations": 224,
+        "role_distribution": {
+          "backdoors": 36,
+          "downloaders": 11,
+          "ransomware": 10,
+          "droppers": 10,
+          "credential_stealers": 9,
+          "other": 24
+        }
+      },
+      "x_cti_tags": [
+        "malware-stats",
+        "mandiant",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--86c9e743-5eca-547a-a225-75c9101fe2be",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Exploit Timeline",
+      "description": "M-Trends 2026 reveals that the mean time to exploit vulnerabilities dropped to an estimated -7 days, meaning exploitation is routinely occurring before a patch is even released.",
+      "abstract": "Exploit Timeline",
+      "content": "M-Trends 2026 reveals that the mean time to exploit vulnerabilities dropped to an estimated -7 days, meaning exploitation is routinely occurring before a patch is even released.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "mean_time_to_exploit_days": -7,
+        "note": "exploitation before patch release is routine"
+      },
+      "x_cti_tags": [
+        "exploit-timeline",
+        "zero-day",
+        "mandiant",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--e7429331-6a71-5839-bd81-75c490f5fe24",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Detection Source",
+      "description": "In 2025, 52% of organizations detected evidence of malicious activity internally (up from 43% in 2024). External entity notifications declined from 43% to 34%. Adversary notification (e.g. ransom note) remained at 14%.",
+      "abstract": "Detection Source",
+      "content": "In 2025, 52% of organizations detected evidence of malicious activity internally (up from 43% in 2024). External entity notifications declined from 43% to 34%. Adversary notification (e.g. ransom note) remained at 14%.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "internal_detection_pct": 52,
+        "external_notification_pct": 34,
+        "adversary_notification_pct": 14
+      },
+      "x_cti_tags": [
+        "detection",
+        "mandiant",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--766ac53f-dd06-55ac-9c89-015100faa5e9",
+      "spec_version": "2.1",
+      "created": "2026-03-23T00:00:00.000Z",
+      "modified": "2026-03-23T00:00:00.000Z",
+      "name": "Recovery Denial",
+      "description": "Ransomware operators have moved beyond dual-threat encryption-and-theft toward systematically denying organizations the ability to recover. They target identity services, virtualization management planes, and backup infrastructure. Mandiant investigated breaches where threat actors exploited misconfigured AD CS templates to create admin accounts exempt from MFA. Attackers extracted dozens of high-privilege credentials from enterprise credential vaults, forced password changes on privileged accounts, locked defenders out during crisis. Deployed ransomware at hypervisor level.",
+      "abstract": "Recovery Denial",
+      "content": "Ransomware operators have moved beyond dual-threat encryption-and-theft toward systematically denying organizations the ability to recover. They target identity services, virtualization management planes, and backup infrastructure. Mandiant investigated breaches where threat actors exploited misconfigured AD CS templates to create admin accounts exempt from MFA. Attackers extracted dozens of high-privilege credentials from enterprise credential vaults, forced password changes on privileged accounts, locked defenders out during crisis. Deployed ransomware at hypervisor level.",
+      "x_cti_metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "technique_trend",
+        "trend": "recovery denial over encryption",
+        "targets": [
+          "AD CS",
+          "credential vaults",
+          "hypervisors",
+          "backup infrastructure",
+          "identity services"
+        ]
+      },
+      "x_cti_tags": [
+        "ransomware",
+        "recovery-denial",
+        "mandiant",
+        "2025"
+      ]
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--61aca115-66d2-50f0-bab5-e7cab19764ed",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "malware--e1ef0d9c-34f4-5e3f-badc-08ca904cf087",
+      "target_ref": "note--baaec663-8097-5599-ba8e-2979f27e6640",
+      "description": "PROMPTSTEAL è un esempio concreto dell'uso di AI da parte di attori statali.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--70b9d674-1418-5aba-97b2-9befe6c22040",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "malware--aa9cc4be-eef4-5694-9e8b-1936864998e7",
+      "target_ref": "note--baaec663-8097-5599-ba8e-2979f27e6640",
+      "description": "PROMPTFLUX esemplifica l'integrazione AI nel malware documentata nel report.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--be06d803-0c2e-5e03-aeb0-7cfce1c98b9a",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "note--d2c988e5-d614-5579-95a9-ef79d0149836",
+      "target_ref": "note--c8eccded-02b5-5018-86e7-fd0e8f6d8c2f",
+      "description": "UNC6201 sfrutta edge devices, coerente con exploit come vettore #1.",
+      "x_weight": 0.8
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--18f6a0b7-cbe9-5dea-a66e-64e5b32079f0",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "vulnerability--3d62034c-3619-5ab7-9e9c-c4f7b3c2ecfb",
+      "target_ref": "note--86c9e743-5eca-547a-a225-75c9101fe2be",
+      "description": "SAP zero-day sfruttato prima della patch conferma il -7 giorni medio.",
+      "x_weight": 0.9
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--e872f757-53be-5415-8d68-22cd6166286f",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "malware--e1ef0d9c-34f4-5e3f-badc-08ca904cf087",
+      "target_ref": "threat-actor--27ff3889-54b0-5c68-98de-d5ad35547eca",
+      "description": "PROMPTSTEAL (Mandiant/FROZENLAKE) = Forest Blizzard (Microsoft). Stesso attore, naming diverso tra vendor.",
+      "x_weight": 0.8
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--f5319f9c-d58b-5366-b039-f06fe023a111",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "note--766ac53f-dd06-55ac-9c89-015100faa5e9",
+      "target_ref": "note--4320b2c9-e700-5dcc-80ce-8b68e1dd1db4",
+      "description": "Trend recovery denial documentato indipendentemente da entrambi.",
+      "x_weight": 0.6
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--6d03e658-2525-5623-803a-833f3e7cb516",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "malware--aa9cc4be-eef4-5694-9e8b-1936864998e7",
+      "target_ref": "note--f786d635-3e9d-5fa6-8a9c-5224effcc22c",
+      "description": "AI-enabled malware documentato indipendentemente da Mandiant e CS.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--5dbf2e76-ecdf-577d-a858-147f98a530b8",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "note--c09ee5cf-5363-5463-95ed-4d62c5da167d",
+      "target_ref": "note--e378e666-2821-5926-a258-a93393323b01",
+      "description": "Metriche di velocità complementari: Mandiant misura handoff (22s), CrowdStrike misura breakout (27s).",
+      "x_weight": 0.8
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+# PCMI × TI Mindmap HUB PoC — runtime dependencies.
+# Only an async HTTP client is needed; everything else is Python stdlib.
+httpx>=0.27

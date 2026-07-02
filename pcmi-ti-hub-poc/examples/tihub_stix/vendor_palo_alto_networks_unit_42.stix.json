@@ -1,0 +1,256 @@
+{
+  "type": "bundle",
+  "id": "bundle--aa1e01fe-ab75-5163-bad5-e725d9c30385",
+  "objects": [
+    {
+      "type": "report",
+      "id": "report--974e562e-e23c-51b4-bddc-7d3914c93fda",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "published": "2026-01-01T00:00:00.000Z",
+      "name": "Unit 42 Global Incident Response Report 2026",
+      "x_vendor": "Palo Alto Networks / Unit 42",
+      "x_data_period": "2024-10 to 2025-09",
+      "description": "STIX 2.1 bundle transcoded from curated CTI for vendor Palo Alto Networks / Unit 42.",
+      "report_types": [
+        "threat-report"
+      ],
+      "object_refs": [
+        "note--83ea8023-2492-58a1-a7a5-536b2d1a8de7",
+        "note--dd3497f5-ea1d-5e62-9147-4e8ecdcec2aa",
+        "note--658737db-24a2-54fd-ad51-ca9b5a82df8d",
+        "campaign--3a7b6eb4-3e94-58b7-9fe8-c51f33043851",
+        "campaign--42b31c73-25ac-5a5e-b9f8-4a7c43ebe4d6",
+        "note--c21b1784-7323-55c2-bb13-1ba5cae6807c"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--83ea8023-2492-58a1-a7a5-536b2d1a8de7",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Landscape",
+      "description": "In 2025, Unit 42 responded to more than 750 major cyber incidents across over 50 countries. AI is compressing the attack lifecycle from access to impact. Identity weaknesses played a material role in almost 90% of Unit 42 investigations. 87% of attacks unfolded across multiple attack surfaces.",
+      "abstract": "Landscape",
+      "content": "In 2025, Unit 42 responded to more than 750 major cyber incidents across over 50 countries. AI is compressing the attack lifecycle from access to impact. Identity weaknesses played a material role in almost 90% of Unit 42 investigations. 87% of attacks unfolded across multiple attack surfaces.",
+      "x_cti_metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "landscape_overview",
+        "incidents_responded": 750,
+        "countries": 50,
+        "identity_weakness_pct": 90,
+        "multi_surface_pct": 87
+      },
+      "x_cti_tags": [
+        "landscape",
+        "unit42",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--dd3497f5-ea1d-5e62-9147-4e8ecdcec2aa",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Exfil Speed",
+      "description": "Speed now defines risk: attacks are 4X faster. The fastest 25% of intrusions reached data exfiltration in just 72 minutes — down from 285 minutes the previous year. 65% of initial access is driven by identity-based techniques.",
+      "abstract": "Exfil Speed",
+      "content": "Speed now defines risk: attacks are 4X faster. The fastest 25% of intrusions reached data exfiltration in just 72 minutes — down from 285 minutes the previous year. 65% of initial access is driven by identity-based techniques.",
+      "x_cti_metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "statistic",
+        "fastest_25pct_exfil_minutes": 72,
+        "prior_year_minutes": 285,
+        "speed_multiplier": "4X",
+        "identity_initial_access_pct": 65
+      },
+      "x_cti_tags": [
+        "exfiltration",
+        "speed",
+        "unit42",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--658737db-24a2-54fd-ad51-ca9b5a82df8d",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Extortion",
+      "description": "In 2025, encryption appeared in 78% of extortion cases, down sharply from above 90% in previous years. Attackers increasingly relying on data theft and exposure as primary leverage. Median ransom demands rose from US$1.25 million in 2024 to US$1.5 million in 2025.",
+      "abstract": "Extortion",
+      "content": "In 2025, encryption appeared in 78% of extortion cases, down sharply from above 90% in previous years. Attackers increasingly relying on data theft and exposure as primary leverage. Median ransom demands rose from US$1.25 million in 2024 to US$1.5 million in 2025.",
+      "x_cti_metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "statistic",
+        "encryption_in_extortion_pct": 78,
+        "median_ransom_demand": "$1.5M",
+        "prior_year_demand": "$1.25M",
+        "trend": "shift from encryption to data theft leverage"
+      },
+      "x_cti_tags": [
+        "extortion",
+        "ransomware",
+        "unit42",
+        "statistics",
+        "2025"
+      ]
+    },
+    {
+      "type": "campaign",
+      "id": "campaign--3a7b6eb4-3e94-58b7-9fe8-c51f33043851",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Screening Serpens",
+      "description": "Screening Serpens: Iran-nexus APT group conducting cyberespionage aligned with Iranian intelligence objectives. In late 2025, expanded from Middle East to Western Europe. Six new RAT variants deployed between February and April 2026: MiniUpdate and MiniJunk V2 families. Uses AppDomainManager hijacking to abuse .NET application startup process. Targets aerospace, defense manufacturing and telecommunications via job-seeker lures.",
+      "x_cti_metadata": {
+        "source": "Unit 42 research June 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "threat_actor_campaign",
+        "actor": "Screening Serpens",
+        "attribution": "Iran-nexus",
+        "malware_families": [
+          "MiniUpdate",
+          "MiniJunk V2"
+        ],
+        "technique": "AppDomainManager hijacking, DLL sideloading",
+        "targets": [
+          "aerospace",
+          "defense manufacturing",
+          "telecommunications"
+        ],
+        "expansion": "Middle East → Western Europe → US, Israel, UAE",
+        "lure_type": "job recruitment"
+      },
+      "x_cti_tags": [
+        "screening-serpens",
+        "iran",
+        "apt",
+        "rat",
+        "unit42",
+        "2025-2026"
+      ]
+    },
+    {
+      "type": "campaign",
+      "id": "campaign--42b31c73-25ac-5a5e-b9f8-4a7c43ebe4d6",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Boggy Serpens",
+      "description": "Boggy Serpens: Iran-nexus threat actor. Four distinct waves of attack against a national marine and energy company in the Middle East from August 2025 through February 2026. Uses AI-generated code and Rust-based tools. New malware families: BlackBeard (Rust backdoor), Phoenix, UDPGangster, LampoRAT, Nuso. Leverages standard HTTP status codes, customized UDP traffic, and Telegram API for C2. Custom web-based orchestration platform for mass email delivery on port 5000.",
+      "x_cti_metadata": {
+        "source": "Unit 42 Boggy Serpens Assessment March 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "threat_actor_campaign",
+        "actor": "Boggy Serpens",
+        "attribution": "Iran-nexus",
+        "malware_families": [
+          "BlackBeard",
+          "Phoenix",
+          "UDPGangster",
+          "LampoRAT",
+          "Nuso"
+        ],
+        "target": "national marine and energy company, Middle East",
+        "attack_waves": 4,
+        "period": "2025-08 to 2026-02",
+        "c2_channels": [
+          "HTTP",
+          "UDP custom",
+          "Telegram API"
+        ],
+        "ai_usage": "AI-generated code for rapid implant development"
+      },
+      "x_cti_tags": [
+        "boggy-serpens",
+        "iran",
+        "maritime",
+        "energy",
+        "rust",
+        "unit42",
+        "2025-2026"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--c21b1784-7323-55c2-bb13-1ba5cae6807c",
+      "spec_version": "2.1",
+      "created": "2026-01-01T00:00:00.000Z",
+      "modified": "2026-01-01T00:00:00.000Z",
+      "name": "Supply Chain",
+      "description": "Supply chain risk has expanded beyond vulnerable code to the misuse of trusted connectivity. Attackers exploit SaaS integrations, vendor tools and application dependencies to bypass perimeters at scale. The defining pattern was downstream disruption: when an upstream provider reported a compromise, customers had limited visibility into their own exposure. Attackers start scanning for newly disclosed CVEs within 15 minutes of announcement.",
+      "abstract": "Supply Chain",
+      "content": "Supply chain risk has expanded beyond vulnerable code to the misuse of trusted connectivity. Attackers exploit SaaS integrations, vendor tools and application dependencies to bypass perimeters at scale. The defining pattern was downstream disruption: when an upstream provider reported a compromise, customers had limited visibility into their own exposure. Attackers start scanning for newly disclosed CVEs within 15 minutes of announcement.",
+      "x_cti_metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "technique_trend",
+        "trend": "supply chain via trusted connectivity",
+        "cve_scan_start_minutes": 15
+      },
+      "x_cti_tags": [
+        "supply-chain",
+        "saas",
+        "unit42",
+        "2025"
+      ]
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--3850abfe-dc6d-5375-b9e2-5cffd1d0855b",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "campaign--3a7b6eb4-3e94-58b7-9fe8-c51f33043851",
+      "target_ref": "note--83ea8023-2492-58a1-a7a5-536b2d1a8de7",
+      "description": "Screening Serpens è esempio di APT multi-surface documentata.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--d3a6aacc-4c86-5a9c-80d8-e9e491bee319",
+      "spec_version": "2.1",
+      "relationship_type": "supports",
+      "source_ref": "campaign--42b31c73-25ac-5a5e-b9f8-4a7c43ebe4d6",
+      "target_ref": "note--83ea8023-2492-58a1-a7a5-536b2d1a8de7",
+      "description": "Boggy Serpens con 4 onde di attacco mostra la persistenza nel 2025.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--280d1ea4-3a1f-5534-9ecc-1ebf9c2f5ea0",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--3a7b6eb4-3e94-58b7-9fe8-c51f33043851",
+      "target_ref": "campaign--42b31c73-25ac-5a5e-b9f8-4a7c43ebe4d6",
+      "description": "Due gruppi Iran-nexus attivi contemporaneamente, uno su tech/defense, l'altro su energia/maritime.",
+      "x_weight": 0.6
+    }
+  ]
+}

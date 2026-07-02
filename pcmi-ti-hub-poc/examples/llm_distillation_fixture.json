@@ -1,0 +1,43 @@
+{
+  "mode": "fixture",
+  "model": "gpt-4o-mini",
+  "candidates": [
+    {
+      "relation_type": "alias_equivalent",
+      "entity_a": "Midnight Blizzard",
+      "entity_b": "COZY BEAR (APT-29)",
+      "source_reports": ["Microsoft Threat Intelligence", "CrowdStrike 2026 Global Threat Report"],
+      "signals": [
+        {"kind": "alias", "value": "APT-29", "evidence": "OAuth device-code phishing keeping victims on Microsoft's authentic infrastructure"},
+        {"kind": "ttp", "value": "OAuth device-code phishing", "evidence": "COZY BEAR used OAuth device-code phishing that kept victims on Microsoft's authentic infrastructure"}
+      ],
+      "confidence": 0.92,
+      "explanation": "Microsoft tracks Midnight Blizzard with APT-29/Cozy Bear aliases while CrowdStrike documents COZY BEAR (APT-29) using the same OAuth device-code phishing on Microsoft infrastructure — strong cross-vendor alias and tradecraft alignment."
+    },
+    {
+      "relation_type": "malware_linked_to_actor",
+      "entity_a": "PROMPTSTEAL",
+      "entity_b": "Forest Blizzard",
+      "source_reports": ["Mandiant M-Trends 2026", "Microsoft Threat Intelligence"],
+      "signals": [
+        {"kind": "alias", "value": "APT28", "evidence": "attributed to Russian government-backed actor APT28 (also tracked as FROZENLAKE)"},
+        {"kind": "alias", "value": "APT-28", "evidence": "Forest Blizzard: since at least August 2024, has conducted increasing password spray attacks"}
+      ],
+      "confidence": 0.86,
+      "explanation": "Mandiant attributes PROMPTSTEAL to APT28/FROZENLAKE; Microsoft documents Forest Blizzard as APT-28/Fancy Bear — the malware family aligns with the same Russian military-affiliated cluster."
+    },
+    {
+      "relation_type": "campaign_actor_overlap",
+      "entity_a": "PRESSURE CHOLLIMA",
+      "entity_b": "Sapphire Sleet",
+      "source_reports": ["CrowdStrike 2026 Global Threat Report", "Microsoft Security blog 2026"],
+      "signals": [
+        {"kind": "attribution", "value": "DPRK", "evidence": "North Korean threat actor"},
+        {"kind": "target", "value": "cryptocurrency", "evidence": "cryptocurrency assets"},
+        {"kind": "platform", "value": "macOS", "evidence": "macOS intrusion campaign"}
+      ],
+      "confidence": 0.68,
+      "explanation": "Both reports describe DPRK-linked financial operations targeting cryptocurrency with macOS tradecraft, but the vendors use different code-names and this is overlapping operational context — not a confirmed same-actor identity."
+    }
+  ]
+}

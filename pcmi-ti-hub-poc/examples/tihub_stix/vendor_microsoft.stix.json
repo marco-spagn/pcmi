@@ -1,0 +1,360 @@
+{
+  "type": "bundle",
+  "id": "bundle--58e1ac6e-3467-51af-9358-8164ca3feaba",
+  "objects": [
+    {
+      "type": "report",
+      "id": "report--70640db5-418b-51b7-9b32-6c21e26e3152",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "published": "2025-05-27T00:00:00.000Z",
+      "name": "Microsoft Threat Intelligence blog May 2025",
+      "x_vendor": "Microsoft",
+      "x_data_period": "",
+      "description": "STIX 2.1 bundle transcoded from curated CTI for vendor Microsoft.",
+      "report_types": [
+        "threat-report"
+      ],
+      "object_refs": [
+        "campaign--ce00412a-9ee1-5f66-bbe2-76065963c627",
+        "campaign--300f5501-f0aa-538a-9226-24bc761b3a46",
+        "threat-actor--27ff3889-54b0-5c68-98de-d5ad35547eca",
+        "threat-actor--320dde89-b30b-5a81-9ecd-59f78caa3d45",
+        "threat-actor--d6779f73-0f2d-5772-a130-bd4d19be7250",
+        "threat-actor--9ba56556-55fe-53e0-a4ce-8af501bb84e4",
+        "note--2be5c0c2-7a44-57de-b8c4-ac5210da09ee",
+        "malware--ec33b25a-2d0a-5796-ab8e-724179feb42d"
+      ]
+    },
+    {
+      "type": "campaign",
+      "id": "campaign--ce00412a-9ee1-5f66-bbe2-76065963c627",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Void Blizzard",
+      "description": "Void Blizzard (LAUNDRY BEAR): new Russia-affiliated threat actor conducting espionage targeting NATO countries providing military or humanitarian aid to Ukraine. Uses stolen credentials from online marketplaces for initial access. In April 2025, began adversary-in-the-middle spear phishing targeting 20+ NGOs in Europe and US using typosquatted Microsoft Entra portal. Lures posed as European Defense and Security Summit invitations. Compromised organizations overlap with targets of Forest Blizzard, Midnight Blizzard, and Secret Blizzard.",
+      "aliases": [
+        "LAUNDRY BEAR"
+      ],
+      "x_cti_metadata": {
+        "kind": "threat_actor_campaign",
+        "source": "Microsoft Threat Intelligence blog May 2025",
+        "vendor": "Microsoft",
+        "report_date": "2025-05-27",
+        "actor": "Void Blizzard",
+        "public_alias": "LAUNDRY BEAR",
+        "attribution": "Russia-affiliated",
+        "technique": "stolen credentials + AitM spear phishing",
+        "targets": [
+          "NATO countries",
+          "NGOs",
+          "government",
+          "defense",
+          "transportation",
+          "media"
+        ],
+        "overlap_with": [
+          "Forest Blizzard",
+          "Midnight Blizzard",
+          "Secret Blizzard"
+        ],
+        "partner_agencies": [
+          "AIVD",
+          "MIVD",
+          "FBI"
+        ]
+      },
+      "x_cti_tags": [
+        "void-blizzard",
+        "laundry-bear",
+        "russia",
+        "nato",
+        "microsoft",
+        "2025"
+      ]
+    },
+    {
+      "type": "campaign",
+      "id": "campaign--300f5501-f0aa-538a-9226-24bc761b3a46",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Seashell Blizzard subgroup",
+      "description": "Seashell Blizzard (Sandworm) subgroup conducts multiyear global access operation tracked as the 'BadPilot campaign'. Targets energy, telecom, and government sectors. Linked to destructive attacks since the start of the war in Ukraine. Spear-phishing campaigns against European energy sector observed.",
+      "aliases": [
+        "Sandworm",
+        "IRIDIUM"
+      ],
+      "x_cti_metadata": {
+        "kind": "threat_actor_campaign",
+        "source": "Microsoft Threat Intelligence blog Feb 2025",
+        "vendor": "Microsoft",
+        "report_date": "2025-02-12",
+        "actor": "Seashell Blizzard subgroup",
+        "public_alias": "Sandworm / IRIDIUM",
+        "campaign_name": "BadPilot",
+        "attribution": "GRU",
+        "targets": [
+          "energy",
+          "telecom",
+          "government"
+        ],
+        "scope": "multiyear global access operation"
+      },
+      "x_cti_tags": [
+        "seashell-blizzard",
+        "sandworm",
+        "badpilot",
+        "energy",
+        "microsoft",
+        "2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--27ff3889-54b0-5c68-98de-d5ad35547eca",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Forest Blizzard",
+      "description": "Forest Blizzard: since at least August 2024, has conducted increasing password spray attacks against several NATO member states' air traffic control providers. Previously targeted prominent aviation organization in Ukraine in 2023. Linked to the Russian military.",
+      "aliases": [
+        "APT-28",
+        "Fancy Bear"
+      ],
+      "x_cti_metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Forest Blizzard",
+        "public_alias": "APT-28 / Fancy Bear",
+        "attribution": "Russian military (GRU)",
+        "technique": "password spray attacks",
+        "targets": [
+          "NATO ATC providers",
+          "Ukrainian aviation"
+        ]
+      },
+      "x_cti_tags": [
+        "forest-blizzard",
+        "apt28",
+        "nato",
+        "aviation",
+        "microsoft",
+        "2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--320dde89-b30b-5a81-9ecd-59f78caa3d45",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Midnight Blizzard",
+      "description": "Since October 22, 2024, Midnight Blizzard sending highly targeted spear-phishing emails to individuals in government, academia, defense, non-governmental organizations. Used OAuth device-code phishing keeping victims on Microsoft's authentic infrastructure. In January 2024, compromised Microsoft Corporate through password spraying on legacy accounts.",
+      "aliases": [
+        "APT-29",
+        "Cozy Bear",
+        "NOBELIUM"
+      ],
+      "x_cti_metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Midnight Blizzard",
+        "public_alias": "APT-29 / Cozy Bear / NOBELIUM",
+        "attribution": "SVR",
+        "techniques": [
+          "OAuth device-code phishing",
+          "password spray"
+        ],
+        "targets": [
+          "government",
+          "academia",
+          "defense",
+          "NGOs"
+        ],
+        "notable": "compromised Microsoft Corporate Jan 2024"
+      },
+      "x_cti_tags": [
+        "midnight-blizzard",
+        "apt29",
+        "cozy-bear",
+        "oauth",
+        "microsoft",
+        "2024-2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--d6779f73-0f2d-5772-a130-bd4d19be7250",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Secret Blizzard",
+      "description": "Secret Blizzard: Kazuar backdoor has been under constant development for years and continues to evolve for espionage operations. Since January 2024, observed compromising infrastructure and backdoors of Pakistan-based Storm-0156 for espionage against targets in Ukraine. Uses other threat groups' tools and infrastructure.",
+      "aliases": [
+        "Turla"
+      ],
+      "x_cti_metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Secret Blizzard",
+        "public_alias": "Turla",
+        "malware": "Kazuar (KazuarV2), Tavdig",
+        "technique": "hijacking other threat actors' infrastructure",
+        "compromised_actor": "Storm-0156 (Pakistan-based)"
+      },
+      "x_cti_tags": [
+        "secret-blizzard",
+        "kazuar",
+        "turla",
+        "microsoft",
+        "2024-2025"
+      ]
+    },
+    {
+      "type": "threat-actor",
+      "id": "threat-actor--9ba56556-55fe-53e0-a4ce-8af501bb84e4",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Sapphire Sleet",
+      "description": "Sapphire Sleet: North Korean threat actor. Sophisticated macOS intrusion campaign abusing user-driven execution and social engineering to bypass macOS security protections and steal credentials, cryptocurrency assets, and sensitive data.",
+      "x_cti_metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Security blog 2026",
+        "vendor": "Microsoft",
+        "actor": "Sapphire Sleet",
+        "attribution": "DPRK",
+        "platform": "macOS",
+        "targets": [
+          "cryptocurrency",
+          "credentials"
+        ],
+        "technique": "social engineering + user-driven execution"
+      },
+      "x_cti_tags": [
+        "sapphire-sleet",
+        "dprk",
+        "macos",
+        "crypto",
+        "microsoft",
+        "2025-2026"
+      ]
+    },
+    {
+      "type": "note",
+      "id": "note--2be5c0c2-7a44-57de-b8c4-ac5210da09ee",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "Stealc Takedown",
+      "description": "On June 24, 2026, Microsoft's Digital Crimes Unit (DCU) facilitated the takedown, suspension, and blocking of domains that formed the backbone of the StealC and Amadey infrastructure.",
+      "abstract": "Stealc Takedown",
+      "content": "On June 24, 2026, Microsoft's Digital Crimes Unit (DCU) facilitated the takedown, suspension, and blocking of domains that formed the backbone of the StealC and Amadey infrastructure.",
+      "x_cti_metadata": {
+        "kind": "law_enforcement_action",
+        "source": "Microsoft Security blog June 2026",
+        "vendor": "Microsoft",
+        "date": "2026-06-24",
+        "action": "domain takedown",
+        "targets": [
+          "StealC infrastructure",
+          "Amadey infrastructure"
+        ],
+        "unit": "Microsoft Digital Crimes Unit (DCU)"
+      },
+      "x_cti_tags": [
+        "stealc",
+        "amadey",
+        "takedown",
+        "microsoft",
+        "2026"
+      ]
+    },
+    {
+      "type": "malware",
+      "id": "malware--ec33b25a-2d0a-5796-ab8e-724179feb42d",
+      "spec_version": "2.1",
+      "created": "2025-05-27T00:00:00.000Z",
+      "modified": "2025-05-27T00:00:00.000Z",
+      "name": "The Gentlemen",
+      "description": "The Gentlemen: Go-based ransomware deployed by affiliates of Storm-2697. Combines per-file ephemeral key encryption with aggressive self-propagation module. Deploys itself across entire network using series of simultaneous lateral movement techniques per target.",
+      "is_family": true,
+      "x_cti_metadata": {
+        "kind": "malware",
+        "source": "Microsoft Threat Intelligence 2026",
+        "vendor": "Microsoft",
+        "family": "The Gentlemen",
+        "language": "Go",
+        "operator": "Storm-2697 affiliates",
+        "features": [
+          "per-file ephemeral key encryption",
+          "self-propagation",
+          "simultaneous lateral movement"
+        ]
+      },
+      "x_cti_tags": [
+        "gentlemen",
+        "ransomware",
+        "storm-2697",
+        "go-lang",
+        "microsoft",
+        "2026"
+      ]
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--d02e0607-835e-56af-ba20-bc26a0c7214d",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--ce00412a-9ee1-5f66-bbe2-76065963c627",
+      "target_ref": "threat-actor--27ff3889-54b0-5c68-98de-d5ad35547eca",
+      "description": "Microsoft documenta overlap di targeting tra Void e Forest Blizzard.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--aedaf521-bbd4-5309-ad43-4b9cd5eafaf0",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--ce00412a-9ee1-5f66-bbe2-76065963c627",
+      "target_ref": "threat-actor--320dde89-b30b-5a81-9ecd-59f78caa3d45",
+      "description": "Void Blizzard targeting overlaps con Midnight Blizzard per obiettivi NATO.",
+      "x_weight": 0.7
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--224aced1-9007-588c-8470-71f8679a2dfc",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--ce00412a-9ee1-5f66-bbe2-76065963c627",
+      "target_ref": "threat-actor--d6779f73-0f2d-5772-a130-bd4d19be7250",
+      "description": "Shared espionage interests tra attori russi su target ucraini.",
+      "x_weight": 0.6
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--9459c2e6-5132-5384-94b1-104a580026c3",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--300f5501-f0aa-538a-9226-24bc761b3a46",
+      "target_ref": "threat-actor--27ff3889-54b0-5c68-98de-d5ad35547eca",
+      "description": "Entrambi GRU, targeting settore energia/aviazione in Europa.",
+      "x_weight": 0.5
+    },
+    {
+      "type": "relationship",
+      "id": "relationship--05447ca0-61be-564b-95d6-7bb67d65fcbe",
+      "spec_version": "2.1",
+      "relationship_type": "related",
+      "source_ref": "campaign--300f5501-f0aa-538a-9226-24bc761b3a46",
+      "target_ref": "note--d2c988e5-d614-5579-95a9-ef79d0149836",
+      "description": "Entrambi targeting edge devices per persistence. Pattern convergente tra attori diversi o possibile overlap.",
+      "x_weight": 0.5
+    }
+  ]
+}

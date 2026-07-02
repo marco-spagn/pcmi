@@ -113,6 +113,8 @@ cd "$POC_DIR"
 python3 -m pip install -q --user "httpx>=0.27" >/dev/null 2>&1 || true
 PCMI_BASE_URL="http://localhost:8000" PCMI_API_KEY="testkey123" \
   TI_HUB_MODE="${TI_HUB_MODE:-demo}" TIHUB_STIX_DIR="${TIHUB_STIX_DIR:-}" \
+  TIHUB_REPORTS_DIR="${TIHUB_REPORTS_DIR:-}" TIHUB_API_KEY="${TIHUB_API_KEY:-}" \
+  TIHUB_MCP_URL="${TIHUB_MCP_URL:-}" \
   python3 run_poc.py
 rc=$?
 

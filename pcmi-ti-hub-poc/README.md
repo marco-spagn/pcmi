@@ -107,10 +107,13 @@ Sources: [MCP tools](https://docs.ti-mindmap-hub.com/mcp/server/) ·
 |------|------|
 | `run_poc.py` | Async orchestrator — phases 0 preflight → 8 summary/checklist |
 | `src/pcmi_client.py` | Async httpx wrapper over the PCMI REST API |
-| `src/ti_hub_client.py` | Connector: `demo` (curated dataset) or `live` (real STIX 2.1 bundles) → reports/relationships |
-| `src/stix_ingest.py` | Parses real **STIX 2.1 bundles** (the format TI Mindmap HUB emits) into the pipeline's shapes |
-| `scripts/make_stix_bundles.py` | Transcodes the curated dataset into STIX 2.1 bundles for `TI_HUB_MODE=live` |
-| `examples/tihub_stix/` | STIX 2.1 bundles for live mode + `hub_native/` (TI Mindmap HUB's own published example) |
+| `src/ti_hub_client.py` | Connector dispatch: `demo` / `reports` / `live` / `stix` → reports/relationships |
+| `src/tihub_reports.py` | Parses TI Mindmap HUB's **own published reports** (real Markdown CTI) → pipeline shapes |
+| `src/tihub_mcp.py` | Pulls **real STIX 2.1 bundles from the HUB's live MCP server** (needs `TIHUB_API_KEY`) |
+| `src/stix_ingest.py` | Parses STIX 2.1 bundles (the format TI Mindmap HUB emits) into the pipeline's shapes |
+| `examples/tihub_reports/` | TI Mindmap HUB's 5 real published cross-source reports (Markdown) |
+| `scripts/make_stix_bundles.py` | Transcodes the curated dataset into STIX 2.1 bundles for `TI_HUB_MODE=stix` |
+| `examples/tihub_stix/` | Local STIX 2.1 bundles (`stix` mode) + `hub_native/` (HUB's own published bundle) |
 | `src/stix_to_pcmi.py` | Maps SDOs → memories and SROs → typed links (path sanitising, link-type mapping) |
 | `src/correlator.py` | Cross-vendor correlation: semantic actor pass (alias-confirmed) + lexical TTP pass |
 | `src/distillation.py` | Deterministic LLM-style sparse-signal discovery + reusable evidence memory persistence |
@@ -139,23 +142,35 @@ scripts/run_e2e.sh --fresh      # true cold start (wipes the DB volume)
 scripts/run_e2e.sh down         # stop API/worker + compose when done
 ```
 
-### Live STIX 2.1 mode (real TI Mindmap HUB output format)
+### Ingesting TI Mindmap HUB's **real** CTI (modes)
 
-`TI_HUB_MODE=live` ingests **real STIX 2.1 bundles** from `examples/tihub_stix/`
-(the exact format TI Mindmap HUB emits) instead of the curated JSON — proving the
-integration path rather than a thematic demo. The bundles there are the curated CTI
-transcoded into STIX 2.1 (`scripts/make_stix_bundles.py`); TI Mindmap HUB's own
-published example lives in `examples/tihub_stix/hub_native/` and is verified by the
-test suite. Point `TIHUB_STIX_DIR` at your own exported bundles to ingest them.
+`TI_HUB_MODE` selects the source. `demo` is the curated showcase; the other three
+consume TI Mindmap HUB's actual data / formats:
+
+| Mode | Source | Needs |
+|------|--------|-------|
+| `demo` | curated `vendor_reports_cti_dataset.json` (tuned APT29 showcase) | — |
+| **`reports`** | **TI Mindmap HUB's 5 own published reports** (`examples/tihub_reports/`, real Markdown CTI) | — |
+| **`live`** | **real STIX 2.1 bundles pulled from the HUB's live platform** via its MCP server | `TIHUB_API_KEY=tim_…` |
+| `stix` | local STIX 2.1 bundles in `TIHUB_STIX_DIR` (BYO, or the transcoded dataset) | — |
 
 ```bash
-TI_HUB_MODE=live scripts/run_e2e.sh --fresh          # cold start, live STIX ingest
-# or against a running stack:
-TI_HUB_MODE=live TIHUB_STIX_DIR=/path/to/stix python3 run_poc.py
+# Their real published reports (no API key):
+TI_HUB_MODE=reports scripts/run_e2e.sh --fresh
+
+# Their live platform STIX 2.1 via MCP (get a key at ti-mindmap-hub.com → account settings):
+TIHUB_API_KEY=tim_xxxxx TI_HUB_MODE=live scripts/run_e2e.sh --fresh
+
+# Bring-your-own / transcoded STIX 2.1 bundles:
+TI_HUB_MODE=stix TIHUB_STIX_DIR=/path/to/stix scripts/run_e2e.sh --fresh
 ```
 
-Live mode passes the same 17-point checklist as demo (4 reports, 40 memories,
-25 links) — same pipeline, real STIX 2.1 in.
+`demo` and `stix` pass the full 17-point checklist (the curated data is tuned for
+it). `reports`/`live` run the **same pipeline on real data** and gate on the 12
+core capability checks — the curated-only gates (confirmed same-actor, distillation,
+exact counts) are relaxed because real reports don't come pre-arranged for them; the
+run still surfaces whatever real correlations exist (e.g. a shared supply-chain theme
+across the Axios-npm and TeamPCP reports, shared MITRE techniques).
 
 ### Against an already-running PCMI
 

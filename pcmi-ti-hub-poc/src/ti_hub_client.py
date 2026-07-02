@@ -100,24 +100,42 @@ def _parse_date(value: str | None) -> tuple[int, int, int]:
     return (year, month, day)
 
 
-_DEFAULT_STIX_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "examples", "tihub_stix")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_DEFAULT_STIX_DIR = os.path.join(_HERE, "..", "examples", "tihub_stix")
+_DEFAULT_REPORTS_DIR = os.path.join(_HERE, "..", "examples", "tihub_reports")
 
 
 class TiHubClient:
     """Yields ordered reports + relationships from the CTI corpus.
 
-    Two modes:
-      * ``demo`` — the curated ``vendor_reports_cti_dataset.json`` (custom shape).
-      * ``live`` — real **STIX 2.1 bundles** (the format TI Mindmap HUB emits),
-        read from ``stix_dir`` (``examples/tihub_stix/`` by default), which holds
-        TI Mindmap HUB's own published example plus per-vendor bundles transcoded
-        into that schema. Both modes feed the identical downstream pipeline.
+    Modes:
+      * ``demo``    — the curated ``vendor_reports_cti_dataset.json`` (custom shape).
+      * ``reports`` — TI Mindmap HUB's **own published reports** (real Markdown CTI
+        in ``examples/tihub_reports/``). No API key needed.
+      * ``live``    — real **STIX 2.1 bundles pulled from TI Mindmap HUB's live
+        platform** via its MCP server (needs ``TIHUB_API_KEY``). Async: ``fetch_live()``.
+      * ``stix``    — STIX 2.1 bundles from a local dir (``stix_dir``); bring-your-own
+        or the transcoded dataset. Feeds the same pipeline as ``live``.
     """
 
-    def __init__(self, dataset_path: str, mode: str = "demo", stix_dir: str | None = None):
+    def __init__(
+        self,
+        dataset_path: str,
+        mode: str = "demo",
+        *,
+        stix_dir: str | None = None,
+        reports_dir: str | None = None,
+        mcp_url: str | None = None,
+        api_key: str = "",
+        mcp_limit: int = 20,
+    ):
         self.dataset_path = dataset_path
         self.mode = mode
         self.stix_dir = stix_dir or _DEFAULT_STIX_DIR
+        self.reports_dir = reports_dir or _DEFAULT_REPORTS_DIR
+        self.mcp_url = mcp_url
+        self.api_key = api_key
+        self.mcp_limit = mcp_limit
         self._raw: dict | None = None
         self._reports: list[Report] = []
         self._relationships: list[SRO] = []
@@ -133,17 +151,52 @@ class TiHubClient:
             self._description = self._raw.get("description", "")
             self._reports = self._demo_reports()
             self._relationships = self._demo_relationships()
-        elif self.mode in ("live", "stix"):
+        elif self.mode == "reports":
+            from .tihub_reports import load_reports
+
+            reports, relationships, loaded = load_reports(self.reports_dir)
+            if not reports:
+                raise FileNotFoundError(f"no TI Mindmap HUB reports found in {self.reports_dir}")
+            self._reports, self._relationships, self.loaded_bundles = reports, relationships, loaded
+            self._name = f"TI Mindmap HUB — published reports ({len(loaded)})"
+            self._description = "Real TI Mindmap HUB reports: " + ", ".join(loaded)
+        elif self.mode == "stix":
             from .stix_ingest import load_stix_bundles
 
             reports, relationships, loaded = load_stix_bundles(self.stix_dir)
             if not reports:
                 raise FileNotFoundError(f"no STIX 2.1 bundles found in {self.stix_dir}")
             self._reports, self._relationships, self.loaded_bundles = reports, relationships, loaded
-            self._name = f"TI Mindmap HUB — live STIX 2.1 ingest ({len(loaded)} bundles)"
-            self._description = "Real STIX 2.1 bundles: " + ", ".join(loaded)
+            self._name = f"TI Mindmap HUB — STIX 2.1 bundles ({len(loaded)})"
+            self._description = "STIX 2.1 bundles: " + ", ".join(loaded)
+        elif self.mode == "live":
+            raise RuntimeError("TI_HUB_MODE=live is async — call `await hub.fetch_live()` instead of load()")
         else:
-            raise ValueError(f"unknown TI_HUB_MODE={self.mode!r} (use demo|live)")
+            raise ValueError(f"unknown TI_HUB_MODE={self.mode!r} (use demo|reports|live|stix)")
+        return self
+
+    async def fetch_live(self) -> "TiHubClient":
+        """Async loader for ``live`` mode: pull real STIX 2.1 bundles from the HUB MCP."""
+        from .stix_ingest import parse_bundle
+        from .tihub_mcp import DEFAULT_MCP_URL, pull_stix_bundles
+
+        bundles = await pull_stix_bundles(
+            self.api_key, mcp_url=self.mcp_url or DEFAULT_MCP_URL, limit=self.mcp_limit
+        )
+        if not bundles:
+            raise RuntimeError("TI Mindmap HUB MCP returned no STIX bundles")
+        reports: list[Report] = []
+        relationships: list[SRO] = []
+        for bundle in bundles:
+            report, sros = parse_bundle(bundle)
+            if report.sdos:
+                reports.append(report)
+                relationships.extend(sros)
+        reports.sort(key=lambda r: (r.sort_key, r.vendor))
+        self._reports, self._relationships = reports, relationships
+        self.loaded_bundles = [r.vendor for r in reports]
+        self._name = f"TI Mindmap HUB — live MCP STIX 2.1 ({len(reports)} bundles)"
+        self._description = "Live STIX 2.1 pulled from the TI Mindmap HUB MCP server"
         return self
 
     @property

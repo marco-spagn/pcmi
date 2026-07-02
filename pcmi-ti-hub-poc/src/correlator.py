@@ -173,13 +173,14 @@ class Correlator:
         a vendor when that vendor's memory text actually contains the term
         (lexical *precision*) — an honest "who documented this".
         """
+        # Fetch all findings once with an EMPTY query (deterministic list-all, no
+        # query-embedding call), then lexical-confirm per probe — independent of
+        # embedding-worker timing (which varies by mode).
+        prior = [e for e in await self.client.retrieve_entries(NAMESPACE, query="", limit=200) if is_vendor_finding(e)]
         results: list[dict[str, Any]] = []
         for label, query in TTP_PROBES:
-            # Wide limit so lexical confirmation sees every candidate, not just the
-            # top-K semantic neighbours (deterministic "who documented this TTP").
-            entries = await self.client.retrieve_entries(NAMESPACE, query=query, limit=50)
             tokens = [t for t in re.split(r"[^a-z0-9]+", query.lower()) if len(t) >= 2]
-            confirmed = [e for e in entries if is_vendor_finding(e) and _lexical_hit(e, tokens)]
+            confirmed = [e for e in prior if _lexical_hit(e, tokens)]
             by_vendor = _group_by_vendor(confirmed)
             if len(by_vendor) >= 2:
                 results.append(

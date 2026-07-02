@@ -58,10 +58,13 @@ DATASET = os.path.join(
     "examples",
     "vendor_reports_cti_dataset.json",
 )
-# TI_HUB_MODE=live reads real STIX 2.1 bundles from here (default examples/tihub_stix/).
-STIX_DIR = os.environ.get("TIHUB_STIX_DIR") or os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "examples", "tihub_stix"
-)
+# Sources for the non-demo modes.
+_HERE = os.path.dirname(os.path.abspath(__file__))
+STIX_DIR = os.environ.get("TIHUB_STIX_DIR") or os.path.join(_HERE, "examples", "tihub_stix")
+REPORTS_DIR = os.environ.get("TIHUB_REPORTS_DIR") or os.path.join(_HERE, "examples", "tihub_reports")
+TIHUB_MCP_URL = os.environ.get("TIHUB_MCP_URL") or None
+TIHUB_API_KEY = os.environ.get("TIHUB_API_KEY", "").strip()
+TIHUB_MCP_LIMIT = int(os.environ.get("TIHUB_MCP_LIMIT", "20"))
 
 SUBJECT_TYPES = ("threat-actor", "campaign", "malware")
 ACTOR_TYPES = ("threat-actor", "campaign")
@@ -214,7 +217,12 @@ async def phase0_preflight(client: PCMIClient) -> dict:
 
 
 def phase1_pull(hub: TiHubClient) -> tuple[list[Report], list]:
-    src = "STIX 2.1 bundles (live)" if hub.mode in ("live", "stix") else "curated dataset (demo)"
+    src = {
+        "demo": "curated dataset (demo)",
+        "reports": "their published reports (real Markdown CTI)",
+        "live": "live platform STIX 2.1 via MCP",
+        "stix": "STIX 2.1 bundles",
+    }.get(hub.mode, hub.mode)
     banner(f"PHASE 1 — Pull CTI reports from TI Mindmap HUB — {src}")
     reports = hub.reports()
     relationships = hub.relationships()
@@ -476,9 +484,9 @@ async def phase6_temporal(client: PCMIClient, reports: list[Report]) -> dict:
     """
     banner("PHASE 6 — Temporal memory: append-only versioning & as_of time-travel")
 
-    # Pick the richest actor (most normalised aliases) — mode-agnostic, so both
-    # demo and live-STIX runs land on the same well-known actor (Midnight Blizzard).
-    actors = [s for r in reports for s in r.sdos if s.stix_type == "threat-actor" and s.key in client.ids]
+    # Pick the richest actor/campaign (most normalised aliases) — mode-agnostic;
+    # falls back to a campaign when no actor is named (some real reports have none).
+    actors = [s for r in reports for s in r.sdos if s.stix_type in ACTOR_TYPES and s.key in client.ids]
     target = _find_sdo(reports, "ms_midnight_blizzard_oauth") or (
         max(actors, key=lambda s: len(normalize_aliases(s.metadata)), default=None)
     )
@@ -701,12 +709,30 @@ async def phase10_brief(
 
 
 async def main() -> int:
+    data_label = {
+        "demo": os.path.relpath(DATASET),
+        "reports": os.path.relpath(REPORTS_DIR),
+        "stix": os.path.relpath(STIX_DIR),
+        "live": TIHUB_MCP_URL or "TI Mindmap HUB MCP server (live)",
+    }.get(TI_HUB_MODE, os.path.relpath(DATASET))
     line("PCMI × TI Mindmap HUB — Proof of Concept")
     line(f"  API   : {BASE_URL}")
     line(f"  Mode  : TI_HUB_MODE={TI_HUB_MODE}")
-    line(f"  Data  : {os.path.relpath(STIX_DIR if TI_HUB_MODE in ('live', 'stix') else DATASET)}")
+    line(f"  Data  : {data_label}")
 
-    hub = TiHubClient(DATASET, mode=TI_HUB_MODE, stix_dir=STIX_DIR).load()
+    hub = TiHubClient(
+        DATASET, mode=TI_HUB_MODE, stix_dir=STIX_DIR, reports_dir=REPORTS_DIR,
+        mcp_url=TIHUB_MCP_URL, api_key=TIHUB_API_KEY, mcp_limit=TIHUB_MCP_LIMIT,
+    )
+    if TI_HUB_MODE == "live":
+        try:
+            await hub.fetch_live()
+        except Exception as exc:
+            line(f"  ✗ live MCP ingest failed: {exc}")
+            line("    (set TIHUB_API_KEY=tim_... ; or use TI_HUB_MODE=reports for their published reports)")
+            return 2
+    else:
+        hub.load()
 
     async with PCMIClient(BASE_URL, API_KEY) as client:
         try:
@@ -825,30 +851,38 @@ async def main() -> int:
         print(json.dumps(summary, indent=2, ensure_ascii=False))
 
         banner("CHECKLIST")
+        strict = TI_HUB_MODE == "demo"  # demo is the curated showcase; real-data modes gate on core capabilities
         checks = [
             ("Phase 0: graph available", graph.get("available") is True),
-            ("Phase 1: >=4 reports pulled", len(reports) >= 4),
-            ("Phase 2: ~40 memories created", ingest["total_memories"] >= 35),
+            (f"Phase 1: {'4' if strict else '>=1'} reports pulled", len(reports) == 4 if strict else len(reports) >= 1),
+            (f"Phase 2: {'~40 ' if strict else ''}memories created",
+             ingest["total_memories"] >= 35 if strict else ingest["total_memories"] > 0),
             ("Phase 2: links created", ingest["links"]["created"] > 0),
-            ("Phase 2: pre-ingest finds >0 priors from report 2 on",
-             len(ingest["pre_ingest"]) >= 1 and all(p["prior_memories"] > 0 for p in ingest["pre_ingest"])),
-            ("Phase 3: >=1 cross-vendor correlation", correlate["total"] >= 1),
-            ("Phase 3: LLM confirmed same-actor across vendors", len(correlate["confirmed_actor_correlations"]) >= 1),
-            ("Phase 3c: deterministic LLM-style distillation persisted reusable knowledge",
-             (distillation.get("persisted") or 0) >= 2 and bool(distillation.get("memory_paths"))),
-            ("Phase 3d: LLM inference distillation persisted validated knowledge",
-             not llm_distillation.get("skipped") and (llm_distillation.get("persisted") or 0) >= 1),
+            ("Phase 3: >=1 cross-report correlation", correlate["total"] >= 1),
             ("Phase 4: traversal reaches >3 nodes", (graph.get("subgraph_nodes") or 0) > 3),
             ("Phase 4: Cypher passthrough returns graph vertex count", (graph.get("graph_vertices") or 0) > 0),
             ("Phase 6: as_of time-travel returns the prior version", temporal.get("demonstrated") is True),
-            ("Phase 7: discovered correlations persisted (validated+added>0)",
-             (enrich.get("validated", 0) + enrich.get("added", 0)) > 0),
             ("Phase 8: audit trail recorded + live events observed",
              (observ.get("audit_total") or 0) > 0 and (observ.get("events_observed") or 0) > 0),
             ("Phase 9: session promoted working memory to long-term", (session.get("promoted") or 0) > 0),
             ("Phase 10: CTI brief artifact written", (brief.get("bytes") or 0) > 0),
             ("Phase 11: summary JSON complete", True),
         ]
+        if strict:
+            # Curated-showcase gates (the demo dataset is tuned to exercise these).
+            checks[4:4] = [
+                ("Phase 2: pre-ingest finds >0 priors from report 2 on",
+                 len(ingest["pre_ingest"]) >= 1 and all(p["prior_memories"] > 0 for p in ingest["pre_ingest"])),
+            ]
+            checks += [
+                ("Phase 3: LLM confirmed same-actor across vendors", len(correlate["confirmed_actor_correlations"]) >= 1),
+                ("Phase 3c: deterministic LLM-style distillation persisted reusable knowledge",
+                 (distillation.get("persisted") or 0) >= 2 and bool(distillation.get("memory_paths"))),
+                ("Phase 3d: LLM inference distillation persisted validated knowledge",
+                 not llm_distillation.get("skipped") and (llm_distillation.get("persisted") or 0) >= 1),
+                ("Phase 7: discovered correlations persisted (validated+added>0)",
+                 (enrich.get("validated", 0) + enrich.get("added", 0)) > 0),
+            ]
         ok = True
         for label, passed in checks:
             ok = ok and passed

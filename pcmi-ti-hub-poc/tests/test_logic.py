@@ -3,6 +3,7 @@
 Run from the project root:
     python3 -m unittest discover -s tests
 """
+import asyncio
 import json
 import os
 import sys
@@ -530,6 +531,61 @@ class TestStixIngestion(unittest.TestCase):
         cozy = next(s for s in allsdo if s.metadata.get("actor") == "COZY BEAR (APT-29)")
         mid = next(s for s in allsdo if s.metadata.get("actor") == "Midnight Blizzard")
         self.assertTrue(normalize_aliases(cozy.metadata) & normalize_aliases(mid.metadata))
+
+
+class TestHubReportsIngestion(unittest.TestCase):
+    """TI_HUB_MODE=reports — parsing TI Mindmap HUB's own published Markdown reports."""
+
+    REPORTS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples", "tihub_reports")
+
+    @classmethod
+    def setUpClass(cls):
+        from src.tihub_reports import load_reports
+        cls.reports, cls.rels, cls.loaded = load_reports(cls.REPORTS_DIR)
+
+    def test_five_reports_loaded(self):
+        self.assertEqual(len(self.reports), 5)
+        self.assertTrue(all(r.node_count >= 1 for r in self.reports))
+
+    def test_relationships_resolve(self):
+        keys = {s.key for r in self.reports for s in r.sdos}
+        self.assertTrue(self.rels)
+        self.assertTrue(all(x.source in keys and x.target in keys for x in self.rels))
+
+    def test_extracts_actor_cve_and_technique(self):
+        allsdo = [s for r in self.reports for s in r.sdos]
+        self.assertTrue(any(s.stix_type == "threat-actor" for s in allsdo))       # FortiBleed → SantaAd
+        self.assertTrue(any(s.stix_type == "vulnerability" for s in allsdo))       # CVEs
+        self.assertTrue(any(s.metadata.get("mitre") for s in allsdo))             # MITRE techniques
+
+    def test_shared_technique_across_reports(self):
+        by_tech: dict[str, set] = {}
+        for r in self.reports:
+            for s in r.sdos:
+                if s.metadata.get("mitre"):
+                    by_tech.setdefault(s.metadata["mitre"], set()).add(r.vendor)
+        self.assertTrue(any(len(v) >= 2 for v in by_tech.values()), "expected a shared MITRE technique across reports")
+
+
+class TestMcpParsing(unittest.TestCase):
+    """TI_HUB_MODE=live — pure parsing helpers for the TI Mindmap HUB MCP client."""
+
+    def test_extract_bundle_ids_variants(self):
+        from src.tihub_mcp import extract_bundle_ids
+        self.assertEqual(extract_bundle_ids('{"bundles":[{"article_id":"a1"},{"report_id":"b2"}]}'), ["a1", "b2"])
+        self.assertEqual(extract_bundle_ids('{"results":["x","y"]}'), ["x", "y"])
+        self.assertEqual(extract_bundle_ids("not json"), [])
+
+    def test_bundle_from_text(self):
+        from src.tihub_mcp import bundle_from_text
+        self.assertEqual(bundle_from_text('{"type":"bundle","objects":[]}')["type"], "bundle")
+        self.assertEqual(bundle_from_text('{"bundle":{"type":"bundle","objects":[]}}')["type"], "bundle")
+        self.assertIsNone(bundle_from_text('{"type":"report"}'))
+
+    def test_pull_requires_api_key(self):
+        from src.tihub_mcp import MCPError, pull_stix_bundles
+        with self.assertRaises(MCPError):
+            asyncio.run(pull_stix_bundles(""))  # raises before any network call
 
 
 if __name__ == "__main__":

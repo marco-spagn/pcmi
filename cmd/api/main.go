@@ -108,6 +108,7 @@ func main() {
 	)))
 
 	handler.RegisterReadyRoutes(app, db)
+	handler.RegisterExtractionRoutes(app, db, pools.Read, cfg)
 	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
 		log.Fatalf(" FATAL memory routes: %v", err)
 	}

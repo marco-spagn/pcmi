@@ -1,7 +1,9 @@
 # Cognitive Graph — entity layer (design proposal)
 
-> **Status: PROPOSED (not implemented).** The current Cognitive Graph spike
-> ([cognitive-graph.md](cognitive-graph.md)) mirrors **`memory_links` only**:
+> **Status: Phase A implemented** — tenant extraction profiles + async LLM slot
+> filling into `metadata.pcmi_extract`. Entity vertices in AGE (Phase B) and
+> LLM link proposals (Phase C) are not implemented yet. The current Cognitive
+> Graph spike still mirrors **`memory_links` only**:
 > vertices are `Memory {id: "memory.<id>", tenant_id}`, not extracted entities.
 > This document describes the next layer: structured attributes + entity vertices,
 > with LLM-assisted extraction and link proposals.
@@ -194,13 +196,13 @@ OpenAPI + SDK updates follow the usual four-place rule when implemented.
 
 ## Implementation phases
 
-### Phase A — Metadata-only (low risk)
+### Phase A — Metadata-only (low risk) ✅
 
-- Domain profiles in DB or tenant config JSON.
-- Worker: on `memory.stored`, call LLM → validate JSON against profile → write
-  `metadata.pcmi_extract`.
+- Domain profiles in `extraction_profiles` table.
+- Worker: on `memory.stored` / `memory.updated`, call LLM → validate JSON against profile → write
+  `metadata.pcmi_extract` (when `EXTRACTION_ENABLED=true`).
+- HTTP: `GET/PUT/DELETE /v1/extraction-profiles/*`, `GET/POST /v1/memories/extraction/:id`.
 - No AGE schema change; retrieve filters on `metadata->'pcmi_extract'->'slots'`.
-- **Delivers value immediately**; demo stays honest.
 
 ### Phase B — Entity vertices in AGE
 

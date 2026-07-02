@@ -126,6 +126,17 @@ func main() {
 		log.Println("ℹ️  Contradiction detection worker disabled (CONTRADICTION_DETECTION_ENABLED=false)")
 	}
 
+	if cfg.ExtractionEnabled {
+		log.Println("✅ Entity extraction worker enabled (EXTRACTION_ENABLED=true)")
+	} else {
+		log.Println("ℹ️  Entity extraction worker disabled (EXTRACTION_ENABLED=false)")
+	}
+
+	var extractionWorker *worker.ExtractionWorker
+	if cfg.ExtractionEnabled {
+		extractionWorker = worker.NewExtractionWorker(db, cfg)
+	}
+
 	tr := otel.Tracer(workerTracerName)
 	handleMemoryEvent := func(evt event.Event, streamID string) {
 		metrics.IncWorkerRedisEvent(evt.Type)
@@ -151,6 +162,27 @@ func main() {
 			consolidationWorker.TriggerForMemory(tenantID, path)
 			if contradictionWorker != nil {
 				contradictionWorker.OnMemoryEvent(tenantID, path)
+			}
+			if extractionWorker != nil {
+				var memoryID int64
+				var version int
+				switch v := evt.Payload["id"].(type) {
+				case float64:
+					memoryID = int64(v)
+				case int64:
+					memoryID = v
+				case int:
+					memoryID = int64(v)
+				}
+				switch v := evt.Payload["version"].(type) {
+				case float64:
+					version = int(v)
+				case int:
+					version = v
+				case int64:
+					version = int(v)
+				}
+				extractionWorker.OnMemoryEvent(tenantID, path, memoryID, version)
 			}
 		case event.EventMemoryRefineRequested:
 			prefix, _ := evt.Payload["path_prefix"].(string)

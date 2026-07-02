@@ -70,6 +70,10 @@ type Config struct {
 	ContradictionDetectionEnabled      bool
 	ContradictionDetectionIntervalSecs int
 
+	// Entity extraction (Phase A — metadata pcmi_extract)
+	ExtractionEnabled bool
+	ExtractionModel   string
+
 	// Rate limiting
 	RateLimitDisabled    bool
 	RateLimitBackend     string // memory (default) or redis
@@ -143,6 +147,8 @@ func Load() *Config {
 		GraphQueryTimeoutSecs:              envInt("GRAPH_QUERY_TIMEOUT_SECS", 30),
 		ContradictionDetectionEnabled:      envBool("CONTRADICTION_DETECTION_ENABLED", true),
 		ContradictionDetectionIntervalSecs: envInt("CONTRADICTION_DETECTION_INTERVAL_SECS", 120),
+		ExtractionEnabled:                  envBool("EXTRACTION_ENABLED", false),
+		ExtractionModel:                    envOr("EXTRACTION_MODEL", ""),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
 		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),

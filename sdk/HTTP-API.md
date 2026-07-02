@@ -53,6 +53,11 @@ Requires Apache AGE (`docker compose --profile graph`). See [`../docs/cognitive-
 |------|--------|
 | `GET /v1/graph/health` | No auth; `{"available": bool, "extension": "apache-age"}` |
 | `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`; 501 when AGE absent |
+| `GET /v1/extraction-profiles` | List tenant LLM extraction profiles (Phase A) |
+| `PUT /v1/extraction-profiles/{profile_id}` | Upsert profile (`path_prefix`, `profile`, `enabled`) |
+| `DELETE /v1/extraction-profiles/{profile_id}` | Remove profile |
+| `GET /v1/memories/extraction/{memory_id}` | Read `metadata.pcmi_extract` for current memory version |
+| `POST /v1/memories/extraction/{memory_id}` | Force LLM extraction (503 when `EXTRACTION_ENABLED=false`) |
 
 Admin methods require **admin** role (`testkey123` in default migrations). CI runs read-only `admin_smoke` / `admin-smoke.mts`.
 

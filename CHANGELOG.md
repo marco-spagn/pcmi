@@ -11,6 +11,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Added
 
+- **Entity extraction Phase A**: migration `022_extraction_profiles.sql`; `EXTRACTION_ENABLED` worker/API flag; tenant profiles (`GET/PUT/DELETE /v1/extraction-profiles/{id}`); LLM slot extraction into `metadata.pcmi_extract` (`GET/POST /v1/memories/extraction/{memory_id}`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
 - **Cognitive Graph entity layer (design only)**: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md) — proposed tenant extraction profiles, LLM attribute slots, `:Entity` AGE vertices, and link-proposal workflow. Example profiles under `examples/cognitive-graph-entities/`. README and [cognitive-graph.md](docs/cognitive-graph.md) clarified: current spike = memory↔memory links only.
 
 ### Fixed

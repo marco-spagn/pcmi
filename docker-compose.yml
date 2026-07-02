@@ -29,6 +29,7 @@ services:
       - ./migrations/019_cognitive_graph_age.sql:/docker-entrypoint-initdb.d/019_cognitive_graph_age.sql
       - ./migrations/020_memory_open_version_unique.sql:/docker-entrypoint-initdb.d/020_memory_open_version_unique.sql
       - ./migrations/021_link_type_check.sql:/docker-entrypoint-initdb.d/021_link_type_check.sql
+      - ./migrations/022_extraction_profiles.sql:/docker-entrypoint-initdb.d/022_extraction_profiles.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -138,6 +139,7 @@ services:
       - ./migrations/019_cognitive_graph_age.sql:/docker-entrypoint-initdb.d/019_cognitive_graph_age.sql
       - ./migrations/020_memory_open_version_unique.sql:/docker-entrypoint-initdb.d/020_memory_open_version_unique.sql
       - ./migrations/021_link_type_check.sql:/docker-entrypoint-initdb.d/021_link_type_check.sql
+      - ./migrations/022_extraction_profiles.sql:/docker-entrypoint-initdb.d/022_extraction_profiles.sql
     ports:
       - "5433:5432"
     healthcheck:

@@ -11,7 +11,7 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 | [architecture.md](architecture.md) | Architects | Components, flows, deployment |
 | [DATA-MODEL.md](DATA-MODEL.md) | Backend / DBA | Schema, versioning, RLS |
 | [cognitive-graph.md](cognitive-graph.md) | Backend / ops | AGE graph traversal, Graph UI, [who classifies data](cognitive-graph.md#how-data-enters-pcmi--who-classifies-what) (not SOC-specific), [demo video](assets/graph-ui-demo.mp4) |
-| [cognitive-graph-entities.md](cognitive-graph-entities.md) | Architects | **Proposed** entity extraction + `:Entity` vertices (LLM profiles, not implemented) |
+| [cognitive-graph-entities.md](cognitive-graph-entities.md) | Architects | Entity extraction Phase A–B (`:Entity` vertices, LLM profiles); Phase C proposals pending |
 
 ## API and clients
 

@@ -17,20 +17,41 @@ const maxLinkProposalCandidates = 20
 
 // LinkProposalService generates and reviews LLM link proposals.
 type LinkProposalService struct {
-	proposals *repository.LinkProposalRepository
-	profiles  *repository.ExtractionRepository
-	links     *repository.LinksRepository
-	graph     *graph.GraphClient
+	proposals linkProposalStore
+	profiles  linkProposalProfileStore
+	links     linkProposalLinkStore
+	graph     linkProposalGraph
 	llm       LLMCompleter
 	model     string
 	enabled   bool
 }
 
+type linkProposalStore interface {
+	InsertPending(ctx context.Context, tenantID string, p repository.InsertLinkProposalParams) (*model.LinkProposal, error)
+	GetByID(ctx context.Context, tenantID string, id int64) (*model.LinkProposal, error)
+	List(ctx context.Context, tenantID, status string, sourceMemoryID int64, limit int) ([]model.LinkProposal, error)
+	UpdateStatus(ctx context.Context, tenantID string, id int64, status string) (*model.LinkProposal, error)
+}
+
+type linkProposalProfileStore interface {
+	GetCurrentMemoryByID(ctx context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, error)
+	MatchProfile(ctx context.Context, tenantID, path string) (*extraction.Profile, string, error)
+}
+
+type linkProposalLinkStore interface {
+	Create(ctx context.Context, tenantID string, req model.CreateLinkRequest) (*model.MemoryLink, error)
+}
+
+type linkProposalGraph interface {
+	IsAvailable(ctx context.Context) bool
+	FindRelatedViaEntity(ctx context.Context, tenantID string, memoryID int64, cursor int64, limit int) (*graph.EntityMemoriesResult, error)
+}
+
 func NewLinkProposalService(
-	proposals *repository.LinkProposalRepository,
-	profiles *repository.ExtractionRepository,
-	links *repository.LinksRepository,
-	graphClient *graph.GraphClient,
+	proposals linkProposalStore,
+	profiles linkProposalProfileStore,
+	links linkProposalLinkStore,
+	graphClient linkProposalGraph,
 	llm LLMCompleter,
 	cfg *config.Config,
 ) *LinkProposalService {

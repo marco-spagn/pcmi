@@ -1,10 +1,8 @@
 # Cognitive Graph — entity layer (design proposal)
 
-> **Status: Phase A + B implemented** — tenant extraction profiles + async LLM slot
-> filling into `metadata.pcmi_extract`, with deterministic promotion to `:Entity`
-> vertices and `:mentions` edges in AGE when extraction validates. LLM link
-> proposals (Phase C) are not implemented yet. The memory-link spike (`memory_links`
-> → `:Memory` edges) remains separate from entity traversal.
+> **Status: Phase A–C implemented** — tenant extraction profiles, `:Entity` vertices,
+> and an LLM link proposal review queue. Accepting a proposal materializes
+> `memory_links`; nothing is auto-applied without review.
 
 ## Problem statement
 
@@ -211,10 +209,14 @@ OpenAPI + SDK updates follow the usual four-place rule when implemented.
 - `GET /v1/graph/entities/memory?memory_id=`, `GET /v1/graph/entities/related`
   (`kind`+`key` or `memory_id` for shared-entity correlation).
 
-### Phase C — LLM link proposals + review
+### Phase C — LLM link proposals + review ✅
 
-- Proposal queue, accept/reject, audit log entries.
-- Integration with agent sessions (promote investigation → long-term links).
+- Migration `024_graph_link_proposals.sql`: pending proposal queue with partial unique index.
+- Worker/API: after successful extraction, LLM proposes `memory_links` candidates
+  (requires `LINK_PROPOSALS_ENABLED=true`, AGE, and entity-correlated memories).
+- `GET /v1/graph/link-proposals`, `POST .../generate/:memory_id`,
+  `POST .../:id/accept`, `POST .../:id/reject` — accept materializes to `memory_links`
+  with `metadata.proposed_by=llm`.
 
 ## Risks and mitigations
 

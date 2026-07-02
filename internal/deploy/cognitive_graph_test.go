@@ -118,6 +118,31 @@ func TestEntityGraphMigrationExists(t *testing.T) {
 	}
 }
 
+func TestLinkProposalMigrationExists(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "migrations", "024_graph_link_proposals.sql")
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("migrations/024_graph_link_proposals.sql not found: %v", err)
+	}
+}
+
+func TestLinkProposalHandlerRegistered(t *testing.T) {
+	path := filepath.Join(repoRoot(t), "internal", "handler", "link_proposal_handler.go")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("could not read link_proposal_handler.go: %v", err)
+	}
+	body := string(data)
+	for _, route := range []string{
+		"/v1/graph/link-proposals",
+		"/v1/graph/link-proposals/generate/:memory_id",
+		"/v1/graph/link-proposals/:id/accept",
+	} {
+		if !strings.Contains(body, route) {
+			t.Errorf("link_proposal_handler.go missing route %s", route)
+		}
+	}
+}
+
 func TestEntityGraphHandlerRegistered(t *testing.T) {
 	path := filepath.Join(repoRoot(t), "internal", "handler", "graph_handler.go")
 	data, err := os.ReadFile(path)
@@ -147,6 +172,9 @@ func TestCognitiveGraphMigrationMountedDefaultPostgres(t *testing.T) {
 	}
 	if !strings.Contains(body, "023_entity_graph.sql") {
 		t.Error("docker-compose.yml default postgres service should mount 023_entity_graph.sql")
+	}
+	if !strings.Contains(body, "024_graph_link_proposals.sql") {
+		t.Error("docker-compose.yml default postgres service should mount 024_graph_link_proposals.sql")
 	}
 }
 

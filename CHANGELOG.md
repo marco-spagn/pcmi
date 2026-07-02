@@ -15,6 +15,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 - **Entity extraction Phase B**: migration `023_entity_graph.sql`; promoted slots become `:Entity` vertices with `:mentions` edges from `:Memory` when extraction validates and AGE is available; `GET /v1/graph/entities/memory`, `GET /v1/graph/entities/related` (by `kind`+`key` or shared entities via `memory_id`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
 
+- **LLM link proposals Phase C**: migration `024_graph_link_proposals.sql`; `LINK_PROPOSALS_ENABLED` flag; async/manual LLM proposals after extraction; `GET /v1/graph/link-proposals`, `POST /v1/graph/link-proposals/generate/{memory_id}`, `POST .../{id}/accept|reject` materializes reviewed edges to `memory_links`. See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
 - **Entity extraction race fix**: async worker no longer overwrites a successful sync extraction (`status: ok`) with a later `validation_failed` from a duplicate LLM call.
 
 - **Cognitive Graph entity layer (design only)**: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md) — proposed tenant extraction profiles, LLM attribute slots, `:Entity` AGE vertices, and link-proposal workflow. Example profiles under `examples/cognitive-graph-entities/`. README and [cognitive-graph.md](docs/cognitive-graph.md) clarified: current spike = memory↔memory links only.

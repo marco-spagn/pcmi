@@ -219,7 +219,7 @@ Working memory bound to a session; promotion to long-term memory. See **[SESSION
 | Importance | `PATCH /v1/memories/{path}/importance` |
 | Links between paths | `POST/GET /v1/memories/links` |
 | Cognitive graph (AGE spike) | `GET /v1/graph/health`, `GET /v1/graph/related`, `GET /v1/graph/entities/*` — see [cognitive-graph.md](cognitive-graph.md) |
-| Entity extraction (Phase A–B) | `GET/PUT/DELETE /v1/extraction-profiles/{id}`, `GET/POST /v1/memories/extraction/{memory_id}` — requires `EXTRACTION_ENABLED=true`; promoted entities in AGE when graph profile is up; see [cognitive-graph-entities.md](cognitive-graph-entities.md) |
+| Entity extraction (Phase A–C) | `GET/PUT/DELETE /v1/extraction-profiles/{id}`, `GET/POST /v1/memories/extraction/{memory_id}`, `GET/POST /v1/graph/link-proposals/*` — requires `EXTRACTION_ENABLED=true`; link proposals also need `LINK_PROPOSALS_ENABLED=true` + AGE; see [cognitive-graph-entities.md](cognitive-graph-entities.md) |
 | Tenant stats | `GET /v1/stats` |
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |

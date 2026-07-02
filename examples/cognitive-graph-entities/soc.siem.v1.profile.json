@@ -1,0 +1,38 @@
+{
+  "profile_id": "soc.siem.v1",
+  "version": 1,
+  "description": "Reference profile for SIEM-style incidents. Maps to columns in examples/soc-incident-graph/soc_incidents_nodes.csv.",
+  "required_slots": [
+    {"name": "record_kind", "type": "enum", "values": ["incident", "alert", "evidence", "hypothesis", "postmortem"], "nullable": false},
+    {"name": "disposition", "type": "enum", "values": ["true_positive", "false_positive", "duplicate", "benign_true_positive", "unknown"], "nullable": false},
+    {"name": "severity", "type": "enum", "values": ["P1", "P2", "P3", "P4"], "nullable": false},
+    {"name": "category", "type": "string", "nullable": true},
+    {"name": "mitre_tactic", "type": "string", "nullable": true},
+    {"name": "mitre_technique", "type": "string", "nullable": true},
+    {"name": "src_ip", "type": "ip", "nullable": true},
+    {"name": "dst_host", "type": "hostname", "nullable": true},
+    {"name": "affected_user", "type": "string", "nullable": true},
+    {"name": "threat_actor", "type": "string", "nullable": true},
+    {"name": "campaign_id", "type": "string", "nullable": true},
+    {"name": "ioc_hash", "type": "string", "nullable": true},
+    {"name": "ioc_domain", "type": "string", "nullable": true},
+    {"name": "cve_id", "type": "string", "nullable": true},
+    {"name": "region", "type": "string", "nullable": true},
+    {"name": "data_source", "type": "string", "nullable": true}
+  ],
+  "entity_promotion": {
+    "src_ip": {"vertex_label": "IPAddress", "normalize": "trim"},
+    "dst_host": {"vertex_label": "Asset", "normalize": "lower"},
+    "affected_user": {"vertex_label": "User", "normalize": "lower"},
+    "threat_actor": {"vertex_label": "ThreatActor", "normalize": "trim"},
+    "ioc_domain": {"vertex_label": "Domain", "normalize": "lower"},
+    "campaign_id": {"vertex_label": "Campaign", "normalize": "upper"}
+  },
+  "link_proposal_hints": [
+    "temporal when detected_at ordering is clear",
+    "causal for kill-chain stage progression",
+    "related when same campaign_id or shared promoted entities",
+    "contradicts for disposition conflicts on same entities",
+    "supports when postmortem or evidence backs another record"
+  ]
+}

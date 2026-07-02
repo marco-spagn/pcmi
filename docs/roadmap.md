@@ -131,6 +131,10 @@
 - Tag-based retrieval filters
 - TTL (`expires_at`) with append-only expiry
 
+## v2.0 (planned)
+
+- **Cognitive Graph entity layer** (design: [cognitive-graph-entities.md](cognitive-graph-entities.md)): tenant-defined extraction profiles, LLM slot filling, optional `:Entity` vertices in AGE, LLM **link proposals** with human/agent accept — builds on the current memory-link spike without replacing it.
+
 ## Long term
 
 - Federated multi-region memory shards

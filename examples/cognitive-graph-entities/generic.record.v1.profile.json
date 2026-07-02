@@ -1,0 +1,19 @@
+{
+  "profile_id": "generic.record.v1",
+  "version": 1,
+  "description": "Minimal cross-domain profile when the tenant is not SOC-specific.",
+  "required_slots": [
+    {"name": "record_kind", "type": "string", "nullable": false},
+    {"name": "subject", "type": "string", "nullable": false},
+    {"name": "summary", "type": "string", "nullable": false},
+    {"name": "primary_actor", "type": "string", "nullable": true},
+    {"name": "primary_resource", "type": "string", "nullable": true},
+    {"name": "occurred_at", "type": "datetime", "nullable": true},
+    {"name": "severity", "type": "string", "nullable": true},
+    {"name": "status", "type": "string", "nullable": true}
+  ],
+  "entity_promotion": {
+    "primary_actor": {"vertex_label": "Actor", "normalize": "lower"},
+    "primary_resource": {"vertex_label": "Resource", "normalize": "lower"}
+  }
+}

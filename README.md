@@ -116,7 +116,7 @@ flowchart LR
 
 > **Experimental (v2.0 spike).** Opt-in. The API and schema may change before the full release.
 
-Beyond direct path links, PCMI ships a **graph traversal layer** over `memory_links` powered by [Apache AGE](https://github.com/apache/age) (Cypher on PostgreSQL). Memories become nodes; links become **typed, weighted edges**. You can walk multi-hop chains over memory that evolves over time (*"which memories are causally related to this one within 3 hops?"*), reconstruct the **shortest path** between two memories, and run **read-only Cypher** — all automatically scoped per tenant. It is fully **opt-in**: without AGE the graph endpoints return `501` and the rest of PCMI runs unchanged.
+Beyond direct path links, PCMI ships a **graph traversal layer** over `memory_links` powered by [Apache AGE](https://github.com/apache/age) (Cypher on PostgreSQL). **Nodes are memories** (`memory.<id>`); links become **typed, weighted edges** you create via the API. You can walk multi-hop chains (*"which memories are causally related within 3 hops?"*), reconstruct the **shortest path** between two memories, and run **read-only Cypher** — all scoped per tenant. Memory **content** evolves via append-only versioning; the graph mirrors **links**, not extracted entities (IP/user/host). A proposed entity-extraction layer: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md). Opt-in: without AGE, graph endpoints return `501`.
 
 https://github.com/user-attachments/assets/c66b5526-744c-4060-9f29-0547a303b674
 

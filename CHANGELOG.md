@@ -9,6 +9,10 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ## [Unreleased]
 
+### Added
+
+- **Cognitive Graph entity layer (design only)**: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md) — proposed tenant extraction profiles, LLM attribute slots, `:Entity` AGE vertices, and link-proposal workflow. Example profiles under `examples/cognitive-graph-entities/`. README and [cognitive-graph.md](docs/cognitive-graph.md) clarified: current spike = memory↔memory links only.
+
 ### Fixed
 
 - **Session promote path collision** (`internal/repository/session_repository.go`): `POST /v1/sessions/:id/promote` re-paths working-memory rows in place. When a target long-term path already held a current memory, the `UPDATE` violated the `uq_memory_entries_open_version` unique index (added in the versioning-race fix), aborting the **entire** promotion with an opaque DB error (and, before that index, silently created two "current" rows at the same path). Promote now detects an occupied target — including two session rows that map to the same path — skips those items instead of failing or overwriting, and reports them in a new `skipped` field on the promote response.

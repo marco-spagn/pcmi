@@ -19,6 +19,11 @@ Instead of fetching only directly linked memories, you can answer questions like
 Memories become nodes (`Memory` vertices) and `memory_links` become typed,
 weighted edges in the `pcmi_memory_graph` AGE graph.
 
+> **Not in this spike:** extracted entity vertices (IP, user, host, threat actor)
+> as first-class graph nodes. SOC demo metadata may *mention* those fields, but AGE
+> only mirrors **memory↔memory** links today. A proposed entity + LLM extraction
+> layer is documented in [cognitive-graph-entities.md](cognitive-graph-entities.md).
+
 ## How data enters PCMI — who classifies what
 
 Read this section if you are **not** from security operations (SOC). The Graph UI

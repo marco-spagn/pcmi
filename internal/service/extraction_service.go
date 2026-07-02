@@ -92,7 +92,7 @@ func (s *ExtractionService) ExtractMemory(ctx context.Context, tenantID string, 
 	if entry == nil {
 		return nil, fmt.Errorf("memory not found")
 	}
-	return s.extractEntry(ctx, tenantID, entry)
+	return s.extractEntry(ctx, tenantID, entry, true)
 }
 
 // ExtractPath triggers extraction for the current memory at path (worker helper).
@@ -117,11 +117,19 @@ func (s *ExtractionService) ExtractPath(ctx context.Context, tenantID, path stri
 	if entry.Version != version && version > 0 {
 		return nil
 	}
-	_, err = s.extractEntry(ctx, tenantID, entry)
+	if _, ok := existingOkExtraction(entry); ok {
+		return nil
+	}
+	_, err = s.extractEntry(ctx, tenantID, entry, false)
 	return err
 }
 
-func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, entry *model.MemoryEntry) (*extraction.Record, error) {
+func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, entry *model.MemoryEntry, force bool) (*extraction.Record, error) {
+	if !force {
+		if rec, ok := existingOkExtraction(entry); ok {
+			return rec, nil
+		}
+	}
 	if extraction.ShouldSkipPath(entry.Path) {
 		return nil, fmt.Errorf("path not eligible for extraction")
 	}
@@ -150,7 +158,7 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 
 	if s.llm == nil || !s.llm.IsConfigured() {
 		rec.Error = "LLM not configured"
-		_ = s.persistRecord(ctx, tenantID, entry.Path, rec)
+		_ = s.persistFailureRecord(ctx, tenantID, entry, rec, force)
 		return rec, fmt.Errorf("LLM not configured")
 	}
 
@@ -159,7 +167,7 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 	raw, err := s.llm.Complete(ctx, systemPrompt, []string{userMsg})
 	if err != nil {
 		rec.Error = err.Error()
-		_ = s.persistRecord(ctx, tenantID, entry.Path, rec)
+		_ = s.persistFailureRecord(ctx, tenantID, entry, rec, force)
 		return rec, fmt.Errorf("llm extract: %w", err)
 	}
 
@@ -167,7 +175,7 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 	if err != nil {
 		rec.Status = "validation_failed"
 		rec.Error = err.Error()
-		_ = s.persistRecord(ctx, tenantID, entry.Path, rec)
+		_ = s.persistFailureRecord(ctx, tenantID, entry, rec, force)
 		return rec, fmt.Errorf("validate extraction: %w", err)
 	}
 
@@ -189,6 +197,28 @@ func (s *ExtractionService) persistRecord(ctx context.Context, tenantID, path st
 	meta := extraction.RecordToMetadataMap(rec)
 	_, err := s.memories.MergeCurrentMetadata(ctx, tenantID, path, meta, nil)
 	return err
+}
+
+// persistFailureRecord writes failed extractions unless a successful one already
+// exists for this memory version (async worker must not clobber sync POST / ok).
+func (s *ExtractionService) persistFailureRecord(ctx context.Context, tenantID string, entry *model.MemoryEntry, rec *extraction.Record, force bool) error {
+	if !force {
+		if _, ok := existingOkExtraction(entry); ok {
+			return nil
+		}
+	}
+	return s.persistRecord(ctx, tenantID, entry.Path, rec)
+}
+
+func existingOkExtraction(entry *model.MemoryEntry) (*extraction.Record, bool) {
+	rec, ok := extraction.RecordFromMetadata(metadataAsMap(entry.Metadata))
+	if !ok || rec == nil || rec.Status != "ok" {
+		return nil, false
+	}
+	if rec.MemoryID != entry.ID || rec.MemoryVersion != entry.Version {
+		return nil, false
+	}
+	return rec, true
 }
 
 func metadataAsMap(raw any) map[string]interface{} {

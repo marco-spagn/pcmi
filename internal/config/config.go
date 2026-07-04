@@ -154,6 +154,7 @@ func Load() *Config {
 		ExtractionModel:                    envOr("EXTRACTION_MODEL", ""),
 		LinkProposalsEnabled:               envBool("LINK_PROPOSALS_ENABLED", false),
 
+
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
 		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),
 		RateLimitWindowSecs:  envInt("RATE_LIMIT_WINDOW_SECS", 60),

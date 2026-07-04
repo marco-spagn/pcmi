@@ -19,8 +19,6 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 - **Entity extraction race fix**: async worker no longer overwrites a successful sync extraction (`status: ok`) with a later `validation_failed` from a duplicate LLM call.
 
-- **Cognitive Graph entity layer (design only)**: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md) — proposed tenant extraction profiles, LLM attribute slots, `:Entity` AGE vertices, and link-proposal workflow. Example profiles under `examples/cognitive-graph-entities/`. README and [cognitive-graph.md](docs/cognitive-graph.md) clarified: current spike = memory↔memory links only.
-
 ### Fixed
 
 - **`GET /v1/graph/related` bidirectional traversal**: default `direction=both` follows `memory_links` in either direction so incoming cross-campaign correlations and leaf nodes (e.g. postmortems) appear in graph exploration. Use `direction=out` for legacy outgoing-only behaviour; `direction=in` for incoming-only.

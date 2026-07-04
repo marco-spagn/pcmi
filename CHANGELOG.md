@@ -23,6 +23,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed
 
+- **`GET /v1/graph/related` bidirectional traversal**: default `direction=both` follows `memory_links` in either direction so incoming cross-campaign correlations and leaf nodes (e.g. postmortems) appear in graph exploration. Use `direction=out` for legacy outgoing-only behaviour; `direction=in` for incoming-only.
+
 - **Session promote path collision** (`internal/repository/session_repository.go`): `POST /v1/sessions/:id/promote` re-paths working-memory rows in place. When a target long-term path already held a current memory, the `UPDATE` violated the `uq_memory_entries_open_version` unique index (added in the versioning-race fix), aborting the **entire** promotion with an opaque DB error (and, before that index, silently created two "current" rows at the same path). Promote now detects an occupied target — including two session rows that map to the same path — skips those items instead of failing or overwriting, and reports them in a new `skipped` field on the promote response.
 
 ### Security

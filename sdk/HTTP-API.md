@@ -52,7 +52,7 @@ Requires Apache AGE (`docker compose --profile graph`). See [`../docs/cognitive-
 | HTTP | Notes |
 |------|--------|
 | `GET /v1/graph/health` | No auth; `{"available": bool, "extension": "apache-age"}` |
-| `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`; 501 when AGE absent |
+| `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`, `direction` (`both`|`out`|`in`); 501 when AGE absent |
 | `GET /v1/graph/entities/memory` | Read role; list promoted entities for `memory_id`; 501 when AGE absent |
 | `GET /v1/graph/entities/related` | Read role; correlate by `kind`+`key` or shared entities via `memory_id`; 501 when AGE absent |
 | `GET /v1/graph/link-proposals` | List LLM link proposals (`status`, `source_memory_id`) |

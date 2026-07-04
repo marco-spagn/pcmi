@@ -777,9 +777,14 @@ paths:
           in: query
           schema: { type: string }
           description: Comma-separated link types (causal, temporal, contradicts, supports, related)
-        - name: offset
+        - name: direction
           in: query
-          schema: { type: integer, minimum: 0, default: 0 }
+          schema: { type: string, enum: [both, out, in], default: both }
+          description: Traversal direction — both follows edges in either direction; out is legacy outgoing-only
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64, minimum: 0, default: 0 }
+          description: Keyset pagination cursor (last memory ID from previous page)
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
@@ -1496,9 +1501,10 @@ components:
       properties:
         memory_id: { type: integer, format: int64 }
         depth: { type: integer }
+        direction: { type: string, enum: [both, out, in] }
         count: { type: integer }
         total: { type: integer, description: Total matching entries before pagination }
-        offset: { type: integer }
+        next_cursor: { type: integer, format: int64 }
         limit: { type: integer }
         entries:
           type: array

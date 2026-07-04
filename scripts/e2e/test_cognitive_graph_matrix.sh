@@ -398,7 +398,12 @@ run_assertions() {
   assert_related_not_contains "$body" cycle_a
 
   body=$(api_json GET "/v1/graph/related?memory_id=${cycle_a}&depth=2&link_types=related&limit=20")
-  assert_eq "$(jq -r '.total' <<<"$body")" "2" "cycle depth=2 total"
+  assert_eq "$(jq -r '.total' <<<"$body")" "1" "cycle depth=2 total (both: no return to source)"
+  assert_related_contains "$body" cycle_b
+  assert_related_not_contains "$body" cycle_a
+
+  body=$(api_json GET "/v1/graph/related?memory_id=${cycle_a}&depth=2&link_types=related&direction=out&limit=20")
+  assert_eq "$(jq -r '.total' <<<"$body")" "2" "cycle depth=2 total with direction=out"
   assert_related_contains "$body" cycle_b
   assert_related_contains "$body" cycle_a
 
@@ -407,13 +412,27 @@ run_assertions() {
   assert_eq "$(jq -r '.total' <<<"$body")" "1" "self-loop traversal total"
   assert_related_contains "$body" self_loop
 
+  assert_chain self_loop self_loop "related" true 1
+
+  local support_a
+  support_a=$(id_for support_a)
+  body=$(api_json GET "/v1/graph/related?memory_id=${support_a}&depth=1&link_types=supports&limit=20")
+  assert_eq "$(jq -r '.total' <<<"$body")" "1" "incoming-only leaf sees parent with direction=both (default)"
+  assert_related_contains "$body" fanout_hub
+
+  body=$(api_json GET "/v1/graph/related?memory_id=${support_a}&depth=1&link_types=supports&direction=out&limit=20")
+  assert_eq "$(jq -r '.total' <<<"$body")" "0" "direction=out hides incoming-only neighbours"
+
+  body=$(api_json GET "/v1/graph/related?memory_id=${support_a}&depth=1&link_types=supports&direction=in&limit=20")
+  assert_eq "$(jq -r '.total' <<<"$body")" "1" "direction=in follows incoming supports edges"
+  assert_related_contains "$body" fanout_hub
+
   assert_chain root supports_1 "causal,temporal,supports" true 1
   assert_chain causal_1 supports_1 "temporal,supports" true 2
   assert_chain root supports_1 "causal" false 0
   assert_chain root alternate_target "causal,contradicts" true 2
   assert_chain supports_1 root "causal,temporal,supports,related" false 0
   assert_chain fanout_hub support_d "supports" true 1
-  assert_chain self_loop self_loop "related" true 1
 
   body=$(api_json POST /v1/graph/cypher '{"query":"MATCH (n:Memory) WHERE n.id IS NOT NULL RETURN n.id ORDER BY n.id LIMIT 5"}')
   rows=$(jq '.rows | length' <<<"$body")

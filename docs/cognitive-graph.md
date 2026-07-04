@@ -221,6 +221,7 @@ pointing to this document.
 | `memory_id`  | —       | **Required.** `memory_entries.id` of the start node            |
 | `depth`      | `3`     | Max hop depth (1–10)                                           |
 | `link_types` | all     | Comma-separated subset of link type constants                  |
+| `direction`  | `both`  | Edge direction: `both` (undirected), `out`, or `in`            |
 | `cursor`     | `0`     | Keyset pagination cursor (last memory ID from previous page)   |
 | `limit`      | `50`    | Page size (1–200)                                              |
 

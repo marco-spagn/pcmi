@@ -20,9 +20,10 @@ type fakeGraphClient struct {
 	related    []graph.RelatedMemory
 	relatedTot int
 	findErr    error
-	lastDepth  int
-	lastCursor int64
-	lastLimit  int
+	lastDepth     int
+	lastCursor    int64
+	lastLimit     int
+	lastDirection graph.TraversalDirection
 
 	chainResult *graph.ChainResult
 	chainErr    error
@@ -37,10 +38,11 @@ type fakeGraphClient struct {
 
 func (f *fakeGraphClient) IsAvailable(_ context.Context) bool { return f.available }
 
-func (f *fakeGraphClient) FindRelated(_ context.Context, _ string, _ int64, _ []string, depth int, cursor int64, limit int) (*graph.RelatedResult, error) {
+func (f *fakeGraphClient) FindRelated(_ context.Context, _ string, _ int64, _ []string, depth int, cursor int64, limit int, direction graph.TraversalDirection) (*graph.RelatedResult, error) {
 	f.lastDepth = depth
 	f.lastCursor = cursor
 	f.lastLimit = limit
+	f.lastDirection = direction
 	// Compute next_cursor: if there are results, the last ID is the next cursor;
 	// zero means last page.
 	var nextCursor int64
@@ -744,6 +746,58 @@ func TestGraphHandler_FindRelated_WhitespaceLinkTypes(t *testing.T) {
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		t.Fatalf("whitespace link_types: status %d want 200", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindRelated_DirectionDefaultsToBoth(t *testing.T) {
+	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	if fake.lastDirection != graph.TraversalBoth {
+		t.Fatalf("default direction = %q, want both", fake.lastDirection)
+	}
+	var body map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body["direction"] != "both" {
+		t.Fatalf("response direction = %v, want both", body["direction"])
+	}
+}
+
+func TestGraphHandler_FindRelated_InvalidDirection_Returns400(t *testing.T) {
+	fake := &fakeGraphClient{available: true}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&direction=sideways", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 400 {
+		t.Fatalf("status %d want 400", resp.StatusCode)
+	}
+}
+
+func TestGraphHandler_FindRelated_DirectionOut(t *testing.T) {
+	fake := &fakeGraphClient{available: true, related: []graph.RelatedMemory{}}
+	app := newGraphApp("tid", "user", fake)
+	resp, err := app.Test(httptest.NewRequest("GET", "/v1/graph/related?memory_id=1&direction=out", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("status %d want 200", resp.StatusCode)
+	}
+	if fake.lastDirection != graph.TraversalOut {
+		t.Fatalf("direction = %q, want out", fake.lastDirection)
 	}
 }
 

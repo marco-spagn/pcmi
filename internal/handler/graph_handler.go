@@ -19,7 +19,7 @@ import (
 // Defined here so tests can inject fakes without a real pgxpool.
 type graphClientIface interface {
 	IsAvailable(ctx context.Context) bool
-	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*graph.RelatedResult, error)
+	FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int, direction graph.TraversalDirection) (*graph.RelatedResult, error)
 	FindChain(ctx context.Context, tenantID string, fromID, toID int64, linkTypes []string, maxDepth int) (*graph.ChainResult, error)
 	ExecuteCypher(ctx context.Context, tenantID, query string) (*graph.CypherResult, error)
 	FindEntitiesForMemory(ctx context.Context, tenantID string, memoryID int64) ([]graph.EntityMention, error)
@@ -123,7 +123,7 @@ func (h *GraphHandler) Health(c *fiber.Ctx) error {
 // FindRelated returns memories causally/semantically connected to a given
 // memory within a configurable hop depth.
 //
-// GET /v1/graph/related?memory_id=123&depth=3&link_types=causal,temporal&cursor=0&limit=50
+// GET /v1/graph/related?memory_id=123&depth=3&link_types=causal,temporal&direction=both&cursor=0&limit=50
 func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 	if !h.client.IsAvailable(c.Context()) {
 		return h.ageNotAvailable(c)
@@ -162,9 +162,14 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 		}
 	}
 
+	direction, err := graph.ParseTraversalDirection(c.Query("direction"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
 	var result *graph.RelatedResult
 	err = h.timed(c, func() error {
-		result, err = h.client.FindRelated(c.Context(), tid, memID, linkTypes, depth, cursor, limit)
+		result, err = h.client.FindRelated(c.Context(), tid, memID, linkTypes, depth, cursor, limit, direction)
 		return err
 	})
 	if err != nil {
@@ -176,6 +181,7 @@ func (h *GraphHandler) FindRelated(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"memory_id":   memID,
 		"depth":       depth,
+		"direction":   string(direction),
 		"entries":     result.Memories,
 		"count":       len(result.Memories),
 		"total":       result.Total,

@@ -230,7 +230,7 @@ func TestParseAGEPath_tooShort(t *testing.T) {
 
 func TestFindRelated_normalization(t *testing.T) {
 	g := &GraphClient{db: nil} // No DB → will return early after normalization
-	result, err := g.FindRelated(t.Context(), "t1", 1, nil, 0, -1, 0)
+	result, err := g.FindRelated(t.Context(), "t1", 1, nil, 0, -1, 0, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

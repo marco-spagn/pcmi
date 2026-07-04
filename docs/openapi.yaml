@@ -777,9 +777,14 @@ paths:
           in: query
           schema: { type: string }
           description: Comma-separated link types (causal, temporal, contradicts, supports, related)
-        - name: offset
+        - name: direction
           in: query
-          schema: { type: integer, minimum: 0, default: 0 }
+          schema: { type: string, enum: [both, out, in], default: both }
+          description: Traversal direction — both follows edges in either direction; out is legacy outgoing-only
+        - name: cursor
+          in: query
+          schema: { type: integer, format: int64, minimum: 0, default: 0 }
+          description: Keyset pagination cursor (last memory ID from previous page)
         - name: limit
           in: query
           schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
@@ -905,6 +910,93 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GraphUnavailableResponse"
+  /v1/graph/link-proposals:
+    get:
+      summary: List LLM link proposals (Phase C review queue)
+      description: |
+        Returns pending, accepted, or rejected link proposals. Accepting a proposal
+        creates a row in memory_links. Requires `LINK_PROPOSALS_ENABLED=true` for generation.
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, accepted, rejected], default: pending }
+        - name: source_memory_id
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        "200":
+          description: Proposal list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkProposalListResponse"
+        "400":
+          description: Invalid query
+  /v1/graph/link-proposals/generate/{memory_id}:
+    post:
+      summary: Generate LLM link proposals for a memory (Phase C)
+      description: |
+        Runs the LLM proposal pipeline against entity-correlated candidate memories.
+        Requires write role, successful extraction, AGE, and `LINK_PROPOSALS_ENABLED=true`.
+      parameters:
+        - name: memory_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Newly stored pending proposals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkProposalGenerateResponse"
+        "404":
+          description: Memory not found
+        "422":
+          description: Extraction/profile prerequisite missing
+        "503":
+          description: Proposals disabled or graph/LLM unavailable
+  /v1/graph/link-proposals/{id}/accept:
+    post:
+      summary: Accept a pending link proposal (materialize to memory_links)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Link created and proposal marked accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkProposalAcceptResponse"
+        "404":
+          description: Proposal not found
+        "409":
+          description: Proposal not pending
+  /v1/graph/link-proposals/{id}/reject:
+    post:
+      summary: Reject a pending link proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Proposal marked rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LinkProposalRejectResponse"
+        "404":
+          description: Proposal not found
+        "409":
+          description: Proposal not pending
   /v1/graph/cypher:
     post:
       summary: Execute a read-only Cypher query (experimental spike; requires write role)
@@ -1409,9 +1501,10 @@ components:
       properties:
         memory_id: { type: integer, format: int64 }
         depth: { type: integer }
+        direction: { type: string, enum: [both, out, in] }
         count: { type: integer }
         total: { type: integer, description: Total matching entries before pagination }
-        offset: { type: integer }
+        next_cursor: { type: integer, format: int64 }
         limit: { type: integer }
         entries:
           type: array
@@ -1474,6 +1567,48 @@ components:
         entries:
           type: array
           items: { $ref: "#/components/schemas/GraphEntityRelatedEntry" }
+    LinkProposal:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        source_memory_id: { type: integer, format: int64 }
+        from_memory_id: { type: integer, format: int64 }
+        to_memory_id: { type: integer, format: int64 }
+        from_path: { type: string }
+        to_path: { type: string }
+        link_type: { type: string }
+        status: { type: string, enum: [pending, accepted, rejected] }
+        confidence: { type: number, format: float }
+        reason: { type: string }
+        profile_id: { type: string }
+        model: { type: string }
+        created_at: { type: string, format: date-time }
+        reviewed_at: { type: string, format: date-time, nullable: true }
+    LinkProposalListResponse:
+      type: object
+      properties:
+        status: { type: string }
+        count: { type: integer }
+        proposals:
+          type: array
+          items: { $ref: "#/components/schemas/LinkProposal" }
+    LinkProposalGenerateResponse:
+      type: object
+      properties:
+        source_memory_id: { type: integer, format: int64 }
+        count: { type: integer }
+        proposals:
+          type: array
+          items: { $ref: "#/components/schemas/LinkProposal" }
+    LinkProposalAcceptResponse:
+      type: object
+      properties:
+        link: { $ref: "#/components/schemas/MemoryLink" }
+        proposal: { $ref: "#/components/schemas/LinkProposal" }
+    LinkProposalRejectResponse:
+      type: object
+      properties:
+        proposal: { $ref: "#/components/schemas/LinkProposal" }
     CypherQueryRequest:
       type: object
       required: [query]

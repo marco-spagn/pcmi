@@ -74,6 +74,9 @@ type Config struct {
 	ExtractionEnabled bool
 	ExtractionModel   string
 
+	// LLM link proposals (Phase C — review queue)
+	LinkProposalsEnabled bool
+
 	// Rate limiting
 	RateLimitDisabled    bool
 	RateLimitBackend     string // memory (default) or redis
@@ -149,6 +152,7 @@ func Load() *Config {
 		ContradictionDetectionIntervalSecs: envInt("CONTRADICTION_DETECTION_INTERVAL_SECS", 120),
 		ExtractionEnabled:                  envBool("EXTRACTION_ENABLED", false),
 		ExtractionModel:                    envOr("EXTRACTION_MODEL", ""),
+		LinkProposalsEnabled:               envBool("LINK_PROPOSALS_ENABLED", false),
 
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
 		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),

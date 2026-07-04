@@ -4,8 +4,8 @@
         env infra-deps-up infra-up infra-down infra-down-v infra-restart infra-ps infra-logs infra-wait-db \
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test bug-hunt bug-hunt-fast \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
-        helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui test-cognitive-graph test-cognitive-graph-matrix \
-        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-soc-loader-test
+        helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui graph-ui-entities demo test-cognitive-graph test-cognitive-graph-matrix \
+        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
@@ -286,17 +286,27 @@ graph-realistic-smoke:
 	cd $(GRAPH_REALISTIC_DIR) && PCMI_BASE_URL=$(API_URL) PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
 		python3 smoke_load_to_pcmi.py --limit $${REALISTIC_SMOKE_LIMIT:-250}
 
+graph-realistic-audit:
+	cd $(GRAPH_REALISTIC_DIR) && PCMI_BASE_URL=$(API_URL) PCMI_API_KEY=$(GRPC_TEST_API_KEY) \
+		python3 load_and_audit.py --extract-sample $${REALISTIC_EXTRACT_SAMPLE:-0}
+
 graph-soc-loader-test:
 	cd examples/soc-incident-graph && python3 test_loader.py
 
 # One-command: start AGE infrastructure → generate SOC dataset → load → open UI.
-#   make graph-ui                          # minimal (postgres-age + Redis)
-#   make graph-ui FULL_STACK=1             # full stack (API + Worker)
-#   make graph-ui DATASET_SIZE=5000         # 5000 nodes instead of 1000
-#   make graph-ui INFRA_ONLY=1              # infrastructure only, no data load
+#   make graph-ui                          # SOC dataset + graph UI (no LLM setup)
+#   make graph-ui-entities                 # same + extraction profile + LLM extract
+#   make demo                              # recommended: full entity demo + opens browser
 graph-ui:
 	bash scripts/e2e/launch_graph_ui.sh
 	go test -tags=integration -run TestStream ./internal/event/...
+
+graph-ui-entities:
+	ENTITY_DEMO=1 bash scripts/e2e/launch_graph_ui.sh
+	go test -tags=integration -run TestStream ./internal/event/...
+
+demo:
+	ENTITY_DEMO=1 OPEN_UI=1 bash scripts/e2e/launch_graph_ui.sh
 
 test-circuit-breaker:
 	go test -race -count=1 -run 'TestCircuitBreaker|TestOpenAIProvider_Wrapped|TestEmbeddingWorker_' ./internal/embedding/... ./internal/worker/...

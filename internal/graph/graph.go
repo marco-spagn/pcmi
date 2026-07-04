@@ -75,11 +75,12 @@ func (g *GraphClient) ageConn(ctx context.Context) (*pgxpool.Conn, error) {
 // FindRelated traverses the pcmi_memory_graph starting from memoryID and
 // returns nodes reachable within maxDepth hops via any of the given linkTypes.
 // When linkTypes is empty all edge types are matched.
+// direction controls edge orientation: out (legacy), in, or both (default).
 // Returns an empty slice (not an error) when AGE is unavailable.
 //
 // cursor/limit implement keyset pagination over memory IDs.  Pass cursor=0 for
 // the first page; subsequent pages pass the last ID from the previous page.
-func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int) (*RelatedResult, error) {
+func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID int64, linkTypes []string, maxDepth int, cursor int64, limit int, direction TraversalDirection) (*RelatedResult, error) {
 	// Normalise inputs before the AGE check so unit tests can cover these branches.
 	if maxDepth < 1 {
 		maxDepth = 1
@@ -89,6 +90,9 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	if cursor < 0 {
 		cursor = 0
+	}
+	if direction == "" {
+		direction = TraversalBoth
 	}
 
 	if !g.IsAvailable(ctx) {
@@ -104,13 +108,13 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 	}
 	defer conn.Release()
 
-	relPattern, _ := buildRelPattern(maxDepth, "r", nil)
+	relPattern := buildTraversePattern(maxDepth, "r", direction)
 	idStr := fmt.Sprintf("memory.%d", memoryID)
 	tenantLiteral := escapeCypherString(tenantID)
 
 	dataQuery := fmt.Sprintf(`
 		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
-			MATCH p=(m:Memory {id: '%s', tenant_id: '%s'})-%s->(n:Memory)
+			MATCH p=(m:Memory {id: '%s', tenant_id: '%s'})%s(n:Memory)
 			WHERE n.id IS NOT NULL AND n.tenant_id = '%s'
 			RETURN p, n.id, type(r[0]), size(r)
 		$$) AS (path ag_catalog.agtype, id ag_catalog.agtype, link_type ag_catalog.agtype, depth ag_catalog.agtype)`,
@@ -136,6 +140,12 @@ func (g *GraphClient) FindRelated(ctx context.Context, tenantID string, memoryID
 		}
 		id, _ := parseMemoryVertexID(string(idRaw))
 		depth, _ := strconv.Atoi(strings.Trim(string(depthRaw), `"`))
+		// Undirected traversal can walk out and back (a→b→a); omit the source except
+		// at depth 1 (self-loop edges). Directed out/in may legitimately return to
+		// the source at depth > 1 (e.g. two-node cycles).
+		if id == memoryID && depth > 1 && direction == TraversalBoth {
+			continue
+		}
 		candidate := RelatedMemory{
 			ID:       id,
 			LinkType: strings.Trim(string(ltRaw), `"`),
@@ -510,10 +520,22 @@ func (g *GraphClient) SyncMemoryLink(ctx context.Context, tenantID, fromPath, to
 	)
 }
 
-// buildRelPattern builds the Cypher relationship pattern and WHERE type filter
-// for graph traversals.  relVar is the edge variable name ("r" or "e").
+// buildRelPattern builds the Cypher relationship pattern for directed chain queries.
 func buildRelPattern(maxDepth int, relVar string, linkTypes []string) (string, string) {
 	return fmt.Sprintf("[%s*1..%d]", relVar, maxDepth), ""
+}
+
+// buildTraversePattern builds the full relationship connector for FindRelated.
+func buildTraversePattern(maxDepth int, relVar string, direction TraversalDirection) string {
+	rel := fmt.Sprintf("[%s*1..%d]", relVar, maxDepth)
+	switch direction {
+	case TraversalIn:
+		return fmt.Sprintf("<-%s-", rel)
+	case TraversalOut:
+		return fmt.Sprintf("-%s->", rel)
+	default:
+		return fmt.Sprintf("-%s-", rel)
+	}
 }
 
 // buildCursorClause returns a Cypher WHERE fragment for keyset pagination.

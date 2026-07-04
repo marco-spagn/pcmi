@@ -121,6 +121,7 @@ func main() {
 	graphClient := graph.NewGraphClient(db)
 	graphClient.SetQueryTimeout(time.Duration(cfg.GraphQueryTimeoutSecs) * time.Second)
 	handler.RegisterGraphRoutes(app, graphClient)
+	handler.RegisterLinkProposalRoutes(app, db, pools.Read, graphClient, cfg)
 	if graphClient.IsAvailable(ctx) {
 		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph/related enabled")
 	} else {

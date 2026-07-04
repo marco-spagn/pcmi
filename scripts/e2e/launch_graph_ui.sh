@@ -11,14 +11,20 @@
 #   6. Prints the UI URL and sample exploration commands
 #
 # Usage:
-#   # Minimal: AGE Postgres + Redis only (API/Worker from host or another terminal)
-#   bash scripts/e2e/launch_graph_ui.sh
+#   # ONE COMMAND → stack + SOC data + browser UI (recommended for local test):
+#   make demo
 #
-#   # Full stack: also start API + Worker via docker compose
-#   FULL_STACK=1 bash scripts/e2e/launch_graph_ui.sh
+#   # Same via bash:
+#   ENTITY_DEMO=1 bash scripts/e2e/launch_graph_ui.sh
 #
-#   # Custom dataset size (default 1000)
-#   DATASET_SIZE=5000 bash scripts/e2e/launch_graph_ui.sh
+#   # Graph only (no LLM extraction / proposals setup):
+#   make graph-ui
+#
+#   # Full stack via docker compose (explicit):
+#   FULL_STACK=1 ENTITY_DEMO=1 bash scripts/e2e/launch_graph_ui.sh
+#
+#   # Faster load (100 incidents instead of 1000):
+#   DATASET_SIZE=100 make demo
 #
 #   # Skip loading (infrastructure only)
 #   INFRA_ONLY=1 bash scripts/e2e/launch_graph_ui.sh
@@ -34,12 +40,18 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # ── Config ─────────────────────────────────────────────────────────────────
 FULL_STACK="${FULL_STACK:-0}"
 INFRA_ONLY="${INFRA_ONLY:-0}"
+ENTITY_DEMO="${ENTITY_DEMO:-0}"
 DATASET_SIZE="${DATASET_SIZE:-1000}"
 PRESET="${PRESET:-soc}"
 PCMI_BASE_URL="${PCMI_BASE_URL:-http://localhost:8000}"
 PCMI_API_KEY="${PCMI_API_KEY:-testkey123}"
 AGE_PORT="${AGE_PORT:-5433}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
+EXTRACT_LIMIT="${EXTRACT_LIMIT:-12}"
+PROPOSE_LIMIT="${PROPOSE_LIMIT:-5}"
+OPEN_UI="${OPEN_UI:-1}"
+LINK_WORKERS="${LINK_WORKERS:-4}"
+export RATE_LIMIT_DISABLED="${RATE_LIMIT_DISABLED:-true}"
 
 # ── Colours ─────────────────────────────────────────────────────────────────
 RED=$'\033[0;31m'; GREEN=$'\033[0;32m'; YELLOW=$'\033[1;33m'
@@ -64,22 +76,27 @@ hdr "Step 1: Start infrastructure"
 
 cd "$PROJECT_ROOT"
 
+if [ "$ENTITY_DEMO" = "1" ]; then
+  export EXTRACTION_ENABLED=true
+  export LINK_PROPOSALS_ENABLED=true
+  info "ENTITY_DEMO=1 — EXTRACTION_ENABLED + LINK_PROPOSALS_ENABLED enabled"
+  if [ -f "$PROJECT_ROOT/.env" ] && grep -q '^OPENAI_API_KEY=.\+' "$PROJECT_ROOT/.env" 2>/dev/null; then
+    ok "OPENAI_API_KEY found in .env"
+  else
+    warn "OPENAI_API_KEY missing — extraction/proposals will fail until configured in .env"
+  fi
+fi
+
+GRAPH_COMPOSE=( -f docker-compose.yml -f docker-compose.graph.override.yml --profile graph )
+
 if [ "$FULL_STACK" = "1" ]; then
   info "Starting full stack (postgres-age, redis, api, worker)..."
-  docker compose \
-    -f docker-compose.yml \
-    -f docker-compose.graph.override.yml \
-    --profile graph \
-    up -d --build --remove-orphans
+  docker compose "${GRAPH_COMPOSE[@]}" up -d --build --remove-orphans
   ok "Full stack started"
 else
-  info "Starting postgres-age + redis..."
-  docker compose --profile graph up -d postgres-age redis
-  ok "postgres-age + redis started"
-
-  # Rebuild and restart API + worker to pick up the AGE DB
-  info "Rebuilding API + worker to point at postgres-age..."
-  docker compose up -d --build --no-deps api worker 2>/dev/null || true
+  info "Starting postgres-age, redis, api, worker (graph override)..."
+  docker compose "${GRAPH_COMPOSE[@]}" up -d --build postgres-age redis api worker
+  ok "Stack started (postgres-age + redis + api + worker)"
 fi
 
 # ── Step 2: Wait for health ─────────────────────────────────────────────────
@@ -98,6 +115,34 @@ for i in $(seq 1 60); do
   fi
   sleep 2
 done
+
+# Apply Phase C migration on existing postgres-age volumes (initdb only runs once)
+apply_age_migrations() {
+  local dsn="postgres://pcmi:pcmi@localhost:${AGE_PORT}/pcmi?sslmode=disable"
+  if ! command -v psql >/dev/null 2>&1; then
+    warn "psql not found — skip migration check (install postgresql client if LLM Propose fails)"
+    return 0
+  fi
+  if ! psql "$dsn" -tAc "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='graph_link_proposals'" 2>/dev/null | grep -q 1; then
+    info "Applying migrations/024_graph_link_proposals.sql on postgres-age..."
+    psql "$dsn" -v ON_ERROR_STOP=1 -f "${PROJECT_ROOT}/migrations/024_graph_link_proposals.sql" >/dev/null
+    ok "graph_link_proposals table ready"
+  fi
+}
+apply_age_migrations
+
+register_extraction_profiles() {
+  info "Registering extraction profiles (soc + realistic graph)…"
+  if python3 "${PROJECT_ROOT}/examples/cognitive-graph-entities/register_profiles.py"; then
+    ok "Extraction profiles registered"
+  else
+    warn "Profile registration failed — Extract may fail until profiles are registered"
+  fi
+}
+
+if [ "$INFRA_ONLY" != "1" ]; then
+  register_extraction_profiles
+fi
 
 # Verify AGE is available
 HEALTH=$(curl -sf "${PCMI_BASE_URL}/v1/graph/health")
@@ -173,17 +218,30 @@ cd "$SOC_DATASET"
 export PCMI_BASE_URL
 export PCMI_API_KEY
 
-info "Loading ${DATASET_SIZE} nodes + their links..."
+info "Loading up to ${DATASET_SIZE} nodes + matching links (link-workers=${LINK_WORKERS})..."
 info "This is resumable — interrupt and restart safely (examples/soc-incident-graph/id_map.json checkpoint)"
+info "RATE_LIMIT_DISABLED=${RATE_LIMIT_DISABLED} (set false to exercise API throttling)"
 
-python3 "$LOADER" --batch 50 --link-workers 16
+python3 "$LOADER" --batch 50 --link-workers "$LINK_WORKERS" --limit "$DATASET_SIZE"
 
 ok "Dataset loaded"
+
+# ── Step 6: Entity extraction demo (optional) ───────────────────────────────
+if [ "$ENTITY_DEMO" = "1" ]; then
+  hdr "Step 6: Entity extraction + LLM link proposals"
+  cd "$SOC_DATASET"
+  info "Registering soc.siem.v1 profile, running extraction (${EXTRACT_LIMIT}) + proposals (${PROPOSE_LIMIT})…"
+  if python3 setup_extraction_demo.py --extract-limit "$EXTRACT_LIMIT" --propose-limit "$PROPOSE_LIMIT"; then
+    ok "Entity demo data ready"
+  else
+    warn "Entity demo setup had errors — UI still works; run extraction manually from the toolbar"
+  fi
+fi
 
 # ── Done ────────────────────────────────────────────────────────────────────
 hdr "All done!"
 
-GRAPH_UI="${PCMI_BASE_URL}/v1/graph/ui"
+GRAPH_UI="${PCMI_BASE_URL}/v1/graph/ui?demo=1&mem=73"
 
 echo ""
 banner "  🎉 PCMI Cognitive Graph is ready!"
@@ -196,7 +254,17 @@ echo "  └───────────────────────
 echo ""
 echo "  Open in browser:"
 echo "    ${BOLD}open ${GRAPH_UI}${RESET}"
+if [ "$OPEN_UI" = "1" ] && command -v open >/dev/null 2>&1; then
+  open "$GRAPH_UI" 2>/dev/null || true
+fi
 echo ""
+if [ "$ENTITY_DEMO" = "1" ]; then
+  echo "  Entity demo UI:"
+  echo "    • View → Entities   — promoted :Entity vertices + correlated memories"
+  echo "    • View → Proposals  — pending LLM links (Accept / Reject)"
+  echo "    • Extract / LLM Propose — manual actions on selected memory"
+  echo ""
+fi
 echo "  Quick exploration (curl):"
 echo ""
 echo "    # Health check"

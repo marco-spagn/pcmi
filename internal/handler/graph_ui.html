@@ -248,6 +248,106 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.err { border-color: rgba(248,113,113,.5); }
+
+/* entity + proposals demo */
+.proposals-panel {
+  width: 0; flex-shrink: 0; background: var(--bg-panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .22s cubic-bezier(.4,0,.2,1); z-index: 24;
+}
+.proposals-panel.open { width: 340px; }
+.prop-head {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0;
+}
+.prop-title { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-mute); font-weight: 700; }
+.prop-body { flex: 1; overflow-y: auto; padding: 10px 12px 16px; }
+.prop-body::-webkit-scrollbar { width: 8px; }
+.prop-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.prop-card {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 11px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.prop-card:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.prop-card.active { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.06); }
+.prop-card .edge {
+  font-family: var(--mono); font-size: 11.5px; color: var(--text); line-height: 1.45; margin-bottom: 6px;
+}
+.prop-card .meta { font-size: 11px; color: var(--text-mute); margin-bottom: 8px; line-height: 1.45; }
+.prop-card .actions { display: flex; gap: 6px; }
+.prop-card .actions button {
+  flex: 1; font-size: 11px; font-weight: 600; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-elev); color: var(--text-dim);
+}
+.prop-card .actions .accept { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.35); color: var(--ok); }
+.prop-card .actions .reject { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.35); color: var(--danger); }
+.extract-box {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); line-height: 1.5;
+  max-height: 140px; overflow-y: auto;
+}
+.flag-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.35); color: #c4b5fd;
+}
+
+/* guided workflow bar */
+.guide-bar {
+  background: linear-gradient(180deg, rgba(19,28,48,.98), rgba(14,21,37,.95));
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px 12px;
+  flex-shrink: 0;
+  z-index: 19;
+}
+.guide-bar.hidden { display: none; }
+.guide-top {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.guide-top h2 { font-size: 13px; font-weight: 650; color: var(--text); margin-right: auto; }
+.guide-top .sub { font-size: 11px; color: var(--text-mute); font-weight: 500; }
+.guide-steps {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+}
+@media (max-width: 1100px) { .guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gstep {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 11px; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
+}
+.gstep:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.gstep.active { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.08); box-shadow: 0 0 0 1px rgba(45,212,191,.15); }
+.gstep.done { opacity: .72; }
+.gstep .num {
+  font-size: 10px; font-weight: 800; letter-spacing: .08em; color: var(--primary); margin-bottom: 4px;
+}
+.gstep .title { font-size: 12px; font-weight: 650; color: var(--text); margin-bottom: 3px; }
+.gstep .desc { font-size: 11px; color: var(--text-mute); line-height: 1.45; }
+.guide-now {
+  margin-top: 10px; padding: 9px 12px; border-radius: 8px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.22);
+  font-size: 12px; color: var(--text-dim); line-height: 1.5;
+}
+.guide-now b { color: var(--accent); }
+.guide-now kbd {
+  font-family: var(--mono); font-size: 10px; background: var(--bg-elev);
+  border: 1px solid var(--border-2); border-radius: 4px; padding: 1px 5px; color: var(--text);
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ctrl-group-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-mute); padding: 2px 6px; border-radius: 4px; background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+.welcome-card { max-width: 520px; text-align: left; }
+.welcome-card h3 { text-align: center; margin-bottom: 12px; }
+.welcome-card ol { margin: 0 0 16px 18px; font-size: 12.5px; color: var(--text-dim); line-height: 1.65; }
+.welcome-card li { margin: 6px 0; }
+.welcome-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.welcome-actions button { flex: 1; min-width: 160px; }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45,212,191,.35); }
+  50% { box-shadow: 0 0 0 6px rgba(45,212,191,0); }
+}
 </style>
 </head>
 <body>
@@ -263,6 +363,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
     <h1>Cognitive Graph Explorer <small>PCMI</small></h1>
   </div>
   <span id="age-status" class="status off">checking…</span>
+  <span id="entity-flags" class="flag-badge" style="display:none" title="Entity extraction + LLM link proposals">entities</span>
+  <button class="btn-secondary seg" id="btn-guide-toggle" onclick="toggleGuideBar()">Guida</button>
   <div class="stats">
     <span>nodes <b id="stat-nodes">0</b></span>
     <span>edges <b id="stat-edges">0</b></span>
@@ -271,6 +373,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 </div>
 
 <div class="controls">
+  <span class="ctrl-group-label">Layout</span>
   <button id="btn-force"  class="btn-active seg"     onclick="setLayout('force')">Force</button>
   <button id="btn-tree"   class="btn-secondary seg"  onclick="setLayout('tree')">Tree</button>
   <button id="btn-radial" class="btn-secondary seg"  onclick="setLayout('radial')">Radial</button>
@@ -278,15 +381,15 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <button id="btn-clusters" class="btn-secondary seg" onclick="toggleClusters()">Clusters</button>
   <button id="btn-timeline" class="btn-secondary seg" onclick="toggleTimeline()">Timeline</button>
   <div class="control-sep"></div>
-
+  <span class="ctrl-group-label">Auth</span>
   <div class="api-key-area">
     <span class="lbl">Key</span>
     <input type="text" id="api-key" placeholder="X-API-Key" autocomplete="off" spellcheck="false">
   </div>
   <div class="control-sep"></div>
-
+  <span class="ctrl-group-label">Query</span>
   <span class="lbl">Memory ID</span>
-  <input type="number" id="mem-id" value="172" min="1">
+  <input type="number" id="mem-id" value="73" min="1" title="SOC demo: 73 = INC0000001 (campagna Akira)">
   <span class="lbl">Depth</span>
   <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
 
@@ -299,19 +402,85 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   </div>
 
   <div class="control-sep"></div>
-  <button class="btn-primary"   id="btn-explore" onclick="explore()">Explore</button>
+  <span class="ctrl-group-label">Modalità</span>
+  <span class="lbl">View</span>
+  <button id="btn-view-links" class="btn-active seg" onclick="setViewMode('links')">Links</button>
+  <button id="btn-view-entities" class="btn-secondary seg" onclick="setViewMode('entities')">Entities</button>
+  <button id="btn-view-proposals" class="btn-secondary seg" onclick="setViewMode('proposals')">Proposals</button>
+  <div class="control-sep"></div>
+  <button class="btn-primary"   id="btn-explore" onclick="runExplore()">Explore</button>
+  <button class="btn-secondary" id="btn-extract" onclick="runExtract()" title="POST /v1/memories/extraction/{id}">Extract</button>
+  <button class="btn-secondary" id="btn-propose" onclick="generateProposals()" title="LLM link proposals (LINK_PROPOSALS_ENABLED)">LLM Propose</button>
   <button class="btn-secondary" id="btn-chain"   onclick="findChain()" disabled>Find Chain</button>
   <button class="btn-secondary" id="btn-clear"   onclick="clearGraph()">Clear</button>
 </div>
 
+<div class="guide-bar" id="guide-bar">
+  <div class="guide-top">
+    <h2>Guida rapida · dataset SOC</h2>
+    <span class="sub">Memory <b style="color:var(--primary);font-family:var(--mono)">73</b> = incidente Akira (INC0000001)</span>
+    <button class="btn-primary seg" id="btn-guided-demo" onclick="runGuidedDemo()">▶ Demo automatica</button>
+    <button class="btn-secondary seg" onclick="jumpToGuideStep('links')">1 · Links</button>
+    <button class="btn-secondary seg" onclick="jumpToGuideStep('entities')">2 · Entities</button>
+    <button class="btn-secondary seg" onclick="jumpToGuideStep('proposals')">3 · Proposals</button>
+    <button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>
+  </div>
+  <div class="guide-steps" id="guide-steps">
+    <div class="gstep active" data-step="links" onclick="jumpToGuideStep('links')">
+      <div class="num">PASSO 1</div>
+      <div class="title">Grafo link (causal / temporal)</div>
+      <div class="desc">View <b>Links</b> → seleziona tipi di arco → <b>Explore</b>. Cerchi = memorie, colori = profondità hop.</div>
+    </div>
+    <div class="gstep" data-step="entities" onclick="jumpToGuideStep('entities')">
+      <div class="num">PASSO 2</div>
+      <div class="title">Entità estratte (AGE)</div>
+      <div class="desc">View <b>Entities</b> → <b>Explore</b>. Diamanti = IP, actor, host… estratti dall'LLM.</div>
+    </div>
+    <div class="gstep" data-step="extract" onclick="jumpToGuideStep('extract')">
+      <div class="num">PASSO 3</div>
+      <div class="title">Estrazione slot</div>
+      <div class="desc"><b>Extract</b> lancia l'LLM su memory 73. Inspector a destra → sezione Extraction.</div>
+    </div>
+    <div class="gstep" data-step="proposals" onclick="jumpToGuideStep('proposals')">
+      <div class="num">PASSO 4</div>
+      <div class="title">Link proposti dall'LLM</div>
+      <div class="desc"><b>LLM Propose</b> → View <b>Proposals</b> → Accept/Reject nel pannello sinistro.</div>
+    </div>
+  </div>
+  <div class="guide-now" id="guide-now">
+    <b>Prossimo passo:</b> inserisci API key <kbd>testkey123</kbd>, conferma Memory ID <kbd>73</kbd>, poi clicca <kbd>Explore</kbd> in vista Links.
+  </div>
+</div>
+
 <div class="main-area">
+  <aside class="proposals-panel" id="proposals-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Pending link proposals</div>
+      <button class="btn-secondary seg" onclick="loadProposals()">Refresh</button>
+    </div>
+    <div class="prop-body" id="proposals-list">
+      <p class="empty-note">Switch to Proposals view and click Refresh, or run LLM Propose on a memory.</p>
+    </div>
+  </aside>
   <div class="canvas-wrap">
     <div id="graph"></div>
 
     <div class="overlay show" id="overlay">
-      <div class="card" id="overlay-card">
-        <h3>No graph loaded</h3>
-        <p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b> to traverse the cognitive graph.</p>
+      <div class="card welcome-card" id="overlay-card">
+        <h3>Benvenuto nel Cognitive Graph Explorer</h3>
+        <p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">
+          Esplora il dataset SOC con tre layer: <b>link manuali</b>, <b>entità estratte</b>, <b>proposte LLM</b>.
+        </p>
+        <ol>
+          <li><b>Links</b> — grafo causale/temporale tra incidenti (cerchi colorati)</li>
+          <li><b>Entities</b> — vertici AGE da extraction (diamanti: Akira, IP, host…)</li>
+          <li><b>Extract</b> — estrae slot SIEM dalla memoria selezionata</li>
+          <li><b>Proposals</b> — review queue link suggeriti dall'LLM (Accept/Reject)</li>
+        </ol>
+        <div class="welcome-actions">
+          <button class="btn-primary" onclick="runGuidedDemo()">▶ Avvia demo guidata</button>
+          <button class="btn-secondary" onclick="dismissWelcome()">Esplora da solo</button>
+        </div>
       </div>
     </div>
 
@@ -323,9 +492,12 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div class="row"><span class="swatch" style="background:#a855f7"></span>depth 4</div>
       <div class="row"><span class="swatch" style="background:#ef4444"></span>depth 5+</div>
       <div class="row"><span class="swatch" style="background:#facc15"></span>chain path</div>
+      <div class="row"><span class="swatch" style="background:#a78bfa;border-radius:2px"></span>entity vertex</div>
+      <div class="row"><span class="swatch" style="background:#94a3b8;border-radius:2px"></span>LLM proposal (pending)</div>
+      <div class="row"><span class="swatch" style="background:#2dd4bf;border-radius:2px"></span>LLM accepted ✓</div>
     </div>
 
-    <div class="hint">Click a node to inspect · <kbd>dbl-click</kbd> to expand</div>
+    <div class="hint" id="canvas-hint">Click = ispeziona · dbl-click = espandi · trascina = sposta nodi</div>
 
     <div id="timeline-container">
       <div id="timeline-bar"></div>
@@ -361,6 +533,19 @@ let nodeTimestamps = {};
 let nodeMeta = {};            // id -> { linkType, depth }
 let memCache = {};            // id -> full MemoryEntry (path, content, tags, metadata, ...)
 let cacheLoaded = false;
+let viewMode = 'links';       // links | entities | proposals
+let pendingProposals = [];    // last fetched proposals
+let selectedEntity = null;    // { kind, key } when an entity node is selected
+const entityKindColors = {
+  IPAddress: '#38bdf8', Asset: '#22c55e', User: '#f59e0b',
+  ThreatActor: '#ef4444', Domain: '#a855f7', Campaign: '#2dd4bf'
+};
+function entityNodeId(kind, key) { return 'entity:' + kind + ':' + key; }
+function isEntityNodeId(id) { return typeof id === 'string' && id.indexOf('entity:') === 0; }
+function parseEntityNodeId(id) {
+  const parts = String(id).split(':');
+  return { kind: parts[1] || '', key: parts.slice(2).join(':') };
+}
 
 // ── auth ──────────────────────────────────────────────────────────────────
 const savedKey = localStorage.getItem('pcmi_graph_apikey');
@@ -381,6 +566,10 @@ function authHeaders(){ const k = apiKey(); return k ? { 'X-API-Key': k, 'Conten
     st.textContent = d.available ? 'AGE ready' : 'AGE offline';
     st.className   = d.available ? 'status on' : 'status off';
   } catch(e) { st.textContent = 'API unreachable'; st.className = 'status err'; }
+  if (new URLSearchParams(location.search).get('entity') === '1' ||
+      new URLSearchParams(location.search).get('demo') === '1') {
+    document.getElementById('entity-flags').style.display = 'inline-flex';
+  }
 })();
 
 // ── colors ────────────────────────────────────────────────────────────────
@@ -400,6 +589,7 @@ function depthColor(d) {
 
 // Cluster key derived from real metadata when present, else stable id-based fallback.
 function clusterKey(id) {
+  if (isEntityNodeId(id)) return 'entity-' + parseEntityNodeId(id).kind;
   const m = memCache[id];
   const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : null;
   if (md && (md.category || md.scenario || md.type)) return String(md.category || md.scenario || md.type);
@@ -508,16 +698,17 @@ function initNetwork(layout) {
     if (p.nodes.length === 0) return;
     const id = p.nodes[0];
     if (typeof id === 'string' && id.indexOf('cluster:') === 0) { network.clustering.openCluster(id); return; }
-    document.getElementById('mem-id').value = id; explore();
+    document.getElementById('mem-id').value = id; runExplore();
   });
   if (clustersOn && currentLayout === 'force') applyClusters();
 }
 
 function selectNode(id) {
   selectedNode = id;
-  document.getElementById('btn-chain').disabled = false;
+  document.getElementById('btn-chain').disabled = isEntityNodeId(id);
   network.selectNodes([id]);
-  openInspector(id);
+  if (isEntityNodeId(id)) openEntityInspector(id);
+  else openInspector(id);
 }
 
 // ── INSPECTOR ───────────────────────────────────────────────────────────────
@@ -576,8 +767,8 @@ function openInspector(id) {
           + m.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div></div>';
   }
 
-  // metadata
-  const mdKeys = Object.keys(md);
+  // metadata (skip nested pcmi_extract blob in table — shown separately)
+  const mdKeys = Object.keys(md).filter(k => k !== 'pcmi_extract');
   if (mdKeys.length) {
     let rows = '';
     for (const k of mdKeys) {
@@ -586,6 +777,17 @@ function openInspector(id) {
       rows += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
     }
     html += '<div class="insp-section"><div class="label">Metadata · ' + mdKeys.length + '</div><table class="kv">' + rows + '</table></div>';
+  }
+
+  const extract = md.pcmi_extract;
+  if (extract && typeof extract === 'object') {
+    const slots = extract.slots || {};
+    const slotKeys = Object.keys(slots);
+    html += '<div class="insp-section"><div class="label">Extraction · ' + escapeHtml(extract.status || 'unknown') + '</div>'
+          + '<div class="extract-box">' + escapeHtml(JSON.stringify(slots, null, 2)) + '</div></div>';
+    if (!slotKeys.length && extract.status !== 'ok') {
+      html += '<div class="insp-section"><p class="empty-note">No slots yet — use <b>Extract</b> in the toolbar.</p></div>';
+    }
   }
 
   // provenance
@@ -600,16 +802,42 @@ function openInspector(id) {
   // actions
   html += '<div class="insp-section"><div class="insp-actions">'
         + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
+        + '<button class="act-ghost" onclick="runExtract(' + id + ')">Extract</button>'
         + '<button class="act-ghost" onclick="copyPath(' + id + ')">Copy path</button>'
         + '</div></div>';
 
   body.innerHTML = html;
 }
+function openEntityInspector(id) {
+  const insp = document.getElementById('inspector');
+  insp.classList.add('open'); insp.setAttribute('aria-hidden', 'false');
+  const { kind, key } = parseEntityNodeId(id);
+  selectedEntity = { kind, key };
+  document.getElementById('insp-id').textContent = kind;
+  document.getElementById('insp-path').textContent = key;
+  document.getElementById('insp-body').innerHTML =
+    '<div class="insp-section"><div class="insp-badges">'
+    + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
+    + escapeHtml(kind) + '</span></div></div>'
+    + '<div class="insp-section"><div class="label">Entity key</div>'
+    + '<div class="content-box">' + escapeHtml(key) + '</div></div>'
+    + '<div class="insp-section"><div class="insp-actions">'
+    + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
+    + '</div></div>';
+}
+function exploreEntityByKindKey(kind, key) {
+  const k = kind || (selectedEntity && selectedEntity.kind);
+  const v = key || (selectedEntity && selectedEntity.key);
+  if (!k || !v) return;
+  document.getElementById('mem-id').value = '';
+  setViewMode('entities');
+  exploreEntityCorrelated(null, k, v);
+}
 function closeInspector() {
   const insp = document.getElementById('inspector');
   insp.classList.remove('open'); insp.setAttribute('aria-hidden', 'true');
 }
-function exploreFrom(id) { document.getElementById('mem-id').value = id; explore(); }
+function exploreFrom(id) { document.getElementById('mem-id').value = id; runExplore(); }
 function copyPath(id) {
   const m = memCache[id]; if (!m || !m.path) return;
   navigator.clipboard?.writeText(m.path).then(() => toast('Path copied: ' + m.path));
@@ -721,11 +949,15 @@ function showLoading(on, msg) {
   const ov = document.getElementById('overlay');
   if (on) {
     ov.classList.add('show');
+    document.getElementById('overlay-card').className = 'card';
     document.getElementById('overlay-card').innerHTML = '<div class="spinner"></div><p>' + (msg || 'Loading…') + '</p>';
   } else if (nodesData.length > 0) {
     ov.classList.remove('show');
+  } else if (!localStorage.getItem('pcmi_graph_welcome_dismissed')) {
+    ov.classList.add('show');
+    renderWelcomeOverlay();
   } else {
-    document.getElementById('overlay-card').innerHTML = '<h3>No graph loaded</h3><p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b>.</p>';
+    ov.classList.remove('show');
   }
 }
 let toastTimer = null;
@@ -733,6 +965,457 @@ function toast(msg, isErr) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = 'toast show' + (isErr ? ' err' : '');
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.className = 'toast', 2600);
+}
+
+// ── view mode / entity demo ───────────────────────────────────────────────
+function setViewMode(mode) {
+  viewMode = mode;
+  ['links','entities','proposals'].forEach(m => {
+    const b = document.getElementById('btn-view-' + m);
+    if (b) b.className = (m === mode ? 'btn-active' : 'btn-secondary') + ' seg';
+  });
+  const panel = document.getElementById('proposals-panel');
+  const open = mode === 'proposals';
+  panel.classList.toggle('open', open);
+  panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  if (open) loadProposals();
+  updateGuideUI(mode);
+  updateCanvasHint(mode);
+}
+
+function runExplore() {
+  if (viewMode === 'entities') return exploreEntities();
+  if (viewMode === 'proposals') return visualizeProposals();
+  return explore();
+}
+
+function addMemoryNode(id, opts) {
+  opts = opts || {};
+  if (nodesData.get(id)) return false;
+  nodeMeta[id] = opts.meta || { depth: opts.depth || 0, linkType: opts.linkType || null };
+  const m = memCache[id];
+  nodesData.add({
+    id,
+    label: nodeLabel(id),
+    title: nodeTitle(id),
+    size: opts.size || 20,
+    color: opts.color || nodeStyle(id, opts.depth || 0, opts.linkType, !!opts.isRoot),
+    borderWidth: opts.borderWidth || 2.5
+  });
+  nodeTimestamps[id] = (m && (m.created_at || m.valid_from)) || new Date().toISOString();
+  return true;
+}
+
+function addEntityNode(kind, key, slot) {
+  const id = entityNodeId(kind, key);
+  if (nodesData.get(id)) return id;
+  const color = entityKindColors[kind] || '#94a3b8';
+  nodesData.add({
+    id,
+    label: key.length > 18 ? key.slice(0, 16) + '…' : key,
+    title: kind + '\n' + key + (slot ? '\nslot: ' + slot : ''),
+    shape: 'diamond',
+    size: 18,
+    color: { background: color + '33', border: color, highlight: { background: color, border: '#fff' } },
+    font: { size: 10, color: '#cbd6e8' }
+  });
+  return id;
+}
+
+function addMentionEdge(memId, entId, slot) {
+  const edgeId = 'mention:' + memId + '->' + entId;
+  if (edgesData.get(edgeId)) return;
+  edgesData.add({
+    id: edgeId, from: memId, to: entId,
+    dashes: [4, 4], width: 1,
+    label: slot || 'mentions',
+    color: { color: '#64748b', highlight: '#94a3b8' },
+    arrows: { to: { enabled: true, scaleFactor: .45 } }
+  });
+}
+
+function addProposalEdge(prop, active) {
+  const edgeId = 'proposal:' + prop.id;
+  const color = active ? '#2dd4bf' : '#94a3b8';
+  edgesData.update({
+    id: edgeId,
+    from: prop.from_memory_id,
+    to: prop.to_memory_id,
+    label: prop.link_type + ' ?',
+    dashes: [8, 6],
+    width: active ? 2.5 : 1.6,
+    color: { color, highlight: '#fff' },
+    title: (prop.reason || '') + '\nconfidence: ' + (prop.confidence || 0)
+  });
+}
+
+function memoryIdFromPath(path) {
+  const m = String(path || '').match(/^memory\.(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function graphLinkEdgeId(fromId, toId, linkType) {
+  return fromId + '->' + toId + ':' + linkType;
+}
+
+function materializeGraphLink(link, highlight) {
+  if (!link) return null;
+  const fromId = memoryIdFromPath(link.from_path);
+  const toId = memoryIdFromPath(link.to_path);
+  if (!fromId || !toId) return null;
+  const meta = link.metadata && typeof link.metadata === 'object' ? link.metadata : {};
+  const lt = link.link_type || 'related';
+  const isLLM = meta.proposed_by === 'llm' || meta.accepted === true;
+  const rootId = parseInt(document.getElementById('mem-id').value, 10) || fromId;
+
+  if (!nodesData.get(fromId)) {
+    addMemoryNode(fromId, {
+      depth: fromId === rootId ? 0 : 1, linkType: lt, isRoot: fromId === rootId,
+      size: fromId === rootId ? 26 : 20,
+      borderWidth: fromId === rootId ? 3 : 2.5,
+      color: fromId === rootId
+        ? { ...nodeStyle(fromId, 0, null, true), highlight: { background:'#115e54', border:'#5eead4' } }
+        : nodeStyle(fromId, 1, lt, false)
+    });
+  }
+  if (!nodesData.get(toId)) {
+    addMemoryNode(toId, { depth: 1, linkType: lt });
+  }
+  if (isLLM) {
+    nodesData.update({
+      id: toId,
+      borderWidth: 3,
+      color: { background: '#0d3b34', border: '#2dd4bf', highlight: { background: '#115e54', border: '#5eead4' } }
+    });
+  }
+
+  const edgeId = graphLinkEdgeId(fromId, toId, lt);
+  const edge = {
+    id: edgeId, from: fromId, to: toId,
+    label: lt + (isLLM ? ' ✓' : ''),
+    dashes: false,
+    width: highlight ? 3.2 : (isLLM ? 2.8 : 1.4),
+    color: { color: isLLM ? '#2dd4bf' : (linkColors[lt] || '#64748b'), highlight: '#fff' },
+    title: (meta.reason || link.reason || '') + (isLLM ? '\n✓ approvato dall\'analista' : '')
+  };
+  if (edgesData.get(edgeId)) edgesData.update(edge);
+  else edgesData.add(edge);
+  return { fromId, toId, edgeId };
+}
+
+async function loadAcceptedLLMLinks(sourceId) {
+  if (!apiKey()) return [];
+  let url = apiUrl + '/v1/graph/link-proposals?status=accepted&limit=100';
+  if (sourceId) url += '&source_memory_id=' + encodeURIComponent(sourceId);
+  const r = await fetch(url, { headers: authHeaders() });
+  if (!r.ok) return [];
+  const data = await r.json();
+  return data.proposals || [];
+}
+
+async function renderAcceptedLLMLinks(sourceId, highlightProposalId) {
+  await loadMemoryCache();
+  if (!network) initNetwork(currentLayout);
+  const accepted = await loadAcceptedLLMLinks(sourceId);
+  let last = null;
+  for (const prop of accepted) {
+    const link = {
+      from_path: prop.from_path,
+      to_path: prop.to_path,
+      link_type: prop.link_type,
+      metadata: { proposed_by: 'llm', accepted: true, reason: prop.reason },
+      reason: prop.reason
+    };
+    last = materializeGraphLink(link, highlightProposalId && prop.id === highlightProposalId);
+  }
+  updateCounts();
+  if (network && last) {
+    network.selectEdges([last.edgeId]);
+    network.focus(last.toId, { scale: 1.12, animation: { duration: 450 } });
+  }
+  return accepted.length;
+}
+
+async function exploreEntities() {
+  const memId = document.getElementById('mem-id').value;
+  if (!memId) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+
+  document.getElementById('btn-explore').disabled = true;
+  showLoading(true, 'Loading entity graph…');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    const rootId = parseInt(memId, 10);
+
+    const entR = await fetch(apiUrl + '/v1/graph/entities/memory?memory_id=' + encodeURIComponent(memId), { headers: authHeaders() });
+    if (!entR.ok) {
+      const err = await entR.json().catch(() => ({}));
+      toast('Entities error ' + entR.status + ': ' + (err.error || err.hint || entR.statusText), true);
+      return;
+    }
+    const entData = await entR.json();
+    addMemoryNode(rootId, { isRoot: true, depth: 0, size: 26, borderWidth: 3,
+      color: { ...nodeStyle(rootId, 0, null, true), highlight: { background:'#115e54', border:'#5eead4' } } });
+
+    let entityCount = 0;
+    for (const e of entData.entities || []) {
+      if (!e.kind || !e.key) continue;
+      const entId = addEntityNode(e.kind, e.key, e.slot);
+      addMentionEdge(rootId, entId, e.slot);
+      entityCount++;
+    }
+
+    const relR = await fetch(apiUrl + '/v1/graph/entities/related?memory_id=' + encodeURIComponent(memId) + '&limit=80', { headers: authHeaders() });
+    if (!relR.ok) {
+      const err = await relR.json().catch(() => ({}));
+      toast('Related error ' + relR.status + ': ' + (err.error || relR.statusText), true);
+      return;
+    }
+    const relData = await relR.json();
+    let added = 0;
+    for (const mem of relData.entries || relData.memories || []) {
+      if (!mem.id || mem.id === rootId) continue;
+      if (addMemoryNode(mem.id, { depth: 1, linkType: 'related' })) added++;
+      if (mem.shared_kind && mem.shared_key) {
+        const entId = addEntityNode(mem.shared_kind, mem.shared_key, mem.slot);
+        addMentionEdge(mem.id, entId, mem.slot);
+        const sharedEdge = 'entity-link:' + rootId + '->' + mem.id + ':' + mem.shared_kind;
+        if (!edgesData.get(sharedEdge)) {
+          edgesData.add({
+            id: sharedEdge, from: rootId, to: mem.id,
+            label: mem.shared_kind,
+            color: { color: entityKindColors[mem.shared_kind] || '#8b5cf6', highlight: '#fff' },
+            width: 1.5
+          });
+        }
+      }
+    }
+
+    updateCounts();
+    network.fit({ animation: { duration: 500 } });
+    toast('Entities · ' + entityCount + ' promoted · +' + added + ' correlated memories');
+    selectNode(rootId);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-explore').disabled = false;
+    showLoading(false);
+  }
+}
+
+async function exploreEntityCorrelated(memId, kind, key) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  showLoading(true, 'Entity ' + kind + ' …');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    const entId = addEntityNode(kind, key, '');
+    let url = apiUrl + '/v1/graph/entities/related?kind=' + encodeURIComponent(kind) + '&key=' + encodeURIComponent(key) + '&limit=80';
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) { toast('Error ' + r.status, true); return; }
+    const data = await r.json();
+    let n = 0;
+    for (const mem of data.entries || data.memories || []) {
+      if (addMemoryNode(mem.id, { depth: 1 })) n++;
+      addMentionEdge(mem.id, entId, mem.slot);
+    }
+    updateCounts();
+    network.fit({ animation: { duration: 450 } });
+    toast(n + ' memories share ' + kind + ':' + key);
+    selectNode(entId);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally { showLoading(false); }
+}
+
+async function loadProposals() {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const memId = document.getElementById('mem-id').value.trim();
+  let url = apiUrl + '/v1/graph/link-proposals?status=pending&limit=100';
+  if (memId) url += '&source_memory_id=' + encodeURIComponent(memId);
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Proposals error ' + r.status + ': ' + (err.error || err.hint || r.statusText), true);
+      return;
+    }
+    const data = await r.json();
+    pendingProposals = data.proposals || [];
+    renderProposalsList();
+    const acceptedN = await renderAcceptedLLMLinks(memId || null);
+    if (pendingProposals.length) {
+      toast(pendingProposals.length + ' pending · ' + acceptedN + ' già approvati nel grafo');
+    } else if (acceptedN) {
+      toast(acceptedN + ' link LLM approvati — linee teal ✓ nel grafo');
+    } else {
+      toast('Nessuna proposta — usa LLM Propose');
+    }
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderProposalsList() {
+  const el = document.getElementById('proposals-list');
+  const memId = document.getElementById('mem-id').value.trim();
+  if (!pendingProposals.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna proposta pending.'
+      + (memId ? ' I link già <b>Accept</b>ati compaiono nel grafo come archi teal <b>✓</b>.' : '')
+      + ' Clicca <b>LLM Propose</b> per generarne di nuove.</p>'
+      + '<div class="insp-actions" style="margin-top:10px">'
+      + '<button class="act-primary" onclick="renderAcceptedLLMLinks(document.getElementById(\'mem-id\').value)">Mostra approvati</button>'
+      + '<button class="act-ghost" onclick="jumpToGuideStep(\'links\')">Vista Links</button>'
+      + '</div>';
+    return;
+  }
+  el.innerHTML = pendingProposals.map(p => {
+    const conf = (p.confidence != null) ? (Math.round(p.confidence * 100) + '%') : '—';
+    return '<div class="prop-card" data-prop-id="' + p.id + '" onclick="highlightProposal(' + p.id + ')">'
+      + '<div class="edge">memory.' + p.from_memory_id + ' → memory.' + p.to_memory_id
+      + ' <span style="color:var(--primary)">' + escapeHtml(p.link_type) + '</span></div>'
+      + '<div class="meta">' + escapeHtml(p.reason || '') + '<br>confidence ' + conf + '</div>'
+      + '<div class="actions" onclick="event.stopPropagation()">'
+      + '<button class="accept" onclick="acceptProposal(' + p.id + ')">Accept</button>'
+      + '<button class="reject" onclick="rejectProposal(' + p.id + ')">Reject</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function highlightProposal(id) {
+  document.querySelectorAll('.prop-card').forEach(c => c.classList.toggle('active', c.dataset.propId === String(id)));
+  const prop = pendingProposals.find(p => p.id === id);
+  if (!prop || !network) return;
+  visualizeProposals(prop);
+}
+
+async function visualizeProposals(focusProp) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  showLoading(true, 'Rendering proposals…');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    if (!pendingProposals.length) await loadProposals();
+    else await renderAcceptedLLMLinks(document.getElementById('mem-id').value.trim() || null);
+    for (const p of pendingProposals) {
+      addMemoryNode(p.from_memory_id, { depth: 0, linkType: p.link_type });
+      addMemoryNode(p.to_memory_id, { depth: 1, linkType: p.link_type });
+      const edgeId = 'proposal:' + p.id;
+      if (!edgesData.get(edgeId)) {
+        edgesData.add({
+          id: edgeId, from: p.from_memory_id, to: p.to_memory_id,
+          label: p.link_type + ' ?', dashes: [8, 6], width: 1.6,
+          color: { color: '#94a3b8', highlight: '#fff' },
+          title: p.reason || ''
+        });
+      }
+      addProposalEdge(p, focusProp && focusProp.id === p.id);
+    }
+    updateCounts();
+    network.fit({ animation: { duration: 450 } });
+    if (focusProp) selectNode(focusProp.from_memory_id);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally { showLoading(false); }
+}
+
+async function acceptProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/link-proposals/' + id + '/accept', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return; }
+  edgesData.remove('proposal:' + id);
+  pendingProposals = pendingProposals.filter(p => p.id !== id);
+  await loadMemoryCache(true);
+  const mat = materializeGraphLink(data.link, true);
+  renderProposalsList();
+  updateCounts();
+  if (network && mat) {
+    network.selectEdges([mat.edgeId]);
+    network.focus(mat.toId, { scale: 1.15, animation: { duration: 500 } });
+  }
+  toast('Accept · ' + (data.link && data.link.link_type) + ' ✓ — arco teal nel grafo');
+  updateGuideUI('proposals');
+}
+
+async function rejectProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/link-proposals/' + id + '/reject', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Reject failed: ' + (data.error || r.statusText), true); return; }
+  toast('Proposal rejected');
+  pendingProposals = pendingProposals.filter(p => p.id !== id);
+  edgesData.remove('proposal:' + id);
+  renderProposalsList();
+  updateCounts();
+}
+
+async function generateProposals(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  document.getElementById('btn-propose').disabled = true;
+  showLoading(true, 'LLM proposing links…');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/link-proposals/generate/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = String(data.error || data.hint || r.statusText);
+      if (err.indexOf('graph_link_proposals') !== -1) {
+        toast('Tabella graph_link_proposals mancante — esegui migration 024 su postgres-age (:5433)', true);
+      } else if (r.status === 503) {
+        toast('LLM Propose disabilitato: LINK_PROPOSALS_ENABLED=true su API', true);
+      } else if (r.status === 422 && err.indexOf('extraction') !== -1) {
+        toast('Prima clicca Extract su memory ' + id, true);
+      } else {
+        toast('Propose failed: ' + err, true);
+      }
+      return;
+    }
+    toast('+' + (data.count || 0) + ' proposal(s) for memory.' + id);
+    setViewMode('proposals');
+    await loadProposals();
+    await visualizeProposals();
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-propose').disabled = false;
+    showLoading(false);
+  }
+}
+
+async function runExtract(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  document.getElementById('btn-extract').disabled = true;
+  showLoading(true, 'Running LLM extraction…');
+  try {
+    const r = await fetch(apiUrl + '/v1/memories/extraction/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 503) {
+        toast('Extract disabilitato — riavvia lo stack con make demo (EXTRACTION_ENABLED)', true);
+      } else if (r.status === 422 && (data.error || '').indexOf('no matching extraction profile') !== -1) {
+        toast('Nessun profilo extraction per questo path — usa memoria SOC (73) o realistic (2372+)', true);
+      } else {
+        toast('Extract fallito: ' + (data.error || data.hint || r.statusText), true);
+      }
+      return;
+    }
+    toast('Extraction ok · memory.' + id);
+    cacheLoaded = false;
+    await loadMemoryCache(true);
+    if (selectedNode === parseInt(id, 10)) openInspector(parseInt(id, 10));
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-extract').disabled = false;
+    showLoading(false);
+  }
 }
 
 // ── explore ───────────────────────────────────────────────────────────────────
@@ -859,7 +1542,7 @@ async function findChain() {
 function clearGraph() {
   nodesData.clear(); edgesData.clear();
   nodeTimestamps = {}; nodeMeta = {};
-  selectedNode = null;
+  selectedNode = null; selectedEntity = null;
   document.getElementById('btn-chain').disabled = true;
   closeInspector();
   updateCounts();
@@ -867,11 +1550,182 @@ function clearGraph() {
 }
 
 // Enter-to-explore
+document.getElementById('mem-id').addEventListener('change', function() {
+  updateGuideUI(viewMode);
+  toast('Memory ID cambiato → Clear + Explore per ricaricare il grafo', false);
+});
 ['mem-id','depth','api-key'].forEach(id => {
-  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') explore(); });
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') runExplore(); });
 });
 
 updateCounts();
+
+// ── guided UX (Italian) ───────────────────────────────────────────────────
+let guideStep = 'links';
+const GUIDE_NOW = {
+  links: '<b>Prossimo passo:</b> View <b>Links</b> → spunta <kbd>causal</kbd> + <kbd>temporal</kbd> → clicca <kbd>Explore</kbd> con Memory ID <kbd>73</kbd>.',
+  entities: '<b>Prossimo passo:</b> View <b>Entities</b> → <kbd>Explore</kbd>. I diamanti sono entità (Akira, IP…); i cerchi sono altre memorie correlate.',
+  extract: '<b>Prossimo passo:</b> seleziona un cerchio (memoria) → clicca <kbd>Extract</kbd> → controlla gli slot nel pannello destro.',
+  proposals: '<b>Prossimo passo:</b> <kbd>LLM Propose</kbd> → Accept nel pannello sinistro. Dopo Accept compare un <b>arco teal ✓</b> (link materializzato).'
+};
+
+function renderWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Benvenuto nel Cognitive Graph Explorer</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Esplora il dataset SOC con tre layer: <b>link manuali</b>, <b>entità estratte</b>, <b>proposte LLM</b>.</p>'
+    + '<ol><li><b>Links</b> — grafo causale/temporale tra incidenti</li>'
+    + '<li><b>Entities</b> — vertici AGE da extraction (diamanti)</li>'
+    + '<li><b>Extract</b> — estrae slot SIEM dalla memoria</li>'
+    + '<li><b>Proposals</b> — review link suggeriti dall\'LLM</li></ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="runGuidedDemo()">▶ Avvia demo guidata</button>'
+    + '<button class="btn-secondary" onclick="dismissWelcome()">Esplora da solo</button></div>';
+}
+
+function dismissWelcome() {
+  localStorage.setItem('pcmi_graph_welcome_dismissed', '1');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function toggleGuideBar() {
+  const bar = document.getElementById('guide-bar');
+  const hidden = bar.classList.toggle('hidden');
+  document.getElementById('btn-guide-toggle').className = (hidden ? 'btn-secondary' : 'btn-active') + ' seg';
+}
+
+function setLinkTypes(types) {
+  const want = new Set((types || '').split(',').filter(Boolean));
+  document.querySelectorAll('#link-types input').forEach(el => { el.checked = want.has(el.value); });
+}
+
+function updateGuideUI(step) {
+  guideStep = step || viewMode;
+  document.querySelectorAll('.gstep').forEach(el => {
+    const s = el.dataset.step;
+    el.classList.toggle('active', s === guideStep);
+    el.classList.toggle('done', isGuideStepDone(s));
+  });
+  const now = document.getElementById('guide-now');
+  if (now) now.innerHTML = GUIDE_NOW[guideStep] || GUIDE_NOW.links;
+}
+
+function isGuideStepDone(step) {
+  if (step === 'links') return viewMode === 'links' && nodesData.length > 1;
+  if (step === 'entities') {
+    return [...nodesData.getIds()].some(id => isEntityNodeId(id));
+  }
+  if (step === 'extract') {
+    const m = memCache[parseInt(document.getElementById('mem-id').value, 10)];
+    return m && m.metadata && m.metadata.pcmi_extract;
+  }
+  if (step === 'proposals') return pendingProposals.length > 0;
+  return false;
+}
+
+function updateCanvasHint(mode) {
+  const el = document.getElementById('canvas-hint');
+  if (!el) return;
+  if (mode === 'entities') {
+    el.textContent = 'Cerchio teal = memoria root · Diamante = entità · linea tratteggiata = mentions';
+  } else if (mode === 'proposals') {
+    el.textContent = 'Grigio tratteggiato = pending · Teal solido ✓ = approvato dall\'analista (memory_links)';
+  } else {
+    el.textContent = 'Click = ispeziona · dbl-click = espandi · trascina = sposta nodi';
+  }
+}
+
+function pulseEl(sel) {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 2800);
+}
+
+async function jumpToGuideStep(step) {
+  dismissWelcome();
+  updateGuideUI(step);
+  if (step === 'links') {
+    setViewMode('links');
+    setLinkTypes('causal,temporal,related');
+    pulseEl('#btn-explore');
+    return;
+  }
+  if (step === 'entities') {
+    setViewMode('entities');
+    pulseEl('#btn-explore');
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await exploreEntities();
+    return;
+  }
+  if (step === 'extract') {
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await runExtract(parseInt(document.getElementById('mem-id').value, 10));
+    return;
+  }
+  if (step === 'proposals') {
+    setViewMode('proposals');
+    pulseEl('#btn-propose');
+    await loadProposals();
+  }
+}
+
+async function runGuidedDemo() {
+  dismissWelcome();
+  const btn = document.getElementById('btn-guided-demo');
+  if (btn) btn.disabled = true;
+  try {
+    if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+    document.getElementById('mem-id').value = '73';
+    clearGraph();
+    toast('Passo 1/4 · Links (causal/temporal)');
+    setViewMode('links');
+    setLinkTypes('causal,temporal,related');
+    await explore();
+    updateGuideUI('links');
+    await sleep(1200);
+
+    toast('Passo 2/4 · Entities (diamanti AGE)');
+    setViewMode('entities');
+    await exploreEntities();
+    updateGuideUI('entities');
+    await sleep(1200);
+
+    toast('Passo 3/4 · Extract (slot SIEM — può richiedere qualche secondo)');
+    await runExtract(73);
+    updateGuideUI('extract');
+    await sleep(800);
+
+    toast('Passo 4/4 · LLM Propose + review');
+    setViewMode('proposals');
+    await generateProposals(73);
+    updateGuideUI('proposals');
+    toast('Demo completata · Accept/Reject nel pannello sinistro');
+  } catch (e) {
+    toast('Demo interrotta: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function initDemoMode() {
+  const qs = new URLSearchParams(location.search);
+  const demo = qs.get('demo') === '1' || qs.get('entity') === '1';
+  if (qs.get('mem')) document.getElementById('mem-id').value = qs.get('mem');
+  else if (demo) document.getElementById('mem-id').value = '73';
+  if (demo) {
+    setLinkTypes('causal,temporal,related');
+    document.getElementById('entity-flags').style.display = 'inline-flex';
+  }
+  updateGuideUI('links');
+  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0) {
+    renderWelcomeOverlay();
+    document.getElementById('overlay').classList.add('show');
+  }
+}
+initDemoMode();
 
 // ── recording / demo walkthrough (?record=1) ───────────────────────────────
 (function initRecordMode() {

@@ -1,8 +1,9 @@
 # Cognitive Graph — entity layer (design proposal)
 
-> **Status: Phase A–C implemented** — tenant extraction profiles, `:Entity` vertices,
-> and an LLM link proposal review queue. Accepting a proposal materializes
-> `memory_links`; nothing is auto-applied without review.
+> **Status: Phase A–D implemented** — tenant extraction profiles, `:Entity` vertices,
+> LLM link proposal review queue, and **entity registry with alias evolution**
+> (canonical entities, snapshots, alias proposals). Accepting a proposal materializes
+> `memory_links` or entity aliases; nothing is auto-applied without review.
 
 ## Problem statement
 
@@ -217,6 +218,25 @@ OpenAPI + SDK updates follow the usual four-place rule when implemented.
 - `GET /v1/graph/link-proposals`, `POST .../generate/:memory_id`,
   `POST .../:id/accept`, `POST .../:id/reject` — accept materializes to `memory_links`
   with `metadata.proposed_by=llm`.
+
+### Phase D — Entity registry & evolution (generic, all datasets) ✅
+
+- Migration `025_entity_registry.sql`: `entity_registry`, `entity_aliases`,
+  `entity_snapshots`, `entity_alias_proposals` (tenant-scoped, profile-agnostic).
+- Migration `026_entity_graph_same_as.sql`: AGE `same_as` merge helper when aliases are accepted.
+- After each successful extraction, promoted slots:
+  1. Resolve `alias_table` slots via active aliases → canonical key
+  2. Upsert canonical entity + optional alias row
+  3. Append evolution snapshot `(memory_id, memory_version, slot)`
+  4. Sync AGE `mentions` edges using **canonical** keys
+- `GET /v1/entities/registry` — list canonical entities (filter `?kind=`)
+- `GET /v1/entities/registry/:kind/:canonical_key` — entity + aliases + snapshot timeline
+- `POST /v1/entities/registry/aliases` — manual alias (any profile/domain)
+- `GET /v1/graph/entity-alias-proposals` — pending LLM alias merges
+- `POST /v1/graph/entity-alias-proposals/generate/:memory_id` — LLM proposes same-entity merges
+- `POST /v1/graph/entity-alias-proposals/:id/accept|reject` — accept merges alias + AGE `same_as`
+- Env: `ENTITY_ALIAS_PROPOSALS_ENABLED=true` (API + worker). Works with **any** extraction profile
+  (`soc.siem.v1`, `cti.multilayer.v1`, `generic.record.v1`, …) via `entity_promotion` + `alias_table`.
 
 ## Risks and mitigations
 

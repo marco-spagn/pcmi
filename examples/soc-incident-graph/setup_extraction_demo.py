@@ -125,6 +125,29 @@ def run_extractions(mem_ids):
     return ok_count, fail_count
 
 
+def run_alias_proposals(mem_ids):
+    created = 0
+    for i, mid in enumerate(mem_ids, 1):
+        info(f"[{i}/{len(mem_ids)}] LLM entity alias proposals for memory.{mid} …")
+        status, resp = http(
+            "POST", f"/v1/graph/entity-alias-proposals/generate/{mid}", timeout=180
+        )
+        if status == 503:
+            warn = resp.get("error") or resp.get("hint") or resp
+            print(f"    ⚠ alias proposals disabled: {warn}")
+            return created
+        if status == 200:
+            n = resp.get("count") or len(resp.get("proposals") or [])
+            ok(f"memory.{mid} → {n} alias proposal(s)")
+            created += n
+        elif status == 422:
+            print(f"    ⚠ memory.{mid}: {resp.get('error', resp)}")
+        else:
+            print(f"    ⚠ memory.{mid} failed ({status}): {resp.get('error', resp)}")
+        time.sleep(0.5)
+    return created
+
+
 def run_proposals(mem_ids):
     created = 0
     for i, mid in enumerate(mem_ids, 1):
@@ -155,6 +178,7 @@ def main():
     parser.add_argument("--propose-limit", type=int, default=5)
     parser.add_argument("--skip-extract", action="store_true")
     parser.add_argument("--skip-propose", action="store_true")
+    parser.add_argument("--skip-alias-propose", action="store_true")
     args = parser.parse_args()
 
     print("\n━━━ Entity extraction demo setup ━━━\n")
@@ -178,12 +202,23 @@ def main():
         print()
         info(f"Generating LLM link proposals for {len(propose_ids)} memories …")
         total = run_proposals(propose_ids)
-        ok(f"proposals queued · {total} total pending rows")
+        ok(f"link proposals queued · {total} total pending rows")
+        alias_total = run_alias_proposals(propose_ids[: min(3, len(propose_ids))])
+        ok(f"alias proposals queued · {alias_total} total pending rows")
     else:
         info("skipping link proposals (--skip-propose)")
 
+    if not args.skip_alias_propose and args.skip_propose:
+        propose_ids = mem_ids[: min(3, args.propose_limit)]
+        print()
+        info(f"Generating LLM entity alias proposals for {len(propose_ids)} memories …")
+        alias_total = run_alias_proposals(propose_ids)
+        ok(f"alias proposals queued · {alias_total} total pending rows")
+    elif args.skip_alias_propose:
+        info("skipping alias proposals (--skip-alias-propose)")
+
     print()
-    print("  Open the graph UI and switch to Entities / Proposals view:")
+    print("  Open the graph UI — Entities / Registry / Proposals (Link + Alias tabs):")
     base = os.environ.get("PCMI_BASE_URL", "http://localhost:8000").rstrip("/")
     print(f"    {base}/v1/graph/ui")
     print()

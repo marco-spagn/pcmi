@@ -7,6 +7,7 @@ services:
       RATE_LIMIT_DISABLED: "${RATE_LIMIT_DISABLED:-true}"
       EXTRACTION_ENABLED: "true"
       LINK_PROPOSALS_ENABLED: "true"
+      ENTITY_ALIAS_PROPOSALS_ENABLED: "true"
     depends_on:
       postgres-age:
         condition: service_healthy
@@ -15,6 +16,7 @@ services:
       DATABASE_URL: postgres://pcmi:pcmi@postgres-age:5432/pcmi
       EXTRACTION_ENABLED: "true"
       LINK_PROPOSALS_ENABLED: "true"
+      ENTITY_ALIAS_PROPOSALS_ENABLED: "true"
     depends_on:
       postgres-age:
         condition: service_healthy

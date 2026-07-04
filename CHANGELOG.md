@@ -17,6 +17,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 - **LLM link proposals Phase C**: migration `024_graph_link_proposals.sql`; `LINK_PROPOSALS_ENABLED` flag; async/manual LLM proposals after extraction; `GET /v1/graph/link-proposals`, `POST /v1/graph/link-proposals/generate/{memory_id}`, `POST .../{id}/accept|reject` materializes reviewed edges to `memory_links`. See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
 
+- **Entity registry Phase D**: migrations `025_entity_registry.sql`, `026_entity_graph_same_as.sql`; canonical entity registry + alias table + evolution snapshots (generic across all extraction profiles); `ENTITY_ALIAS_PROPOSALS_ENABLED`; `GET /v1/entities/registry`, `GET /v1/entities/registry/{kind}/{canonical_key}`, `POST /v1/entities/registry/aliases`, `GET/POST /v1/graph/entity-alias-proposals/*`. Re-extraction reconciles `mentions` and appends snapshots. See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
 - **Entity extraction race fix**: async worker no longer overwrites a successful sync extraction (`status: ok`) with a later `validation_failed` from a duplicate LLM call.
 
 ### Fixed

@@ -19,6 +19,18 @@ import (
 type GraphClient struct {
 	db           *pgxpool.Pool
 	queryTimeout time.Duration
+	expandKeys   EntityKeyExpander
+}
+
+// EntityKeyExpander resolves an entity key to all equivalent keys (canonical + aliases).
+type EntityKeyExpander func(ctx context.Context, tenantID, kind, key string) ([]string, error)
+
+// SetEntityKeyExpander configures alias-aware entity traversal (Phase D).
+func (g *GraphClient) SetEntityKeyExpander(fn EntityKeyExpander) {
+	if g == nil {
+		return
+	}
+	g.expandKeys = fn
 }
 
 const graphAvailabilityQuery = "SELECT 1 FROM ag_catalog.ag_graph WHERE name = 'pcmi_memory_graph' LIMIT 1"

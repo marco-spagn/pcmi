@@ -60,7 +60,7 @@ func NormalizeEntityKey(value, normalize string) string {
 	case "trim", "":
 		return value
 	default:
-		// alias_table and unknown rules fall back to trim for Phase B.
+		// alias_table: lookup handled by EntityRegistryService (Phase D); basic normalize here.
 		return value
 	}
 }

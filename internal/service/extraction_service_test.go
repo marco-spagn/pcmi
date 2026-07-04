@@ -111,14 +111,14 @@ func testSOCProfile() *extraction.Profile {
 }
 
 func TestExtractionService_Enabled(t *testing.T) {
-	s := NewExtractionService(nil, nil, nil, &config.Config{ExtractionEnabled: true}, nil)
+	s := NewExtractionService(nil, nil, nil, &config.Config{ExtractionEnabled: true}, nil, nil)
 	if !s.Enabled() {
 		t.Fatal("expected enabled")
 	}
 }
 
 func TestExtractionService_ExtractMemory_Disabled(t *testing.T) {
-	s := NewExtractionService(&fakeExtractionProfiles{}, &fakeExtractionMemoryRepo{}, stubLLM{ok: true}, &config.Config{}, nil)
+	s := NewExtractionService(&fakeExtractionProfiles{}, &fakeExtractionMemoryRepo{}, stubLLM{ok: true}, &config.Config{}, nil, nil)
 	_, err := s.ExtractMemory(context.Background(), "tid", 1)
 	if err == nil || err.Error() != "extraction is disabled" {
 		t.Fatalf("got %v", err)
@@ -140,6 +140,7 @@ func TestExtractionService_ExtractPath_SkipsExistingOk(t *testing.T) {
 		stubLLM{ok: true, raw: `{"confidence":0.9,"slots":{"record_kind":"incident","disposition":"unknown","src_ip":null}}`},
 		&config.Config{ExtractionEnabled: true},
 		nil,
+		nil,
 	)
 	if err := s.ExtractPath(context.Background(), "tid", "root.inc1", 1, 2); err != nil {
 		t.Fatal(err)
@@ -154,6 +155,7 @@ func TestExtractionService_ExtractMemory_Success(t *testing.T) {
 		mem,
 		stubLLM{ok: true, raw: `{"confidence":0.91,"slots":{"record_kind":"incident","disposition":"unknown","src_ip":"10.0.0.1"}}`},
 		&config.Config{ExtractionEnabled: true, ExtractionModel: "test-model"},
+		nil,
 		nil,
 	)
 	rec, err := s.ExtractMemory(context.Background(), "tid", 5)
@@ -173,6 +175,7 @@ func TestExtractionService_ExtractMemory_LLMNotConfigured(t *testing.T) {
 		stubLLM{ok: false},
 		&config.Config{ExtractionEnabled: true},
 		nil,
+		nil,
 	)
 	rec, err := s.ExtractMemory(context.Background(), "tid", 5)
 	if err == nil || rec == nil || rec.Error != "LLM not configured" {
@@ -187,6 +190,7 @@ func TestExtractionService_ExtractMemory_ValidationFailed(t *testing.T) {
 		&fakeExtractionMemoryRepo{},
 		stubLLM{ok: true, raw: `{"confidence":0.5,"slots":{"record_kind":"incident","disposition":null,"src_ip":null}}`},
 		&config.Config{ExtractionEnabled: true},
+		nil,
 		nil,
 	)
 	rec, err := s.ExtractMemory(context.Background(), "tid", 5)
@@ -203,6 +207,7 @@ func TestExtractionService_ExtractMemory_LLMError(t *testing.T) {
 		stubLLM{ok: true, err: errors.New("timeout")},
 		&config.Config{ExtractionEnabled: true},
 		nil,
+		nil,
 	)
 	rec, err := s.ExtractMemory(context.Background(), "tid", 5)
 	if err == nil || rec == nil || rec.Status != "llm_failed" {
@@ -217,7 +222,7 @@ func TestExtractionService_GetExtraction(t *testing.T) {
 			extraction.MetadataKey: map[string]interface{}{"status": "ok", "memory_id": float64(3), "memory_version": float64(1)},
 		},
 	}
-	s := NewExtractionService(&fakeExtractionProfiles{entry: entry}, nil, nil, nil, nil)
+	s := NewExtractionService(&fakeExtractionProfiles{entry: entry}, nil, nil, nil, nil, nil)
 	rec, gotEntry, err := s.GetExtraction(context.Background(), "tid", 3)
 	if err != nil || rec == nil || gotEntry == nil || rec.Status != "ok" {
 		t.Fatalf("got rec=%+v entry=%+v err=%v", rec, gotEntry, err)
@@ -225,7 +230,7 @@ func TestExtractionService_GetExtraction(t *testing.T) {
 }
 
 func TestExtractionService_ExtractPath_SkipDistilled(t *testing.T) {
-	s := NewExtractionService(nil, nil, nil, &config.Config{ExtractionEnabled: true}, nil)
+	s := NewExtractionService(nil, nil, nil, &config.Config{ExtractionEnabled: true}, nil, nil)
 	if err := s.ExtractPath(context.Background(), "tid", "root.distilled.x", 1, 1); err != nil {
 		t.Fatal(err)
 	}

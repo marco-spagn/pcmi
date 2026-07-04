@@ -997,6 +997,90 @@ paths:
           description: Proposal not found
         "409":
           description: Proposal not pending
+  /v1/entities/registry:
+    get:
+      summary: List canonical entities (Phase D — any extraction profile)
+      parameters:
+        - name: kind
+          in: query
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Entity list
+  /v1/entities/registry/{kind}/{canonical_key}:
+    get:
+      summary: Entity detail with aliases and evolution snapshots
+      parameters:
+        - name: kind
+          in: path
+          required: true
+          schema: { type: string }
+        - name: canonical_key
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Entity, aliases, snapshots
+        "404":
+          description: Entity not found
+  /v1/entities/registry/aliases:
+    post:
+      summary: Register a manual entity alias (write role)
+      responses:
+        "200":
+          description: Alias registered
+  /v1/graph/entity-alias-proposals:
+    get:
+      summary: List entity alias merge proposals (Phase D)
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, accepted, rejected], default: pending }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        "200":
+          description: Proposal list
+  /v1/graph/entity-alias-proposals/generate/{memory_id}:
+    post:
+      summary: Generate LLM entity alias merge proposals for a memory
+      parameters:
+        - name: memory_id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Proposals created
+        "503":
+          description: ENTITY_ALIAS_PROPOSALS_ENABLED=false or LLM unavailable
+  /v1/graph/entity-alias-proposals/{id}/accept:
+    post:
+      summary: Accept alias proposal — updates registry and AGE same_as
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Proposal accepted
+  /v1/graph/entity-alias-proposals/{id}/reject:
+    post:
+      summary: Reject entity alias proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        "200":
+          description: Proposal rejected
   /v1/graph/cypher:
     post:
       summary: Execute a read-only Cypher query (experimental spike; requires write role)

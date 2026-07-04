@@ -24,6 +24,7 @@ type ExtractionService struct {
 	profiles extractionProfileStore
 	memories repository.MemoryRepo
 	graph    *graph.GraphClient
+	entities *EntityRegistryService
 	llm      LLMCompleter
 	model    string
 	enabled  bool
@@ -38,11 +39,12 @@ type extractionProfileStore interface {
 	GetCurrentMemoryByID(ctx context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, error)
 }
 
-func NewExtractionService(profiles extractionProfileStore, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config, graphClient *graph.GraphClient) *ExtractionService {
+func NewExtractionService(profiles extractionProfileStore, memories repository.MemoryRepo, llm LLMCompleter, cfg *config.Config, graphClient *graph.GraphClient, entities *EntityRegistryService) *ExtractionService {
 	s := &ExtractionService{
 		profiles: profiles,
 		memories: memories,
 		graph:    graphClient,
+		entities: entities,
 		llm:      llm,
 		model:    "gpt-4o-mini",
 	}
@@ -208,6 +210,14 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 
 func (s *ExtractionService) syncEntityGraph(ctx context.Context, tenantID string, entry *model.MemoryEntry, profile *extraction.Profile, rec *extraction.Record) {
 	if s == nil || s.graph == nil || profile == nil || rec == nil {
+		return
+	}
+	if s.entities != nil {
+		mentions, err := s.entities.SyncFromExtraction(ctx, tenantID, entry, profile, rec)
+		if err != nil {
+			return
+		}
+		_ = s.graph.ReconcileEntityMentions(ctx, tenantID, entry.ID, entry.Version, mentions)
 		return
 	}
 	_ = s.graph.SyncPromotedEntities(ctx, tenantID, entry.ID, entry.Version, profile, rec)

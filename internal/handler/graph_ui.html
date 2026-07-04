@@ -281,6 +281,45 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 .prop-card .actions .accept { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.35); color: var(--ok); }
 .prop-card .actions .reject { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.35); color: var(--danger); }
+.prop-tabs {
+  display: flex; gap: 4px; padding: 8px 12px 0; flex-shrink: 0;
+}
+.prop-tabs button {
+  flex: 1; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 7px 6px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text-mute);
+}
+.prop-tabs button.active {
+  background: rgba(45,212,191,.1); border-color: rgba(45,212,191,.35); color: var(--primary);
+}
+.registry-card {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 11px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.registry-card:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.registry-card.active { border-color: rgba(168,85,247,.45); background: rgba(168,85,247,.06); }
+.registry-card .kind {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 4px;
+}
+.registry-card .key { font-family: var(--mono); font-size: 11.5px; color: var(--text); line-height: 1.45; word-break: break-all; }
+.registry-card .meta { font-size: 11px; color: var(--text-mute); margin-top: 5px; }
+.registry-filter { padding: 0 12px 8px; flex-shrink: 0; }
+.registry-filter select {
+  width: 100%; font-size: 11px; padding: 6px 8px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim);
+}
+.snap-timeline { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.snap-row {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+}
+.snap-row .when { color: var(--text-mute); font-size: 10px; margin-bottom: 3px; }
+.snap-row .slot { font-family: var(--mono); color: var(--primary); font-size: 10px; }
+.alias-chip {
+  display: inline-block; font-family: var(--mono); font-size: 10px;
+  padding: 2px 7px; margin: 2px 4px 2px 0; border-radius: 999px;
+  background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.3); color: #c4b5fd;
+}
 .extract-box {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
   padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); line-height: 1.5;
@@ -306,9 +345,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .guide-top h2 { font-size: 13px; font-weight: 650; color: var(--text); margin-right: auto; }
 .guide-top .sub { font-size: 11px; color: var(--text-mute); font-weight: 500; }
 .guide-steps {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
 }
-@media (max-width: 1100px) { .guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1200px) { .guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .gstep {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
   padding: 10px 11px; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
@@ -363,7 +402,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
     <h1>Cognitive Graph Explorer <small>PCMI</small></h1>
   </div>
   <span id="age-status" class="status off">checking…</span>
-  <span id="entity-flags" class="flag-badge" style="display:none" title="Entity extraction + LLM link proposals">entities</span>
+  <span id="entity-flags" class="flag-badge" style="display:none" title="Extraction + registry + LLM proposals">Phase A–D</span>
   <button class="btn-secondary seg" id="btn-guide-toggle" onclick="toggleGuideBar()">Guida</button>
   <div class="stats">
     <span>nodes <b id="stat-nodes">0</b></span>
@@ -389,7 +428,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <div class="control-sep"></div>
   <span class="ctrl-group-label">Query</span>
   <span class="lbl">Memory ID</span>
-  <input type="number" id="mem-id" value="73" min="1" title="SOC demo: 73 = INC0000001 (campagna Akira)">
+  <input type="number" id="mem-id" value="4400" min="1" title="CTI demo: root.cti.soc.incidents.consolidated (resolve via launch_cti_graph_demo.py)">
   <span class="lbl">Depth</span>
   <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
 
@@ -406,60 +445,68 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <span class="lbl">View</span>
   <button id="btn-view-links" class="btn-active seg" onclick="setViewMode('links')">Links</button>
   <button id="btn-view-entities" class="btn-secondary seg" onclick="setViewMode('entities')">Entities</button>
+  <button id="btn-view-registry" class="btn-secondary seg" onclick="setViewMode('registry')">Registry</button>
   <button id="btn-view-proposals" class="btn-secondary seg" onclick="setViewMode('proposals')">Proposals</button>
   <div class="control-sep"></div>
   <button class="btn-primary"   id="btn-explore" onclick="runExplore()">Explore</button>
   <button class="btn-secondary" id="btn-extract" onclick="runExtract()" title="POST /v1/memories/extraction/{id}">Extract</button>
-  <button class="btn-secondary" id="btn-propose" onclick="generateProposals()" title="LLM link proposals (LINK_PROPOSALS_ENABLED)">LLM Propose</button>
+  <button class="btn-secondary" id="btn-propose" onclick="generateProposals()" title="LLM link proposals (LINK_PROPOSALS_ENABLED)">Link Propose</button>
+  <button class="btn-secondary" id="btn-alias-propose" onclick="generateAliasProposals()" title="LLM entity alias merges (ENTITY_ALIAS_PROPOSALS_ENABLED)">Alias Propose</button>
   <button class="btn-secondary" id="btn-chain"   onclick="findChain()" disabled>Find Chain</button>
   <button class="btn-secondary" id="btn-clear"   onclick="clearGraph()">Clear</button>
 </div>
 
 <div class="guide-bar" id="guide-bar">
   <div class="guide-top">
-    <h2>Guida rapida · dataset SOC</h2>
-    <span class="sub">Memory <b style="color:var(--primary);font-family:var(--mono)">73</b> = incidente Akira (INC0000001)</span>
-    <button class="btn-primary seg" id="btn-guided-demo" onclick="runGuidedDemo()">▶ Demo automatica</button>
-    <button class="btn-secondary seg" onclick="jumpToGuideStep('links')">1 · Links</button>
-    <button class="btn-secondary seg" onclick="jumpToGuideStep('entities')">2 · Entities</button>
-    <button class="btn-secondary seg" onclick="jumpToGuideStep('proposals')">3 · Proposals</button>
+    <h2>Demo CTI · threat actors multi-vendor</h2>
+    <span class="sub">Dataset <b style="color:var(--primary);font-family:var(--mono)">root.cti</b> · BRICKSTORM · PRESSURE CHOLLIMA · Sapphire Sleet · PROMPTSTEAL · Forest Blizzard</span>
+    <button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>
     <button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>
   </div>
-  <div class="guide-steps" id="guide-steps">
-    <div class="gstep active" data-step="links" onclick="jumpToGuideStep('links')">
-      <div class="num">PASSO 1</div>
-      <div class="title">Grafo link (causal / temporal)</div>
-      <div class="desc">View <b>Links</b> → seleziona tipi di arco → <b>Explore</b>. Cerchi = memorie, colori = profondità hop.</div>
-    </div>
-    <div class="gstep" data-step="entities" onclick="jumpToGuideStep('entities')">
-      <div class="num">PASSO 2</div>
-      <div class="title">Entità estratte (AGE)</div>
-      <div class="desc">View <b>Entities</b> → <b>Explore</b>. Diamanti = IP, actor, host… estratti dall'LLM.</div>
-    </div>
-    <div class="gstep" data-step="extract" onclick="jumpToGuideStep('extract')">
-      <div class="num">PASSO 3</div>
-      <div class="title">Estrazione slot</div>
-      <div class="desc"><b>Extract</b> lancia l'LLM su memory 73. Inspector a destra → sezione Extraction.</div>
-    </div>
-    <div class="gstep" data-step="proposals" onclick="jumpToGuideStep('proposals')">
-      <div class="num">PASSO 4</div>
-      <div class="title">Link proposti dall'LLM</div>
-      <div class="desc"><b>LLM Propose</b> → View <b>Proposals</b> → Accept/Reject nel pannello sinistro.</div>
-    </div>
-  </div>
   <div class="guide-now" id="guide-now">
-    <b>Prossimo passo:</b> inserisci API key <kbd>testkey123</kbd>, conferma Memory ID <kbd>73</kbd>, poi clicca <kbd>Explore</kbd> in vista Links.
+    <b>Avvio:</b> API key <kbd>testkey123</kbd> → clicca <kbd>▶ Tour automatico</kbd> (9 passi, banner in basso). Colori nodi: teal=SOC · arancio=vendor · viola=STIX.
   </div>
 </div>
 
 <div class="main-area">
   <aside class="proposals-panel" id="proposals-panel" aria-hidden="true">
     <div class="prop-head">
-      <div class="prop-title">Pending link proposals</div>
-      <button class="btn-secondary seg" onclick="loadProposals()">Refresh</button>
+      <div class="prop-title">Review queue</div>
+      <button class="btn-secondary seg" onclick="refreshProposalPanel()">Refresh</button>
     </div>
-    <div class="prop-body" id="proposals-list">
-      <p class="empty-note">Switch to Proposals view and click Refresh, or run LLM Propose on a memory.</p>
+    <div class="prop-tabs">
+      <button type="button" id="tab-prop-links" class="active" onclick="setProposalTab('links')">Link</button>
+      <button type="button" id="tab-prop-aliases" onclick="setProposalTab('aliases')">Alias</button>
+    </div>
+    <div id="links-list-wrap">
+      <div class="prop-body" id="proposals-list">
+        <p class="empty-note">Switch to Proposals view and click Refresh, or run Link Propose on a memory.</p>
+      </div>
+    </div>
+    <div id="aliases-list-wrap" style="display:none">
+      <div class="prop-body" id="alias-proposals-list">
+        <p class="empty-note">Run <b>Alias Propose</b> on a memory with extracted entities.</p>
+      </div>
+    </div>
+  </aside>
+  <aside class="proposals-panel" id="registry-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Entity registry</div>
+      <button class="btn-secondary seg" onclick="loadRegistryEntities()">Refresh</button>
+    </div>
+    <div class="registry-filter">
+      <select id="registry-kind-filter" onchange="loadRegistryEntities()">
+        <option value="">All kinds</option>
+        <option value="ThreatActor">ThreatActor</option>
+        <option value="IPAddress">IPAddress</option>
+        <option value="Asset">Asset</option>
+        <option value="User">User</option>
+        <option value="Domain">Domain</option>
+        <option value="Campaign">Campaign</option>
+      </select>
+    </div>
+    <div class="prop-body" id="registry-list">
+      <p class="empty-note">Run <b>Extract</b> first — registry populates on extraction (Phase D).</p>
     </div>
   </aside>
   <div class="canvas-wrap">
@@ -467,19 +514,21 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 
     <div class="overlay show" id="overlay">
       <div class="card welcome-card" id="overlay-card">
-        <h3>Benvenuto nel Cognitive Graph Explorer</h3>
+        <h3>Demo CTI · threat actors sul grafo 2D</h3>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">
-          Esplora il dataset SOC con tre layer: <b>link manuali</b>, <b>entità estratte</b>, <b>proposte LLM</b>.
+          Dataset <b>root.cti</b>: report vendor, IOC STIX CISA (BRICKSTORM) e correlazione cross-vendor
+          (<b>PRESSURE CHOLLIMA</b> ↔ <b>Sapphire Sleet</b>, <b>PROMPTSTEAL</b> ↔ <b>Forest Blizzard</b>).
         </p>
         <ol>
-          <li><b>Links</b> — grafo causale/temporale tra incidenti (cerchi colorati)</li>
-          <li><b>Entities</b> — vertici AGE da extraction (diamanti: Akira, IP, host…)</li>
-          <li><b>Extract</b> — estrae slot SIEM dalla memoria selezionata</li>
-          <li><b>Proposals</b> — review queue link suggeriti dall'LLM (Accept/Reject)</li>
+          <li><b>Layer</b> — SOC/teal, vendor reports/arancio, STIX/viola</li>
+          <li><b>BRICKSTORM</b> — SHA-256 e YARA reali da bundle CISA MAR</li>
+          <li><b>DPRK</b> — CrowdStrike vs Microsoft naming sullo stesso attore</li>
+          <li><b>APT28</b> — Mandiant PROMPTSTEAL vs Microsoft Forest Blizzard</li>
+          <li><b>Find chain</b> — percorso strutturale tra report vendor diversi</li>
         </ol>
         <div class="welcome-actions">
-          <button class="btn-primary" onclick="runGuidedDemo()">▶ Avvia demo guidata</button>
-          <button class="btn-secondary" onclick="dismissWelcome()">Esplora da solo</button>
+          <button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI (9 passi)</button>
+          <button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button>
         </div>
       </div>
     </div>
@@ -495,6 +544,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div class="row"><span class="swatch" style="background:#a78bfa;border-radius:2px"></span>entity vertex</div>
       <div class="row"><span class="swatch" style="background:#94a3b8;border-radius:2px"></span>LLM proposal (pending)</div>
       <div class="row"><span class="swatch" style="background:#2dd4bf;border-radius:2px"></span>LLM accepted ✓</div>
+      <div class="row"><span class="swatch" style="background:#c084fc;border-radius:2px"></span>same_as (alias merge)</div>
     </div>
 
     <div class="hint" id="canvas-hint">Click = ispeziona · dbl-click = espandi · trascina = sposta nodi</div>
@@ -533,8 +583,11 @@ let nodeTimestamps = {};
 let nodeMeta = {};            // id -> { linkType, depth }
 let memCache = {};            // id -> full MemoryEntry (path, content, tags, metadata, ...)
 let cacheLoaded = false;
-let viewMode = 'links';       // links | entities | proposals
-let pendingProposals = [];    // last fetched proposals
+let viewMode = 'links';       // links | entities | registry | proposals
+let proposalTab = 'links';    // links | aliases
+let pendingProposals = [];    // last fetched link proposals
+let pendingAliasProposals = [];
+let registryEntities = [];    // last fetched registry rows
 let selectedEntity = null;    // { kind, key } when an entity node is selected
 const entityKindColors = {
   IPAddress: '#38bdf8', Asset: '#22c55e', User: '#f59e0b',
@@ -612,7 +665,7 @@ async function loadMemoryCache(force) {
   let cursor = '', pages = 0;
   try {
     do {
-      const body = { path_prefix: 'root', limit: 500 };
+      const body = { path_prefix: window.CTI_DEMO_ACTIVE ? 'root.cti' : 'root', limit: 500 };
       if (cursor) body.cursor = cursor;
       const r = await fetch(apiUrl + '/v1/retrieve', {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
@@ -816,14 +869,86 @@ function openEntityInspector(id) {
   document.getElementById('insp-id').textContent = kind;
   document.getElementById('insp-path').textContent = key;
   document.getElementById('insp-body').innerHTML =
-    '<div class="insp-section"><div class="insp-badges">'
-    + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
-    + escapeHtml(kind) + '</span></div></div>'
-    + '<div class="insp-section"><div class="label">Entity key</div>'
-    + '<div class="content-box">' + escapeHtml(key) + '</div></div>'
-    + '<div class="insp-section"><div class="insp-actions">'
-    + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
-    + '</div></div>';
+    '<div class="insp-section"><p class="empty-note">Loading registry…</p></div>';
+  loadEntityRegistryDetail(kind, key);
+}
+async function loadEntityRegistryDetail(kind, key) {
+  const body = document.getElementById('insp-body');
+  if (!apiKey()) {
+    body.innerHTML = '<div class="insp-section"><p class="empty-note">Enter API key to load registry detail.</p></div>';
+    return;
+  }
+  try {
+    const url = apiUrl + '/v1/entities/registry/' + encodeURIComponent(kind) + '/' + encodeURIComponent(key);
+    const r = await fetch(url, { headers: authHeaders() });
+    if (r.status === 404) {
+      body.innerHTML =
+        '<div class="insp-section"><div class="insp-badges">'
+        + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
+        + escapeHtml(kind) + '</span></div></div>'
+        + '<div class="insp-section"><div class="label">Entity key</div>'
+        + '<div class="content-box">' + escapeHtml(key) + '</div></div>'
+        + '<div class="insp-section"><p class="empty-note">Not in registry yet — run <b>Extract</b> on a memory mentioning this entity.</p></div>'
+        + '<div class="insp-section"><div class="insp-actions">'
+        + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
+        + '</div></div>';
+      return;
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      body.innerHTML = '<div class="insp-section"><p class="empty-note">Registry error ' + r.status + ': '
+        + escapeHtml(err.error || r.statusText) + '</p></div>';
+      return;
+    }
+    const data = await r.json();
+    const ent = data.entity || {};
+    const aliases = data.aliases || [];
+    const snaps = data.snapshots || [];
+    const canon = ent.canonical_key || key;
+    let html =
+      '<div class="insp-section"><div class="insp-badges">'
+      + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
+      + escapeHtml(kind) + '</span>'
+      + '<span class="badge">' + snaps.length + ' snapshots</span>'
+      + '<span class="badge">' + aliases.length + ' aliases</span></div></div>'
+      + '<div class="insp-section"><div class="label">Canonical key</div>'
+      + '<div class="content-box">' + escapeHtml(canon) + '</div></div>';
+    if (ent.display_name) {
+      html += '<div class="insp-section"><div class="label">Display name</div>'
+        + '<div class="content-box">' + escapeHtml(ent.display_name) + '</div></div>';
+    }
+    if (aliases.length) {
+      html += '<div class="insp-section"><div class="label">Aliases</div><div>';
+      for (const a of aliases) {
+        html += '<span class="alias-chip" title="' + escapeHtml(a.source || '') + ' · '
+          + Math.round((a.confidence || 0) * 100) + '%">' + escapeHtml(a.alias_key) + '</span>';
+        if (a.alias_key !== canon) addSameAsEdge(kind, a.alias_key, canon);
+      }
+      html += '</div></div>';
+    }
+    if (snaps.length) {
+      html += '<div class="insp-section"><div class="label">Evolution timeline</div><div class="snap-timeline">';
+      for (const s of snaps.slice(0, 40)) {
+        html += '<div class="snap-row">'
+          + '<div class="when">memory.' + s.memory_id + ' · v' + s.memory_version
+          + (s.created_at ? ' · ' + escapeHtml(fmtDate(s.created_at)) : '') + '</div>'
+          + '<div class="slot">' + escapeHtml(s.slot || '') + '</div>'
+          + (s.raw_key && s.raw_key !== canon ? '<div>' + escapeHtml(s.raw_key) + '</div>' : '')
+          + (s.attributes ? '<div style="color:var(--text-mute);margin-top:3px">' + escapeHtml(JSON.stringify(s.attributes)) + '</div>' : '')
+          + '</div>';
+      }
+      html += '</div></div>';
+    } else {
+      html += '<div class="insp-section"><p class="empty-note">No snapshots yet.</p></div>';
+    }
+    html += '<div class="insp-section"><div class="insp-actions">'
+      + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
+      + '<button class="act-ghost" onclick="focusRegistryEntity()">Highlight in registry</button>'
+      + '</div></div>';
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="insp-section"><p class="empty-note">Request failed: ' + escapeHtml(e.message) + '</p></div>';
+  }
 }
 function exploreEntityByKindKey(kind, key) {
   const k = kind || (selectedEntity && selectedEntity.kind);
@@ -970,21 +1095,41 @@ function toast(msg, isErr) {
 // ── view mode / entity demo ───────────────────────────────────────────────
 function setViewMode(mode) {
   viewMode = mode;
-  ['links','entities','proposals'].forEach(m => {
+  ['links','entities','registry','proposals'].forEach(m => {
     const b = document.getElementById('btn-view-' + m);
     if (b) b.className = (m === mode ? 'btn-active' : 'btn-secondary') + ' seg';
   });
-  const panel = document.getElementById('proposals-panel');
-  const open = mode === 'proposals';
-  panel.classList.toggle('open', open);
-  panel.setAttribute('aria-hidden', open ? 'false' : 'true');
-  if (open) loadProposals();
+  const propPanel = document.getElementById('proposals-panel');
+  const regPanel = document.getElementById('registry-panel');
+  const propOpen = mode === 'proposals';
+  const regOpen = mode === 'registry';
+  propPanel.classList.toggle('open', propOpen);
+  propPanel.setAttribute('aria-hidden', propOpen ? 'false' : 'true');
+  regPanel.classList.toggle('open', regOpen);
+  regPanel.setAttribute('aria-hidden', regOpen ? 'false' : 'true');
+  if (propOpen) refreshProposalPanel();
+  if (regOpen) loadRegistryEntities();
   updateGuideUI(mode);
   updateCanvasHint(mode);
 }
 
+function setProposalTab(tab) {
+  proposalTab = tab;
+  document.getElementById('tab-prop-links').className = tab === 'links' ? 'active' : '';
+  document.getElementById('tab-prop-aliases').className = tab === 'aliases' ? 'active' : '';
+  document.getElementById('links-list-wrap').style.display = tab === 'links' ? '' : 'none';
+  document.getElementById('aliases-list-wrap').style.display = tab === 'aliases' ? '' : 'none';
+  refreshProposalPanel();
+}
+
+function refreshProposalPanel() {
+  if (proposalTab === 'aliases') loadAliasProposals();
+  else loadProposals();
+}
+
 function runExplore() {
   if (viewMode === 'entities') return exploreEntities();
+  if (viewMode === 'registry') return loadRegistryEntities(true);
   if (viewMode === 'proposals') return visualizeProposals();
   return explore();
 }
@@ -1031,6 +1176,21 @@ function addMentionEdge(memId, entId, slot) {
     label: slot || 'mentions',
     color: { color: '#64748b', highlight: '#94a3b8' },
     arrows: { to: { enabled: true, scaleFactor: .45 } }
+  });
+}
+
+function addSameAsEdge(kind, aliasKey, canonicalKey) {
+  if (!aliasKey || aliasKey === canonicalKey) return;
+  const fromId = addEntityNode(kind, aliasKey, 'alias');
+  const toId = addEntityNode(kind, canonicalKey, 'canonical');
+  const edgeId = 'same_as:' + kind + ':' + aliasKey + '->' + canonicalKey;
+  if (edgesData.get(edgeId)) return;
+  edgesData.add({
+    id: edgeId, from: fromId, to: toId,
+    label: 'same_as',
+    dashes: [3, 5], width: 2,
+    color: { color: '#c084fc', highlight: '#e9d5ff' },
+    arrows: { to: { enabled: true, scaleFactor: .5 } }
   });
 }
 
@@ -1263,7 +1423,7 @@ function renderProposalsList() {
   if (!pendingProposals.length) {
     el.innerHTML = '<p class="empty-note">Nessuna proposta pending.'
       + (memId ? ' I link già <b>Accept</b>ati compaiono nel grafo come archi teal <b>✓</b>.' : '')
-      + ' Clicca <b>LLM Propose</b> per generarne di nuove.</p>'
+      + ' Clicca <b>Link Propose</b> per generarne di nuove.</p>'
       + '<div class="insp-actions" style="margin-top:10px">'
       + '<button class="act-primary" onclick="renderAcceptedLLMLinks(document.getElementById(\'mem-id\').value)">Mostra approvati</button>'
       + '<button class="act-ghost" onclick="jumpToGuideStep(\'links\')">Vista Links</button>'
@@ -1349,6 +1509,184 @@ async function rejectProposal(id) {
   updateCounts();
 }
 
+// ── Phase D: entity registry + alias proposals ─────────────────────────────
+async function loadRegistryEntities(focusSelected) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const kindEl = document.getElementById('registry-kind-filter');
+  const kind = kindEl ? kindEl.value : '';
+  let url = apiUrl + '/v1/entities/registry?limit=120';
+  if (kind) url += '&kind=' + encodeURIComponent(kind);
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 404) {
+        toast('Registry API non disponibile — rebuild API con Phase D + migration 025', true);
+      } else {
+        toast('Registry error ' + r.status + ': ' + (err.error || r.statusText), true);
+      }
+      return;
+    }
+    const data = await r.json();
+    registryEntities = data.entities || [];
+    renderRegistryList();
+    if (registryEntities.length) {
+      toast(registryEntities.length + ' canonical entit' + (registryEntities.length === 1 ? 'y' : 'ies') + ' in registry');
+    } else {
+      toast('Registry vuoto — esegui Extract su una memoria CTI (es. Sapphire Sleet, BRICKSTORM)');
+    }
+    if (focusSelected && selectedEntity) focusRegistryEntity(selectedEntity.kind, selectedEntity.canonical || selectedEntity.key);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderRegistryList() {
+  const el = document.getElementById('registry-list');
+  if (!registryEntities.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna entità in registry. '
+      + 'Clicca <b>Extract</b> su una memoria CTI (threat actor / BRICKSTORM).</p>';
+    return;
+  }
+  el.innerHTML = registryEntities.map(ent => {
+    const active = selectedEntity && selectedEntity.kind === ent.kind
+      && (selectedEntity.key === ent.canonical_key || selectedEntity.canonical === ent.canonical_key);
+    return '<div class="registry-card' + (active ? ' active' : '') + '" data-kind="' + escapeHtml(ent.kind) + '" data-key="'
+      + escapeHtml(ent.canonical_key) + '" onclick="focusRegistryEntity(\'' + String(ent.kind).replace(/'/g, "\\'") + '\',\''
+      + String(ent.canonical_key).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">'
+      + '<div class="kind">' + escapeHtml(ent.kind) + '</div>'
+      + '<div class="key">' + escapeHtml(ent.display_name || ent.canonical_key) + '</div>'
+      + '<div class="meta">' + escapeHtml(ent.canonical_key)
+      + (ent.updated_at ? ' · ' + escapeHtml(fmtDate(ent.updated_at)) : '') + '</div></div>';
+  }).join('');
+}
+
+async function focusRegistryEntity(kind, key) {
+  const k = kind || (selectedEntity && selectedEntity.kind);
+  const v = key || (selectedEntity && (selectedEntity.canonical || selectedEntity.key));
+  if (!k || !v) return;
+  selectedEntity = { kind: k, key: v, canonical: v };
+  renderRegistryList();
+  if (!network) initNetwork(currentLayout);
+  const entId = addEntityNode(k, v, '');
+  selectNode(entId);
+  await loadEntityRegistryDetail(k, v);
+  if (network) network.focus(entId, { scale: 1.2, animation: { duration: 450 } });
+}
+
+function entityKeyById(id) {
+  if (!id) return null;
+  const ent = registryEntities.find(e => e.id === id);
+  return ent ? ent.canonical_key : null;
+}
+
+async function loadAliasProposals() {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  if (!registryEntities.length) {
+    const rr = await fetch(apiUrl + '/v1/entities/registry?limit=200', { headers: authHeaders() });
+    if (rr.ok) registryEntities = ((await rr.json()).entities) || [];
+  }
+  let url = apiUrl + '/v1/graph/entity-alias-proposals?status=pending&limit=100';
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Alias proposals error ' + r.status + ': ' + (err.error || err.hint || r.statusText), true);
+      return;
+    }
+    const data = await r.json();
+    pendingAliasProposals = data.proposals || [];
+    renderAliasProposalsList();
+    if (pendingAliasProposals.length) {
+      toast(pendingAliasProposals.length + ' pending alias merge(s)');
+    }
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderAliasProposalsList() {
+  const el = document.getElementById('alias-proposals-list');
+  if (!pendingAliasProposals.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna proposta alias pending. '
+      + 'Clicca <b>Alias Propose</b> dopo Extract.</p>'
+      + '<div class="insp-actions" style="margin-top:10px">'
+      + '<button class="act-primary" onclick="generateAliasProposals()">Alias Propose</button></div>';
+    return;
+  }
+  el.innerHTML = pendingAliasProposals.map(p => {
+    const conf = (p.confidence != null) ? (Math.round(p.confidence * 100) + '%') : '—';
+    const targetKey = entityKeyById(p.target_entity_id) || (p.target_entity_id || '').slice(0, 8) + '…';
+    return '<div class="prop-card" data-alias-id="' + p.id + '">'
+      + '<div class="edge">' + escapeHtml(p.kind) + ': '
+      + '<span style="color:var(--danger)">' + escapeHtml(p.alias_key) + '</span>'
+      + ' → <span style="color:var(--ok)">' + escapeHtml(targetKey) + '</span></div>'
+      + '<div class="meta">' + escapeHtml(p.reason || '') + '<br>confidence ' + conf + '</div>'
+      + '<div class="actions" onclick="event.stopPropagation()">'
+      + '<button class="accept" onclick="acceptAliasProposal(' + p.id + ')">Accept</button>'
+      + '<button class="reject" onclick="rejectAliasProposal(' + p.id + ')">Reject</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+async function acceptAliasProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/' + id + '/accept', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return; }
+  const prop = data.proposal || {};
+  pendingAliasProposals = pendingAliasProposals.filter(p => p.id !== id);
+  const targetKey = entityKeyById(prop.target_entity_id);
+  if (prop.kind && prop.alias_key && targetKey) addSameAsEdge(prop.kind, prop.alias_key, targetKey);
+  renderAliasProposalsList();
+  updateCounts();
+  toast('Alias accepted · same_as nel grafo (viola)');
+  updateGuideUI('proposals');
+}
+
+async function rejectAliasProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/' + id + '/reject', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Reject failed: ' + (data.error || r.statusText), true); return; }
+  pendingAliasProposals = pendingAliasProposals.filter(p => p.id !== id);
+  renderAliasProposalsList();
+  toast('Alias proposal rejected');
+}
+
+async function generateAliasProposals(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const btn = document.getElementById('btn-alias-propose');
+  if (btn) btn.disabled = true;
+  showLoading(true, 'LLM proposing entity aliases…');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/generate/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = String(data.error || data.hint || r.statusText);
+      if (r.status === 503) {
+        toast('Alias Propose disabilitato: ENTITY_ALIAS_PROPOSALS_ENABLED=true su API', true);
+      } else if (r.status === 422 && err.indexOf('extraction') !== -1) {
+        toast('Prima clicca Extract su memory ' + id, true);
+      } else {
+        toast('Alias propose failed: ' + err, true);
+      }
+      return;
+    }
+    toast('+' + (data.count || 0) + ' alias proposal(s) for memory.' + id);
+    setViewMode('proposals');
+    setProposalTab('aliases');
+    await loadAliasProposals();
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+    showLoading(false);
+  }
+}
+
 async function generateProposals(memId) {
   const id = memId || document.getElementById('mem-id').value;
   if (!id) { toast('Enter a Memory ID', true); return; }
@@ -1375,6 +1713,7 @@ async function generateProposals(memId) {
     }
     toast('+' + (data.count || 0) + ' proposal(s) for memory.' + id);
     setViewMode('proposals');
+    setProposalTab('links');
     await loadProposals();
     await visualizeProposals();
   } catch (e) {
@@ -1419,8 +1758,24 @@ async function runExtract(memId) {
 }
 
 // ── explore ───────────────────────────────────────────────────────────────────
+function ctiNodeDatasetColor(id) {
+  const m = memCache[id]?.metadata || {};
+  const src = m.cti_source || m.dataset_source;
+  const colors = { soc: '#0d9488', vendor_reports: '#d97706', stix: '#8b5cf6' };
+  if (colors[src]) return colors[src];
+  const p = memCache[id]?.path || '';
+  if (p.includes('.stix.')) return colors.stix;
+  if (p.includes('.vendor_reports.') || p.includes('.vendors.')) return colors.vendor_reports;
+  if (p.includes('.soc.') || p.includes('.ti_hub.')) return colors.soc;
+  return null;
+}
+
 function nodeStyle(id, depth, linkType, isRoot) {
   if (isRoot) return { background: '#0d3b34', border: '#2dd4bf' };
+  if (window.CTI_DEMO_ACTIVE) {
+    const dc = ctiNodeDatasetColor(id);
+    if (dc) return { background: dc, border: linkColors[linkType] || '#64748b' };
+  }
   return { background: depthColor(depth), border: linkColors[linkType] || '#64748b' };
 }
 
@@ -1565,8 +1920,9 @@ let guideStep = 'links';
 const GUIDE_NOW = {
   links: '<b>Prossimo passo:</b> View <b>Links</b> → spunta <kbd>causal</kbd> + <kbd>temporal</kbd> → clicca <kbd>Explore</kbd> con Memory ID <kbd>73</kbd>.',
   entities: '<b>Prossimo passo:</b> View <b>Entities</b> → <kbd>Explore</kbd>. I diamanti sono entità (Akira, IP…); i cerchi sono altre memorie correlate.',
+  registry: '<b>Prossimo passo:</b> View <b>Registry</b> → clicca un\'entità. Inspector: alias attivi + timeline snapshot (evoluzione Phase D).',
   extract: '<b>Prossimo passo:</b> seleziona un cerchio (memoria) → clicca <kbd>Extract</kbd> → controlla gli slot nel pannello destro.',
-  proposals: '<b>Prossimo passo:</b> <kbd>LLM Propose</kbd> → Accept nel pannello sinistro. Dopo Accept compare un <b>arco teal ✓</b> (link materializzato).'
+  proposals: '<b>Prossimo passo:</b> tab <b>Link</b> / <b>Alias</b> → <kbd>Link Propose</kbd> o <kbd>Alias Propose</kbd> → Accept. Link = arco teal ✓ · Alias = arco viola same_as.'
 };
 
 function renderWelcomeOverlay() {
@@ -1574,11 +1930,12 @@ function renderWelcomeOverlay() {
   document.getElementById('overlay-card').innerHTML =
     '<h3>Benvenuto nel Cognitive Graph Explorer</h3>'
     + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
-    + 'Esplora il dataset SOC con tre layer: <b>link manuali</b>, <b>entità estratte</b>, <b>proposte LLM</b>.</p>'
+    + 'Esplora il dataset SOC con quattro layer: <b>link</b>, <b>entità AGE</b>, <b>registry/evoluzione</b>, <b>proposte LLM</b>.</p>'
     + '<ol><li><b>Links</b> — grafo causale/temporale tra incidenti</li>'
     + '<li><b>Entities</b> — vertici AGE da extraction (diamanti)</li>'
+    + '<li><b>Registry</b> — canonical + alias + snapshot timeline</li>'
     + '<li><b>Extract</b> — estrae slot SIEM dalla memoria</li>'
-    + '<li><b>Proposals</b> — review link suggeriti dall\'LLM</li></ol>'
+    + '<li><b>Proposals</b> — review link + alias merge LLM</li></ol>'
     + '<div class="welcome-actions">'
     + '<button class="btn-primary" onclick="runGuidedDemo()">▶ Avvia demo guidata</button>'
     + '<button class="btn-secondary" onclick="dismissWelcome()">Esplora da solo</button></div>';
@@ -1616,11 +1973,12 @@ function isGuideStepDone(step) {
   if (step === 'entities') {
     return [...nodesData.getIds()].some(id => isEntityNodeId(id));
   }
+  if (step === 'registry') return registryEntities.length > 0;
   if (step === 'extract') {
     const m = memCache[parseInt(document.getElementById('mem-id').value, 10)];
     return m && m.metadata && m.metadata.pcmi_extract;
   }
-  if (step === 'proposals') return pendingProposals.length > 0;
+  if (step === 'proposals') return pendingProposals.length > 0 || pendingAliasProposals.length > 0;
   return false;
 }
 
@@ -1629,8 +1987,10 @@ function updateCanvasHint(mode) {
   if (!el) return;
   if (mode === 'entities') {
     el.textContent = 'Cerchio teal = memoria root · Diamante = entità · linea tratteggiata = mentions';
+  } else if (mode === 'registry') {
+    el.textContent = 'Pannello sinistro = registry canonico · clicca entità → inspector con snapshot timeline';
   } else if (mode === 'proposals') {
-    el.textContent = 'Grigio tratteggiato = pending · Teal solido ✓ = approvato dall\'analista (memory_links)';
+    el.textContent = 'Tab Link: grigio pending / teal ✓ approvato · Tab Alias: merge same_as viola dopo Accept';
   } else {
     el.textContent = 'Click = ispeziona · dbl-click = espandi · trascina = sposta nodi';
   }
@@ -1659,6 +2019,12 @@ async function jumpToGuideStep(step) {
     await exploreEntities();
     return;
   }
+  if (step === 'registry') {
+    setViewMode('registry');
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await loadRegistryEntities();
+    return;
+  }
   if (step === 'extract') {
     if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
     await runExtract(parseInt(document.getElementById('mem-id').value, 10));
@@ -1668,10 +2034,247 @@ async function jumpToGuideStep(step) {
     setViewMode('proposals');
     pulseEl('#btn-propose');
     await loadProposals();
+    await loadAliasProposals();
   }
 }
 
-async function runGuidedDemo() {
+function startGuidedDemo() {
+  if (window.CTI_DEMO_ACTIVE) runCtiGuidedDemo();
+  else runSocGuidedDemo();
+}
+
+// ── CTI cross-vendor guided demo (?demo=cti) ───────────────────────────────
+function ctiMemIds() {
+  const qs = new URLSearchParams(location.search);
+  const n = (k, fallback) => qs.get(k) || fallback;
+  return {
+    root: n('root', n('mem', '4400')),
+    brickstorm: n('brickstorm', '4405'),
+    cs_pressure: n('cs_pressure', '3638'),
+    ms_sapphire: n('ms_sapphire', '4394'),
+    mdt_ps: n('mdt_ps', '4289'),
+    ms_forest: n('ms_forest', '4395'),
+    apt28: n('apt28', '4410'),
+    ti_sapphire: n('ti_sapphire', '47'),
+    ti_forest: n('ti_forest', '46'),
+  };
+}
+
+function renderCtiGuideBar() {
+  const M = ctiMemIds();
+  const bar = document.getElementById('guide-bar');
+  if (!bar) return;
+  bar.innerHTML =
+    '<div class="guide-top">'
+    + '<h2>Demo CTI · grafo 2D multi-vendor</h2>'
+    + '<span class="sub">Root <b style="color:var(--primary);font-family:var(--mono)">' + M.root + '</b>'
+    + ' · SOC <span style="color:#0d9488">■</span> · vendor <span style="color:#d97706">■</span> · STIX <span style="color:#8b5cf6">■</span></span>'
+    + '<button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>'
+    + '<button class="btn-secondary seg" onclick="runCtiGuidedDemo()">Ricomincia</button>'
+    + '<button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>'
+    + '</div>'
+    + '<div class="guide-steps" id="guide-steps">'
+    + '<div class="gstep active" data-step="layers"><div class="num">1</div><div class="title">Tre layer CTI</div>'
+    + '<div class="desc">SOC hub + report vendor + IOC STIX operativi (colori per dataset).</div></div>'
+    + '<div class="gstep" data-step="brickstorm"><div class="num">2</div><div class="title">BRICKSTORM CISA MAR</div>'
+    + '<div class="desc">SHA-256, YARA e IP reali dai bundle STIX 2.1 CISA.</div></div>'
+    + '<div class="gstep" data-step="dprk"><div class="num">3–4</div><div class="title">DPRK cross-vendor</div>'
+    + '<div class="desc">PRESSURE CHOLLIMA (CrowdStrike) ↔ Sapphire Sleet (Microsoft).</div></div>'
+    + '<div class="gstep" data-step="apt28"><div class="num">5–7</div><div class="title">APT28 cross-vendor</div>'
+    + '<div class="desc">PROMPTSTEAL (Mandiant) ↔ Forest Blizzard (Microsoft).</div></div>'
+    + '<div class="gstep" data-step="iocs"><div class="num">8–9</div><div class="title">IOC + retrieval</div>'
+    + '<div class="desc">Sample operativi + correlazione BM25+embedding semantico.</div></div>'
+    + '</div>'
+    + '<div class="guide-now" id="guide-now">'
+    + '<b>Tour:</b> clicca <kbd>▶ Tour automatico</kbd> oppure aggiungi <kbd>&autostart=1</kbd> all\'URL.'
+    + ' API key: <kbd>testkey123</kbd> · link types: <kbd>supports,related</kbd>.'
+    + '</div>';
+}
+
+function renderCtiWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Demo CTI · threat actors sul grafo 2D</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Dataset <b>root.cti</b>: BRICKSTORM, PRESSURE CHOLLIMA, Sapphire Sleet, PROMPTSTEAL, Forest Blizzard.</p>'
+    + '<ol>'
+    + '<li><b>Layer</b> — SOC (teal), vendor reports (arancio), STIX (viola)</li>'
+    + '<li><b>BRICKSTORM</b> — hash/YARA/IP da CISA MAR</li>'
+    + '<li><b>DPRK</b> — CrowdStrike vs Microsoft sullo stesso attore</li>'
+    + '<li><b>APT28</b> — Mandiant vs Microsoft + Find chain</li>'
+    + '<li><b>Retrieval</b> — BM25 + pgvector cross-vendor</li>'
+    + '</ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI</button>'
+    + '<button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button></div>';
+}
+
+function dismissCtiWelcome() {
+  localStorage.setItem('pcmi_cti_welcome_dismissed', '1');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function renderCtiLegend() {
+  const leg = document.querySelector('.legend');
+  if (!leg) return;
+  leg.innerHTML =
+    '<h4>Dataset CTI</h4>'
+    + '<div class="row"><span class="swatch" style="background:#0d9488"></span>SOC / TI hub</div>'
+    + '<div class="row"><span class="swatch" style="background:#d97706"></span>vendor reports</div>'
+    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>STIX operativo</div>'
+    + '<h4 style="margin-top:10px">Link type</h4>'
+    + '<div class="row"><span class="swatch" style="background:#22c55e"></span>supports</div>'
+    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>related</div>'
+    + '<div class="row"><span class="swatch" style="background:#38bdf8"></span>causal</div>'
+    + '<div class="row"><span class="swatch" style="background:#f59e0b"></span>temporal</div>'
+    + '<div class="row"><span class="swatch" style="background:#c084fc;border-radius:2px"></span>same_as (alias merge)</div>';
+  const hint = document.getElementById('canvas-hint');
+  if (hint) hint.textContent = 'CTI demo · click = inspector · dbl-click = espandi · Find chain = percorso cross-vendor';
+}
+
+async function runCtiGuidedDemo() {
+  dismissCtiWelcome();
+  dismissWelcome();
+  const btn = document.getElementById('btn-guided-demo');
+  if (btn) btn.disabled = true;
+  const R = window.pcmiRecord;
+  if (!R) { toast('Banner tour non pronto — ricarica con ?demo=cti', true); if (btn) btn.disabled = false; return; }
+  const M = ctiMemIds();
+  const pause = (ms) => sleep(ms || 3200);
+
+  try {
+    const healthR = await fetch(apiUrl + '/v1/graph/health');
+    const health = await healthR.json().catch(() => ({}));
+    if (!health.available) {
+      toast('Grafo AGE non disponibile — avvia postgres-age + API graph stack', true);
+      R.caption('Setup richiesto', 'Apache AGE non attivo',
+        'Avvia: docker compose -f docker-compose.yml -f docker-compose.graph.override.yml --profile graph up -d postgres-age redis api worker. '
+        + 'Poi: python3 examples/full-cti-dataset/launch_cti_graph_demo.py');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+    setViewMode('links');
+    R.setLinkTypes('supports,related,causal,temporal');
+
+    R.caption('Passo 1 / 9', 'Panoramica: tre layer CTI sotto root.cti',
+      'SOC (teal), vendor reports (arancio = CrowdStrike, Mandiant, Microsoft), STIX operativo (viola = CISA MAR BRICKSTORM). '
+      + 'Gli archi supports/related collegano report con naming vendor diverso.');
+    await R.clearAndExplore(M.root, 4, 'supports,related,causal,temporal');
+    await R.waitNodes(8);
+    await pause(4000);
+
+    R.caption('Passo 2 / 9', 'BRICKSTORM — IOC reali da CISA MAR (STIX 2.1)',
+      'Campagna consolidata da bundle MAR-251165/217/234. SHA-256 estratti dai pattern STIX — nessun hash inventato.');
+    await R.clearAndExplore(M.brickstorm, 2, 'supports,related');
+    await R.waitNodes(4);
+    R.pickNode(parseInt(M.brickstorm, 10));
+    await pause(4500);
+
+    R.caption('Passo 3 / 9', 'DPRK Bybit — PRESSURE CHOLLIMA (CrowdStrike)',
+      'CrowdStrike attribuisce il furto Bybit al cluster PRESSURE CHOLLIMA. Path: root.cti.vendors.crowdstrike.*');
+    await R.clearAndExplore(M.cs_pressure, 3, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.cs_pressure, 10));
+    await pause(4500);
+
+    R.caption('Passo 4 / 9', 'Stesso attore, nome Microsoft: Sapphire Sleet',
+      'Microsoft Threat Intelligence: Sapphire Sleet = stesso ombrello DPRK. Vendor diversi → etichette diverse nel grafo.');
+    await R.clearAndExplore(M.ms_sapphire, 3, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.ms_sapphire, 10));
+    await pause(4500);
+
+    R.caption('Passo 5 / 9', 'Nodo distillation cross-vendor (DPRK overlap)',
+      'Il nodo distillation collega esplicitamente PRESSURE CHOLLIMA e Sapphire Sleet — stesso attore, due taxonomy vendor.');
+    await R.clearAndExplore(M.ti_sapphire, 2, 'supports,related');
+    await R.waitNodes(2);
+    R.pickNode(parseInt(M.ti_sapphire, 10));
+    await pause(4500);
+
+    R.caption('Passo 6 / 9', 'PROMPTSTEAL — campagna LLM-assisted (Mandiant)',
+      'Mandiant/Google TAG: lure LLM, payload FROZENLAKE, attribuzione APT28.');
+    await R.clearAndExplore(M.mdt_ps, 3, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.mdt_ps, 10));
+    await pause(4500);
+
+    R.caption('Passo 7 / 9', 'Forest Blizzard — stesso nexus APT28 (Microsoft)',
+      'Find chain da Mandiant PROMPTSTEAL al report Microsoft Forest Blizzard nel grafo.');
+    await R.clearAndExplore(M.mdt_ps, 2, 'supports,related');
+    await R.waitNodes(2);
+    document.getElementById('mem-id').value = M.mdt_ps;
+    selectedNode = parseInt(M.ms_forest, 10);
+    document.getElementById('btn-chain').disabled = false;
+    await findChain();
+    await pause(5000);
+
+    R.caption('Passo 8 / 9', 'IOC operativi APT28 / PROMPTSTEAL',
+      'Nodi sotto root.cti.vendors.google_gtig.apt28 con sample SHA-256 operativi. Inspector → metadata.iocs.');
+    await R.clearAndExplore(M.apt28, 2, 'supports,related');
+    await R.waitNodes(4);
+    R.pickNode(parseInt(M.apt28, 10));
+    await pause(4500);
+
+    R.caption('Passo 9 / 9', 'Retrieval ibrida BM25 + embedding',
+      'POST /v1/retrieve path_prefix=root.cti — query "PRESSURE CHOLLIMA Bybit" trova anche Sapphire Sleet. Tour completato.');
+    await R.clearAndExplore(M.root, 3, 'supports,related');
+    await R.waitNodes(6);
+    toast('Tour CTI completato');
+    await pause(4000);
+  } catch (e) {
+    toast('Tour CTI interrotto: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function initCtiDemoMode() {
+  window.CTI_DEMO_ACTIVE = true;
+  document.getElementById('entity-flags').style.display = 'inline-flex';
+  const M = ctiMemIds();
+  document.getElementById('mem-id').value = M.root;
+  document.getElementById('depth').value = '4';
+  setLinkTypes('supports,related,causal,temporal');
+  renderCtiGuideBar();
+  renderCtiLegend();
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('autostart') === '1') {
+    dismissCtiWelcome();
+    document.getElementById('overlay').classList.remove('show');
+  } else if (!localStorage.getItem('pcmi_cti_welcome_dismissed') && nodesData.length === 0) {
+    renderCtiWelcomeOverlay();
+    document.getElementById('overlay').classList.add('show');
+  } else {
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+
+function initSocDemoMode() {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mem')) document.getElementById('mem-id').value = qs.get('mem');
+  else document.getElementById('mem-id').value = '73';
+  setLinkTypes('causal,temporal,related');
+  document.getElementById('entity-flags').style.display = 'inline-flex';
+  updateGuideUI('links');
+  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0) {
+    renderWelcomeOverlay();
+    document.getElementById('overlay').classList.add('show');
+  }
+}
+
+function initDemoMode() {
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('demo') === 'soc') {
+    initSocDemoMode();
+    return;
+  }
+  initCtiDemoMode();
+}
+initDemoMode();
+
+async function runSocGuidedDemo() {
   dismissWelcome();
   const btn = document.getElementById('btn-guided-demo');
   if (btn) btn.disabled = true;
@@ -1679,57 +2282,21 @@ async function runGuidedDemo() {
     if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
     document.getElementById('mem-id').value = '73';
     clearGraph();
-    toast('Passo 1/4 · Links (causal/temporal)');
+    toast('SOC legacy demo (?demo=soc)');
     setViewMode('links');
     setLinkTypes('causal,temporal,related');
     await explore();
-    updateGuideUI('links');
-    await sleep(1200);
-
-    toast('Passo 2/4 · Entities (diamanti AGE)');
-    setViewMode('entities');
-    await exploreEntities();
-    updateGuideUI('entities');
-    await sleep(1200);
-
-    toast('Passo 3/4 · Extract (slot SIEM — può richiedere qualche secondo)');
-    await runExtract(73);
-    updateGuideUI('extract');
-    await sleep(800);
-
-    toast('Passo 4/4 · LLM Propose + review');
-    setViewMode('proposals');
-    await generateProposals(73);
-    updateGuideUI('proposals');
-    toast('Demo completata · Accept/Reject nel pannello sinistro');
   } catch (e) {
     toast('Demo interrotta: ' + e.message, true);
   } finally {
     if (btn) btn.disabled = false;
   }
 }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function initDemoMode() {
-  const qs = new URLSearchParams(location.search);
-  const demo = qs.get('demo') === '1' || qs.get('entity') === '1';
-  if (qs.get('mem')) document.getElementById('mem-id').value = qs.get('mem');
-  else if (demo) document.getElementById('mem-id').value = '73';
-  if (demo) {
-    setLinkTypes('causal,temporal,related');
-    document.getElementById('entity-flags').style.display = 'inline-flex';
-  }
-  updateGuideUI('links');
-  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0) {
-    renderWelcomeOverlay();
-    document.getElementById('overlay').classList.add('show');
-  }
-}
-initDemoMode();
-
-// ── recording / demo walkthrough (?record=1) ───────────────────────────────
+// ── recording / demo walkthrough (?demo=cti or default CTI UI) ─────────────
 (function initRecordMode() {
-  if (new URLSearchParams(location.search).get('record') !== '1') return;
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('demo') === 'soc' || qs.get('record') === '0') return;
   const css = document.createElement('style');
   css.textContent = `
     #record-banner {
@@ -1800,6 +2367,24 @@ initDemoMode();
           if (n >= min || Date.now() - t0 > 25000) return resolve(n);
           setTimeout(tick, 120);
         })();
+      });
+    },
+    async exploreFrom(id) {
+      document.getElementById('mem-id').value = String(id);
+      await explore();
+    },
+    async clearAndExplore(memId, depth, linkTypes) {
+      clearGraph();
+      this.setMemory(memId, depth);
+      this.setLinkTypes(linkTypes);
+      await explore();
+    },
+  };
+  if (qs.get('autostart') === '1') {
+    setTimeout(() => runCtiGuidedDemo(), 1400);
+  }
+})();
+
       });
     },
     async exploreFrom(id) {

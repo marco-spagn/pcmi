@@ -5,7 +5,7 @@
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test bug-hunt bug-hunt-fast \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui graph-ui-entities demo test-cognitive-graph test-cognitive-graph-matrix \
-        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test
+        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test demo_2
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
@@ -306,7 +306,31 @@ graph-ui-entities:
 	go test -tags=integration -run TestStream ./internal/event/...
 
 demo:
-	ENTITY_DEMO=1 OPEN_UI=1 bash scripts/e2e/launch_graph_ui.sh
+	ENTITY_DEMO=1 OPEN_UI=1 PRESET=cti bash scripts/e2e/launch_graph_ui.sh
+
+demo-cti-graph-ui:
+	python3 examples/full-cti-dataset/launch_cti_graph_demo.py --autostart
+
+# Multi-CTI datasets (SOC + vendor reports + STIX) under examples/full-cti-dataset/data/
+demo_2:
+	ENTITY_DEMO=1 OPEN_UI=1 PRESET=cti bash scripts/e2e/launch_graph_ui.sh
+
+.PHONY: cti-stix-download cti-stix-build cti-stix-validate
+cti-stix-download:
+	python3 examples/full-cti-dataset/download_stix_bundles.py
+
+cti-stix-build: cti-stix-download
+	python3 examples/full-cti-dataset/build_operational_stix_dataset.py
+
+cti-stix-validate: cti-stix-build
+	python3 examples/full-cti-dataset/validate.py
+
+cti-cross-vendor-demo: cti-stix-build
+	python3 examples/full-cti-dataset/demo_cross_vendor_correlation.py
+
+# 2D graph UI guided tour: SOC + vendor reports + operational STIX cross-vendor correlation
+demo-cti-graph: cti-stix-build
+	python3 examples/full-cti-dataset/launch_cti_graph_demo.py --infra --load --migrate
 
 test-circuit-breaker:
 	go test -race -count=1 -run 'TestCircuitBreaker|TestOpenAIProvider_Wrapped|TestEmbeddingWorker_' ./internal/embedding/... ./internal/worker/...

@@ -145,6 +145,13 @@ func (g *GraphClient) FindMemoriesByEntity(ctx context.Context, tenantID, kind, 
 		return &EntityMemoriesResult{Memories: []EntityMemory{}}, nil
 	}
 
+	keys := []string{key}
+	if g.expandKeys != nil {
+		if expanded, err := g.expandKeys(ctx, tenantID, kind, key); err == nil && len(expanded) > 0 {
+			keys = expanded
+		}
+	}
+
 	queryCtx, cancel := context.WithTimeout(ctx, g.queryTimeout)
 	defer cancel()
 
@@ -156,47 +163,49 @@ func (g *GraphClient) FindMemoriesByEntity(ctx context.Context, tenantID, kind, 
 
 	tenantLiteral := escapeCypherString(tenantID)
 	kindLiteral := escapeCypherString(kind)
-	keyLiteral := escapeCypherString(key)
-
-	dataQuery := fmt.Sprintf(`
-		SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
-			MATCH (e:Entity {kind: '%s', key: '%s', tenant_id: '%s'})<-[r:mentions]-(m:Memory)
-			WHERE m.id IS NOT NULL
-			RETURN m.id, r.slot, r.confidence
-		$$) AS (id ag_catalog.agtype, slot ag_catalog.agtype, confidence ag_catalog.agtype)`,
-		kindLiteral, keyLiteral, tenantLiteral,
-	)
-
-	rows, err := conn.Query(queryCtx, dataQuery)
-	if err != nil {
-		return nil, fmt.Errorf("graph FindMemoriesByEntity: %w", err)
-	}
-	defer rows.Close()
 
 	seen := make(map[int64]EntityMemory)
-	for rows.Next() {
-		var idRaw, slotRaw, confRaw []byte
-		if err := rows.Scan(&idRaw, &slotRaw, &confRaw); err != nil {
-			return nil, fmt.Errorf("graph FindMemoriesByEntity scan: %w", err)
+	for _, lookupKey := range keys {
+		keyLiteral := escapeCypherString(lookupKey)
+		dataQuery := fmt.Sprintf(`
+			SELECT * FROM ag_catalog.cypher('pcmi_memory_graph', $$
+				MATCH (e:Entity {kind: '%s', key: '%s', tenant_id: '%s'})<-[r:mentions]-(m:Memory)
+				WHERE m.id IS NOT NULL
+				RETURN m.id, r.slot, r.confidence
+			$$) AS (id ag_catalog.agtype, slot ag_catalog.agtype, confidence ag_catalog.agtype)`,
+			kindLiteral, keyLiteral, tenantLiteral,
+		)
+		rows, err := conn.Query(queryCtx, dataQuery)
+		if err != nil {
+			return nil, fmt.Errorf("graph FindMemoriesByEntity: %w", err)
 		}
-		id, err := parseMemoryVertexID(string(idRaw))
-		if err != nil || id <= 0 {
-			continue
+		for rows.Next() {
+			var idRaw, slotRaw, confRaw []byte
+			if err := rows.Scan(&idRaw, &slotRaw, &confRaw); err != nil {
+				rows.Close()
+				return nil, fmt.Errorf("graph FindMemoriesByEntity scan: %w", err)
+			}
+			id, err := parseMemoryVertexID(string(idRaw))
+			if err != nil || id <= 0 {
+				continue
+			}
+			conf, _ := strconv.ParseFloat(strings.Trim(string(confRaw), `"`), 64)
+			candidate := EntityMemory{
+				ID:         id,
+				SharedKind: kind,
+				SharedKey:  lookupKey,
+				Slot:       strings.Trim(string(slotRaw), `"`),
+				Confidence: conf,
+			}
+			if existing, ok := seen[id]; !ok || candidate.Confidence > existing.Confidence {
+				seen[id] = candidate
+			}
 		}
-		conf, _ := strconv.ParseFloat(strings.Trim(string(confRaw), `"`), 64)
-		candidate := EntityMemory{
-			ID:         id,
-			SharedKind: kind,
-			SharedKey:  key,
-			Slot:       strings.Trim(string(slotRaw), `"`),
-			Confidence: conf,
+		if err := rows.Err(); err != nil {
+			rows.Close()
+			return nil, fmt.Errorf("graph FindMemoriesByEntity rows: %w", err)
 		}
-		if existing, ok := seen[id]; !ok || candidate.Confidence > existing.Confidence {
-			seen[id] = candidate
-		}
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("graph FindMemoriesByEntity rows: %w", err)
+		rows.Close()
 	}
 
 	return paginateEntityMemories(seen, cursor, limit), nil

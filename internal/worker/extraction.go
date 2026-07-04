@@ -15,8 +15,9 @@ import (
 
 // ExtractionWorker runs LLM attribute extraction after memory store/update events.
 type ExtractionWorker struct {
-	svc       *service.ExtractionService
-	proposals *service.LinkProposalService
+	svc          *service.ExtractionService
+	proposals    *service.LinkProposalService
+	aliasProps   *service.EntityAliasProposalService
 }
 
 // NewExtractionWorker wires the extraction service for async worker use.
@@ -26,10 +27,15 @@ func NewExtractionWorker(db *pgxpool.Pool, cfg *config.Config) *ExtractionWorker
 	memRepo := repository.NewMemoryRepository(db, nil)
 	links := repository.NewLinksRepository(db, nil)
 	proposalsRepo := repository.NewLinkProposalRepository(db, nil)
+	entityRepo := repository.NewEntityRegistryRepository(db, nil)
+	aliasProposalRepo := repository.NewEntityAliasProposalRepository(db, nil)
+	entitySvc := service.NewEntityRegistryService(entityRepo)
+	graphClient.SetEntityKeyExpander(entitySvc.ExpandEntityKeys)
 	llm, _ := NewLLMClient(cfg)
-	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graphClient)
+	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graphClient, entitySvc)
 	proposals := service.NewLinkProposalService(proposalsRepo, profiles, links, graphClient, llm, cfg)
-	return &ExtractionWorker{svc: svc, proposals: proposals}
+	aliasProps := service.NewEntityAliasProposalService(aliasProposalRepo, entityRepo, entitySvc, profiles, llm, cfg)
+	return &ExtractionWorker{svc: svc, proposals: proposals, aliasProps: aliasProps}
 }
 
 // Enabled reports whether extraction is turned on in config.
@@ -52,6 +58,11 @@ func (w *ExtractionWorker) OnMemoryEvent(tenantID, path string, memoryID int64, 
 		if w.proposals != nil && w.proposals.Enabled() {
 			if _, err := w.proposals.GenerateForMemory(ctx, tenantID, memoryID); err != nil {
 				log.Printf("link proposal worker: tenant=%s id=%d: %v", tenantID, memoryID, err)
+			}
+		}
+		if w.aliasProps != nil && w.aliasProps.Enabled() {
+			if _, err := w.aliasProps.GenerateForMemory(ctx, tenantID, memoryID); err != nil {
+				log.Printf("entity alias proposal worker: tenant=%s id=%d: %v", tenantID, memoryID, err)
 			}
 		}
 	}()

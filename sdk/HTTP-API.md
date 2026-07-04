@@ -59,6 +59,13 @@ Requires Apache AGE (`docker compose --profile graph`). See [`../docs/cognitive-
 | `POST /v1/graph/link-proposals/generate/{memory_id}` | Generate proposals (503 when `LINK_PROPOSALS_ENABLED=false`) |
 | `POST /v1/graph/link-proposals/{id}/accept` | Materialize pending proposal to `memory_links` |
 | `POST /v1/graph/link-proposals/{id}/reject` | Reject pending proposal |
+| `GET /v1/entities/registry` | List canonical entities (`?kind=`, `?limit=`) — any extraction profile |
+| `GET /v1/entities/registry/{kind}/{canonical_key}` | Entity detail + aliases + evolution snapshots |
+| `POST /v1/entities/registry/aliases` | Register manual alias merge (write role) |
+| `GET /v1/graph/entity-alias-proposals` | List pending entity alias merge proposals |
+| `POST /v1/graph/entity-alias-proposals/generate/{memory_id}` | LLM alias proposals (503 when `ENTITY_ALIAS_PROPOSALS_ENABLED=false`) |
+| `POST /v1/graph/entity-alias-proposals/{id}/accept` | Accept alias → registry + AGE `same_as` |
+| `POST /v1/graph/entity-alias-proposals/{id}/reject` | Reject alias proposal |
 | `GET /v1/extraction-profiles` | List tenant LLM extraction profiles (Phase A) |
 | `PUT /v1/extraction-profiles/{profile_id}` | Upsert profile (`path_prefix`, `profile`, `enabled`) |
 | `DELETE /v1/extraction-profiles/{profile_id}` | Remove profile |

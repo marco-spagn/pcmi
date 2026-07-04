@@ -22,17 +22,18 @@ type ExtractionHandler struct {
 	svc *service.ExtractionService
 }
 
-func NewExtractionHandler(dbWrite, readReplica *pgxpool.Pool, cfg *config.Config) *ExtractionHandler {
+func NewExtractionHandler(dbWrite, readReplica *pgxpool.Pool, cfg *config.Config, entities *service.EntityRegistryService) *ExtractionHandler {
 	profiles := repository.NewExtractionRepository(dbWrite, readReplica)
 	memRepo := repository.NewMemoryRepository(dbWrite, readReplica)
 	llm, _ := worker.NewLLMClient(cfg)
-	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graph.NewGraphClient(dbWrite))
+	graphClient := graph.NewGraphClient(dbWrite)
+	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graphClient, entities)
 	return &ExtractionHandler{svc: svc}
 }
 
 // RegisterExtractionRoutes mounts Phase A extraction endpoints.
-func RegisterExtractionRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *config.Config) {
-	h := NewExtractionHandler(dbWrite, readReplica, cfg)
+func RegisterExtractionRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *config.Config, entities *service.EntityRegistryService) {
+	h := NewExtractionHandler(dbWrite, readReplica, cfg, entities)
 	api := app.Group("/v1")
 	api.Get("/extraction-profiles", h.ListProfiles)
 	api.Put("/extraction-profiles/:profile_id", middleware.RequireWriteRole, h.UpsertProfile)

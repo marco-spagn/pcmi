@@ -29,8 +29,9 @@
 #   # Skip loading (infrastructure only)
 #   INFRA_ONLY=1 bash scripts/e2e/launch_graph_ui.sh
 #
-#   # Choose dataset preset: soc (default) | finance | custom
+#   # Choose dataset preset: soc (default) | cti | finance | custom
 #   PRESET=soc bash scripts/e2e/launch_graph_ui.sh
+#   make demo_2   # multi-CTI JSON from examples/full-cti-dataset/data/
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
@@ -43,6 +44,14 @@ INFRA_ONLY="${INFRA_ONLY:-0}"
 ENTITY_DEMO="${ENTITY_DEMO:-0}"
 DATASET_SIZE="${DATASET_SIZE:-1000}"
 PRESET="${PRESET:-soc}"
+if [ "$ENTITY_DEMO" = "1" ] && [ "$PRESET" = "soc" ] && [ -z "${PRESET_FORCE:-}" ]; then
+  PRESET=cti
+fi
+CTI_DATA_DIR="${PROJECT_ROOT}/examples/full-cti-dataset/data"
+CTI_DATASET_JSON="${CTI_DATASET_JSON:-${CTI_DATA_DIR}/full_cti_dataset.json}"
+CTI_VENDOR_REPORTS_JSON="${CTI_VENDOR_REPORTS_JSON:-${CTI_DATA_DIR}/vendor_reports_cti_dataset.json}"
+CTI_STIX_BUNDLE_JSON="${CTI_STIX_BUNDLE_JSON:-${CTI_DATA_DIR}/operational_stix_cti_dataset.json}"
+CTI_ROOT_KEY="${CTI_ROOT_KEY:-soc_inc_001}"
 PCMI_BASE_URL="${PCMI_BASE_URL:-http://localhost:8000}"
 PCMI_API_KEY="${PCMI_API_KEY:-testkey123}"
 AGE_PORT="${AGE_PORT:-5433}"
@@ -79,7 +88,8 @@ cd "$PROJECT_ROOT"
 if [ "$ENTITY_DEMO" = "1" ]; then
   export EXTRACTION_ENABLED=true
   export LINK_PROPOSALS_ENABLED=true
-  info "ENTITY_DEMO=1 — EXTRACTION_ENABLED + LINK_PROPOSALS_ENABLED enabled"
+  export ENTITY_ALIAS_PROPOSALS_ENABLED=true
+  info "ENTITY_DEMO=1 — EXTRACTION + LINK_PROPOSALS + ENTITY_ALIAS_PROPOSALS enabled"
   if [ -f "$PROJECT_ROOT/.env" ] && grep -q '^OPENAI_API_KEY=.\+' "$PROJECT_ROOT/.env" 2>/dev/null; then
     ok "OPENAI_API_KEY found in .env"
   else
@@ -162,7 +172,8 @@ if [ "$INFRA_ONLY" = "1" ]; then
   echo ""
   banner "  Infrastructure is up!"
   echo ""
-  echo "  Graph UI:  ${PCMI_BASE_URL}/v1/graph/ui"
+  echo "  Workbench: ${PCMI_BASE_URL}/v1/graph/workbench"
+  echo "  Legacy UI: ${PCMI_BASE_URL}/v1/graph/ui"
   echo "  API base:  ${PCMI_BASE_URL}"
   echo "  API key:   ${PCMI_API_KEY}"
   echo ""
@@ -180,89 +191,160 @@ case "$PRESET" in
     GENERATOR="${SOC_DATASET}/generate_soc_dataset.py"
     VALIDATOR="${SOC_DATASET}/validate.py"
     LOADER="${SOC_DATASET}/load_to_pcmi.py"
+    DEMO_SETUP="${SOC_DATASET}/setup_extraction_demo.py"
+    WORKBENCH_MEM="73"
+    ;;
+  cti)
+    CTI_DATASET="${PROJECT_ROOT}/examples/full-cti-dataset"
+    VALIDATOR="${CTI_DATASET}/validate.py"
+    LOADER="${CTI_DATASET}/load_multi_cti.py"
+    DEMO_SETUP="${PROJECT_ROOT}/examples/soc-incident-graph/setup_extraction_demo.py"
+    CTI_ALREADY_LOADED=0
+    if curl -sf -H "X-API-Key: ${PCMI_API_KEY}" \
+      -H "Content-Type: application/json" \
+      -d '{"path_prefix":"root.cti","limit":1}' \
+      "${PCMI_BASE_URL}/v1/retrieve" 2>/dev/null | jq -e '.entries | length > 0' >/dev/null 2>&1; then
+      CTI_ALREADY_LOADED=1
+      ok "CTI memories already present under root.cti — skip JSON load"
+    fi
+    for f in "$CTI_DATASET_JSON" "$CTI_VENDOR_REPORTS_JSON"; do
+      if [ ! -f "$f" ] && [ "$CTI_ALREADY_LOADED" != "1" ]; then
+        echo "${RED}✗ CTI dataset not found: ${f}${RESET}" >&2
+        echo "  Load CTI data first (branch feat/cognitive-graph-ui-v2) or ensure root.cti is populated." >&2
+        exit 1
+      fi
+    done
+    if [ ! -f "$CTI_STIX_BUNDLE_JSON" ] && [ "$CTI_ALREADY_LOADED" != "1" ]; then
+      warn "STIX bundle missing (${CTI_STIX_BUNDLE_JSON}) — loading SOC + vendor reports only"
+    fi
+    if [ "$CTI_ALREADY_LOADED" != "1" ]; then
+      info "SOC/TI Hub:     ${CTI_DATASET_JSON}"
+      info "Vendor reports: ${CTI_VENDOR_REPORTS_JSON}"
+      info "STIX bundle:    ${CTI_STIX_BUNDLE_JSON}"
+    fi
+    export CTI_DATASET_JSON CTI_VENDOR_REPORTS_JSON CTI_STIX_BUNDLE_JSON
+    WORKBENCH_MEM=""
     ;;
   *)
-    echo "${RED}✗ Unknown preset: $PRESET (supported: soc)${RESET}" >&2
+    echo "${RED}✗ Unknown preset: $PRESET (supported: soc, cti)${RESET}" >&2
     exit 1
     ;;
 esac
 
-# Generate if CSV missing or size changed
-CURRENT_NODES=$(wc -l < "$NODES_CSV" 2>/dev/null | tr -d ' ' || echo "0")
-CURRENT_NODES=$((CURRENT_NODES - 1))  # subtract header
+if [ "$PRESET" = "soc" ]; then
+  CURRENT_NODES=$(wc -l < "$NODES_CSV" 2>/dev/null | tr -d ' ' || echo "0")
+  CURRENT_NODES=$((CURRENT_NODES - 1))
 
-if [ "$CURRENT_NODES" -lt "$DATASET_SIZE" ] 2>/dev/null || [ ! -f "$NODES_CSV" ]; then
-  info "Generating SOC dataset (${DATASET_SIZE} nodes)..."
-  cd "$SOC_DATASET"
-  python3 "$GENERATOR" "$DATASET_SIZE"
-  ok "Dataset generated: $(wc -l < "$NODES_CSV" | tr -d ' ') lines (header + nodes)"
+  if [ "$CURRENT_NODES" -lt "$DATASET_SIZE" ] 2>/dev/null || [ ! -f "$NODES_CSV" ]; then
+    info "Generating SOC dataset (${DATASET_SIZE} nodes)..."
+    cd "$SOC_DATASET"
+    python3 "$GENERATOR" "$DATASET_SIZE"
+    ok "Dataset generated: $(wc -l < "$NODES_CSV" | tr -d ' ') lines (header + nodes)"
+  else
+    info "Dataset already exists with $CURRENT_NODES nodes — skipping generation"
+    info "To regenerate: rm ${NODES_CSV} ${LINKS_CSV} && bash $0"
+  fi
 else
-  info "Dataset already exists with $CURRENT_NODES nodes — skipping generation"
-  info "To regenerate: rm ${NODES_CSV} ${LINKS_CSV} && bash $0"
+  info "Using JSON dataset (preset=${PRESET}) — no CSV generation"
 fi
 
 # ── Step 4: Validate ────────────────────────────────────────────────────────
 hdr "Step 4: Validate dataset"
 
-cd "$SOC_DATASET"
-if python3 "$VALIDATOR"; then
-  ok "Dataset is coherent — 0 errors"
+if [ "$PRESET" = "cti" ] && [ "${CTI_ALREADY_LOADED:-0}" = "1" ]; then
+  info "Skipping validate — CTI data already in PCMI"
+elif [ -f "$VALIDATOR" ]; then
+  cd "$(dirname "$VALIDATOR")"
+  if python3 "$VALIDATOR"; then
+    ok "Dataset is coherent — 0 errors"
+  else
+    warn "Validation found issues — loading anyway (check output above)"
+  fi
 else
-  warn "Validation found issues — loading anyway (check output above)"
+  warn "No validator for preset=${PRESET} — skipping"
 fi
 
 # ── Step 5: Load into PCMI ──────────────────────────────────────────────────
 hdr "Step 5: Load dataset into PCMI"
 
-cd "$SOC_DATASET"
 export PCMI_BASE_URL
 export PCMI_API_KEY
+export CTI_DATASET_JSON
+export CTI_VENDOR_REPORTS_JSON
+export CTI_STIX_BUNDLE_JSON
+export CTI_ROOT_KEY
 
-info "Loading up to ${DATASET_SIZE} nodes + matching links (link-workers=${LINK_WORKERS})..."
-info "This is resumable — interrupt and restart safely (examples/soc-incident-graph/id_map.json checkpoint)"
-info "RATE_LIMIT_DISABLED=${RATE_LIMIT_DISABLED} (set false to exercise API throttling)"
-
-python3 "$LOADER" --batch 50 --link-workers "$LINK_WORKERS" --limit "$DATASET_SIZE"
+if [ "$PRESET" = "cti" ] && [ "${CTI_ALREADY_LOADED:-0}" = "1" ]; then
+  info "Skipping load — using existing root.cti memories"
+elif [ "$PRESET" = "soc" ]; then
+  cd "$SOC_DATASET"
+  info "Loading up to ${DATASET_SIZE} nodes + matching links (link-workers=${LINK_WORKERS})..."
+  python3 "$LOADER" --batch 50 --link-workers "$LINK_WORKERS" --limit "$DATASET_SIZE"
+else
+  cd "$CTI_DATASET"
+  info "Loading multi-CTI (SOC + vendor reports + STIX)…"
+  LOADER_ARGS=(--batch 50 --link-workers "$LINK_WORKERS")
+  if [ "${CTI_MULTI_RESET:-0}" = "1" ]; then
+    LOADER_ARGS+=(--reset)
+  fi
+  python3 "$LOADER" "${LOADER_ARGS[@]}"
+  if [ -f "${CTI_DATASET}/id_map.json" ]; then
+    WORKBENCH_MEM=$(python3 -c "import json,os; m=json.load(open('id_map.json')); print(m.get(os.environ.get('CTI_ROOT_KEY','soc_inc_001'),''))")
+  fi
+fi
 
 ok "Dataset loaded"
 
 # ── Step 6: Entity extraction demo (optional) ───────────────────────────────
 if [ "$ENTITY_DEMO" = "1" ]; then
   hdr "Step 6: Entity extraction + LLM link proposals"
-  cd "$SOC_DATASET"
-  info "Registering soc.siem.v1 profile, running extraction (${EXTRACT_LIMIT}) + proposals (${PROPOSE_LIMIT})…"
-  if python3 setup_extraction_demo.py --extract-limit "$EXTRACT_LIMIT" --propose-limit "$PROPOSE_LIMIT"; then
+  if [ "$PRESET" = "soc" ]; then
+    cd "$SOC_DATASET"
+  else
+    cd "$CTI_DATASET"
+  fi
+  info "Running extraction (${EXTRACT_LIMIT}) + proposals (${PROPOSE_LIMIT})…"
+  if python3 "$DEMO_SETUP" --extract-limit "$EXTRACT_LIMIT" --propose-limit "$PROPOSE_LIMIT"; then
     ok "Entity demo data ready"
   else
-    warn "Entity demo setup had errors — UI still works; run extraction manually from the toolbar"
+    warn "Entity demo setup had errors — UI still works; run extraction manually"
   fi
 fi
 
 # ── Done ────────────────────────────────────────────────────────────────────
 hdr "All done!"
 
-GRAPH_UI="${PCMI_BASE_URL}/v1/graph/ui?demo=1&mem=73"
+if [ -z "$WORKBENCH_MEM" ] && [ -f "${CTI_DATASET:-}/id_map.json" ]; then
+  WORKBENCH_MEM=$(python3 -c "import json; m=json.load(open('${CTI_DATASET}/id_map.json')); print(m.get('${CTI_ROOT_KEY}',''))" 2>/dev/null || true)
+fi
+WORKBENCH_MEM="${WORKBENCH_MEM:-73}"
+GRAPH_UI_URL="${PCMI_BASE_URL}/v1/graph/ui?demo=cti&autostart=1"
+if RESOLVED=$(PCMI_BASE_URL="$PCMI_BASE_URL" PCMI_API_KEY="$PCMI_API_KEY" \
+  python3 "${PROJECT_ROOT}/examples/full-cti-dataset/resolve_demo_ids.py" --url-only 2>/dev/null); then
+  GRAPH_UI_URL="${RESOLVED}&autostart=1"
+fi
 
 echo ""
 banner "  🎉 PCMI Cognitive Graph is ready!"
 echo ""
 echo "  ┌─────────────────────────────────────────────────────────────┐"
-echo "  │  Graph UI:  ${GRAPH_UI}                 │"
-echo "  │  API base:  ${PCMI_BASE_URL}                              │"
-echo "  │  API key:   ${PCMI_API_KEY}                                  │"
+echo "  │  CTI Graph UI: ${GRAPH_UI_URL}  │"
+echo "  │  API base:     ${PCMI_BASE_URL}                              │"
+echo "  │  API key:      ${PCMI_API_KEY}                                  │"
 echo "  └─────────────────────────────────────────────────────────────┘"
 echo ""
 echo "  Open in browser:"
-echo "    ${BOLD}open ${GRAPH_UI}${RESET}"
+echo "    ${BOLD}open \"${GRAPH_UI_URL}\"${RESET}"
 if [ "$OPEN_UI" = "1" ] && command -v open >/dev/null 2>&1; then
-  open "$GRAPH_UI" 2>/dev/null || true
+  open "$GRAPH_UI_URL" 2>/dev/null || true
 fi
 echo ""
 if [ "$ENTITY_DEMO" = "1" ]; then
-  echo "  Entity demo UI:"
-  echo "    • View → Entities   — promoted :Entity vertices + correlated memories"
-  echo "    • View → Proposals  — pending LLM links (Accept / Reject)"
-  echo "    • Extract / LLM Propose — manual actions on selected memory"
+  echo "  CTI demo UI (threat actors · multi-vendor):"
+  echo "    • ▶ Tour automatico — 9 passi (banner in basso)"
+  echo "    • Colori: teal=SOC · arancio=vendor · viola=STIX"
+  echo "    • BRICKSTORM · PRESSURE CHOLLIMA ↔ Sapphire Sleet · PROMPTSTEAL ↔ Forest Blizzard"
+  echo "    • View Registry / Proposals — Phase D entity evolution"
   echo ""
 fi
 echo "  Quick exploration (curl):"

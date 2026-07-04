@@ -163,9 +163,10 @@ func (r *MemoryRepository) Store(ctx context.Context, req model.StoreRequest, te
 const openVersionConstraint = "uq_memory_entries_open_version"
 
 // maxStoreAttempts bounds Store retries when a concurrent writer wins the race
-// to close the current version. A small bound is sufficient: each retry that
-// loses re-reads the freshly-closed row, so progress is guaranteed.
-const maxStoreAttempts = 3
+// to close the current version. Must exceed the number of simultaneous writers
+// to the same path (integration test uses 5 API replicas); otherwise the last
+// loser exhausts retries and returns 500.
+const maxStoreAttempts = 8
 
 // isOpenVersionConflict reports whether err is a unique_violation on the
 // open-version index — i.e. a concurrent store closed the current row first and

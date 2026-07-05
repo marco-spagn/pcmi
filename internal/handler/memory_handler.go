@@ -218,6 +218,27 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	emh := NewEmbeddingMigrateHandler(dbWrite)
 	api.Post("/embeddings/migrate", middleware.RequireWriteRole, emh.Migrate)
 
+	// Resolve graph vertex id → current memory (handles superseded AGE ids).
+	api.Get("/memories/id/:memory_id", func(c *fiber.Ctx) error {
+		memoryID, err := strconv.ParseInt(strings.TrimSpace(c.Params("memory_id")), 10, 64)
+		if err != nil || memoryID <= 0 {
+			return c.Status(400).JSON(fiber.Map{"error": "memory_id must be a positive integer"})
+		}
+		tenantID := c.Locals(middleware.TenantContextKey).(string)
+		entry, requestedID, err := svc.GetByIDResolveCurrent(c.Context(), tenantID, memoryID)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return c.Status(404).JSON(fiber.Map{"error": err.Error()})
+			}
+			return c.Status(500).JSON(fiber.Map{"error": "get memory failed"})
+		}
+		resp := fiber.Map{"entry": entry}
+		if entry != nil && entry.ID != requestedID {
+			resp["resolved_from_id"] = requestedID
+		}
+		return c.JSON(resp)
+	})
+
 	// Wildcard GET must be registered after all specific /memories/* routes (history, batch, etc.)
 	api.Get("/memories/*", func(c *fiber.Ctx) error {
 		raw := strings.TrimPrefix(c.Params("*"), "/")

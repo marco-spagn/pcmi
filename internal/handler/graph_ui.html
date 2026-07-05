@@ -308,6 +308,25 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   width: 100%; font-size: 11px; padding: 6px 8px; border-radius: 7px;
   border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim);
 }
+.retrieval-panel .retrieval-query {
+  width: 100%; min-height: 52px; padding: 8px 10px; border-radius: 7px; margin-top: 8px;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text);
+  font-size: 11.5px; font-family: var(--sans); resize: vertical; line-height: 1.45;
+}
+.retrieval-hit {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; background: var(--bg-elev);
+}
+.retrieval-hit:hover { border-color: var(--border-2); }
+.retrieval-hit.cross { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.06); }
+.retrieval-hit .rank { font-family: var(--mono); font-size: 11px; color: var(--text-mute); }
+.retrieval-hit .score { font-family: var(--mono); font-size: 11px; color: var(--primary); }
+.retrieval-hit .path { font-size: 11px; color: var(--text-dim); word-break: break-all; margin-top: 3px; }
+.retrieval-hit .snippet { font-size: 11px; color: var(--text); margin-top: 4px; line-height: 1.4; }
+.retrieval-summary {
+  font-size: 11.5px; color: var(--text-dim); line-height: 1.5; padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
 .snap-timeline { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .snap-row {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
@@ -351,7 +370,9 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .gstep {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
   padding: 10px 11px; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
+  user-select: none;
 }
+.gstep:active { transform: scale(0.98); }
 .gstep:hover { border-color: var(--border-2); background: var(--bg-elev); }
 .gstep.active { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.08); box-shadow: 0 0 0 1px rgba(45,212,191,.15); }
 .gstep.done { opacity: .72; }
@@ -446,6 +467,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <button id="btn-view-links" class="btn-active seg" onclick="setViewMode('links')">Links</button>
   <button id="btn-view-entities" class="btn-secondary seg" onclick="setViewMode('entities')">Entities</button>
   <button id="btn-view-registry" class="btn-secondary seg" onclick="setViewMode('registry')">Registry</button>
+  <button id="btn-view-retrieval" class="btn-secondary seg" style="display:none" onclick="setViewMode('retrieval')">Retrieve</button>
   <button id="btn-view-proposals" class="btn-secondary seg" onclick="setViewMode('proposals')">Proposals</button>
   <div class="control-sep"></div>
   <button class="btn-primary"   id="btn-explore" onclick="runExplore()">Explore</button>
@@ -458,13 +480,13 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 
 <div class="guide-bar" id="guide-bar">
   <div class="guide-top">
-    <h2>Demo CTI · threat actors multi-vendor</h2>
-    <span class="sub">Dataset <b style="color:var(--primary);font-family:var(--mono)">root.cti</b> · BRICKSTORM · PRESSURE CHOLLIMA · Sapphire Sleet · PROMPTSTEAL · Forest Blizzard</span>
+    <h2>Demo CTI · Operational STIX dataset</h2>
+    <span class="sub"><code>operational_stix_cti_dataset.json</code> · BRICKSTORM · Wiz Bybit · PROMPTSTEAL · Forest Blizzard</span>
     <button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>
     <button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>
   </div>
   <div class="guide-now" id="guide-now">
-    <b>Avvio:</b> API key <kbd>testkey123</kbd> → clicca <kbd>▶ Tour automatico</kbd> (9 passi, banner in basso). Colori nodi: teal=SOC · arancio=vendor · viola=STIX.
+    <b>Avvio:</b> API key <kbd>testkey123</kbd> → clicca <kbd>▶ Tour automatico</kbd> (12 passi, banner in basso). Colori nodi: teal=SOC · arancio=vendor · viola=STIX.
   </div>
 </div>
 
@@ -509,15 +531,37 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <p class="empty-note">Run <b>Extract</b> first — registry populates on extraction (Phase D).</p>
     </div>
   </aside>
+  <aside class="proposals-panel retrieval-panel" id="retrieval-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Hybrid retrieve</div>
+      <button class="btn-secondary seg" onclick="runCtiRetrievalPanel()">Run</button>
+    </div>
+    <div class="registry-filter">
+      <select id="retrieval-scenario" onchange="applyRetrievalScenario()">
+        <option value="dprk_cs">DPRK · CrowdStrike → Microsoft</option>
+        <option value="dprk_ms">DPRK · Microsoft → CrowdStrike</option>
+        <option value="apt28_mandiant">APT28 · PROMPTSTEAL → IOC operativi</option>
+        <option value="apt28_ms">APT28 · Forest Blizzard → Mandiant</option>
+      </select>
+      <textarea id="retrieval-query" class="retrieval-query" rows="3"
+        placeholder="Query POST /v1/retrieve (path_prefix=root.cti)…"></textarea>
+    </div>
+    <div class="retrieval-summary" id="retrieval-summary">
+      BM25 (keyword) + pgvector (semantica) fusi in un unico score — nessuna tabella alias a query time.
+      I risultati <span style="color:var(--ok)">verdi</span> collegano vendor diversi nello stesso top-N.
+    </div>
+    <div class="prop-body" id="retrieval-results">
+      <p class="empty-note">Scegli uno scenario e clicca <b>Run</b>. Clicca un risultato → evidenzia il nodo nel grafo.</p>
+    </div>
+  </aside>
   <div class="canvas-wrap">
     <div id="graph"></div>
 
     <div class="overlay show" id="overlay">
       <div class="card welcome-card" id="overlay-card">
-        <h3>Demo CTI · threat actors sul grafo 2D</h3>
+        <h3>Demo CTI · Operational STIX dataset</h3>
         <p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">
-          Dataset <b>root.cti</b>: report vendor, IOC STIX CISA (BRICKSTORM) e correlazione cross-vendor
-          (<b>PRESSURE CHOLLIMA</b> ↔ <b>Sapphire Sleet</b>, <b>PROMPTSTEAL</b> ↔ <b>Forest Blizzard</b>).
+          Dataset <b>operational_stix_cti_dataset.json</b>: IOC reali CISA MAR, Wiz Bybit, Microsoft DCU, GTIG APT28.
         </p>
         <ol>
           <li><b>Layer</b> — SOC/teal, vendor reports/arancio, STIX/viola</li>
@@ -527,7 +571,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
           <li><b>Find chain</b> — percorso strutturale tra report vendor diversi</li>
         </ol>
         <div class="welcome-actions">
-          <button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI (9 passi)</button>
+          <button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI (12 passi)</button>
           <button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button>
         </div>
       </div>
@@ -583,7 +627,7 @@ let nodeTimestamps = {};
 let nodeMeta = {};            // id -> { linkType, depth }
 let memCache = {};            // id -> full MemoryEntry (path, content, tags, metadata, ...)
 let cacheLoaded = false;
-let viewMode = 'links';       // links | entities | registry | proposals
+let viewMode = 'links';       // links | entities | registry | retrieval | proposals
 let proposalTab = 'links';    // links | aliases
 let pendingProposals = [];    // last fetched link proposals
 let pendingAliasProposals = [];
@@ -659,6 +703,58 @@ function clusterColor(key) {
 function clusterLabel(key) { return String(key).replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
 
 // ── memory cache (id -> full entry) via /v1/retrieve ────────────────────────
+async function fetchMemoryById(id) {
+  id = parseInt(id, 10);
+  if (!id || isNaN(id)) return null;
+  if (memCache[id]) return memCache[id];
+  const alias = Object.values(memCache).find(e => e && e.id === id);
+  if (alias) {
+    memCache[id] = alias;
+    return alias;
+  }
+  if (!apiKey()) return null;
+  try {
+    const r = await fetch(apiUrl + '/v1/memories/id/' + encodeURIComponent(id), { headers: authHeaders() });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const entry = data.entry || data;
+    if (!entry || entry.id == null) return null;
+    memCache[entry.id] = entry;
+    memCache[id] = entry;
+    if (data.resolved_from_id && data.resolved_from_id !== entry.id) {
+      memCache[data.resolved_from_id] = entry;
+    }
+    refreshNodeLabelsForEntry(entry, data.resolved_from_id || id);
+    document.getElementById('stat-cache').textContent = Object.keys(memCache).length;
+    return entry;
+  } catch (_) {
+    return null;
+  }
+}
+
+function refreshNodeLabelsForEntry(entry, graphNodeId) {
+  if (!entry || entry.id == null) return;
+  const ids = new Set([entry.id]);
+  if (graphNodeId != null) ids.add(parseInt(graphNodeId, 10));
+  ids.forEach(nid => {
+    if (nodesData.get(nid)) {
+      nodesData.update({ id: nid, label: nodeLabel(entry.id), title: nodeTitle(entry.id) });
+    }
+  });
+}
+
+async function hydrateVisibleMemories() {
+  const ids = nodesData.getIds().filter(id => !isEntityNodeId(id));
+  const missing = [];
+  for (const raw of ids) {
+    const id = parseInt(raw, 10);
+    if (id && !memCache[id]) missing.push(id);
+  }
+  for (let i = 0; i < missing.length; i += 10) {
+    await Promise.all(missing.slice(i, i + 10).map(fetchMemoryById));
+  }
+}
+
 async function loadMemoryCache(force) {
   if (cacheLoaded && !force) return;
   if (!apiKey()) return;
@@ -673,7 +769,18 @@ async function loadMemoryCache(force) {
       if (!r.ok) break;
       const data = await r.json();
       for (const e of (data.entries || [])) {
-        if (e && (e.id || e.id === 0)) memCache[e.id] = e;
+        if (!e || (e.id == null && e.id !== 0)) continue;
+        const path = e.path || '';
+        const prev = memCache[e.id];
+        if (!prev) {
+          memCache[e.id] = e;
+          continue;
+        }
+        const prevOp = (prev.metadata || {}).cti_source;
+        const nextOp = (e.metadata || {}).cti_source;
+        const prevScore = (prevOp === 'stix' || prevOp === 'vendor_intel') ? 1 : 0;
+        const nextScore = (nextOp === 'stix' || nextOp === 'vendor_intel') ? 1 : 0;
+        if (nextScore > prevScore || (nextScore === prevScore && e.id > prev.id)) memCache[e.id] = e;
       }
       cursor = data.next_cursor || '';
       pages++;
@@ -756,14 +863,6 @@ function initNetwork(layout) {
   if (clustersOn && currentLayout === 'force') applyClusters();
 }
 
-function selectNode(id) {
-  selectedNode = id;
-  document.getElementById('btn-chain').disabled = isEntityNodeId(id);
-  network.selectNodes([id]);
-  if (isEntityNodeId(id)) openEntityInspector(id);
-  else openInspector(id);
-}
-
 // ── INSPECTOR ───────────────────────────────────────────────────────────────
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
@@ -774,14 +873,63 @@ function fmtDate(iso) {
   return d.toLocaleString(undefined, { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 }
 
-function openInspector(id) {
+function renderOperationalIocs(md) {
+  if (!md || typeof md !== 'object') return '';
+  const iocs = md.iocs;
+  const src = md.cti_source || '';
+  const mar = md.source || md.mar_id || '';
+  if (!iocs && src !== 'stix' && src !== 'vendor_intel') return '';
+  let rows = '';
+  if (src) rows += '<tr><td class="k">dataset</td><td class="v"><b>' + escapeHtml(src) + '</b> · operational_stix_cti_dataset.json</td></tr>';
+  if (mar) rows += '<tr><td class="k">source</td><td class="v">' + escapeHtml(String(mar)) + '</td></tr>';
+  if (iocs && typeof iocs === 'object') {
+    if (iocs.sha256) rows += '<tr><td class="k">SHA-256</td><td class="v"><code style="word-break:break-all">' + escapeHtml(String(iocs.sha256)) + '</code></td></tr>';
+    if (iocs.md5) rows += '<tr><td class="k">MD5</td><td class="v"><code>' + escapeHtml(String(iocs.md5)) + '</code></td></tr>';
+    const ips = iocs.ips || iocs.ip;
+    if (ips) rows += '<tr><td class="k">IP</td><td class="v">' + escapeHtml(Array.isArray(ips) ? ips.join(', ') : String(ips)) + '</td></tr>';
+    const domains = iocs.domains || iocs.domain;
+    if (domains) rows += '<tr><td class="k">domain</td><td class="v">' + escapeHtml(Array.isArray(domains) ? domains.join(', ') : String(domains)) + '</td></tr>';
+    if (iocs.cve) rows += '<tr><td class="k">CVE</td><td class="v">' + escapeHtml(String(iocs.cve)) + '</td></tr>';
+  }
+  if (md.yara_rules && md.yara_rules.length) {
+    rows += '<tr><td class="k">YARA</td><td class="v">' + escapeHtml(md.yara_rules.slice(0, 2).join(' · ')) + '</td></tr>';
+  }
+  if (md.loss_usd) rows += '<tr><td class="k">loss</td><td class="v">$' + escapeHtml(Number(md.loss_usd).toLocaleString()) + '</td></tr>';
+  if (!rows) return '';
+  return '<div class="insp-section"><div class="label">Operational IOC (real, not synthetic)</div><table class="kv">' + rows + '</table></div>';
+}
+
+function selectNode(id) {
+  selectedNode = id;
+  document.getElementById('btn-chain').disabled = isEntityNodeId(id);
+  network.selectNodes([id]);
+  if (isEntityNodeId(id)) openEntityInspector(id);
+  else openInspector(id);
+}
+
+async function openInspector(id) {
   const insp = document.getElementById('inspector');
   insp.classList.add('open'); insp.setAttribute('aria-hidden', 'false');
 
-  const m  = memCache[id];
-  const nm = nodeMeta[id] || {};
   document.getElementById('insp-id').textContent   = 'memory.' + id;
+  document.getElementById('insp-path').textContent = '';
+
+  const body = document.getElementById('insp-body');
+  body.innerHTML = '<div class="insp-section"><p class="empty-note">Loading memory…</p></div>';
+
+  let m = memCache[id];
+  if (!m) m = await fetchMemoryById(id);
+  renderInspectorBody(id, m);
+}
+
+function renderInspectorBody(id, m) {
+  const nm = nodeMeta[id] || {};
   document.getElementById('insp-path').textContent = m && m.path ? m.path : '';
+  if (m && m.id && m.id !== parseInt(id, 10)) {
+    document.getElementById('insp-id').textContent = 'memory.' + id + ' → memory.' + m.id;
+  } else {
+    document.getElementById('insp-id').textContent = 'memory.' + id;
+  }
 
   const body = document.getElementById('insp-body');
   const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : {};
@@ -791,6 +939,8 @@ function openInspector(id) {
   if (nm.depth != null)  badges += '<span class="badge"><span class="dot" style="background:' + depthColor(nm.depth) + '"></span>depth ' + nm.depth + '</span>';
   if (nm.linkType)       badges += '<span class="badge"><span class="dot" style="background:' + (linkColors[nm.linkType]||'#64748b') + '"></span>' + escapeHtml(nm.linkType) + '</span>';
   if (md.severity)       badges += '<span class="badge sev-' + escapeHtml(md.severity) + '">' + escapeHtml(md.severity) + '</span>';
+  if (md.cti_source === 'stix') badges += '<span class="badge" style="border-color:#8b5cf6;color:#c4b5fd">STIX MAR</span>';
+  if (md.cti_source === 'vendor_intel') badges += '<span class="badge" style="border-color:#06b6d4;color:#67e8f9">operational IOC</span>';
   if (md.category)       badges += '<span class="badge">' + escapeHtml(clusterLabel(md.category)) + '</span>';
   if (md.status)         badges += '<span class="badge">' + escapeHtml(md.status) + '</span>';
 
@@ -799,8 +949,9 @@ function openInspector(id) {
   if (!m) {
     html += '<div class="insp-section">'
       + '<div class="label">Details</div>'
-      + '<p class="empty-note">This node is not in the local cache, so its content could not be loaded. '
-      + 'It may be a superseded version or outside <code>root</code>. Try <b>Refresh cache</b> below.</p>'
+      + '<p class="empty-note">Impossibile caricare memory.' + id
+      + ' — nodo assente dal database (grafo AGE stale) o fuori dal tenant. '
+      + 'Prova <b>Clear</b> + <b>Explore</b> oppure ricarica il dataset CTI.</p>'
       + '</div>'
       + '<div class="insp-section"><div class="insp-actions">'
       + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
@@ -809,6 +960,15 @@ function openInspector(id) {
     body.innerHTML = html;
     return;
   }
+
+  if (m.id !== parseInt(id, 10)) {
+    html += '<div class="insp-section"><div class="insp-badges">'
+      + '<span class="badge" style="border-color:#f59e0b;color:#fcd34d">stale graph id · versione corrente mem.'
+      + m.id + ' v' + (m.version || '?') + '</span></div></div>';
+  }
+
+  // operational IOC panel (operational_stix_cti_dataset.json)
+  html += renderOperationalIocs(md);
 
   // content
   html += '<div class="insp-section"><div class="label">Content</div>'
@@ -967,7 +1127,12 @@ function copyPath(id) {
   const m = memCache[id]; if (!m || !m.path) return;
   navigator.clipboard?.writeText(m.path).then(() => toast('Path copied: ' + m.path));
 }
-async function refreshCache() { await loadMemoryCache(true); if (selectedNode != null) openInspector(selectedNode); toast('Cache refreshed · ' + Object.keys(memCache).length + ' memories'); }
+async function refreshCache() {
+  await loadMemoryCache(true);
+  await hydrateVisibleMemories();
+  if (selectedNode != null) await openInspector(selectedNode);
+  toast('Cache refreshed · ' + Object.keys(memCache).length + ' memories');
+}
 
 // ── layout ──────────────────────────────────────────────────────────────────
 function setLayout(layout) {
@@ -1065,10 +1230,20 @@ function buildTimeline() {
 }
 
 // ── counts / overlay / toast ──────────────────────────────────────────────────
+function welcomeDismissed() {
+  if (window.CTI_DEMO_ACTIVE) return !!localStorage.getItem('pcmi_cti_welcome_dismissed');
+  return !!localStorage.getItem('pcmi_graph_welcome_dismissed');
+}
+
 function updateCounts() {
   document.getElementById('stat-nodes').textContent = nodesData.length;
   document.getElementById('stat-edges').textContent = edgesData.length;
-  document.getElementById('overlay').classList.toggle('show', nodesData.length === 0);
+  const ov = document.getElementById('overlay');
+  if (nodesData.length > 0) {
+    ov.classList.remove('show');
+  } else if (!welcomeDismissed()) {
+    ov.classList.add('show');
+  }
 }
 function showLoading(on, msg) {
   const ov = document.getElementById('overlay');
@@ -1078,9 +1253,10 @@ function showLoading(on, msg) {
     document.getElementById('overlay-card').innerHTML = '<div class="spinner"></div><p>' + (msg || 'Loading…') + '</p>';
   } else if (nodesData.length > 0) {
     ov.classList.remove('show');
-  } else if (!localStorage.getItem('pcmi_graph_welcome_dismissed')) {
+  } else if (!welcomeDismissed()) {
     ov.classList.add('show');
-    renderWelcomeOverlay();
+    if (window.CTI_DEMO_ACTIVE) renderCtiWelcomeOverlay();
+    else renderWelcomeOverlay();
   } else {
     ov.classList.remove('show');
   }
@@ -1095,21 +1271,32 @@ function toast(msg, isErr) {
 // ── view mode / entity demo ───────────────────────────────────────────────
 function setViewMode(mode) {
   viewMode = mode;
-  ['links','entities','registry','proposals'].forEach(m => {
+  ['links','entities','registry','retrieval','proposals'].forEach(m => {
     const b = document.getElementById('btn-view-' + m);
     if (b) b.className = (m === mode ? 'btn-active' : 'btn-secondary') + ' seg';
   });
   const propPanel = document.getElementById('proposals-panel');
   const regPanel = document.getElementById('registry-panel');
+  const retPanel = document.getElementById('retrieval-panel');
   const propOpen = mode === 'proposals';
   const regOpen = mode === 'registry';
+  const retOpen = mode === 'retrieval';
   propPanel.classList.toggle('open', propOpen);
   propPanel.setAttribute('aria-hidden', propOpen ? 'false' : 'true');
   regPanel.classList.toggle('open', regOpen);
   regPanel.setAttribute('aria-hidden', regOpen ? 'false' : 'true');
+  if (retPanel) {
+    retPanel.classList.toggle('open', retOpen);
+    retPanel.setAttribute('aria-hidden', retOpen ? 'false' : 'true');
+  }
   if (propOpen) refreshProposalPanel();
   if (regOpen) loadRegistryEntities();
-  updateGuideUI(mode);
+  if (retOpen) applyRetrievalScenario();
+  if (window.CTI_DEMO_ACTIVE) {
+    /* keep CTI guide bar text — do not overwrite with SOC GUIDE_NOW */
+  } else {
+    updateGuideUI(mode);
+  }
   updateCanvasHint(mode);
 }
 
@@ -1130,6 +1317,7 @@ function refreshProposalPanel() {
 function runExplore() {
   if (viewMode === 'entities') return exploreEntities();
   if (viewMode === 'registry') return loadRegistryEntities(true);
+  if (viewMode === 'retrieval') return runCtiRetrievalPanel();
   if (viewMode === 'proposals') return visualizeProposals();
   return explore();
 }
@@ -1614,7 +1802,10 @@ function renderAliasProposalsList() {
       + '<button class="act-primary" onclick="generateAliasProposals()">Alias Propose</button></div>';
     return;
   }
-  el.innerHTML = pendingAliasProposals.map(p => {
+  el.innerHTML = '<div class="insp-actions" style="margin-bottom:10px">'
+    + '<button class="act-primary" onclick="acceptAllPendingAliases()">Accept all (' + pendingAliasProposals.length + ')</button>'
+    + '</div>'
+    + pendingAliasProposals.map(p => {
     const conf = (p.confidence != null) ? (Math.round(p.confidence * 100) + '%') : '—';
     const targetKey = entityKeyById(p.target_entity_id) || (p.target_entity_id || '').slice(0, 8) + '…';
     return '<div class="prop-card" data-alias-id="' + p.id + '">'
@@ -1632,7 +1823,7 @@ function renderAliasProposalsList() {
 async function acceptAliasProposal(id) {
   const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/' + id + '/accept', { method: 'POST', headers: authHeaders() });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return; }
+  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return false; }
   const prop = data.proposal || {};
   pendingAliasProposals = pendingAliasProposals.filter(p => p.id !== id);
   const targetKey = entityKeyById(prop.target_entity_id);
@@ -1641,6 +1832,24 @@ async function acceptAliasProposal(id) {
   updateCounts();
   toast('Alias accepted · same_as nel grafo (viola)');
   updateGuideUI('proposals');
+  return true;
+}
+
+async function acceptAllPendingAliases() {
+  if (!pendingAliasProposals.length) {
+    await loadAliasProposals();
+  }
+  if (!pendingAliasProposals.length) {
+    toast('Nessuna proposta alias pending', true);
+    return 0;
+  }
+  const batch = pendingAliasProposals.slice();
+  let n = 0;
+  for (const p of batch) {
+    if (await acceptAliasProposal(p.id)) n += 1;
+  }
+  toast(n + ' alias merge accettati · archi same_as viola nel grafo');
+  return n;
 }
 
 async function rejectAliasProposal(id) {
@@ -1759,13 +1968,16 @@ async function runExtract(memId) {
 
 // ── explore ───────────────────────────────────────────────────────────────────
 function ctiNodeDatasetColor(id) {
-  const m = memCache[id]?.metadata || {};
-  const src = m.cti_source || m.dataset_source;
-  const colors = { soc: '#0d9488', vendor_reports: '#d97706', stix: '#8b5cf6' };
+  const entry = memCache[id] || {};
+  const md = entry.metadata || {};
+  const src = md.cti_source || entry.cti_source;
+  const colors = { soc: '#0d9488', vendor_reports: '#d97706', stix: '#8b5cf6', vendor_intel: '#06b6d4' };
   if (colors[src]) return colors[src];
-  const p = memCache[id]?.path || '';
-  if (p.includes('.stix.')) return colors.stix;
-  if (p.includes('.vendor_reports.') || p.includes('.vendors.')) return colors.vendor_reports;
+  const p = entry.path || '';
+  if (p.includes('.cisa.brickstorm') || p.includes('.stix.')) return colors.stix;
+  if (p.includes('.wiz.') || p.includes('.google_gtig.') || p.includes('.microsoft.dcu.')) return colors.vendor_intel;
+  if (p.includes('.vendor_reports.')) return colors.vendor_reports;
+  if (p.includes('.vendors.')) return colors.vendor_intel;
   if (p.includes('.soc.') || p.includes('.ti_hub.')) return colors.soc;
   return null;
 }
@@ -1839,6 +2051,7 @@ async function explore() {
     updateCounts();
     if (clustersOn && currentLayout === 'force') applyClusters(); else network.fit({ animation: { duration: 500 } });
     if (timelineOn) buildTimeline();
+    await hydrateVisibleMemories();
     toast(added > 0 ? ('+' + added + ' related node' + (added>1?'s':'')) : 'No new related nodes');
     selectNode(rootId);
   } catch(e) {
@@ -1991,6 +2204,8 @@ function updateCanvasHint(mode) {
     el.textContent = 'Pannello sinistro = registry canonico · clicca entità → inspector con snapshot timeline';
   } else if (mode === 'proposals') {
     el.textContent = 'Tab Link: grigio pending / teal ✓ approvato · Tab Alias: merge same_as viola dopo Accept';
+  } else if (mode === 'retrieval') {
+    el.textContent = 'Retrieve: risultati verdi = cross-vendor nel top-N · clicca riga → evidenzia nodo memoria';
   } else {
     el.textContent = 'Click = ispeziona · dbl-click = espandi · trascina = sposta nodi';
   }
@@ -2048,16 +2263,127 @@ function ctiMemIds() {
   const qs = new URLSearchParams(location.search);
   const n = (k, fallback) => qs.get(k) || fallback;
   return {
-    root: n('root', n('mem', '4400')),
-    brickstorm: n('brickstorm', '4405'),
-    cs_pressure: n('cs_pressure', '3638'),
+    root: n('root', n('mem', '4322')),
+    brickstorm: n('brickstorm', '4322'),
+    brickstorm_sample: n('brickstorm_sample', '4336'),
+    cs_pressure: n('cs_pressure', '4382'),
     ms_sapphire: n('ms_sapphire', '4394'),
     mdt_ps: n('mdt_ps', '4289'),
     ms_forest: n('ms_forest', '4395'),
-    apt28: n('apt28', '4410'),
+    apt28: n('apt28', '4355'),
     ti_sapphire: n('ti_sapphire', '47'),
     ti_forest: n('ti_forest', '46'),
   };
+}
+
+const CTI_GUIDE_NOW = {
+  layers: '<b>Fase 1 · Operational STIX</b> — BRICKSTORM MAR-251165 (viola) + sample con SHA-256 reale. Dataset: <code>operational_stix_cti_dataset.json</code>.',
+  brickstorm: '<b>Fase 2 · Sample BRICKSTORM</b> — Inspector: SHA-256/YARA da bundle CISA MAR (nessun hash inventato).',
+  dprk: '<b>Fase 3–4 · Bybit $1.5B</b> — Wiz TraderTraitor/PRESSURE CHOLLIMA (ciano=vendor IOC operativo) ↔ Sapphire Sleet (Microsoft).',
+  apt28: '<b>Fase 5–7 · APT28</b> — PROMPTSTEAL con hash ThreatLocker/CERT-UA + Forest Blizzard (Microsoft).',
+  iocs: '<b>Fase 8 · IOC operativi</b> — Sample APT28/PROMPTSTEAL: pannello <b>Operational IOC</b> nell\'inspector.',
+  evolution: '<b>Fase 9–11 · Evoluzione entità</b> — Extract APT28 → Registry (alias APT28↔Forest Blizzard) → Accept merge.',
+  retrieval: '<b>Fase 12 · Retrieval ibrida</b> — pannello Retrieve: query cross-vendor, risultati verdi = BM25+pgvector.',
+};
+
+let ctiGuideJumpLock = false;
+
+function updateCtiGuideUI(step) {
+  if (!window.CTI_DEMO_ACTIVE) return;
+  guideStep = step;
+  document.querySelectorAll('.gstep').forEach(el => {
+    const s = el.dataset.step;
+    el.classList.toggle('active', s === step);
+  });
+  const now = document.getElementById('guide-now');
+  if (now && CTI_GUIDE_NOW[step]) now.innerHTML = CTI_GUIDE_NOW[step];
+}
+
+function bindCtiGuideSteps() {
+  const container = document.getElementById('guide-steps');
+  if (!container || container.dataset.bound === '1') return;
+  container.dataset.bound = '1';
+  container.addEventListener('click', (ev) => {
+    const el = ev.target.closest('.gstep');
+    if (!el || !el.dataset.step) return;
+    jumpToCtiGuideStep(el.dataset.step);
+  });
+}
+
+async function jumpToCtiGuideStep(step) {
+  if (ctiGuideJumpLock) return;
+  ctiGuideJumpLock = true;
+  dismissCtiWelcome();
+  dismissWelcome();
+  updateCtiGuideUI(step);
+  const M = ctiMemIds();
+  if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+  try {
+    if (step === 'layers') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.brickstorm;
+      document.getElementById('depth').value = '2';
+      await explore();
+      await loadMemoryCache(true);
+      selectNode(parseInt(M.brickstorm_sample || M.brickstorm, 10));
+    } else if (step === 'brickstorm') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.brickstorm;
+      document.getElementById('depth').value = '2';
+      await explore();
+      await loadMemoryCache(true);
+      selectNode(parseInt(M.brickstorm_sample || M.brickstorm, 10));
+    } else if (step === 'dprk') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.cs_pressure;
+      document.getElementById('depth').value = '3';
+      await explore();
+      selectNode(parseInt(M.cs_pressure, 10));
+    } else if (step === 'apt28') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.mdt_ps;
+      document.getElementById('depth').value = '3';
+      await explore();
+      selectNode(parseInt(M.mdt_ps, 10));
+    } else if (step === 'iocs') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.apt28;
+      document.getElementById('depth').value = '2';
+      await explore();
+      selectNode(parseInt(M.apt28, 10));
+    } else if (step === 'evolution') {
+      setViewMode('registry');
+      await loadRegistryEntities(false);
+      const aptKey = 'APT28 / FROZENLAKE';
+      if (registryEntities.some(e => e.canonical_key === aptKey)) {
+        await focusRegistryEntity('ThreatActor', aptKey);
+      } else if (registryEntities.some(e => e.canonical_key === 'APT28')) {
+        await focusRegistryEntity('ThreatActor', 'APT28');
+      } else if (registryEntities.length) {
+        const e0 = registryEntities[0];
+        await focusRegistryEntity(e0.kind, e0.canonical_key);
+      }
+    } else if (step === 'retrieval') {
+      setViewMode('retrieval');
+      document.getElementById('retrieval-scenario').value = 'apt28_ms';
+      applyRetrievalScenario();
+      await runCtiRetrievalPanel();
+    }
+  } catch (e) {
+    toast('Fase CTI: ' + e.message, true);
+  } finally {
+    ctiGuideJumpLock = false;
+  }
 }
 
 function renderCtiGuideBar() {
@@ -2066,43 +2392,50 @@ function renderCtiGuideBar() {
   if (!bar) return;
   bar.innerHTML =
     '<div class="guide-top">'
-    + '<h2>Demo CTI · grafo 2D multi-vendor</h2>'
-    + '<span class="sub">Root <b style="color:var(--primary);font-family:var(--mono)">' + M.root + '</b>'
-    + ' · SOC <span style="color:#0d9488">■</span> · vendor <span style="color:#d97706">■</span> · STIX <span style="color:#8b5cf6">■</span></span>'
+    + '<h2>Demo CTI · Operational STIX dataset</h2>'
+    + '<span class="sub"><code>operational_stix_cti_dataset.json</code> · '
+    + 'Root <b style="color:var(--primary);font-family:var(--mono)">' + M.root + '</b>'
+    + ' · STIX MAR <span style="color:#8b5cf6">■</span> · vendor IOC <span style="color:#06b6d4">■</span> · reports <span style="color:#d97706">■</span></span>'
     + '<button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>'
     + '<button class="btn-secondary seg" onclick="runCtiGuidedDemo()">Ricomincia</button>'
     + '<button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>'
     + '</div>'
     + '<div class="guide-steps" id="guide-steps">'
-    + '<div class="gstep active" data-step="layers"><div class="num">1</div><div class="title">Tre layer CTI</div>'
-    + '<div class="desc">SOC hub + report vendor + IOC STIX operativi (colori per dataset).</div></div>'
-    + '<div class="gstep" data-step="brickstorm"><div class="num">2</div><div class="title">BRICKSTORM CISA MAR</div>'
-    + '<div class="desc">SHA-256, YARA e IP reali dai bundle STIX 2.1 CISA.</div></div>'
+    + '<div class="gstep active" data-step="layers"><div class="num">1</div><div class="title">Operational STIX</div>'
+    + '<div class="desc">BRICKSTORM CISA MAR-251165 — SHA-256 reali da bundle STIX 2.1.</div></div>'
+    + '<div class="gstep" data-step="brickstorm"><div class="num">2</div><div class="title">Sample BRICKSTORM</div>'
+    + '<div class="desc">Inspector → pannello Operational IOC con hash verificabile.</div></div>'
     + '<div class="gstep" data-step="dprk"><div class="num">3–4</div><div class="title">DPRK cross-vendor</div>'
     + '<div class="desc">PRESSURE CHOLLIMA (CrowdStrike) ↔ Sapphire Sleet (Microsoft).</div></div>'
     + '<div class="gstep" data-step="apt28"><div class="num">5–7</div><div class="title">APT28 cross-vendor</div>'
     + '<div class="desc">PROMPTSTEAL (Mandiant) ↔ Forest Blizzard (Microsoft).</div></div>'
-    + '<div class="gstep" data-step="iocs"><div class="num">8–9</div><div class="title">IOC + retrieval</div>'
-    + '<div class="desc">Sample operativi + correlazione BM25+embedding semantico.</div></div>'
+    + '<div class="gstep" data-step="iocs"><div class="num">8</div><div class="title">IOC operativi</div>'
+    + '<div class="desc">Sample APT28 / PROMPTSTEAL con SHA-256 reali.</div></div>'
+    + '<div class="gstep" data-step="evolution"><div class="num">9–11</div><div class="title">Evoluzione entità</div>'
+    + '<div class="desc">Extract → Registry → snapshot timeline (Phase D).</div></div>'
+    + '<div class="gstep" data-step="retrieval"><div class="num">12</div><div class="title">Retrieval ibrida</div>'
+    + '<div class="desc">BM25 + pgvector — query cross-vendor senza alias table.</div></div>'
     + '</div>'
     + '<div class="guide-now" id="guide-now">'
-    + '<b>Tour:</b> clicca <kbd>▶ Tour automatico</kbd> oppure aggiungi <kbd>&autostart=1</kbd> all\'URL.'
+    + '<b>Tour:</b> clicca una <b>fase</b> qui sopra per saltare, oppure <kbd>▶ Tour automatico</kbd>.'
     + ' API key: <kbd>testkey123</kbd> · link types: <kbd>supports,related</kbd>.'
     + '</div>';
+  bindCtiGuideSteps();
+  updateCtiGuideUI('layers');
 }
 
 function renderCtiWelcomeOverlay() {
   document.getElementById('overlay-card').className = 'card welcome-card';
   document.getElementById('overlay-card').innerHTML =
-    '<h3>Demo CTI · threat actors sul grafo 2D</h3>'
+    '<h3>Demo CTI · Operational STIX dataset</h3>'
     + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
-    + 'Dataset <b>root.cti</b>: BRICKSTORM, PRESSURE CHOLLIMA, Sapphire Sleet, PROMPTSTEAL, Forest Blizzard.</p>'
+    + 'Dataset <b>operational_stix_cti_dataset.json</b>: IOC reali da CISA MAR, Wiz Bybit, Microsoft DCU, GTIG APT28.</p>'
     + '<ol>'
-    + '<li><b>Layer</b> — SOC (teal), vendor reports (arancio), STIX (viola)</li>'
-    + '<li><b>BRICKSTORM</b> — hash/YARA/IP da CISA MAR</li>'
-    + '<li><b>DPRK</b> — CrowdStrike vs Microsoft sullo stesso attore</li>'
-    + '<li><b>APT28</b> — Mandiant vs Microsoft + Find chain</li>'
-    + '<li><b>Retrieval</b> — BM25 + pgvector cross-vendor</li>'
+    + '<li><b>STIX MAR</b> (viola) — BRICKSTORM con SHA-256 da bundle CISA</li>'
+    + '<li><b>Vendor IOC</b> (ciano) — Bybit $1.5B, StealC/Amadey, PROMPTSTEAL</li>'
+    + '<li><b>Inspector</b> — pannello Operational IOC con hash verificabili</li>'
+    + '<li><b>Cross-vendor</b> — PRESSURE CHOLLIMA ↔ Sapphire Sleet</li>'
+    + '<li><b>Registry + retrieval</b> — evoluzione entità + BM25/pgvector</li>'
     + '</ol>'
     + '<div class="welcome-actions">'
     + '<button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI</button>'
@@ -2112,16 +2445,18 @@ function renderCtiWelcomeOverlay() {
 function dismissCtiWelcome() {
   localStorage.setItem('pcmi_cti_welcome_dismissed', '1');
   document.getElementById('overlay').classList.remove('show');
+  updateCounts();
 }
 
 function renderCtiLegend() {
   const leg = document.querySelector('.legend');
   if (!leg) return;
   leg.innerHTML =
-    '<h4>Dataset CTI</h4>'
+    '<h4>Operational STIX dataset</h4>'
+    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>CISA MAR / STIX (BRICKSTORM)</div>'
+    + '<div class="row"><span class="swatch" style="background:#06b6d4"></span>vendor IOC operativi (Wiz, DCU, GTIG…)</div>'
+    + '<div class="row"><span class="swatch" style="background:#d97706"></span>vendor reports (narrative)</div>'
     + '<div class="row"><span class="swatch" style="background:#0d9488"></span>SOC / TI hub</div>'
-    + '<div class="row"><span class="swatch" style="background:#d97706"></span>vendor reports</div>'
-    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>STIX operativo</div>'
     + '<h4 style="margin-top:10px">Link type</h4>'
     + '<div class="row"><span class="swatch" style="background:#22c55e"></span>supports</div>'
     + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>related</div>'
@@ -2130,6 +2465,128 @@ function renderCtiLegend() {
     + '<div class="row"><span class="swatch" style="background:#c084fc;border-radius:2px"></span>same_as (alias merge)</div>';
   const hint = document.getElementById('canvas-hint');
   if (hint) hint.textContent = 'CTI demo · click = inspector · dbl-click = espandi · Find chain = percorso cross-vendor';
+}
+
+async function runCtiRetrievalPreview(query, limit) {
+  limit = limit || 8;
+  const r = await fetch(apiUrl + '/v1/retrieve', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ path_prefix: 'root.cti', query: query, limit: limit })
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data.entries || [];
+}
+
+const CTI_RETRIEVAL_SCENARIOS = {
+  dprk_cs: {
+    title: 'DPRK · CrowdStrike naming → Microsoft',
+    query: 'PRESSURE CHOLLIMA Bybit Safe Wallet macOS supply chain cryptocurrency',
+    expectPaths: ['pressure_chollima', 'tradertraitor', 'sapphire_sleet'],
+    limit: 12,
+    note: 'BM25 cattura "PRESSURE CHOLLIMA"; pgvector collega al report Microsoft Sapphire Sleet.'
+  },
+  dprk_ms: {
+    title: 'DPRK · Microsoft naming → CrowdStrike',
+    query: 'Sapphire Sleet North Korean macOS cryptocurrency social engineering',
+    expectPaths: ['sapphire_sleet', 'pressure_chollima', 'tradertraitor'],
+    limit: 12,
+    note: 'Query con taxonomy Microsoft → recupera anche nodi CrowdStrike/Wiz nello stesso top-N.'
+  },
+  apt28_mandiant: {
+    title: 'APT28 · PROMPTSTEAL → IOC operativi',
+    query: 'PROMPTSTEAL FROZENLAKE LLM Hugging Face Ukraine Mandiant',
+    expectPaths: ['promptsteal', 'apt28', 'google_gtig', 'forest_blizzard', 'mandiant'],
+    limit: 10,
+    note: 'Keyword "PROMPTSTEAL" + semantica LLM/Ukraine → sample SHA-256 operativi + Forest Blizzard.'
+  },
+  apt28_ms: {
+    title: 'APT28 · Forest Blizzard → Mandiant',
+    query: 'Forest Blizzard password spray NATO aviation GRU PROMPTSTEAL LLM',
+    expectPaths: ['forest_blizzard', 'promptsteal', 'apt28', 'mandiant', 'google_gtig'],
+    limit: 15,
+    note: 'Naming Microsoft → campagna Mandiant/GTIG nello stesso ranking ibrido.'
+  }
+};
+
+function applyRetrievalScenario() {
+  const sel = document.getElementById('retrieval-scenario');
+  const ta = document.getElementById('retrieval-query');
+  const summary = document.getElementById('retrieval-summary');
+  if (!sel || !ta) return;
+  const sc = CTI_RETRIEVAL_SCENARIOS[sel.value];
+  if (!sc) return;
+  ta.value = sc.query;
+  if (summary) {
+    summary.innerHTML = '<b>' + escapeHtml(sc.title) + '</b> — ' + escapeHtml(sc.note)
+      + ' Risultati <span style="color:var(--ok)">verdi</span> = cross-vendor nel top-N.';
+  }
+}
+
+function renderRetrievalResults(entries, scenario) {
+  const el = document.getElementById('retrieval-results');
+  if (!el) return;
+  if (!entries.length) {
+    el.innerHTML = '<p class="empty-note">Nessun risultato — embeddings in corso? Attendi ~60s dopo load_multi_cti.py.</p>';
+    return;
+  }
+  const expect = (scenario && scenario.expectPaths) || [];
+  const vendorsSeen = new Set();
+  let html = '';
+  entries.forEach((h, i) => {
+    const path = (h.path || '').toLowerCase();
+    const vendor = (h.metadata && (h.metadata.vendor || h.metadata.attributed_to)) || '—';
+    const actor = (h.metadata && (h.metadata.actor || h.metadata.attributed_to)) || '—';
+    const score = h.relevance_score != null ? h.relevance_score : (h.score || 0);
+    const cross = expect.some(p => path.indexOf(p) >= 0);
+    if (cross) vendorsSeen.add(path.split('.').slice(-3, -1).join('.') || path.slice(-40));
+    html += '<div class="retrieval-hit' + (cross ? ' cross' : '') + '" onclick="focusRetrievalHit(' + h.id + ')">'
+      + '<div><span class="rank">#' + (i + 1) + '</span> · mem.' + h.id
+      + ' · <span class="score">score=' + Number(score).toFixed(4) + '</span>'
+      + (cross ? ' · <span style="color:var(--ok)">cross-vendor</span>' : '')
+      + '</div>'
+      + '<div class="path">' + escapeHtml(h.path || '') + '</div>'
+      + '<div class="snippet">' + escapeHtml((h.content || '').slice(0, 120)) + '…</div>'
+      + '<div class="path">vendor=' + escapeHtml(String(vendor)) + ' · actor=' + escapeHtml(String(actor)) + '</div>'
+      + '</div>';
+  });
+  const matched = expect.filter(p => entries.some(h => ((h.path || '').toLowerCase()).indexOf(p) >= 0));
+  const miss = expect.filter(p => !matched.includes(p));
+  html = '<p class="empty-note" style="margin-bottom:8px">'
+    + matched.length + '/' + expect.length + ' pattern attesi nel top-' + entries.length
+    + (miss.length ? ' · mancanti: ' + escapeHtml(miss.join(', ')) : ' · ✓ correlazione cross-vendor')
+    + '</p>' + html;
+  el.innerHTML = html;
+}
+
+async function focusRetrievalHit(memId) {
+  if (!memId) return;
+  setViewMode('links');
+  document.getElementById('mem-id').value = memId;
+  document.getElementById('depth').value = '2';
+  await explore();
+  await loadMemoryCache(true);
+  selectNode(parseInt(memId, 10));
+}
+
+async function runCtiRetrievalPanel() {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const sel = document.getElementById('retrieval-scenario');
+  const ta = document.getElementById('retrieval-query');
+  const scenario = CTI_RETRIEVAL_SCENARIOS[(sel && sel.value) || 'dprk_cs'];
+  const query = (ta && ta.value.trim()) || (scenario && scenario.query) || '';
+  if (!query) { toast('Inserisci una query', true); return; }
+  showLoading(true, 'Hybrid retrieve…');
+  try {
+    const hits = await runCtiRetrievalPreview(query, (scenario && scenario.limit) || 12);
+    renderRetrievalResults(hits, scenario);
+    toast(hits.length + ' risultati · clicca una riga per evidenziare nel grafo');
+  } catch (e) {
+    toast('Retrieve failed: ' + e.message, true);
+  } finally {
+    showLoading(false);
+  }
 }
 
 async function runCtiGuidedDemo() {
@@ -2158,49 +2615,54 @@ async function runCtiGuidedDemo() {
     setViewMode('links');
     R.setLinkTypes('supports,related,causal,temporal');
 
-    R.caption('Passo 1 / 9', 'Panoramica: tre layer CTI sotto root.cti',
-      'SOC (teal), vendor reports (arancio = CrowdStrike, Mandiant, Microsoft), STIX operativo (viola = CISA MAR BRICKSTORM). '
-      + 'Gli archi supports/related collegano report con naming vendor diverso.');
-    await R.clearAndExplore(M.root, 4, 'supports,related,causal,temporal');
-    await R.waitNodes(8);
-    await pause(4000);
-
-    R.caption('Passo 2 / 9', 'BRICKSTORM — IOC reali da CISA MAR (STIX 2.1)',
-      'Campagna consolidata da bundle MAR-251165/217/234. SHA-256 estratti dai pattern STIX — nessun hash inventato.');
+    updateCtiGuideUI('layers');
+    R.caption('Passo 1 / 12', 'Operational STIX — BRICKSTORM MAR-251165',
+      'Dataset operational_stix_cti_dataset.json. Nodi viola = bundle CISA MAR STIX 2.1. '
+      + 'Clicca un sample figlio → inspector mostra SHA-256 reale (non sintetico).');
     await R.clearAndExplore(M.brickstorm, 2, 'supports,related');
-    await R.waitNodes(4);
-    R.pickNode(parseInt(M.brickstorm, 10));
+    await R.waitNodes(6);
+    await loadMemoryCache(true);
+    const sampleId = parseInt(M.brickstorm_sample || M.brickstorm, 10);
+    R.pickNode(sampleId);
     await pause(4500);
 
-    R.caption('Passo 3 / 9', 'DPRK Bybit — PRESSURE CHOLLIMA (CrowdStrike)',
-      'CrowdStrike attribuisce il furto Bybit al cluster PRESSURE CHOLLIMA. Path: root.cti.vendors.crowdstrike.*');
-    await R.clearAndExplore(M.cs_pressure, 3, 'supports,related');
+    updateCtiGuideUI('brickstorm');
+    R.caption('Passo 2 / 12', 'Sample BRICKSTORM — SHA-256 verificabile',
+      'Inspector → Operational IOC. Hash estratto da MAR-251165 STIX bundle (file indicator pattern).');
+    R.pickNode(sampleId);
+    await pause(4500);
+
+    updateCtiGuideUI('dprk');
+    R.caption('Passo 3 / 12', 'Bybit $1.5B — Wiz TraderTraitor (vendor IOC operativo)',
+      'Nodo ciano = vendor_intel da operational_stix_cti_dataset.json. PRESSURE CHOLLIMA / Lazarus — furto Bybit Feb 2025.');
+    await R.clearAndExplore(M.cs_pressure, 2, 'supports,related');
     await R.waitNodes(3);
     R.pickNode(parseInt(M.cs_pressure, 10));
     await pause(4500);
 
-    R.caption('Passo 4 / 9', 'Stesso attore, nome Microsoft: Sapphire Sleet',
+    R.caption('Passo 4 / 12', 'Stesso attore, nome Microsoft: Sapphire Sleet',
       'Microsoft Threat Intelligence: Sapphire Sleet = stesso ombrello DPRK. Vendor diversi → etichette diverse nel grafo.');
     await R.clearAndExplore(M.ms_sapphire, 3, 'supports,related');
     await R.waitNodes(3);
     R.pickNode(parseInt(M.ms_sapphire, 10));
     await pause(4500);
 
-    R.caption('Passo 5 / 9', 'Nodo distillation cross-vendor (DPRK overlap)',
+    updateCtiGuideUI('apt28');
+    R.caption('Passo 5 / 12', 'Nodo distillation cross-vendor (DPRK overlap)',
       'Il nodo distillation collega esplicitamente PRESSURE CHOLLIMA e Sapphire Sleet — stesso attore, due taxonomy vendor.');
     await R.clearAndExplore(M.ti_sapphire, 2, 'supports,related');
     await R.waitNodes(2);
     R.pickNode(parseInt(M.ti_sapphire, 10));
     await pause(4500);
 
-    R.caption('Passo 6 / 9', 'PROMPTSTEAL — campagna LLM-assisted (Mandiant)',
+    R.caption('Passo 6 / 12', 'PROMPTSTEAL — campagna LLM-assisted (Mandiant)',
       'Mandiant/Google TAG: lure LLM, payload FROZENLAKE, attribuzione APT28.');
     await R.clearAndExplore(M.mdt_ps, 3, 'supports,related');
     await R.waitNodes(3);
     R.pickNode(parseInt(M.mdt_ps, 10));
     await pause(4500);
 
-    R.caption('Passo 7 / 9', 'Forest Blizzard — stesso nexus APT28 (Microsoft)',
+    R.caption('Passo 7 / 12', 'Forest Blizzard — stesso nexus APT28 (Microsoft)',
       'Find chain da Mandiant PROMPTSTEAL al report Microsoft Forest Blizzard nel grafo.');
     await R.clearAndExplore(M.mdt_ps, 2, 'supports,related');
     await R.waitNodes(2);
@@ -2210,19 +2672,62 @@ async function runCtiGuidedDemo() {
     await findChain();
     await pause(5000);
 
-    R.caption('Passo 8 / 9', 'IOC operativi APT28 / PROMPTSTEAL',
+    updateCtiGuideUI('iocs');
+    R.caption('Passo 8 / 12', 'IOC operativi APT28 / PROMPTSTEAL',
       'Nodi sotto root.cti.vendors.google_gtig.apt28 con sample SHA-256 operativi. Inspector → metadata.iocs.');
     await R.clearAndExplore(M.apt28, 2, 'supports,related');
     await R.waitNodes(4);
     R.pickNode(parseInt(M.apt28, 10));
     await pause(4500);
 
-    R.caption('Passo 9 / 9', 'Retrieval ibrida BM25 + embedding',
-      'POST /v1/retrieve path_prefix=root.cti — query "PRESSURE CHOLLIMA Bybit" trova anche Sapphire Sleet. Tour completato.');
-    await R.clearAndExplore(M.root, 3, 'supports,related');
-    await R.waitNodes(6);
-    toast('Tour CTI completato');
-    await pause(4000);
+    updateCtiGuideUI('evolution');
+    R.caption('Passo 9 / 12', 'Extract — slot LLM su memoria APT28 (Phase A)',
+      'Estrazione su memoria PROMPTSTEAL/GTIG: actor=APT28/FROZENLAKE alimenta registry ThreatActor + grafo AGE.');
+    await R.clearAndExplore(M.apt28, 2, 'supports,related');
+    R.pickNode(parseInt(M.apt28, 10));
+    document.getElementById('mem-id').value = M.apt28;
+    await runExtract(parseInt(M.apt28, 10));
+    await pause(5000);
+
+    R.caption('Passo 10 / 12', 'Registry — APT28 + alias accettati (Phase D)',
+      'ThreatActor canonico APT28/FROZENLAKE con alias Forest Blizzard, APT28, FROZENLAKE. '
+      + 'Campaign PROMPTSTEAL alias LAMEHUG. Archi viola same_as nel grafo Entities.');
+    setViewMode('registry');
+    await loadRegistryEntities(false);
+    const aptKey = 'APT28 / FROZENLAKE';
+    if (registryEntities.some(e => e.canonical_key === aptKey)) {
+      await focusRegistryEntity('ThreatActor', aptKey);
+    } else if (registryEntities.some(e => e.canonical_key === 'APT28')) {
+      await focusRegistryEntity('ThreatActor', 'APT28');
+    } else if (registryEntities.length) {
+      await focusRegistryEntity(registryEntities[0].kind, registryEntities[0].canonical_key);
+    }
+    await pause(5500);
+
+    R.caption('Passo 11 / 12', 'Alias merge — accetta proposte cross-vendor',
+      'Tab Proposals → Alias: Accept all unisce naming Mandiant/Microsoft/CrowdStrike. '
+      + 'Oppure: python3 setup_cti_extraction_demo.py (seed + accept automatico).');
+    setViewMode('proposals');
+    setProposalTab('aliases');
+    await loadAliasProposals();
+    if (pendingAliasProposals.length) {
+      await acceptAllPendingAliases();
+    } else {
+      toast('Alias già accettati — esegui setup_cti_extraction_demo.py per seed manuali');
+    }
+    await pause(4500);
+
+    updateCtiGuideUI('retrieval');
+    R.caption('Passo 12 / 12', 'Retrieval ibrida BM25 + pgvector',
+      'Pannello Retrieve: query "Forest Blizzard PROMPTSTEAL" recupera report Mandiant + IOC GTIG '
+      + 'nello stesso top-N — fusione keyword + semantica, senza tabella alias a query time.');
+    setViewMode('retrieval');
+    document.getElementById('retrieval-scenario').value = 'apt28_ms';
+    applyRetrievalScenario();
+    await runCtiRetrievalPanel();
+    await pause(5500);
+    toast('Tour CTI completato · Registry alias + retrieval ibrida');
+    await pause(3000);
   } catch (e) {
     toast('Tour CTI interrotto: ' + e.message, true);
   } finally {
@@ -2233,9 +2738,16 @@ async function runCtiGuidedDemo() {
 function initCtiDemoMode() {
   window.CTI_DEMO_ACTIVE = true;
   document.getElementById('entity-flags').style.display = 'inline-flex';
+  const retBtn = document.getElementById('btn-view-retrieval');
+  if (retBtn) retBtn.style.display = '';
+  applyRetrievalScenario();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
   const M = ctiMemIds();
-  document.getElementById('mem-id').value = M.root;
-  document.getElementById('depth').value = '4';
+  document.getElementById('mem-id').value = M.brickstorm;
+  document.getElementById('depth').value = '2';
   setLinkTypes('supports,related,causal,temporal');
   renderCtiGuideBar();
   renderCtiLegend();
@@ -2383,21 +2895,6 @@ async function runSocGuidedDemo() {
   if (qs.get('autostart') === '1') {
     setTimeout(() => runCtiGuidedDemo(), 1400);
   }
-})();
-
-      });
-    },
-    async exploreFrom(id) {
-      document.getElementById('mem-id').value = String(id);
-      await explore();
-    },
-    async clearAndExplore(memId, depth, linkTypes) {
-      clearGraph();
-      this.setMemory(memId, depth);
-      this.setLinkTypes(linkTypes);
-      await explore();
-    },
-  };
 })();
 </script>
 </body>

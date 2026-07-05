@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -56,7 +57,7 @@ func (r *EntityAliasProposalRepository) InsertPending(ctx context.Context, tenan
 		return nil, err
 	}
 	var row model.EntityAliasProposal
-	var reviewed *string
+	var reviewed *time.Time
 	err = r.w.QueryRow(ctx, `
 		INSERT INTO entity_alias_proposals (
 			tenant_id, kind, alias_key, source_entity_id, target_entity_id,
@@ -79,13 +80,14 @@ func (r *EntityAliasProposalRepository) InsertPending(ctx context.Context, tenan
 		return nil, err
 	}
 	_ = json.Unmarshal(metaJSON, &row.Metadata)
+	row.ReviewedAt = reviewed
 	return &row, nil
 }
 
 func (r *EntityAliasProposalRepository) GetByID(ctx context.Context, tenantID string, id int64) (*model.EntityAliasProposal, error) {
 	var row model.EntityAliasProposal
 	var meta []byte
-	var reviewed *string
+	var reviewed *time.Time
 	err := r.r.QueryRow(ctx, `
 		SELECT id, kind, alias_key, source_entity_id::text, target_entity_id::text,
 		       COALESCE(source_memory_id, 0), status, confidence, reason,
@@ -104,6 +106,7 @@ func (r *EntityAliasProposalRepository) GetByID(ctx context.Context, tenantID st
 		return nil, err
 	}
 	_ = json.Unmarshal(meta, &row.Metadata)
+	row.ReviewedAt = reviewed
 	return &row, nil
 }
 
@@ -131,7 +134,7 @@ func (r *EntityAliasProposalRepository) List(ctx context.Context, tenantID, stat
 	for rows.Next() {
 		var row model.EntityAliasProposal
 		var meta []byte
-		var reviewed *string
+		var reviewed *time.Time
 		if err := rows.Scan(
 			&row.ID, &row.Kind, &row.AliasKey, &row.SourceEntityID, &row.TargetEntityID,
 			&row.SourceMemoryID, &row.Status, &row.Confidence, &row.Reason, &row.Model,
@@ -140,6 +143,7 @@ func (r *EntityAliasProposalRepository) List(ctx context.Context, tenantID, stat
 			return nil, err
 		}
 		_ = json.Unmarshal(meta, &row.Metadata)
+		row.ReviewedAt = reviewed
 		out = append(out, row)
 	}
 	return out, rows.Err()
@@ -151,7 +155,7 @@ func (r *EntityAliasProposalRepository) UpdateStatus(ctx context.Context, tenant
 	}
 	var row model.EntityAliasProposal
 	var meta []byte
-	var reviewed *string
+	var reviewed *time.Time
 	err := r.w.QueryRow(ctx, `
 		UPDATE entity_alias_proposals
 		SET status = $3, reviewed_at = NOW()
@@ -171,5 +175,6 @@ func (r *EntityAliasProposalRepository) UpdateStatus(ctx context.Context, tenant
 		return nil, err
 	}
 	_ = json.Unmarshal(meta, &row.Metadata)
+	row.ReviewedAt = reviewed
 	return &row, nil
 }

@@ -210,17 +210,19 @@ case "$PRESET" in
     for f in "$CTI_DATASET_JSON" "$CTI_VENDOR_REPORTS_JSON"; do
       if [ ! -f "$f" ] && [ "$CTI_ALREADY_LOADED" != "1" ]; then
         echo "${RED}✗ CTI dataset not found: ${f}${RESET}" >&2
-        echo "  Load CTI data first (branch feat/cognitive-graph-ui-v2) or ensure root.cti is populated." >&2
+        echo "  Run: make cti-stix-build  (needs examples/full-cti-dataset/data/*.json)" >&2
         exit 1
       fi
     done
     if [ ! -f "$CTI_STIX_BUNDLE_JSON" ] && [ "$CTI_ALREADY_LOADED" != "1" ]; then
-      warn "STIX bundle missing (${CTI_STIX_BUNDLE_JSON}) — loading SOC + vendor reports only"
+      echo "${RED}✗ Operational STIX dataset not found: ${CTI_STIX_BUNDLE_JSON}${RESET}" >&2
+      echo "  Run: make cti-stix-build" >&2
+      exit 1
     fi
     if [ "$CTI_ALREADY_LOADED" != "1" ]; then
       info "SOC/TI Hub:     ${CTI_DATASET_JSON}"
       info "Vendor reports: ${CTI_VENDOR_REPORTS_JSON}"
-      info "STIX bundle:    ${CTI_STIX_BUNDLE_JSON}"
+      info "Operational STIX: ${CTI_STIX_BUNDLE_JSON}"
     fi
     export CTI_DATASET_JSON CTI_VENDOR_REPORTS_JSON CTI_STIX_BUNDLE_JSON
     WORKBENCH_MEM=""
@@ -340,10 +342,12 @@ if [ "$OPEN_UI" = "1" ] && command -v open >/dev/null 2>&1; then
 fi
 echo ""
 if [ "$ENTITY_DEMO" = "1" ]; then
-  echo "  CTI demo UI (threat actors · multi-vendor):"
-  echo "    • ▶ Tour automatico — 9 passi (banner in basso)"
+  echo "  CTI demo UI (threat actors · multi-vendor · Phase D):"
+  echo "    • ▶ Tour automatico — 12 passi (banner in basso)"
   echo "    • Colori: teal=SOC · arancio=vendor · viola=STIX"
   echo "    • BRICKSTORM · PRESSURE CHOLLIMA ↔ Sapphire Sleet · PROMPTSTEAL ↔ Forest Blizzard"
+  echo "    • Passi 9–11: Extract → Registry snapshots → Alias proposals"
+  echo "    • Passo 12: retrieval ibrida BM25+pgvector (POST /v1/retrieve)"
   echo "    • View Registry / Proposals — Phase D entity evolution"
   echo ""
 fi

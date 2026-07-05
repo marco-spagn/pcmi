@@ -290,6 +290,10 @@ func (s *MemoryService) GetByPath(ctx context.Context, tenantID, path string, ve
 	return s.repo.GetByPath(ctx, tenantID, path, version, asOf)
 }
 
+func (s *MemoryService) GetByIDResolveCurrent(ctx context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	return s.repo.GetByIDResolveCurrent(ctx, tenantID, memoryID)
+}
+
 // UpdateImportance sets importance on the current row at path.
 func (s *MemoryService) UpdateImportance(ctx context.Context, tenantID, path string, importance float64) error {
 	if err := model.ValidateImportance(importance); err != nil {

@@ -332,6 +332,18 @@ cti-cross-vendor-demo: cti-stix-build
 demo-cti-graph: cti-stix-build
 	python3 examples/full-cti-dataset/launch_cti_graph_demo.py --infra --load --migrate
 
+# CTI entity evolution (Phase D registry) + hybrid retrieval showcase
+demo-cti-evolution:
+	python3 examples/full-cti-dataset/setup_cti_extraction_demo.py
+	python3 examples/full-cti-dataset/demo_entity_evolution_retrieval.py
+
+demo-cti-evolution-ui: demo-cti-evolution
+	python3 examples/full-cti-dataset/launch_cti_graph_demo.py --autostart
+
+.PHONY: test-cti-evolution-demo
+test-cti-evolution-demo:
+	RATE_LIMIT_DISABLED=true bash scripts/e2e/test_cti_evolution_demo.sh
+
 test-circuit-breaker:
 	go test -race -count=1 -run 'TestCircuitBreaker|TestOpenAIProvider_Wrapped|TestEmbeddingWorker_' ./internal/embedding/... ./internal/worker/...
 

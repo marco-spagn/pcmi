@@ -1,26 +1,34 @@
-# Full CTI dataset · threat-actor graph demo
+# Full CTI dataset · operational STIX + vendor reports
 
-Multi-vendor cyber threat intelligence under `root.cti.*`:
+Multi-vendor cyber threat intelligence under `root.cti.*` for the graph UI tour (`?demo=cti`):
 
-- SOC / TI hub incidents
-- Vendor reports (CrowdStrike, Mandiant, Microsoft, …)
-- Operational STIX IOCs (CISA MAR BRICKSTORM, APT28 samples, …)
+- SOC / TI hub incidents (`full_cti_dataset.json`)
+- Vendor reports — CrowdStrike, Mandiant, Microsoft, … (`vendor_reports_cti_dataset.json`)
+- Operational STIX IOCs — CISA MAR BRICKSTORM, APT28 samples, … (`operational_stix_cti_dataset.json`)
 
-## Quick start (graph UI tour)
-
-If CTI memories are already loaded in PCMI:
+## Build operational STIX dataset
 
 ```bash
-python3 examples/full-cti-dataset/launch_cti_graph_demo.py --autostart
+make cti-stix-build
+# or:
+python3 examples/full-cti-dataset/download_stix_bundles.py
+python3 examples/full-cti-dataset/build_operational_stix_dataset.py
+python3 examples/full-cti-dataset/validate.py
 ```
 
-Or from the repo root:
+Output: `data/operational_stix_cti_dataset.json` — real SHA-256, YARA, IP, cross-vendor actors (PRESSURE CHOLLIMA ↔ Sapphire Sleet, PROMPTSTEAL ↔ Forest Blizzard).
+
+## Load into PCMI
 
 ```bash
-make demo-cti-graph-ui
+cd examples/full-cti-dataset
+python3 load_multi_cti.py --reset
+python3 launch_cti_graph_demo.py --autostart
 ```
 
-API key: `testkey123` · URL pattern: `/v1/graph/ui?demo=cti&…`
+From repo root: `make demo-cti-graph` or `make demo-cti-graph-ui` (if data already loaded).
+
+API key: `testkey123`
 
 ## Resolve tour memory IDs
 
@@ -29,16 +37,10 @@ PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123 \
   python3 examples/full-cti-dataset/resolve_demo_ids.py
 ```
 
-## Cross-vendor correlation (retrieval)
-
-After embeddings are ready, hybrid retrieval connects vendor naming (e.g. PRESSURE CHOLLIMA ↔ Sapphire Sleet):
+## Cross-vendor retrieval demo
 
 ```bash
-curl -s -H 'X-API-Key: testkey123' -H 'Content-Type: application/json' \
-  -d '{"path_prefix":"root.cti","query":"PRESSURE CHOLLIMA Sapphire Sleet Bybit","limit":10}' \
-  http://localhost:8000/v1/retrieve | jq '.entries[:5] | .[] | {id, path, score}'
+make cti-cross-vendor-demo
+python3 demo_entity_evolution_retrieval.py   # registry evolution + retrieval
+make demo-cti-evolution-ui                   # setup + CLI demo + browser tour
 ```
-
-## Reload dataset
-
-Historical loaders (`load_multi_cti.py`, STIX build scripts) may live on branch `feat/cognitive-graph-ui-v2` or in local backups. If `root.cti` has fewer than ~100 memories, reload from that branch before running the tour.

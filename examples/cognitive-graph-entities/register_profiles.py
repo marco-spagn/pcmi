@@ -17,6 +17,7 @@ KEY = os.environ.get("PCMI_API_KEY", "testkey123")
 PROFILES = (
     ("soc.siem.v1", "root.soc", ROOT / "soc.siem.v1.profile.json"),
     ("generic.record.v1", "root.realistic_graph", ROOT / "generic.record.v1.profile.json"),
+    ("cti.multilayer.v1", "root.cti", ROOT / "cti.multilayer.v1.profile.json"),
 )
 
 

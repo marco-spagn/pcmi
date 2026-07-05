@@ -46,6 +46,13 @@ func (r *handlerMockRepo) GetByPath(_ context.Context, _ string, path string, _ 
 	return nil, errors.New("memory not found")
 }
 
+func (r *handlerMockRepo) GetByIDResolveCurrent(_ context.Context, _ string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	if memoryID == 1 {
+		return &model.MemoryEntry{ID: 1, Path: "exists"}, memoryID, nil
+	}
+	return nil, memoryID, errors.New("memory not found")
+}
+
 func (r *handlerMockRepo) GetHistoricalVersion(_ context.Context, _ string, _ string, _ *int, _ *time.Time) (*model.MemoryEntry, error) {
 	return nil, errors.New("no historical version")
 }

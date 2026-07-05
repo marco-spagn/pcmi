@@ -1,0 +1,379 @@
+{
+    "type": "bundle",
+    "id": "bundle--28990ca0-05e2-4292-a73d-ed7d2340dc9e",
+    "objects": [
+        {
+            "type": "marking-definition",
+            "spec_version": "2.1",
+            "id": "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b",
+            "created": "2023-08-11T15:46:15.983Z",
+            "extensions": {
+                "extension-definition--3a65884d-005a-4290-8335-cb2d778a83ce": {
+                    "access_privilege": [
+                        {
+                            "privilege_action": "CISAUSES",
+                            "privilege_scope": {
+                                "entity": [
+                                    "ALL"
+                                ],
+                                "permitted_nationalities": [
+                                    "ALL"
+                                ],
+                                "permitted_organizations": [
+                                    "ALL"
+                                ],
+                                "shareability": [
+                                    "ALL"
+                                ]
+                            },
+                            "rule_effect": "permit"
+                        }
+                    ],
+                    "authority_reference": [
+                        "urn:isa:authority:ais"
+                    ],
+                    "control_set": {
+                        "classification": "U",
+                        "formal_determination": [
+                            "INFORMATION-DIRECTLY-RELATED-TO-CYBERSECURITY-THREAT"
+                        ]
+                    },
+                    "create_date_time": "2023-08-11T15:46:15.983Z",
+                    "extension_type": "property-extension",
+                    "further_sharing": [
+                        {
+                            "sharing_scope": [
+                                "USA.USG"
+                            ],
+                            "rule_effect": "permit"
+                        }
+                    ],
+                    "identifier": "isa:guide.19001.GEMINI-a9bdb603-7f4f-44c6-acb0-d47f614e64b2",
+                    "policy_reference": "urn:isa:policy:acs:ns:v3.0?privdefault=deny&sharedefault=deny",
+                    "responsible_entity_custodian": "USA.DHS.CISA.CSD.TH.CMA",
+                    "responsible_entity_originator": "USA.DHS.CISA.CSD.TH.CMA"
+                }
+            }
+        },
+        {
+            "type": "identity",
+            "spec_version": "2.1",
+            "id": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created_by_ref": "identity--42ac3c92-60d2-418f-ba8e-838944e6110b",
+            "created": "2023-04-12T17:53:09.646Z",
+            "modified": "2023-04-12T17:53:09.646Z",
+            "name": "GeminiProduction_CMA",
+            "description": "Cybersecurity and Infrastructure Security Agency Production Identity. Code and Media Analysis.",
+            "identity_class": "system",
+            "confidence": 100,
+            "lang": "en",
+            "object_marking_refs": [
+                "marking-definition--bab4a63c-aed9-4cf5-a766-dfca5abac2bb"
+            ]
+        },
+        {
+            "type": "file",
+            "spec_version": "2.1",
+            "id": "file--767349f9-26b6-5963-ba3a-effaea727720",
+            "hashes": {
+                "MD5": "34d6af5ae2ab7a08fa474358a0b95539",
+                "SHA-1": "38f6baad1dff7466a07eb456808cc8aa46a3e50c",
+                "SHA-256": "77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c",
+                "SHA-512": "7d263a40e32e0026e72d871a3c369e5977f4474137aaa7315a4207e2d696d877bd9b1cff2758975c1f6613c2c205e0f277b6503977a945721618b10949a8bfa8",
+                "SSDEEP": "98304:QZT3l9IBXSy3dDrwOoJzwGJ/NvfI8xUs/ix:QZT3TIBXSy3dDrwdJzwGJKd"
+            },
+            "size": 7991296,
+            "name": "77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--ea8adc9d-5399-466d-b3d0-c823bed8c5eb",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested Transport Layer Security (TLS) encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"d4f4acfe-0d74-4ab1-bc4d-eed525cb4e61\" ==> authentication key\r\n\"https://[redacted]\" ==> HTTPS address\r\n\"wss://[redacted]/bkup\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor initiates the \"main_startNew\" function to configure environment variables. The backdoor then checks for the \"WRITE_LOG\" environment variable to determine if it is running as a child process. If \"WRITE_LOG\" is not set (indicating not a child process), the backdoor verifies its current execution path by attempting to load the file contents from \"/etc/sysconfig/bkup\". If not running from the specified file path \"/etc/sysconfig/bkup\", the backdoor terminates its code execution. If the backdoor is executing from the specified file path, the backdoor copies itself to \"/usr/java/jre-vmware/bin/bkmgr\". The backdoor then prepends \"/usr/java/jre-vmware/bin/\" to the PATH environment variable, ensuring the newly copied backdoor takes precedence in execution. The backdoor executes the copied backdoor named \"bkmgr\" due to the PATH modification and terminates its own execution. If \"WRITE_LOG\" is set (indicating a child process), the backdoor continues its main code execution. As part of this continued execution, the temporary copy of the backdoor at \"/usr/java/jre-vmware/bin/bkmgr\" is deleted.\r\n\r\nThe backdoor uses the \"main_selfWatcher function\" to ensure its continued operation and maintain persistence on the compromised system. This self-preservation mechanism checks if the backdoor is running as an intended process and, if not, the backdoor re-installs and re-executes itself. The \"main_selfWatcher\" function first checks for the \"WORKER\" environment variable and confirms the existence of a process \"/etc/sysconfig/bkup\". If the checks return a \"false\" value (\"WORKER\" is not set ), indicating the backdoor is not running correctly, the backdoor re-installs itself from \"/etc/sysconfig/bkup\" to a new location: \"/usr/java/jre-vmware/bin/bkmgr\". The backdoor then prepends \"/usr/java/jre-vmware/bin/\" to the PATH environment variable. The newly copied backdoor file \"bkmgr\" is executed. The parent backdoor then terminates its own execution, allowing the new process to continue running. If the initial checks confirm that the backdoor is running as intended (\"WORKER\" is set), the \"main_selfWatcher\" function allows the code to continue its normal malicious operations.\r\n\r\nThe backdoor uses hard-coded IPv4 addresses for the DoH server below:\r\n\r\n--Begin DoH Addresses--\r\nhttps://9.9.9.9/dns-query (Quad9)\r\nhttps://1.0.0.1/dns-query  (Cloudflare)\r\nhttps://1.1.1.1/dns-query (Cloudflare)\r\nhttps://8.8.4.4/dns-query (Google)\r\nhttps://8.8.8.8/dns-query (Google)\r\n--End DoH Addresses--\r\n\r\nThe backdoor relies on internal, low-level function calls from a custom Go package to handle its network connections and command processing. The backdoor uses DoH to resolve the addresses of its C2 servers. The backdoor creates a DNS query for the malicious C2 domain. The backdoor encrypts this query by encapsulating it within a standard HTTPS request. The backdoor sends the encrypted HTTPS request to a legitimate public DoH resolver operated by Cloudflare or Google or Quad9 to process the query. Analysis indicates that if the requested domain is not found in the public DoH resolver cache, the legitimate public DoH resolver forwards the request to the next server in the DNS hierarchy, ultimately reaching the Threat Actor (TA)'s DNS server, which is the authoritative server for the malicious domain. The TA's DNS server will respond with the correct IP address for the C2 domain, and this response is sent back through the legitimate DoH resolver to the backdoor. The backdoor receives the encrypted response, decrypts it to get the C2 server's IP address, and establishes a connection.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted]/bkup\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the cloud platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"d4f4acfe-0d74-4ab1-bc4d-eed525cb4e61\". An innermost TLS layer encrypts the actual C2 commands and data, securing them even if the outer layers are bypassed or decrypted. Upon successful authentication, BRICKSTORM establishes a multiplexing layer, which allows it to send multiple commands and data streams over the same connection. It does this using the \"HashiCorp Yamux\" library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. Multiplexing conceals threat actor activity by embedding multiple commands and network tunnels within a single encrypted stream.\r\n\r\nAfter establishing a secure and covert connection, the backdoor leverages its core \"task.DoTask\" (wssoft/core/task.DoTask) function and three extended \"wssoft\" extensions (modules) \"socks.Socks\", \"web.WebService\", and \"command.Command\". These custom Go package extensions define the malicious functionality that the backdoor should execute, allowing the TA to carry out various tasks on the compromised systems. These modules enable C2 communication, lateral movement, and command execution on the compromised system.\r\n\r\nDisplayed below are the three extended arguments and their functions:\r\n\r\n--Begin Extended Arguments--\r\na. \"wssoft/core/extends/socks.Socks\" (socks.Socks) ==> This extension (Figure 1) enables network tunneling through a SOCKS proxy, which facilitates lateral movement within a compromised network and routes C2 traffic.\r\n\r\nb. \"wssoft/core/extends/web.WebService\" (web.WebService) ==> This extension (Figure 2) establishes covert C2 communication by making the backdoor appear as a legitimate web server. The extension uses the Go programming language, leveraging the \"net/http package\" and \"gorilla/mux\" library, to create a web server on the compromised system.  A dedicated Application Programming Interface ( API) \"/api/\" endpoint is created to receive and execute commands from the TA's C2 server (Figure 3). This provides the TA with extensive control over the victim's file system, allowing the TA to browse, view, create, delete, upload, and download files and folders. To blend in and evade detection, the backdoor serves static web files (Hypertext Markup Language (HTML), Cascading Style Sheets (CSS), JavaScript) from a designated directory. This makes the malicious web server appear to be a standard web application.\r\n\r\nc. \"wssoft/core/extends/command.Command\" (command.Command) ==> This extension (Figure 4) is used to execute commands on the compromised system with a specific security context.\r\n--End Extended Arguments--\r\n\r\nDisplayed below are file management commands contained in backdoor:\r\n\r\n--Begin File Management Commands--\r\n\"/api/file/up\" ==> Uploads a file using a web form (includes SHA256 hashing).\r\n\"/api/file/delete-dir\"  ==> Deletes a specified directory.\r\n\"/api/file/stat\" ==>  Collects file information (size, permissions, ownership, an timestamps [creation, modification, access]).\r\n\"/api/file/change-dir\"  ==> Changes the current working directory on the compromised system.\r\n\"/api/file/list-dir\"  ==> Lists the contents of a directory on the compromised system.\r\n\"/api/file/put-file\" ==> Uploads a file from the C2 server to the compromised system.\r\n\"/api/file/slice-up\"  ==> Reads and downloads specific, partial sections of a file.\r\n\"/api/file/mkdir\" ==> Creates a new directory with a specified name in the current or specified location.\r\n\"/api/file/rename\"  ==> Changes the name of a file or directory.\r\n\"/api/file/get-file\" ==> Downloads a file from the compromised system to the C2 server.\r\n\"/api/file/file-md5\" ==> Calculates the MD5 checksum of a specified file.\r\n--End File Management Commands--",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": " 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251155_01 rule_content=rule CISA_251155_01 : BRICKSTORM backdoor installs_other_components communicates_with_c2 exfiltrates_data\n{\n   meta:\n       author = \"CISA Code & Media Analysis\"\n       incident = \"251155\"\n       date = \"2025-09-15\"\n       last_modified = \"20250916_1511\"\n       actor = \"n/a\"\n       family = \"BRICKSTORM\"\n       capabilities = \"installs-other-components communicates-with-c2 exfiltrates-data\"\n       malware_type = \"backdoor\"\n       tool_type = \"unknown\"\n       description = \"Detects Go-Based BRICKSTORM backdoor samples\"\n       sha256_1 = \"2bf9bfa1f9bcbcad0eada7e3be8d380d809248f08609f6e9d971b37ce09f7e93\"\n       sha256_2 = \"6d42e9a0757670b9837034b5202d1673093577757b44bb0f0253f366413393e9\"\n       sha256_3 = \"b30041b986ee3231fd53522c9d0c57e4567d6c60959fa06c125dde2af558fc9f\"\n   strings:\n       $s0 = { 88 14 08 48 FF C1 }\n       $s1 = { 2F 63 6F 72 65 2F 74 61 73 6B 2E 44 6F 54 61 73 6B 2E 66 75 6E 63 31 }\n       $s2 = { 2F 63 6F 72 65 2F 74 61 73 6B 2E 44 6F 54 61 73 6B 2E 66 75 6E 63 31 2E 32 }\n       $s3 = { 2F 63 6F 72 65 2F 65 78 74 65 6E 64 73 2F 77 65 62 2E 57 65 62 53 65 72 76 69 63 65 }\n       $s4 = { 2F 63 6F 72 65 2F 65 78 74 65 6E 64 73 2F 77 65 62 2E 57 65 62 53 65 72 76 69 63 65 2E 66 75 6E 63 31 }\n       $s5 = { 63 6F 72 65 2F 65 78 74 65 6E 64 73 2F 73 6F 63 6B 73 2E 53 6F 63 6B 73 }\n       $s6 = { 63 6F 72 65 2F 65 78 74 65 6E 64 73 2F 73 6F 63 6B 73 2E 53 6F 63 6B 73 2E 66 75 6E 63 31 }\n       $s7 = { 63 6F 72 65 2F 65 78 74 65 6E 64 73 2F 63 6F 6D 6D 61 6E 64 2E 43 6F 6D 6D 61 6E 64 }\n       $s8 = { 6C 69 62 73 2F 64 6F 68 2E 51 75 65 72 79 }\n       $s9 = { 2F 76 65 6E 64 6F 72 2F 68 61 73 68 69 63 6F 72 70 2F 79 61 6D 75 78 2E 53 65 72 76 65 72 }\n   condition:\n      3 of them\n}\n 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251165_02 rule_content=rule CISA_251165_02 : BRICKSTORM backdoor installs_other_components communicates_with_c2 exfiltrates_data\n{\n   meta:\n       author = \"CISA Code & Media Analysis\"\n       incident = \"251165\"\n       date = \"2025-09-29\"\n       last_modified = \"202051001_1008\"\n       actor = \"n/a\"\n       family = \"BRICKSTORM\"\n       capabilities = \"installs-other-components communicates-with-c2 exfiltrates-data\"\n       malware_type = \"backdoor\"\n       tool_type = \"unknown\"\n       description = \"Detects Go-Based BRICKSTORM backdoor samples\"\n       sha256_1 = \"aaf5569c8e349c15028bc3fac09eb982efb06eabac955b705a6d447263658e38\"\n   strings:\n       $s0 = { 6D 61 69 6E 2E 73 74 61 72 74 4E 65 77 }\n       $s1 = { 6D 61 69 6E 2E 73 65 6C 66 57 61 74 63 68 65 72 }\n       $s2 = { 6D 61 69 6E 2E 73 65 74 53 65 72 76 69 63 65 43 66 67 }\n       $s3 = { 73 6F 63 6B 73 2E 48 61 6E 64 6C 65 53 6F 63 6B 73 52 65 71 75 65 73 74 }\n       $s4 = { 77 65 62 2E 57 65 62 53 65 72 76 69 63 65 }\n       $s5 = { 63 6F 6D 6D 61 6E 64 2E 48 61 6E 64 6C 65 54 54 59 52 65 71 75 65 73 74 }\n       $s6 = { 77 65 62 73 6F 63 6B 65 74 2E 28 2A 57 53 43 6F 6E 6E 65 63 74 6F 72 29 2E 43 6F 6E 6E 65 63 74 }\n       $s7 = { 66 73 2E 28 2A 57 65 62 53 65 72 76 65 72 29 2E 52 75 6E 53 65 72 76 65 72 }\n       $s8 = { 68 74 74 70 73 3A 2F 2F 31 2E 30 2E 30 2E 31 2F 64 6E 73 2D 71 75 65 72 79 }\n       $s9 = { 68 74 74 70 73 3A 2F 2F 31 2E 31 2E 31 2E 31 2F 64 6E 73 2D 71 75 65 72 79 }\n       $s10 = { 68 74 74 70 73 3A 2F 2F 38 2E 38 2E 34 2E 34 2F 64 6E 73 2D 71 75 65 72 79 }\n       $s11 = { 68 74 74 70 73 3A 2F 2F 38 2E 38 2E 38 2E 38 2F 64 6E 73 2D 71 75 65 72 79 }\n       $s12 = { 68 74 74 70 73 3A 2F 2F 39 2E 39 2E 39 2E 39 2F 64 6E 73 2D 71 75 65 72 79 }\n   condition:\n       8 of them\n}\n",
+            "pattern_type": "yara",
+            "valid_from": "2025-12-19T14:04:26.905777Z"
+        },
+        {
+            "type": "malware-analysis",
+            "spec_version": "2.1",
+            "id": "malware-analysis--af9cfcc2-3b00-4d8e-8524-0688a739458c",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "product": "eset",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "result_name": "a variant of Linux/BrickStorm.B trojan",
+            "result": "unknown",
+            "sample_ref": "file--767349f9-26b6-5963-ba3a-effaea727720"
+        },
+        {
+            "type": "malware-analysis",
+            "spec_version": "2.1",
+            "id": "malware-analysis--b9a4f8ff-4ddd-42c6-b72d-7c5c1628d6f0",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "product": "avira",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "result_name": "TR/LINUX.Agent.DSK",
+            "result": "unknown",
+            "sample_ref": "file--767349f9-26b6-5963-ba3a-effaea727720"
+        },
+        {
+            "type": "malware",
+            "spec_version": "2.1",
+            "id": "malware--4567b317-2809-4d06-8622-9939a001255e",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested Transport Layer Security (TLS) encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"d4f4acfe-0d74-4ab1-bc4d-eed525cb4e61\" ==> authentication key\r\n\"https://[redacted]\" ==> HTTPS address\r\n\"wss://[redacted]/bkup\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor initiates the \"main_startNew\" function to configure environment variables. The backdoor then checks for the \"WRITE_LOG\" environment variable to determine if it is running as a child process. If \"WRITE_LOG\" is not set (indicating not a child process), the backdoor verifies its current execution path by attempting to load the file contents from \"/etc/sysconfig/bkup\". If not running from the specified file path \"/etc/sysconfig/bkup\", the backdoor terminates its code execution. If the backdoor is executing from the specified file path, the backdoor copies itself to \"/usr/java/jre-vmware/bin/bkmgr\". The backdoor then prepends \"/usr/java/jre-vmware/bin/\" to the PATH environment variable, ensuring the newly copied backdoor takes precedence in execution. The backdoor executes the copied backdoor named \"bkmgr\" due to the PATH modification and terminates its own execution. If \"WRITE_LOG\" is set (indicating a child process), the backdoor continues its main code execution. As part of this continued execution, the temporary copy of the backdoor at \"/usr/java/jre-vmware/bin/bkmgr\" is deleted.\r\n\r\nThe backdoor uses the \"main_selfWatcher function\" to ensure its continued operation and maintain persistence on the compromised system. This self-preservation mechanism checks if the backdoor is running as an intended process and, if not, the backdoor re-installs and re-executes itself. The \"main_selfWatcher\" function first checks for the \"WORKER\" environment variable and confirms the existence of a process \"/etc/sysconfig/bkup\". If the checks return a \"false\" value (\"WORKER\" is not set ), indicating the backdoor is not running correctly, the backdoor re-installs itself from \"/etc/sysconfig/bkup\" to a new location: \"/usr/java/jre-vmware/bin/bkmgr\". The backdoor then prepends \"/usr/java/jre-vmware/bin/\" to the PATH environment variable. The newly copied backdoor file \"bkmgr\" is executed. The parent backdoor then terminates its own execution, allowing the new process to continue running. If the initial checks confirm that the backdoor is running as intended (\"WORKER\" is set), the \"main_selfWatcher\" function allows the code to continue its normal malicious operations.\r\n\r\nThe backdoor uses hard-coded IPv4 addresses for the DoH server below:\r\n\r\n--Begin DoH Addresses--\r\nhttps://9.9.9.9/dns-query (Quad9)\r\nhttps://1.0.0.1/dns-query  (Cloudflare)\r\nhttps://1.1.1.1/dns-query (Cloudflare)\r\nhttps://8.8.4.4/dns-query (Google)\r\nhttps://8.8.8.8/dns-query (Google)\r\n--End DoH Addresses--\r\n\r\nThe backdoor relies on internal, low-level function calls from a custom Go package to handle its network connections and command processing. The backdoor uses DoH to resolve the addresses of its C2 servers. The backdoor creates a DNS query for the malicious C2 domain. The backdoor encrypts this query by encapsulating it within a standard HTTPS request. The backdoor sends the encrypted HTTPS request to a legitimate public DoH resolver operated by Cloudflare or Google or Quad9 to process the query. Analysis indicates that if the requested domain is not found in the public DoH resolver cache, the legitimate public DoH resolver forwards the request to the next server in the DNS hierarchy, ultimately reaching the Threat Actor (TA)'s DNS server, which is the authoritative server for the malicious domain. The TA's DNS server will respond with the correct IP address for the C2 domain, and this response is sent back through the legitimate DoH resolver to the backdoor. The backdoor receives the encrypted response, decrypts it to get the C2 server's IP address, and establishes a connection.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted]/bkup\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the cloud platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"d4f4acfe-0d74-4ab1-bc4d-eed525cb4e61\". An innermost TLS layer encrypts the actual C2 commands and data, securing them even if the outer layers are bypassed or decrypted. Upon successful authentication, BRICKSTORM establishes a multiplexing layer, which allows it to send multiple commands and data streams over the same connection. It does this using the \"HashiCorp Yamux\" library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. Multiplexing conceals threat actor activity by embedding multiple commands and network tunnels within a single encrypted stream.\r\n\r\nAfter establishing a secure and covert connection, the backdoor leverages its core \"task.DoTask\" (wssoft/core/task.DoTask) function and three extended \"wssoft\" extensions (modules) \"socks.Socks\", \"web.WebService\", and \"command.Command\". These custom Go package extensions define the malicious functionality that the backdoor should execute, allowing the TA to carry out various tasks on the compromised systems. These modules enable C2 communication, lateral movement, and command execution on the compromised system.\r\n\r\nDisplayed below are the three extended arguments and their functions:\r\n\r\n--Begin Extended Arguments--\r\na. \"wssoft/core/extends/socks.Socks\" (socks.Socks) ==> This extension (Figure 1) enables network tunneling through a SOCKS proxy, which facilitates lateral movement within a compromised network and routes C2 traffic.\r\n\r\nb. \"wssoft/core/extends/web.WebService\" (web.WebService) ==> This extension (Figure 2) establishes covert C2 communication by making the backdoor appear as a legitimate web server. The extension uses the Go programming language, leveraging the \"net/http package\" and \"gorilla/mux\" library, to create a web server on the compromised system.  A dedicated Application Programming Interface ( API) \"/api/\" endpoint is created to receive and execute commands from the TA's C2 server (Figure 3). This provides the TA with extensive control over the victim's file system, allowing the TA to browse, view, create, delete, upload, and download files and folders. To blend in and evade detection, the backdoor serves static web files (Hypertext Markup Language (HTML), Cascading Style Sheets (CSS), JavaScript) from a designated directory. This makes the malicious web server appear to be a standard web application.\r\n\r\nc. \"wssoft/core/extends/command.Command\" (command.Command) ==> This extension (Figure 4) is used to execute commands on the compromised system with a specific security context.\r\n--End Extended Arguments--\r\n\r\nDisplayed below are file management commands contained in backdoor:\r\n\r\n--Begin File Management Commands--\r\n\"/api/file/up\" ==> Uploads a file using a web form (includes SHA256 hashing).\r\n\"/api/file/delete-dir\"  ==> Deletes a specified directory.\r\n\"/api/file/stat\" ==>  Collects file information (size, permissions, ownership, an timestamps [creation, modification, access]).\r\n\"/api/file/change-dir\"  ==> Changes the current working directory on the compromised system.\r\n\"/api/file/list-dir\"  ==> Lists the contents of a directory on the compromised system.\r\n\"/api/file/put-file\" ==> Uploads a file from the C2 server to the compromised system.\r\n\"/api/file/slice-up\"  ==> Reads and downloads specific, partial sections of a file.\r\n\"/api/file/mkdir\" ==> Creates a new directory with a specified name in the current or specified location.\r\n\"/api/file/rename\"  ==> Changes the name of a file or directory.\r\n\"/api/file/get-file\" ==> Downloads a file from the compromised system to the C2 server.\r\n\"/api/file/file-md5\" ==> Calculates the MD5 checksum of a specified file.\r\n--End File Management Commands--",
+            "malware_types": [
+                "backdoor",
+                "trojan"
+            ],
+            "is_family": false,
+            "sample_refs": [
+                "file--767349f9-26b6-5963-ba3a-effaea727720"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--1a4d2ac3-9d13-49d7-811c-47b105243a91",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": "[file:hashes.'MD5'='34d6af5ae2ab7a08fa474358a0b95539' OR file:hashes.'SHA-1'='38f6baad1dff7466a07eb456808cc8aa46a3e50c' OR file:hashes.'SHA-256'='77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c' OR file:hashes.'SHA-512'='7d263a40e32e0026e72d871a3c369e5977f4474137aaa7315a4207e2d696d877bd9b1cff2758975c1f6613c2c205e0f277b6503977a945721618b10949a8bfa8']",
+            "pattern_type": "stix",
+            "pattern_version": "2.1",
+            "valid_from": "2025-12-19T14:04:26.91557Z"
+        },
+        {
+            "type": "file",
+            "spec_version": "2.1",
+            "id": "file--4e3894f7-96e6-5ed4-83b6-1a642001fd26",
+            "hashes": {
+                "MD5": "d1f608cfb395d9274aa52b6a524d9fb5",
+                "SHA-1": "7cec4d74931d925996b03a75da0d79e95f47ed86",
+                "SHA-256": "6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800",
+                "SHA-512": "f060e3f7bc55d24f9a926988b395af2c14117fcb289c231546dd7022d2d32470f02e98fb4951bf11766604e03efa528b423916a4cdcb3894266cc5093d78657d",
+                "SSDEEP": "24576:GP7SvQdtJ7joXrsiESFqRDpsq+FMcVIH06iyIcJ2:oSvQPJ7jo4fSFK1sqIhIU6iZ"
+            },
+            "size": 1497344,
+            "name": "6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--24a6a71b-89d0-4563-8579-eb9906654c98",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"f448498q24r484gh9sjgi9g39jqj9je\" ==> authentication key\r\n\"https://[redacted]\" ==> HTTPS address\r\n\"wss://[redacted]/index.php\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor removes the old executable before placing a new one by checking and deleting the file  \"/usr/sbin/vsm-boot-monitordvcenter\" if installed on the compromised system. The backdoor copies itself to \"/usr/sbin/vsm-boot-monitordvcenter\", executes the copied backdoor named \"vsm-boot-monitordvcenter\". The parent backdoor then terminates its own execution, allowing the new process to continue running. The backdoor hides its presence and persists on the compromised system by creating a new separate child process and making the new child process a session leader, allowing the child process to run as a daemon or a service detached from any controlling terminal. As part of this continued execution, the temporary copy of the backdoor at \"/usr/sbin/vsm-boot-monitordvcenter\" is deleted. The backdoor attempts to open \"/dev/null\" and redirects the child process's standard input, standard output, and standard error streams to it to prevent the background process from generating terminal output or waiting for input, which is standard behavior for a daemon.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted]/index.php\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the Cloudflare platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"f448498q24r484gh9sjgi9g39jqj9je\". If authentication is successful, the backdoor proceeds to set up the multiplexing layer. The backdoor handles Yamux library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. This method makes the TA's activities difficult to detect, as multiple commands and network tunnels are multiplexed and hidden within a single, encrypted network stream.\r\n\r\nDisplayed below are sample WebSocket upgrade requests, demonstrating headers used for addressing the server, cross-origin checks, and protocol negotiation:\r\n\r\n--Begin Decrypted WebSocket Connection--\r\nGET /index.php HTTP/1.1\r\nHost: [redacted]:443\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-Websocket-Key: <random generated, Base64-encoded value>\r\nSec-WebSocket-Version: 13\r\n\r\nHTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: <Base64-encoded SHA-1 hash of the client's Sec-WebSocket-Key concatenated with a specific GUID >\r\nDate: <date-time>\r\nServer: Python/3.8 websockets/13.1\r\n--End Decrypted WebSocket Connection--\r\n\r\nOnce the connection is established with the C2 server via WebSockets, the backdoor accepts web-based commands via its WebSocket C2 communication channel to perform various tasks, including arbitrary command execution, file operations, and SOCK proxy relaying.",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": " 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251196_01 rule_content= 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251217_03 rule_content=rule CISA_251217_03 : BRICKSTORM backdoor installs_other_components communicates_with_c2 exfiltrates_data\n{\n   meta:\n       author = \"CISA Code & Media Analysis\"\n       incident = \"251217\"\n       date = \"2025-12-10\"\n       last_modified = \"20251216_729\"\n       actor = \"n/a\"\n       family = \"BRICKSTORM\"\n       capabilities = \"installs-other-components communicates-with-c2 exfiltrates-data\"\n       malware_type = \"backdoor\"\n       tool_type = \"unknown\"\n       description = \"Detects Rust BRICKSTORM backdoor samples\"\n       sha256_1 = \"6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800\"\n       sha256_2 = \"ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae\" \n       sha256_3 = \"0e92009fc6519c837982b3fbfd42946e827de47b73a264d693739168533d07f4\"\n       sha256_4 = \"fb22eea57e00b83edad50ee6e02320377efc10586584c476d5018dbba3643c32\"\n       sha256_5 = \"28a16e782f04d9394b5dfa3363d41d9f5eecc206166aeffd73363d83734a026d\"\n   strings:\n       $s0 = { 20 55 70 67 72 61 64 65 3A 20 77 65 62 73 6F 63 6B 65 74 43 6F 6E 6E 65 63 74 69 6F 6E 3A }\n       $s1 = { 20 55 70 67 72 61 64 65 53 65 63 2D 57 65 62 73 6F 63 6B 65 74 2D 4B 65 79 3A }\n       $s2 = { 20 53 65 63 2D 57 65 62 53 6F 63 6B 65 74 2D 56 65 72 73 69 6F 6E 3A }\n       $s3 = { 57 65 62 53 6F 63 6B 65 74 53 65 63 2D 57 65 62 53 6F 63 6B 65 74 2D 41 63 63 65 70 74 3A }\n       $s4 = { 53 77 69 74 63 68 69 6E 67 20 50 72 6F 74 6F 63 6F 6C 73 }\n       $s5 = { 32 35 38 45 41 46 41 35 2D 45 39 31 34 2D 34 37 44 41 2D 39 35 43 41 2D 43 35 41 42 30 44 43 38\n35 42 31 31 }\n       $s6 = { 2F 64 65 76 2F 70 74 6D 78 64 6F 20 66 6F 72 6B 6F 70 65 6E 20 }\n       $s7 = { 53 6F 63 6B 73 35 20 63 6D 64 20 6E 6F 74 20 73 75 70 70 6F 72 74 }\n       $s8 = { 62 39 32 37 35 38 61 39 61 65 66 31 63 65 66 37 62 37 39 65 32 62 37 32 63 33 64 38 62 61 31 31 33 65 35 34 37 66 38 39 }\n       $s9 = { 58 34 34 38 52 69 6E 67 47 45 54 20 0D 0A 0D 0A 70 69 70 65 50 69 6E 67 50 6F 6E 67 44 61 74 61 }\n   condition:\n     9 of them\n}\n",
+            "pattern_type": "yara",
+            "valid_from": "2025-12-19T14:04:26.954544Z"
+        },
+        {
+            "type": "malware",
+            "spec_version": "2.1",
+            "id": "malware--deb5bf8b-284c-4729-9523-bbadec2cbcb7",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"f448498q24r484gh9sjgi9g39jqj9je\" ==> authentication key\r\n\"https://[redacted]\" ==> HTTPS address\r\n\"wss://[redacted]/index.php\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor removes the old executable before placing a new one by checking and deleting the file  \"/usr/sbin/vsm-boot-monitordvcenter\" if installed on the compromised system. The backdoor copies itself to \"/usr/sbin/vsm-boot-monitordvcenter\", executes the copied backdoor named \"vsm-boot-monitordvcenter\". The parent backdoor then terminates its own execution, allowing the new process to continue running. The backdoor hides its presence and persists on the compromised system by creating a new separate child process and making the new child process a session leader, allowing the child process to run as a daemon or a service detached from any controlling terminal. As part of this continued execution, the temporary copy of the backdoor at \"/usr/sbin/vsm-boot-monitordvcenter\" is deleted. The backdoor attempts to open \"/dev/null\" and redirects the child process's standard input, standard output, and standard error streams to it to prevent the background process from generating terminal output or waiting for input, which is standard behavior for a daemon.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted]/index.php\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the Cloudflare platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"f448498q24r484gh9sjgi9g39jqj9je\". If authentication is successful, the backdoor proceeds to set up the multiplexing layer. The backdoor handles Yamux library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. This method makes the TA's activities difficult to detect, as multiple commands and network tunnels are multiplexed and hidden within a single, encrypted network stream.\r\n\r\nDisplayed below are sample WebSocket upgrade requests, demonstrating headers used for addressing the server, cross-origin checks, and protocol negotiation:\r\n\r\n--Begin Decrypted WebSocket Connection--\r\nGET /index.php HTTP/1.1\r\nHost: [redacted]:443\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-Websocket-Key: <random generated, Base64-encoded value>\r\nSec-WebSocket-Version: 13\r\n\r\nHTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: <Base64-encoded SHA-1 hash of the client's Sec-WebSocket-Key concatenated with a specific GUID >\r\nDate: <date-time>\r\nServer: Python/3.8 websockets/13.1\r\n--End Decrypted WebSocket Connection--\r\n\r\nOnce the connection is established with the C2 server via WebSockets, the backdoor accepts web-based commands via its WebSocket C2 communication channel to perform various tasks, including arbitrary command execution, file operations, and SOCK proxy relaying.",
+            "malware_types": [
+                "backdoor"
+            ],
+            "is_family": false,
+            "sample_refs": [
+                "file--4e3894f7-96e6-5ed4-83b6-1a642001fd26"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--1bf5802a-df05-427e-92e6-e64044642444",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": "[file:hashes.'MD5'='d1f608cfb395d9274aa52b6a524d9fb5' OR file:hashes.'SHA-1'='7cec4d74931d925996b03a75da0d79e95f47ed86' OR file:hashes.'SHA-256'='6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800' OR file:hashes.'SHA-512'='f060e3f7bc55d24f9a926988b395af2c14117fcb289c231546dd7022d2d32470f02e98fb4951bf11766604e03efa528b423916a4cdcb3894266cc5093d78657d']",
+            "pattern_type": "stix",
+            "pattern_version": "2.1",
+            "valid_from": "2025-12-19T14:04:26.958696Z"
+        },
+        {
+            "type": "file",
+            "spec_version": "2.1",
+            "id": "file--1cd75644-80e5-5b3b-aa6f-1a539be3cc92",
+            "hashes": {
+                "MD5": "6c20a810134025a9f05cf312d4b34967",
+                "SHA-1": "fa664bb3369d4a48db88f4e8d7364f7582f64313",
+                "SHA-256": "ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae",
+                "SHA-512": "feb8fe45092f2d42656bbf49450f242826598aa816307d11a5c8caec5647884ea245c8a099aee7a1a51f37f5273f6797055326768e48131d063ee4f089771299",
+                "SSDEEP": "24576:AWMJ9lwXBLYX8PuMCdr1QnJh0uwhFMcVIH06iybJc:nMJ9lkBLYX8eQnX0uw7hIU6ih"
+            },
+            "size": 1497344,
+            "name": "ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--96705cc0-6265-4d17-b945-684f426e57f2",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"4f984e49q4y9392q8u9q\" ==> authentication key\r\n\"https://[redacted].com\" ==> HTTPS address\r\n\"wss://[redacted].com/home\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor removes the old executable before placing a new one by checking and deleting the file  \"/usr/sbin/vsm-monitordvcenter\" if installed on the compromised system. The backdoor copies itself to \"/usr/sbin/vsm-monitordvcenter\", executes the copied backdoor named \"vsm-monitordvcenter\". The parent backdoor then terminates its own execution, allowing the new process to continue running. The backdoor hides its presence and persists on the compromised system by creating a new separate child process and making the new child process a session leader, allowing the child process to run as a daemon or a service detached from any controlling terminal. As part of this continued execution, the temporary copy of the backdoor at \"/usr/sbin/vsm-monitordvcenter\" is deleted. The backdoor attempts to open \"/dev/null\" and redirects the child process's standard input, standard output, and standard error streams to it to prevent the background process from generating terminal output or waiting for input, which is standard behavior for a daemon.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted].com/home\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the Cloudflare platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"4f984e49q4y9392q8u9q\". If authentication is successful, the backdoor proceeds to set up the multiplexing layer. The backdoor handles Yamux library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. This method makes the TA's activities difficult to detect, as multiple commands and network tunnels are multiplexed and hidden within a single, encrypted network stream.\r\n\r\nDisplayed below are sample WebSocket upgrade requests, demonstrating headers used for addressing the server, cross-origin checks, and protocol negotiation:\r\n\r\n--Begin Decrypted WebSocket Connection--\r\nGET /home HTTP/1.1\r\nHost: [redacted].com:443\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-Websocket-Key: <random generated, Base64-encoded value>\r\nSec-WebSocket-Version: 13\r\n\r\nHTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: <Base64-encoded SHA-1 hash of the client's Sec-WebSocket-Key concatenated with a specific GUID>\r\nDate: <date-time>\r\nServer: Python/3.8 websockets/13.1\r\n--End Decrypted WebSocket Connection--\r\n\r\nOnce the connection is established with the C2 server via WebSockets, the backdoor accepts web-based commands via its WebSocket C2 communication channel to perform various tasks, including arbitrary command execution, file operations, and SOCK proxy relaying.",
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": " 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251196_01 rule_content= 'namespace'='CISA_Consolidated.yara' rule_name=CISA_251217_03 rule_content=rule CISA_251217_03 : BRICKSTORM backdoor installs_other_components communicates_with_c2 exfiltrates_data\n{\n   meta:\n       author = \"CISA Code & Media Analysis\"\n       incident = \"251217\"\n       date = \"2025-12-10\"\n       last_modified = \"20251216_729\"\n       actor = \"n/a\"\n       family = \"BRICKSTORM\"\n       capabilities = \"installs-other-components communicates-with-c2 exfiltrates-data\"\n       malware_type = \"backdoor\"\n       tool_type = \"unknown\"\n       description = \"Detects Rust BRICKSTORM backdoor samples\"\n       sha256_1 = \"6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800\"\n       sha256_2 = \"ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae\" \n       sha256_3 = \"0e92009fc6519c837982b3fbfd42946e827de47b73a264d693739168533d07f4\"\n       sha256_4 = \"fb22eea57e00b83edad50ee6e02320377efc10586584c476d5018dbba3643c32\"\n       sha256_5 = \"28a16e782f04d9394b5dfa3363d41d9f5eecc206166aeffd73363d83734a026d\"\n   strings:\n       $s0 = { 20 55 70 67 72 61 64 65 3A 20 77 65 62 73 6F 63 6B 65 74 43 6F 6E 6E 65 63 74 69 6F 6E 3A }\n       $s1 = { 20 55 70 67 72 61 64 65 53 65 63 2D 57 65 62 73 6F 63 6B 65 74 2D 4B 65 79 3A }\n       $s2 = { 20 53 65 63 2D 57 65 62 53 6F 63 6B 65 74 2D 56 65 72 73 69 6F 6E 3A }\n       $s3 = { 57 65 62 53 6F 63 6B 65 74 53 65 63 2D 57 65 62 53 6F 63 6B 65 74 2D 41 63 63 65 70 74 3A }\n       $s4 = { 53 77 69 74 63 68 69 6E 67 20 50 72 6F 74 6F 63 6F 6C 73 }\n       $s5 = { 32 35 38 45 41 46 41 35 2D 45 39 31 34 2D 34 37 44 41 2D 39 35 43 41 2D 43 35 41 42 30 44 43 38\n35 42 31 31 }\n       $s6 = { 2F 64 65 76 2F 70 74 6D 78 64 6F 20 66 6F 72 6B 6F 70 65 6E 20 }\n       $s7 = { 53 6F 63 6B 73 35 20 63 6D 64 20 6E 6F 74 20 73 75 70 70 6F 72 74 }\n       $s8 = { 62 39 32 37 35 38 61 39 61 65 66 31 63 65 66 37 62 37 39 65 32 62 37 32 63 33 64 38 62 61 31 31 33 65 35 34 37 66 38 39 }\n       $s9 = { 58 34 34 38 52 69 6E 67 47 45 54 20 0D 0A 0D 0A 70 69 70 65 50 69 6E 67 50 6F 6E 67 44 61 74 61 }\n   condition:\n     9 of them\n}\n",
+            "pattern_type": "yara",
+            "valid_from": "2025-12-19T14:04:26.985777Z"
+        },
+        {
+            "type": "malware",
+            "spec_version": "2.1",
+            "id": "malware--1fea683d-ac7f-4f15-aa75-3db01e66dc87",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "This sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"4f984e49q4y9392q8u9q\" ==> authentication key\r\n\"https://[redacted].com\" ==> HTTPS address\r\n\"wss://[redacted].com/home\" ==> WebSocket address\r\n--End Elements--\r\n\r\nUpon execution, the backdoor removes the old executable before placing a new one by checking and deleting the file  \"/usr/sbin/vsm-monitordvcenter\" if installed on the compromised system. The backdoor copies itself to \"/usr/sbin/vsm-monitordvcenter\", executes the copied backdoor named \"vsm-monitordvcenter\". The parent backdoor then terminates its own execution, allowing the new process to continue running. The backdoor hides its presence and persists on the compromised system by creating a new separate child process and making the new child process a session leader, allowing the child process to run as a daemon or a service detached from any controlling terminal. As part of this continued execution, the temporary copy of the backdoor at \"/usr/sbin/vsm-monitordvcenter\" is deleted. The backdoor attempts to open \"/dev/null\" and redirects the child process's standard input, standard output, and standard error streams to it to prevent the background process from generating terminal output or waiting for input, which is standard behavior for a daemon.\r\n\r\nThe backdoor uses multiple layers of encryption for its C2 communications. The backdoor communicates over HTTPS to the cloud platform, then upgrades these sessions to WebSockets with an additional layer of TLS encryption. The backdoor sends an HTTP upgrade request to convert the initial encrypted HTTPS connection into a persistent WebSocket connection: \"wss://[redacted].com/home\". The backdoor nests additional layers of TLS encryption within the WebSocket session. The backdoor performs a series of nested TLS handshakes within the established WebSocket tunnel. The first TLS handshake is the standard TLS handshake for the initial HTTPS request to the Cloudflare platform. A second TLS handshake occurs within the WebSocket tunnel. During this step, the backdoor authenticates itself to the C2 server using a static authentication key: \"4f984e49q4y9392q8u9q\". If authentication is successful, the backdoor proceeds to set up the multiplexing layer. The backdoor handles Yamux library to create virtual streams over a single underlying TLS-secured connection based on client configuration or handshake data. This method makes the TA's activities difficult to detect, as multiple commands and network tunnels are multiplexed and hidden within a single, encrypted network stream.\r\n\r\nDisplayed below are sample WebSocket upgrade requests, demonstrating headers used for addressing the server, cross-origin checks, and protocol negotiation:\r\n\r\n--Begin Decrypted WebSocket Connection--\r\nGET /home HTTP/1.1\r\nHost: [redacted].com:443\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-Websocket-Key: <random generated, Base64-encoded value>\r\nSec-WebSocket-Version: 13\r\n\r\nHTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: <Base64-encoded SHA-1 hash of the client's Sec-WebSocket-Key concatenated with a specific GUID>\r\nDate: <date-time>\r\nServer: Python/3.8 websockets/13.1\r\n--End Decrypted WebSocket Connection--\r\n\r\nOnce the connection is established with the C2 server via WebSockets, the backdoor accepts web-based commands via its WebSocket C2 communication channel to perform various tasks, including arbitrary command execution, file operations, and SOCK proxy relaying.",
+            "malware_types": [
+                "backdoor"
+            ],
+            "is_family": false,
+            "sample_refs": [
+                "file--1cd75644-80e5-5b3b-aa6f-1a539be3cc92"
+            ]
+        },
+        {
+            "type": "indicator",
+            "spec_version": "2.1",
+            "id": "indicator--feb22247-0612-4eda-b924-15c40ce31b8b",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "indicator_types": [
+                "malicious-activity"
+            ],
+            "pattern": "[file:hashes.'MD5'='6c20a810134025a9f05cf312d4b34967' OR file:hashes.'SHA-1'='fa664bb3369d4a48db88f4e8d7364f7582f64313' OR file:hashes.'SHA-256'='ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae' OR file:hashes.'SHA-512'='feb8fe45092f2d42656bbf49450f242826598aa816307d11a5c8caec5647884ea245c8a099aee7a1a51f37f5273f6797055326768e48131d063ee4f089771299']",
+            "pattern_type": "stix",
+            "pattern_version": "2.1",
+            "valid_from": "2025-12-19T14:04:26.990057Z"
+        },
+        {
+            "type": "report",
+            "spec_version": "2.1",
+            "id": "report--82de553e-8070-4ea0-85c5-48296493469e",
+            "created_by_ref": "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+            "created": "2025-12-15T16:06:05.000Z",
+            "modified": "2025-12-15T16:06:05.000Z",
+            "name": "MAR-251217.r1.v1",
+            "object_marking_refs": [
+                "marking-definition--94868c89-83c2-464b-929b-a1a8aa3c8487",
+                "marking-definition--a9a3af6f-55e9-41bd-8d8b-b9fa1d325d5b"
+            ],
+            "description": "CISA received three 64-bit Executable and Linkable Format (ELF) files for analysis. One file is a custom Go-based application that has been identified as the BRICKSTORM backdoor malware variant. The backdoor uses sophisticated techniques, such as SOCKS proxying, multi-layered encrypted communication over web services, and varied command execution methods to obscure its activities. The backdoor command-and-control (C2) communication blends in with legitimate network traffic through multi-layered encryption, leveraging standard protocols, legitimate cloud infrastructure, and Domain Name System (DNS) over Hypertext Transfer Protocol Secure (HTTPS) (DoH).\r\n\r\nTwo files are written in Rust and have been identified as the BRICKSTORM backdoor malware variants. The backdoor uses sophisticated techniques, such as SOCKS proxying, multi-layered encrypted communication over web services, and varied command execution methods to obscure its activities.",
+            "report_types": [
+                "observed-data",
+                "malware",
+                "indicator"
+            ],
+            "published": "2025-12-15T16:06:05Z",
+            "object_refs": [
+                "identity--8e112e72-aa8f-4190-a359-28a9abae2896",
+                "file--767349f9-26b6-5963-ba3a-effaea727720",
+                "indicator--ea8adc9d-5399-466d-b3d0-c823bed8c5eb",
+                "malware-analysis--af9cfcc2-3b00-4d8e-8524-0688a739458c",
+                "malware-analysis--b9a4f8ff-4ddd-42c6-b72d-7c5c1628d6f0",
+                "malware--4567b317-2809-4d06-8622-9939a001255e",
+                "indicator--1a4d2ac3-9d13-49d7-811c-47b105243a91",
+                "file--4e3894f7-96e6-5ed4-83b6-1a642001fd26",
+                "indicator--24a6a71b-89d0-4563-8579-eb9906654c98",
+                "malware--deb5bf8b-284c-4729-9523-bbadec2cbcb7",
+                "indicator--1bf5802a-df05-427e-92e6-e64044642444",
+                "file--1cd75644-80e5-5b3b-aa6f-1a539be3cc92",
+                "indicator--96705cc0-6265-4d17-b945-684f426e57f2",
+                "malware--1fea683d-ac7f-4f15-aa75-3db01e66dc87",
+                "indicator--feb22247-0612-4eda-b924-15c40ce31b8b"
+            ]
+        }
+    ]
+}

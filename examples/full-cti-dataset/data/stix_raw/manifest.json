@@ -1,0 +1,44 @@
+{
+  "generated": "2026-07-04T23:55:31Z",
+  "bundles": [
+    {
+      "id": "MAR-251165",
+      "url": "https://www.cisa.gov/sites/default/files/2025-12/MAR-251165.c1.v1.CLEAR_stix2.json",
+      "filename": "MAR-251165.c1.v1.CLEAR_stix2.json",
+      "campaign": "BRICKSTORM",
+      "vendor": "CISA/Mandiant",
+      "published": "2025-12-04",
+      "path": "/Users/marco/Desktop/pcmi/pcmi/examples/full-cti-dataset/data/stix_raw/MAR-251165.c1.v1.CLEAR_stix2.json",
+      "sha256": "f5efa037d94a640d2a896db6364b364fb55cdad018c8b4571a7389d0a4a74574",
+      "bytes": 192126,
+      "object_count": 44,
+      "status": "cached"
+    },
+    {
+      "id": "MAR-251217",
+      "url": "https://www.cisa.gov/sites/default/files/2025-12/MAR-251217.r1.v1.CLEAR_stix2.json",
+      "filename": "MAR-251217.r1.v1.CLEAR_stix2.json",
+      "campaign": "BRICKSTORM",
+      "vendor": "CISA/Mandiant",
+      "published": "2025-12-19",
+      "path": "/Users/marco/Desktop/pcmi/pcmi/examples/full-cti-dataset/data/stix_raw/MAR-251217.r1.v1.CLEAR_stix2.json",
+      "sha256": "74379e5fe900a05f6390b15494d755847c306aa4ac73856a01d9de23d2a29c01",
+      "bytes": 61761,
+      "object_count": 17,
+      "status": "cached"
+    },
+    {
+      "id": "MAR-261234",
+      "url": "https://www.cisa.gov/sites/default/files/2026-02/MAR-261234.r1.v1.CLEAR_stix2.json",
+      "filename": "MAR-261234.r1.v1.CLEAR_stix2.json",
+      "campaign": "BRICKSTORM",
+      "vendor": "CISA/Mandiant",
+      "published": "2026-02-11",
+      "path": "/Users/marco/Desktop/pcmi/pcmi/examples/full-cti-dataset/data/stix_raw/MAR-261234.r1.v1.CLEAR_stix2.json",
+      "sha256": "aa8523cf23083cd1ba4fcaee4de1793298914ceecebb0ad0800dd013dac82ec5",
+      "bytes": 23115,
+      "object_count": 12,
+      "status": "cached"
+    }
+  ]
+}

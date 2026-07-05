@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -38,7 +39,7 @@ func RegisterEntityRegistryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.
 	}
 	h := newEntityRegistryHandler(dbWrite, readReplica, graphClient, cfg, registry)
 	app.Get("/v1/entities/registry", h.ListEntities)
-	app.Get("/v1/entities/registry/:kind/:canonical_key", h.GetEntity)
+	app.Get("/v1/entities/registry/:kind/*", h.GetEntity)
 	app.Post("/v1/entities/registry/aliases", middleware.RequireWriteRole, h.AddAlias)
 	app.Get("/v1/graph/entity-alias-proposals", h.ListAliasProposals)
 	app.Post("/v1/graph/entity-alias-proposals/generate/:memory_id", middleware.RequireWriteRole, h.GenerateAliasProposals)
@@ -68,7 +69,15 @@ func (h *EntityRegistryHandler) ListEntities(c *fiber.Ctx) error {
 func (h *EntityRegistryHandler) GetEntity(c *fiber.Ctx) error {
 	tenantID := c.Locals(middleware.TenantContextKey).(string)
 	kind := strings.TrimSpace(c.Params("kind"))
-	key := strings.TrimSpace(c.Params("canonical_key"))
+	key := strings.TrimSpace(c.Params("*"))
+	key = strings.TrimPrefix(key, "/")
+	if key == "" {
+		key = strings.TrimSpace(c.Params("canonical_key"))
+	}
+	if decoded, err := url.PathUnescape(key); err == nil {
+		key = decoded
+	}
+	key = strings.TrimSpace(key)
 	entity, aliases, snaps, err := h.registry.GetEntity(c.Context(), tenantID, kind, key)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {

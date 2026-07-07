@@ -8,15 +8,28 @@ import (
 	"github.com/marco-spagn/pcmi/internal/extraction"
 	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/model"
-	"github.com/marco-spagn/pcmi/internal/repository"
 )
 
 // EntityRegistryService resolves canonical entities and records evolution snapshots.
 type EntityRegistryService struct {
-	repo *repository.EntityRegistryRepository
+	repo entityRegistryStore
 }
 
-func NewEntityRegistryService(repo *repository.EntityRegistryRepository) *EntityRegistryService {
+type entityRegistryStore interface {
+	ResolveCanonicalKey(ctx context.Context, tenantID, kind, aliasKey string) (string, error)
+	UpsertCanonical(ctx context.Context, tenantID, kind, canonicalKey, displayName string, metadata map[string]interface{}) (*model.EntityRegistry, error)
+	UpsertActiveAlias(ctx context.Context, tenantID, entityID, kind, aliasKey, source string, confidence float64, metadata map[string]interface{}) error
+	InsertSnapshot(ctx context.Context, tenantID, entityID string, memoryID int64, memoryVersion int, profileID, slot, rawKey string, attributes map[string]interface{}, confidence float64) error
+	ListEntities(ctx context.Context, tenantID, kind string, limit int) ([]model.EntityRegistry, error)
+	GetByCanonical(ctx context.Context, tenantID, kind, canonicalKey string) (*model.EntityRegistry, error)
+	GetByID(ctx context.Context, tenantID, id string) (*model.EntityRegistry, error)
+	ListActiveAliases(ctx context.Context, tenantID, entityID string) ([]model.EntityAlias, error)
+	ListSnapshots(ctx context.Context, tenantID, entityID string, limit int) ([]model.EntitySnapshot, error)
+	ExpandEntityKeys(ctx context.Context, tenantID, kind, key string) ([]string, error)
+	MergeEntityAliasInGraph(ctx context.Context, tenantID, kind, aliasKey, canonicalKey string) error
+}
+
+func NewEntityRegistryService(repo entityRegistryStore) *EntityRegistryService {
 	return &EntityRegistryService{repo: repo}
 }
 

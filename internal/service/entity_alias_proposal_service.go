@@ -14,13 +14,27 @@ import (
 
 // EntityAliasProposalService generates and reviews entity alias merge proposals.
 type EntityAliasProposalService struct {
-	proposals *repository.EntityAliasProposalRepository
-	registry  *repository.EntityRegistryRepository
+	proposals entityAliasProposalStore
+	registry  entityAliasRegistryStore
 	profiles  entityAliasProfileStore
 	llm       LLMCompleter
 	entities  *EntityRegistryService
 	model     string
 	enabled   bool
+}
+
+type entityAliasProposalStore interface {
+	InsertPending(ctx context.Context, tenantID string, p repository.InsertEntityAliasProposalParams) (*model.EntityAliasProposal, error)
+	GetByID(ctx context.Context, tenantID string, id int64) (*model.EntityAliasProposal, error)
+	List(ctx context.Context, tenantID, status string, limit int) ([]model.EntityAliasProposal, error)
+	UpdateStatus(ctx context.Context, tenantID string, id int64, status string) (*model.EntityAliasProposal, error)
+}
+
+type entityAliasRegistryStore interface {
+	GetByCanonical(ctx context.Context, tenantID, kind, canonicalKey string) (*model.EntityRegistry, error)
+	GetByID(ctx context.Context, tenantID, id string) (*model.EntityRegistry, error)
+	ResolveCanonicalKey(ctx context.Context, tenantID, kind, aliasKey string) (string, error)
+	ListEntities(ctx context.Context, tenantID, kind string, limit int) ([]model.EntityRegistry, error)
 }
 
 type entityAliasProfileStore interface {
@@ -29,8 +43,8 @@ type entityAliasProfileStore interface {
 }
 
 func NewEntityAliasProposalService(
-	proposals *repository.EntityAliasProposalRepository,
-	registry *repository.EntityRegistryRepository,
+	proposals entityAliasProposalStore,
+	registry entityAliasRegistryStore,
 	entities *EntityRegistryService,
 	profiles entityAliasProfileStore,
 	llm LLMCompleter,

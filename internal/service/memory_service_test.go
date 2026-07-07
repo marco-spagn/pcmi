@@ -182,6 +182,18 @@ func TestMemoryServiceGetByPathNotFound(t *testing.T) {
 	}
 }
 
+func TestMemoryServiceGetByIDResolveCurrent(t *testing.T) {
+	repo := &fullMockRepo{}
+	svc := NewMemoryService(repo, nil)
+	entry, requestedID, err := svc.GetByIDResolveCurrent(context.Background(), "tid", 99)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.ID != 99 || requestedID != 99 {
+		t.Fatalf("entry=%+v requestedID=%d", entry, requestedID)
+	}
+}
+
 // ─── Rollback ─────────────────────────────────────────────────────────────────
 
 func TestMemoryServiceRollbackEmptyPath(t *testing.T) {

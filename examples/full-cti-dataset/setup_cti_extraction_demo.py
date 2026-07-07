@@ -32,6 +32,9 @@ RESOLVER = os.path.join(ROOT, "resolve_demo_ids.py")
 sys.path.insert(0, ROOT)
 from load_to_pcmi import http  # noqa: E402
 
+# Keys skipped when filling extraction batch beyond tour anchors (not meaningful in demo).
+SKIP_ID_MAP_PREFIXES = ("tih_issue1_", "tih_issue2_")
+
 # Cross-vendor tour anchors — extraction here feeds registry + graph entities.
 PRIORITY_KEYS = (
     "ms_sapphire",
@@ -148,7 +151,9 @@ def memory_ids(limit: int) -> list[int]:
     id_map_path = os.path.join(ROOT, "id_map.json")
     if os.path.isfile(id_map_path):
         id_map = json.load(open(id_map_path, encoding="utf-8"))
-        for mid in id_map.values():
+        for key, mid in id_map.items():
+            if any(key.startswith(p) for p in SKIP_ID_MAP_PREFIXES):
+                continue
             mid = int(mid)
             if mid in seen:
                 continue

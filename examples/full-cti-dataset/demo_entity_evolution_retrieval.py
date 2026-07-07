@@ -194,14 +194,15 @@ def print_ui_hint() -> None:
         env=os.environ.copy(),
     )
     url = proc.stdout.strip() if proc.returncode == 0 else f"{BASE}/v1/graph/ui?demo=cti"
-    url += "&autostart=1" if "autostart" not in url else ""
-    print("  Open the guided tour (steps 1–12: CTI graph + Registry + retrieval):\n")
+    url += "&walkthrough=1" if "walkthrough" not in url else ""
+    print("  Open the guided walkthrough (manual steps beside live graph):\n")
     print(f"    {url}\n")
     print("  In the UI:")
     print("    · View Registry → ThreatActor/Campaign + alias chips (APT28 ↔ Forest Blizzard)")
     print("    · Proposals → Alias → Accept all (or setup_cti_extraction_demo.py)")
-    print("    · View Retrieve → scenario cross-vendor → Run → risultati verdi")
-    print("    · Tour step 9–12 cover evolution + alias accept + retrieval panel")
+    print("    · View Retrieve → scenario DPRK CrowdStrike→Microsoft → Run")
+    print("      Pipeline: embed query → SQL ibrida → score fusion → top-N verdi")
+    print("    · Tour step 12: PRESSURE CHOLLIMA trova Sapphire Sleet (senza alias table)")
 
 
 def main() -> int:

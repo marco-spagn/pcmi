@@ -327,6 +327,36 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   font-size: 11.5px; color: var(--text-dim); line-height: 1.5; padding: 0 12px 8px;
   border-bottom: 1px solid var(--border); margin-bottom: 8px;
 }
+.retrieval-pipeline {
+  padding: 0 12px 10px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.retrieval-pipeline .pipe-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-mute); margin-bottom: 6px;
+}
+.retrieval-pipe-steps { display: flex; flex-direction: column; gap: 4px; }
+.retrieval-pipe-step {
+  display: flex; gap: 8px; align-items: flex-start; font-size: 11px; line-height: 1.4;
+  color: var(--text-mute); padding: 4px 6px; border-radius: 6px;
+}
+.retrieval-pipe-step.active { color: var(--text); background: rgba(56,189,248,.08); }
+.retrieval-pipe-step.done { color: var(--text-dim); }
+.retrieval-pipe-step .pipe-num {
+  font-family: var(--mono); font-size: 10px; min-width: 18px; color: var(--primary);
+}
+.retrieval-pipe-step .pipe-detail { font-size: 10px; color: var(--text-mute); margin-top: 1px; }
+.retrieval-mode {
+  font-size: 11px; padding: 6px 10px; margin: 0 12px 8px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg-input); line-height: 1.45;
+}
+.retrieval-mode.hybrid { border-color: rgba(45,212,191,.35); color: var(--text); }
+.retrieval-mode.fallback { border-color: rgba(245,158,11,.35); color: var(--text-dim); }
+.retrieval-mode.empty { border-color: rgba(239,68,68,.35); }
+.retrieval-score-formula {
+  font-family: var(--mono); font-size: 10px; color: var(--text-mute);
+  padding: 0 12px 8px; line-height: 1.5;
+}
 .snap-timeline { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
 .snap-row {
   background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
@@ -408,6 +438,115 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(45,212,191,.35); }
   50% { box-shadow: 0 0 0 6px rgba(45,212,191,0); }
 }
+
+/* CTI manual walkthrough — fixed left column beside live demo */
+.walkthrough-panel {
+  width: 0; flex-shrink: 0; overflow: hidden;
+  background: var(--bg-panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 26;
+  transition: width .22s cubic-bezier(.4,0,.2,1);
+}
+.walkthrough-panel.open { width: 360px; }
+.wt-head {
+  padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.wt-head h2 { font-size: 13px; font-weight: 650; margin-bottom: 4px; }
+.wt-head .sub { font-size: 10.5px; color: var(--text-mute); line-height: 1.45; }
+.wt-progress {
+  height: 3px; background: var(--border); flex-shrink: 0;
+}
+.wt-progress > div {
+  height: 100%; background: var(--primary); transition: width .2s ease;
+}
+.wt-body {
+  flex: 1; overflow-y: auto; padding: 12px 14px 16px;
+}
+.wt-body::-webkit-scrollbar { width: 8px; }
+.wt-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.wt-step-title { font-size: 14px; font-weight: 650; margin-bottom: 8px; color: var(--text); }
+.wt-step-text { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 10px; }
+.wt-callout {
+  font-size: 11.5px; line-height: 1.5; padding: 9px 10px; border-radius: 8px; margin-bottom: 10px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.22); color: var(--text-dim);
+}
+.wt-callout.warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.28); }
+.wt-callout.ok { background: rgba(52,211,153,.08); border-color: rgba(52,211,153,.28); }
+.wt-qna { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.wt-qna-hdr { font-size: 10.5px; font-weight: 500; padding: 6px 10px; background: var(--bg-input); color: var(--text-dim); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.4px; }
+.wt-qna details { border-top: 1px solid var(--border); }
+.wt-qna details:first-of-type { border-top: 0; }
+.wt-qna summary { font-size: 11.5px; padding: 7px 10px; cursor: pointer; color: var(--text); line-height: 1.35; list-style: none; }
+.wt-qna summary::-webkit-details-marker { display: none; }
+.wt-qna summary::before { content: '▸ '; color: var(--text-dim); margin-right: 3px; }
+.wt-qna details[open] > summary::before { content: '▾ '; }
+.wt-qna .wt-qna-a { font-size: 11.5px; line-height: 1.55; padding: 4px 10px 10px 22px; color: var(--text-dim); }
+.wt-qna .wt-qna-a code { font-family: var(--mono); font-size: 10.5px; background: var(--bg-input); padding: 1px 4px; border-radius: 3px; }
+.wt-code {
+  font-family: var(--mono); font-size: 10.5px; line-height: 1.5; padding: 8px 10px;
+  border-radius: 7px; background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text-dim); white-space: pre-wrap; margin-bottom: 10px;
+}
+.wt-mini-steps { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.wt-mini-step {
+  font-size: 10.5px; padding: 5px 8px; border-radius: 6px; color: var(--text-mute);
+  border: 1px solid transparent;
+}
+.wt-mini-step.on { color: var(--text); background: rgba(45,212,191,.08); border-color: rgba(45,212,191,.25); }
+.wt-mini-step.done { color: var(--text-dim); opacity: .85; }
+.wt-nav {
+  padding: 10px 12px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.wt-nav button {
+  font-size: 11px; font-weight: 600; padding: 7px 12px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-elev); color: var(--text-dim);
+}
+.wt-nav button.primary { background: rgba(45,212,191,.15); border-color: rgba(45,212,191,.4); color: var(--primary); }
+.wt-nav button:disabled { opacity: .4; cursor: not-allowed; }
+.wt-nav .wt-counter {
+  margin-left: auto; margin-right: auto; font-size: 11px; font-family: var(--mono); color: var(--text-mute);
+}
+body.graph-walkthrough .guide-bar { display: none; }
+
+/* demo memory launcher — one chip per memory + “open all” */
+.demo-mem-bar {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px 10px;
+  flex-shrink: 0;
+  z-index: 18;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.demo-mem-bar.visible { display: flex; }
+.demo-mem-bar .demo-mem-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-mute); white-space: nowrap;
+}
+.demo-mem-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0;
+  max-height: 72px; overflow-y: auto;
+}
+.demo-mem-chips::-webkit-scrollbar { height: 6px; width: 6px; }
+.demo-mem-chips::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.demo-mem-chip {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-input); color: var(--text-dim);
+  transition: border-color .15s, background .15s, color .15s;
+  white-space: nowrap;
+}
+.demo-mem-chip:hover { border-color: rgba(45,212,191,.45); color: var(--text); background: rgba(45,212,191,.06); }
+.demo-mem-chip.active {
+  border-color: rgba(45,212,191,.55); background: rgba(45,212,191,.12); color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(45,212,191,.15);
+}
+.demo-mem-chip .tag {
+  font-size: 9px; font-weight: 700; letter-spacing: .04em; opacity: .75; margin-right: 4px;
+}
+body.graph-walkthrough .main-area .retrieval-panel.open { width: 320px; }
 </style>
 </head>
 <body>
@@ -478,6 +617,12 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <button class="btn-secondary" id="btn-clear"   onclick="clearGraph()">Clear</button>
 </div>
 
+<div class="demo-mem-bar" id="demo-mem-bar" aria-hidden="true">
+  <span class="demo-mem-title">Memorie demo</span>
+  <div class="demo-mem-chips" id="demo-mem-chips"></div>
+  <button type="button" class="btn-primary seg" id="btn-demo-mem-all" onclick="launchAllDemoMemories()">▶ Apri tutte</button>
+</div>
+
 <div class="guide-bar" id="guide-bar">
   <div class="guide-top">
     <h2>Demo CTI · Operational STIX dataset</h2>
@@ -491,6 +636,19 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 </div>
 
 <div class="main-area">
+  <aside class="walkthrough-panel" id="walkthrough-panel" aria-hidden="true">
+    <div class="wt-head">
+      <h2 id="wt-title">Walkthrough · Hybrid retrieve</h2>
+      <div class="sub" id="wt-sub">Universale — stesso flusso su root.soc, root.cti o root.*</div>
+    </div>
+    <div class="wt-progress"><div id="wt-progress-bar" style="width:0%"></div></div>
+    <div class="wt-body" id="wt-body"></div>
+    <div class="wt-nav">
+      <button type="button" id="wt-prev" onclick="walkthroughPrev()">← Indietro</button>
+      <span class="wt-counter" id="wt-counter">1 / 8</span>
+      <button type="button" class="primary" id="wt-next" onclick="walkthroughNext()">Avanti →</button>
+    </div>
+  </aside>
   <aside class="proposals-panel" id="proposals-panel" aria-hidden="true">
     <div class="prop-head">
       <div class="prop-title">Review queue</div>
@@ -550,6 +708,14 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       BM25 (keyword) + pgvector (semantica) fusi in un unico score — nessuna tabella alias a query time.
       I risultati <span style="color:var(--ok)">verdi</span> collegano vendor diversi nello stesso top-N.
     </div>
+    <div class="retrieval-pipeline" id="retrieval-pipeline">
+      <div class="pipe-title">Pipeline retrieve</div>
+      <div class="retrieval-pipe-steps" id="retrieval-pipe-steps"></div>
+    </div>
+    <div class="retrieval-score-formula" id="retrieval-formula">
+      score = 0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency
+    </div>
+    <div class="retrieval-mode" id="retrieval-mode" style="display:none"></div>
     <div class="prop-body" id="retrieval-results">
       <p class="empty-note">Scegli uno scenario e clicca <b>Run</b>. Clicca un risultato → evidenzia il nodo nel grafo.</p>
     </div>
@@ -568,10 +734,11 @@ button:disabled { opacity: .4; cursor: not-allowed; }
           <li><b>BRICKSTORM</b> — SHA-256 e YARA reali da bundle CISA MAR</li>
           <li><b>DPRK</b> — CrowdStrike vs Microsoft naming sullo stesso attore</li>
           <li><b>APT28</b> — Mandiant PROMPTSTEAL vs Microsoft Forest Blizzard</li>
-          <li><b>Find chain</b> — percorso strutturale tra report vendor diversi</li>
+          <li><b>Retrieval ibrido</b> — embed → BM25+pgvector → cross-vendor (passo 12)</li>
         </ol>
         <div class="welcome-actions">
-          <button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI (12 passi)</button>
+          <button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>
+          <button class="btn-secondary" onclick="startGuidedDemo()">Tour automatico (12 passi)</button>
           <button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button>
         </div>
       </div>
@@ -761,7 +928,7 @@ async function loadMemoryCache(force) {
   let cursor = '', pages = 0;
   try {
     do {
-      const body = { path_prefix: window.CTI_DEMO_ACTIVE ? 'root.cti' : 'root', limit: 500 };
+      const body = { path_prefix: (typeof getGraphDemoConfig === 'function' ? getGraphDemoConfig().pathPrefix : (window.CTI_DEMO_ACTIVE ? 'root.cti' : 'root')), limit: 500 };
       if (cursor) body.cursor = cursor;
       const r = await fetch(apiUrl + '/v1/retrieve', {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
@@ -2160,6 +2327,24 @@ function dismissWelcome() {
 }
 
 function toggleGuideBar() {
+  if (window.GRAPH_WALKTHROUGH_ACTIVE) {
+    const p = document.getElementById('walkthrough-panel');
+    if (!p) return;
+    const open = !p.classList.contains('open');
+    openWalkthroughPanel(open);
+    const btn = document.getElementById('btn-guide-toggle');
+    if (btn) btn.className = (open ? 'btn-active' : 'btn-secondary') + ' seg';
+    return;
+  }
+  if (window.CTI_DEMO_ACTIVE) {
+    const p = document.getElementById('walkthrough-panel');
+    if (!p) return;
+    const open = !p.classList.contains('open');
+    openWalkthroughPanel(open);
+    const btn = document.getElementById('btn-guide-toggle');
+    if (btn) btn.className = (open ? 'btn-active' : 'btn-secondary') + ' seg';
+    return;
+  }
   const bar = document.getElementById('guide-bar');
   const hidden = bar.classList.toggle('hidden');
   document.getElementById('btn-guide-toggle').className = (hidden ? 'btn-secondary' : 'btn-active') + ' seg';
@@ -2259,6 +2444,62 @@ function startGuidedDemo() {
 }
 
 // ── CTI cross-vendor guided demo (?demo=cti) ───────────────────────────────
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function isWalkthroughRequested() {
+  const qs = new URLSearchParams(location.search);
+  return qs.get('walkthrough') === '1' || qs.get('walkthrough') === 'start';
+}
+
+function showRetrieveViewButton(show) {
+  const retBtn = document.getElementById('btn-view-retrieval');
+  if (retBtn) retBtn.style.display = show ? '' : 'none';
+}
+
+function getGraphDemoConfig() {
+  const qs = new URLSearchParams(location.search);
+  const demo = (qs.get('demo') || window.GRAPH_DEMO_PRESET || '').toLowerCase();
+  const memQ = qs.get('mem') || '';
+  if (demo === 'soc') {
+    return {
+      preset: 'soc',
+      label: 'SOC incident graph',
+      pathPrefix: 'root.soc',
+      defaultMemId: memQ || '73',
+      exploreDepth: 3,
+      linkTypes: 'causal,temporal,related',
+      retrieveQuery: 'Akira lateral movement SMB PsExec campaign incident',
+      retrieveLimit: 12,
+      datasetNote: 'Memorie sotto root.soc.*'
+    };
+  }
+  if (demo === 'cti' || window.CTI_DEMO_ACTIVE) {
+    const M = ctiMemIds();
+    return {
+      preset: 'cti',
+      label: 'CTI cognitive graph',
+      pathPrefix: 'root.cti',
+      defaultMemId: memQ || M.brickstorm || M.root || '73',
+      exploreDepth: 2,
+      linkTypes: 'supports,related',
+      retrieveQuery: 'threat actor campaign intelligence correlation',
+      retrieveLimit: 12,
+      datasetNote: 'Memorie sotto root.cti.*'
+    };
+  }
+  return {
+    preset: 'generic',
+    label: 'Memory graph',
+    pathPrefix: 'root',
+    defaultMemId: memQ || document.getElementById('mem-id')?.value || '1',
+    exploreDepth: 3,
+    linkTypes: 'related,supports',
+    retrieveQuery: 'security incident threat correlation',
+    retrieveLimit: 10,
+    datasetNote: 'Memorie sotto root.*'
+  };
+}
+
 function ctiMemIds() {
   const qs = new URLSearchParams(location.search);
   const n = (k, fallback) => qs.get(k) || fallback;
@@ -2276,6 +2517,143 @@ function ctiMemIds() {
   };
 }
 
+function socDemoMemIds() {
+  const qs = new URLSearchParams(location.search);
+  const raw = qs.get('demo_mems') || qs.get('soc_mems') || '';
+  if (raw.trim()) {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  const mem = qs.get('mem') || getGraphDemoConfig().defaultMemId || '73';
+  return [mem];
+}
+
+/** Deduped catalog of { id, label, tag } for demo memory launcher chips. */
+function getDemoMemoryCatalog() {
+  const cfg = getGraphDemoConfig();
+  const seen = new Set();
+  const out = [];
+  function add(id, label, tag) {
+    const sid = String(id);
+    if (!sid || sid === '0' || seen.has(sid)) return;
+    seen.add(sid);
+    out.push({ id: sid, label: label || ('memory.' + sid), tag: tag || '' });
+  }
+  if (cfg.preset === 'cti' || window.CTI_DEMO_ACTIVE) {
+    const M = ctiMemIds();
+    add(M.brickstorm, 'BRICKSTORM MAR', 'STIX');
+    add(M.brickstorm_sample, 'Sample SHA-256', 'STIX');
+    add(M.cs_pressure, 'TraderTraitor / CS', 'vendor');
+    add(M.ms_sapphire, 'Sapphire Sleet', 'MS');
+    add(M.mdt_ps, 'PROMPTSTEAL', 'Mandiant');
+    add(M.ms_forest, 'Forest Blizzard', 'MS');
+    add(M.apt28, 'APT28 GTIG', 'Google');
+    add(M.ti_sapphire, 'Distill · DPRK', 'TI');
+    add(M.ti_forest, 'Distill · APT28', 'TI');
+    return out;
+  }
+  if (cfg.preset === 'soc') {
+    const labels = (new URLSearchParams(location.search).get('demo_mem_labels') || '').split('|');
+    socDemoMemIds().forEach((id, i) => {
+      add(id, labels[i] || ('Incident · ' + id), 'SOC');
+    });
+    return out;
+  }
+  const mem = cfg.defaultMemId;
+  if (mem) add(mem, 'Default memory', 'demo');
+  return out;
+}
+
+let demoMemLaunchLock = false;
+let demoMemActiveId = null;
+
+function showDemoMemoryBar(show) {
+  const bar = document.getElementById('demo-mem-bar');
+  if (!bar) return;
+  bar.classList.toggle('visible', !!show);
+  bar.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+function renderDemoMemoryBar() {
+  const wrap = document.getElementById('demo-mem-chips');
+  if (!wrap) return;
+  const catalog = getDemoMemoryCatalog();
+  if (!catalog.length) {
+    showDemoMemoryBar(false);
+    return;
+  }
+  showDemoMemoryBar(true);
+  wrap.innerHTML = catalog.map((item) => {
+    const active = demoMemActiveId === item.id ? ' active' : '';
+    const tag = item.tag ? '<span class="tag">' + escapeHtml(item.tag) + '</span>' : '';
+    return '<button type="button" class="demo-mem-chip' + active + '" data-mem-id="' + escapeHtml(item.id)
+      + '" title="memory.' + escapeHtml(item.id) + '" onclick="launchDemoMemory(\'' + escapeHtml(item.id) + '\')">'
+      + tag + escapeHtml(item.label) + ' <span style="opacity:.65">#' + escapeHtml(item.id) + '</span></button>';
+  }).join('');
+}
+
+function highlightDemoMemChip(memId) {
+  demoMemActiveId = memId ? String(memId) : null;
+  document.querySelectorAll('.demo-mem-chip').forEach((el) => {
+    el.classList.toggle('active', el.dataset.memId === demoMemActiveId);
+  });
+}
+
+async function launchDemoMemory(memId, opts) {
+  if (demoMemLaunchLock && !(opts && opts.force)) return;
+  const id = parseInt(String(memId), 10);
+  if (!id) return;
+  dismissCtiWelcome();
+  dismissWelcome();
+  const cfg = getGraphDemoConfig();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
+  setViewMode('links');
+  setLinkTypes(cfg.linkTypes);
+  document.getElementById('mem-id').value = String(id);
+  document.getElementById('depth').value = String((opts && opts.depth) || cfg.exploreDepth);
+  highlightDemoMemChip(String(id));
+  try {
+    await explore();
+    await loadMemoryCache(true);
+    selectNode(id);
+    if (network) network.focus(id, { scale: 1.08, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+    const item = getDemoMemoryCatalog().find((m) => m.id === String(id));
+    toast('memory.' + id + (item && item.label ? ' · ' + item.label : ''));
+  } catch (e) {
+    toast('Memoria ' + id + ': ' + e.message, true);
+  }
+}
+
+async function launchAllDemoMemories() {
+  if (demoMemLaunchLock) return;
+  const catalog = getDemoMemoryCatalog();
+  if (!catalog.length) return;
+  const btn = document.getElementById('btn-demo-mem-all');
+  demoMemLaunchLock = true;
+  if (btn) btn.disabled = true;
+  dismissCtiWelcome();
+  dismissWelcome();
+  try {
+    for (let i = 0; i < catalog.length; i++) {
+      const item = catalog[i];
+      if (btn) btn.textContent = '▶ ' + (i + 1) + '/' + catalog.length;
+      await launchDemoMemory(item.id, { force: true });
+      await sleep(i < catalog.length - 1 ? 2800 : 400);
+    }
+    toast('Tour memorie demo completato (' + catalog.length + ')');
+  } catch (e) {
+    toast('Tour memorie interrotto: ' + e.message, true);
+  } finally {
+    demoMemLaunchLock = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '▶ Apri tutte';
+    }
+  }
+}
+
 const CTI_GUIDE_NOW = {
   layers: '<b>Fase 1 · Operational STIX</b> — BRICKSTORM MAR-251165 (viola) + sample con SHA-256 reale. Dataset: <code>operational_stix_cti_dataset.json</code>.',
   brickstorm: '<b>Fase 2 · Sample BRICKSTORM</b> — Inspector: SHA-256/YARA da bundle CISA MAR (nessun hash inventato).',
@@ -2283,7 +2661,7 @@ const CTI_GUIDE_NOW = {
   apt28: '<b>Fase 5–7 · APT28</b> — PROMPTSTEAL con hash ThreatLocker/CERT-UA + Forest Blizzard (Microsoft).',
   iocs: '<b>Fase 8 · IOC operativi</b> — Sample APT28/PROMPTSTEAL: pannello <b>Operational IOC</b> nell\'inspector.',
   evolution: '<b>Fase 9–11 · Evoluzione entità</b> — Extract APT28 → Registry (alias APT28↔Forest Blizzard) → Accept merge.',
-  retrieval: '<b>Fase 12 · Retrieval ibrida</b> — pannello Retrieve: query cross-vendor, risultati verdi = BM25+pgvector.',
+  retrieval: '<b>Fase 12 · Retrieval ibrida</b> — 1) embed query 2) SQL ibrida BM25+pgvector 3) top-N cross-vendor (verdi). Scenario DPRK: PRESSURE CHOLLIMA → Sapphire Sleet.',
 };
 
 let ctiGuideJumpLock = false;
@@ -2375,8 +2753,9 @@ async function jumpToCtiGuideStep(step) {
       }
     } else if (step === 'retrieval') {
       setViewMode('retrieval');
-      document.getElementById('retrieval-scenario').value = 'apt28_ms';
+      document.getElementById('retrieval-scenario').value = 'dprk_cs';
       applyRetrievalScenario();
+      renderRetrievalPipelineIdle();
       await runCtiRetrievalPanel();
     }
   } catch (e) {
@@ -2414,7 +2793,7 @@ function renderCtiGuideBar() {
     + '<div class="gstep" data-step="evolution"><div class="num">9–11</div><div class="title">Evoluzione entità</div>'
     + '<div class="desc">Extract → Registry → snapshot timeline (Phase D).</div></div>'
     + '<div class="gstep" data-step="retrieval"><div class="num">12</div><div class="title">Retrieval ibrida</div>'
-    + '<div class="desc">BM25 + pgvector — query cross-vendor senza alias table.</div></div>'
+    + '<div class="desc">BM25 + pgvector — PRESSURE CHOLLIMA trova Sapphire Sleet senza alias table.</div></div>'
     + '</div>'
     + '<div class="guide-now" id="guide-now">'
     + '<b>Tour:</b> clicca una <b>fase</b> qui sopra per saltare, oppure <kbd>▶ Tour automatico</kbd>.'
@@ -2422,6 +2801,7 @@ function renderCtiGuideBar() {
     + '</div>';
   bindCtiGuideSteps();
   updateCtiGuideUI('layers');
+  renderDemoMemoryBar();
 }
 
 function renderCtiWelcomeOverlay() {
@@ -2435,10 +2815,12 @@ function renderCtiWelcomeOverlay() {
     + '<li><b>Vendor IOC</b> (ciano) — Bybit $1.5B, StealC/Amadey, PROMPTSTEAL</li>'
     + '<li><b>Inspector</b> — pannello Operational IOC con hash verificabili</li>'
     + '<li><b>Cross-vendor</b> — PRESSURE CHOLLIMA ↔ Sapphire Sleet</li>'
-    + '<li><b>Registry + retrieval</b> — evoluzione entità + BM25/pgvector</li>'
+    + '<li><b>Retrieval ibrido</b> — embed query → BM25+pgvector → cross-vendor (passo 12)</li>'
     + '</ol>'
     + '<div class="welcome-actions">'
-    + '<button class="btn-primary" onclick="startGuidedDemo()">▶ Avvia tour CTI</button>'
+    + '<button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>'
+    + '<button class="btn-secondary" onclick="launchAllDemoMemories()">▶ Apri tutte le memorie</button>'
+    + '<button class="btn-secondary" onclick="startGuidedDemo()">Tour automatico</button>'
     + '<button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button></div>';
 }
 
@@ -2467,16 +2849,77 @@ function renderCtiLegend() {
   if (hint) hint.textContent = 'CTI demo · click = inspector · dbl-click = espandi · Find chain = percorso cross-vendor';
 }
 
-async function runCtiRetrievalPreview(query, limit) {
+async function runHybridRetrievePreview(query, limit) {
   limit = limit || 8;
+  const cfg = getGraphDemoConfig();
   const r = await fetch(apiUrl + '/v1/retrieve', {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify({ path_prefix: 'root.cti', query: query, limit: limit })
+    body: JSON.stringify({ path_prefix: cfg.pathPrefix, query: query, limit: limit })
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(data.error || r.statusText);
   return data.entries || [];
+}
+
+function retrievalPipelineSteps(cfg) {
+  return [
+    { id: 'req', label: 'POST /v1/retrieve', detail: 'path_prefix=' + cfg.pathPrefix + ' + query' },
+    { id: 'embed', label: 'MemoryService → embedding', detail: 'OpenAI trasforma la query in vettore (1536 dim)' },
+    { id: 'sql', label: 'Repository · SQL ibrida', detail: 'ltree + BM25(content_tsv) + cosine(embedding)' },
+    { id: 'fuse', label: 'Fusione score', detail: '0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency' },
+    { id: 'out', label: 'Top-N risultati', detail: 'ORDER BY relevance_score DESC' }
+  ];
+}
+
+const RETRIEVAL_PIPELINE = retrievalPipelineSteps({ pathPrefix: 'root' });
+
+function renderRetrievalPipeline(activeIdx, doneThrough) {
+  const cfg = getGraphDemoConfig();
+  const steps = retrievalPipelineSteps(cfg);
+  const host = document.getElementById('retrieval-pipe-steps');
+  if (!host) return;
+  let html = '';
+  steps.forEach((step, i) => {
+    const cls = i === activeIdx ? 'active' : (i < doneThrough ? 'done' : '');
+    html += '<div class="retrieval-pipe-step ' + cls + '">'
+      + '<span class="pipe-num">' + (i + 1) + '</span>'
+      + '<div><div>' + escapeHtml(step.label) + '</div>'
+      + '<div class="pipe-detail">' + escapeHtml(step.detail) + '</div></div></div>';
+  });
+  host.innerHTML = html;
+}
+
+function renderRetrievalPipelineIdle() {
+  renderRetrievalPipeline(-1, 0);
+  const mode = document.getElementById('retrieval-mode');
+  if (mode) { mode.style.display = 'none'; mode.textContent = ''; }
+}
+
+function setRetrievalMode(kind, text) {
+  const mode = document.getElementById('retrieval-mode');
+  if (!mode) return;
+  mode.style.display = 'block';
+  mode.className = 'retrieval-mode ' + kind;
+  mode.innerHTML = text;
+}
+
+function inferRetrievalMode(entries) {
+  const cfg = getGraphDemoConfig();
+  if (!entries.length) {
+    return {
+      kind: 'empty',
+      text: '<b>Nessun risultato</b> — tipico se il worker non ha ancora embeddato le memorie '
+        + '(embedding IS NULL). Attendi ~60s dopo il load su <code>' + escapeHtml(cfg.pathPrefix) + '</code>, poi riprova. '
+        + 'Se persiste: il server può ripiegare su solo BM25 (keyword esatte).'
+    };
+  }
+  return {
+    kind: 'hybrid',
+    text: '<b>Retrieve completato</b> — ' + entries.length + ' memorie sotto <code>'
+      + escapeHtml(cfg.pathPrefix) + '</code>. '
+      + 'Score = BM25 (keyword) + cosine (semantica) + importance + recency.'
+  };
 }
 
 const CTI_RETRIEVAL_SCENARIOS = {
@@ -2524,39 +2967,372 @@ function applyRetrievalScenario() {
   }
 }
 
+// ── Manual walkthrough (universal — SOC / CTI / root) ─────────────────────
+function buildWalkthroughSteps() {
+  const c = getGraphDemoConfig();
+  return [
+    {
+      id: 'intro', title: 'Panoramica',
+      text: 'Guida passo-passo <b>affianco al grafo live</b>. Spiega il retrieval ibrido PCMI (BM25 + pgvector) — indipendente dallo scenario dati.',
+      callout: c.label + ' · ' + c.datasetNote, tone: '', pipeline: -1, action: 'graph_explore'
+    },
+    {
+      id: 'request', title: '1 · La richiesta',
+      text: 'L\'UI invia <code>POST /v1/retrieve</code> con <code>path_prefix: ' + escapeHtml(c.pathPrefix) + '</code> e una query testuale.',
+      callout: 'Query demo: "' + escapeHtml(c.retrieveQuery) + '"', tone: '', pipeline: 0, action: 'retrieval_setup',
+      code: 'POST /v1/retrieve\n{\n  "path_prefix": "' + c.pathPrefix + '",\n  "query": "' + c.retrieveQuery + '",\n  "limit": ' + c.retrieveLimit + '\n}'
+    },
+    {
+      id: 'embed', title: '2 · Embedding della query',
+      text: '<b>MemoryService</b> embedda la query. Se fallisce, resta solo BM25.',
+      callout: 'Vettore query → cosine similarity (pgvector)', tone: '', pipeline: 1, action: 'retrieval_setup'
+    },
+    {
+      id: 'hybrid', title: '3 · Query SQL ibrida',
+      text: 'Il <b>Repository</b> filtra <code>' + escapeHtml(c.pathPrefix) + '</code> e richiede <code>embedding IS NOT NULL</code>.',
+      callout: 'score = 0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency', tone: '', pipeline: 2, action: 'retrieval_setup',
+      code: 'WHERE path <@ \'' + c.pathPrefix + '\'\n  AND embedding IS NOT NULL\nORDER BY relevance_score DESC'
+    },
+    {
+      id: 'scores', title: '4 · Fusione segnali',
+      text: 'BM25 premia keyword esatti; cosine premia similarità semantica anche con wording diverso.',
+      callout: 'Memorie senza embedding escluse dal ramo ibrido', tone: 'warn', pipeline: 3, action: 'graph_explore'
+    },
+    {
+      id: 'success', title: '5 · Esegui retrieve live',
+      text: 'Premi <b>Avanti</b> per lanciare la query. Risultati nel pannello Retrieve con <code>relevance_score</code>.',
+      callout: 'Clicca una riga → evidenzia nel grafo', tone: 'ok', pipeline: 4, action: 'retrieval_run'
+    },
+    {
+      id: 'empty', title: '6 · Zero risultati',
+      text: 'Worker embedding non pronto → query ibrida può tornare <b>0 righe</b>. Attendi ~60s dopo il load.',
+      callout: 'demo_soc / demo_cti attendono embeddings (Step 6b)', tone: 'warn', pipeline: -1, action: 'retrieval_only'
+    },
+    {
+      id: 'fallback', title: '7 · Fallback BM25',
+      text: 'Se l\'ibrido è vuoto, il server ripiega su solo keyword (<code>@@ websearch_to_tsquery</code>).',
+      callout: 'Solo overlap lessicale — meno recall semantico', tone: 'warn', pipeline: -1, action: 'retrieval_only'
+    },
+    {
+      id: 'summary', title: '8 · Riepilogo',
+      text: '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px">'
+        + '<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 0">Condizione</th><th>Comportamento</th></tr>'
+        + '<tr><td style="padding:4px 0">Embeddings pronti</td><td>Ibrido BM25+cosine</td></tr>'
+        + '<tr><td style="padding:4px 0">Embeddings assenti</td><td>Fallback keyword</td></tr>'
+        + '<tr><td style="padding:4px 0">Embedder down</td><td>Solo BM25</td></tr></table>',
+      callout: 'Stesso flusso su ' + escapeHtml(c.pathPrefix), tone: 'ok', pipeline: -1, action: 'none'
+    }
+  ];
+}
+
+function getWalkthroughSteps() {
+  if (window.CTI_DEMO_ACTIVE) return buildCtiWalkthroughSteps();
+  return buildWalkthroughSteps();
+}
+
+// ── CTI walkthrough (dedicato — 12 step con Q&A esplicite) ────────────────
+function buildCtiWalkthroughSteps() {
+  return [
+    { id: 'cti-intro', title: 'Panoramica CTI', pipeline: -1, action: 'none',
+      text: 'Grafo con <b>218 memorie sotto <code>root.cti</code></b> caricate da più fonti reali: SOC + TI Mindmap HUB + report vendor (Mandiant, CrowdStrike, Microsoft, Unit 42) + STIX operativi CISA/Wiz/Endor + risultati di distillation.',
+      callout: 'Un tenant, un grafo. La UI mostra la memoria condivisa che gli agenti CTI vedono.',
+      qna: [
+        { q: 'Perché un mix di dataset?', a: 'Simula un tenant reale che accumula sorgenti eterogenee nel tempo. Fonti separabili via <code>metadata.vendor</code> o <code>path_prefix</code> in query.' },
+        { q: 'Multi-tenant?', a: 'Sì. Tutto <code>tenant_id</code>-scoped a livello di query. Un altro tenant vedrebbe solo il suo grafo. In questa demo c\'è solo il tenant di default.' },
+        { q: 'Come è caricato?', a: '<code>examples/full-cti-dataset/load_multi_cti.py --reset</code>. Ogni riga → <code>POST /v1/memories</code> con path ltree, metadata, tag.' }
+      ]
+    },
+    { id: 'cti-3layers', title: '1 · Il grafo cognitivo ha 3 piani', pipeline: -1, action: 'none',
+      text: 'PCMI Cognitive Graph = <b>Apache AGE sopra PostgreSQL</b>. Nel grafo <code>pcmi_memory_graph</code> vivono tre tipi di nodi/archi che rispondono a domande diverse:',
+      callout: '<b>1)</b> <code>:Memory</code> + link tipizzati &nbsp;·&nbsp; <b>2)</b> <code>:Entity</code> + <code>:mentions</code> &nbsp;·&nbsp; <b>3)</b> <code>graph_link_proposals</code> (LLM review queue)',
+      qna: [
+        { q: 'Che differenza rispetto a Neo4j / STIX Constellation?', a: 'Il tuo Neo4j è <b>knowledge graph di dominio</b> (entità canoniche STIX, merge rules). PCMI è <b>memoria versionata</b> (chi ha detto cosa, quando, con che confidenza). Complementare — vedi Step 12.' },
+        { q: 'Perché AGE e non Neo4j?', a: 'Zero infrastruttura extra: Cypher gira sopra Postgres, stessa transazione dei <code>memory_entries</code>. Trade-off: entity resolution "light", non full graph merge.' }
+      ]
+    },
+    { id: 'cti-memory', title: '2 · Piano 1 — Memory graph', pipeline: -1, action: 'none',
+      text: 'Ogni <code>POST /v1/memories</code> crea una riga in <code>memory_entries</code> e un vertice <code>(:Memory {id:"memory.&lt;row_id&gt;"})</code>. Ogni <code>POST /v1/memories/links</code> crea un arco tipizzato tra due memorie.',
+      callout: '5 tipi: <code>related</code> · <code>supports</code> · <code>contradicts</code> · <code>causal</code> · <code>temporal</code>',
+      qna: [
+        { q: 'I vertici sono memorie o entità?', a: 'Su questo piano, <b>ogni vertice è una VERSIONE di memoria</b> (una riga). Se la stessa memoria viene aggiornata (nuova versione al medesimo <code>path</code>), è un nodo nuovo. Il concetto "entità" vive sul Piano 2.' },
+        { q: 'Chi crea gli archi?', a: 'Client / agent via API. Nessuna inferenza automatica di causal/temporal. Il worker di consolidamento propone edge auto-detect di <code>contradicts</code>, ma vanno approvati.' },
+        { q: 'Come si esplora?', a: '<code>GET /v1/graph/related?memory_id=X&depth=N</code> per traversal, <code>GET /v1/graph/chain?from=X&to=Y</code> per shortest path.' }
+      ]
+    },
+    { id: 'cti-entity', title: '3 · Piano 2 — Entity graph (novità)', pipeline: -1, action: 'none',
+      text: 'Vertici <code>(:Entity {kind, key, tenant_id})</code> con archi <code>(:Memory)-[:mentions {slot, confidence}]-&gt;(:Entity)</code>. È la novità di questo branch — entity resolution "light".',
+      callout: '<b>Stato live</b>: 60 <code>:ThreatActor</code>, 26 <code>:Organization</code>, 20 <code>:Campaign</code>, 12 <code>:CVE</code>, 6 <code>:Asset</code>, 5 <code>:User</code>. <b>2 343 archi <code>:mentions</code></b>.',
+      qna: [
+        { q: 'Chi produce le :Entity?', a: 'La <b>Phase A extractor</b>: il worker consuma <code>memory.stored</code>, chiama LLM sul contenuto con un <code>extraction_profile</code> del tenant (slot come <code>actor</code>, <code>cve</code>, <code>campaign_id</code>). Ogni slot con <code>entity_promotion</code> viene <b>Phase B-promosso</b> a vertice via <code>reconcile_entity_mentions_for_memory</code>.' },
+        { q: 'La key è canonicalizzata?', a: 'Sì ma leggera: <code>normalize: trim</code> o <code>lower</code>. Alias table opzionale. <b>Non è STIX Constellation</b> — vedi limiti allo Step 9.' },
+        { q: 'Cosa succede quando aggiorno una memoria?', a: 'Il worker riprocessa la nuova versione, ricrea le mentions con <code>reconcile_entity_mentions_for_memory(memory_id, tenant_id, version, mentions_json)</code>. Le vecchie edge sono sostituite, non accumulate.' },
+        { q: 'Devo abilitarla?', a: 'Sì — env <code>EXTRACTION_ENABLED=true</code> sul worker. La demo <code>make demo_cti</code> lo fa (<code>ENTITY_DEMO=1</code>).' }
+      ]
+    },
+    { id: 'cti-proposals', title: '4 · Piano 3 — Link proposals (Phase C)', pipeline: -1, action: 'none',
+      text: 'LLM può <b>proporre</b> link tra memorie (o alias tra entità) — ma <b>non li applica</b>. Vanno in <code>graph_link_proposals</code>, review queue.',
+      callout: 'Nessun overwrite silenzioso di link autoriali. <code>metadata.proposed_by=llm</code> quando accettato.',
+      qna: [
+        { q: 'Perché una review queue?', a: 'Perché l\'LLM sbaglia, e in CTI un falso positivo di attribuzione ha costi. La demo mostra proposal LLM in coda; solo il <code>POST /accept</code> materializza il link.' },
+        { q: 'Endpoint?', a: '<code>GET /v1/graph/link-proposals</code>, <code>POST /v1/graph/link-proposals/generate/:memory_id</code>, <code>POST /:id/accept</code>, <code>POST /:id/reject</code>.' },
+        { q: 'Chi decide?', a: 'Un altro agente (con contesto sessione) o un analista umano. Il workflow di approvazione è tuo.' }
+      ]
+    },
+    { id: 'cti-hybrid-intro', title: '5 · Retrieval ibrido — il ranker', pipeline: 0, action: 'retrieval_setup',
+      text: 'Prima demo concreta cross-vendor: query in linguaggio naturale, <code>POST /v1/retrieve</code> risponde con un ranking unico.',
+      callout: 'score = 0.40·cosine + 0.30·BM25 + 0.15·importance + 0.15·recency',
+      qna: [
+        { q: 'Perché fondere BM25 e semantico?', a: 'BM25 tira keyword esatte (nomi di malware, CVE, hash). Semantico (pgvector 1536-d, OpenAI text-embedding-3-small) tira synonym e concetti (es. "GRU" ↔ "Russian military intelligence"). Da soli sono peggiori.' },
+        { q: 'Importance e recency?', a: '<code>importance</code> è un peso 0–1 sull\'oggetto (default 0.5); <code>recency</code> decay temporale. Configurabili per-tenant e per-request.' }
+      ]
+    },
+    { id: 'cti-hybrid-run', title: '6 · Scenario DPRK · CS → Microsoft', pipeline: 4, action: 'retrieval_run',
+      text: 'Query in vocabolario CrowdStrike sui report che citano Sapphire Sleet (Microsoft). Verifica che il ranker trovi la <b>memoria Microsoft</b> nonostante nomi diversi.',
+      callout: 'Query: <code>"PRESSURE CHOLLIMA Bybit Safe Wallet macOS supply chain cryptocurrency"</code> — usa un mix di vocabolario CS + MS.',
+      qna: [
+        { q: 'Perché nella query ci sono keyword di ENTRAMBI i vendor?', a: 'Onestà: la demo usa query multi-vocabolario perché testa il ranker, non l\'input dell\'analista. Un analista che digita solo "PRESSURE CHOLLIMA" da zero probabilmente <b>non</b> trova Sapphire Sleet in top-10. Il vero cross-naming lo fa il Piano 2 — Step 8.' },
+        { q: 'Chi tira su Sapphire Sleet?', a: 'La componente semantica: "macOS", "cryptocurrency", "DPRK" sono nel content di entrambe le memorie. BM25 da solo non basterebbe.' }
+      ]
+    },
+    { id: 'cti-apt28', title: '7 · Scenario APT28 · Forest → PROMPTSTEAL', pipeline: 4, action: 'retrieval_run',
+      text: 'Query nel vocabolario Microsoft (Forest Blizzard, GRU). Test: il ranker deve tirare su la memoria Mandiant PROMPTSTEAL — <b>senza</b> aiuti di distillation.',
+      callout: 'Match più solido di CHOLLIMA↔Sapphire perché "APT28" è testualmente presente in entrambi i lati.',
+      qna: [
+        { q: 'Che score consideriamo "buono"?', a: 'In pratica top-10 = "trovato". Per una demo live, usa il pannello Retrieval Compare per confrontare hybrid vs BM25-only e vedere quando serve il semantico.' }
+      ]
+    },
+    { id: 'cti-entity-shared', title: '8 · Entity graph — la vera novità', pipeline: -1, action: 'none',
+      text: 'Cross-vendor <b>senza affidarsi al ranking</b>: quando due memorie citano la stessa <code>:Entity {kind:"ThreatActor", key:"..."}</code>, il grafo le collega direttamente.',
+      callout: 'Live: <b>APT28 / FROZENLAKE</b> collega 3 vendor (ThreatLocker + Google GTIG + Microsoft). <b>PRESSURE CHOLLIMA / Lazarus</b> collega Wiz + CrowdStrike. <b>STARDUST CHOLLIMA</b> collega CrowdStrike + Endor Labs.',
+      code: 'GET /v1/graph/entities/related?kind=ThreatActor&key=APT28 / FROZENLAKE\nGET /v1/graph/entities/related?memory_id=4319   # correlazione via entità condivisa',
+      qna: [
+        { q: 'Qual è la differenza rispetto al retrieval?', a: 'Il retrieval fa <b>ranking</b> per rilevanza (top-N). L\'entity graph fa <b>set membership</b> (tutte le memorie che condividono l\'entità X). Deterministico, spiegabile, non dipende dalla qualità della query.' },
+        { q: 'Chi ha estratto "APT28 / FROZENLAKE" da 3 vendor diversi?', a: 'La <b>Phase A extraction</b> ha letto il campo <code>metadata.actor</code> di ognuna delle 3 memorie (che era già presente nel dataset) e il profilo <code>cti.multilayer.v1</code> lo ha promosso a <code>:Entity {kind:"ThreatActor", key:"APT28 / FROZENLAKE"}</code>. Chiave testuale identica → collasso naturale.' },
+        { q: 'Su testo libero funziona ancora?', a: 'Se il campo non è strutturato l\'LLM lo estrae dal <code>content</code>. Confidence assegnata (0.7–0.95). Sotto soglia il vertice non viene promosso.' }
+      ]
+    },
+    { id: 'cti-limits', title: '9 · Limiti onesti — frammentazione APT28', pipeline: -1, action: 'none',
+      text: 'La canonicalization è "trim/lower", <b>non</b> alias table completa. Per l\'entità APT28 nel dataset ci sono 4 chiavi diverse.',
+      callout: '<b>APT28</b> · <b>APT28 / FANCY BEAR</b> · <b>APT28 (FROZENLAKE)</b> · <b>APT28 / FROZENLAKE</b> — chiavi separate, non merged. Il Neo4j STIX Constellation le collasserebbe.',
+      tone: 'warn',
+      qna: [
+        { q: 'Come lo risolvo?', a: 'Tre opzioni: (1) alias table nel profilo (<code>normalize: alias_table</code>), (2) Phase C LLM propone <code>related</code> edge tra le entity frammentate, review-based, (3) preprocessing lato ingestion (standardize actor name).' },
+        { q: 'Perché non "smart merge" automatico?', a: 'Perché in CTI merge sbagliati sono costosi. PCMI preferisce esplicitamente "conservative + auditable". La strada Phase C è: LLM propone, analista/agente accetta, storia audit.' },
+        { q: 'Ma tu non hai un Neo4j Constellation?', a: 'No — e non lo vogliamo. PCMI è memoria condivisa degli agenti, non il knowledge graph di dominio. Se hai già un Neo4j STIX, tienilo per la verità di dominio; usa PCMI per <b>ciò che gli agenti hanno dedotto</b>, versionato nel tempo.' }
+      ]
+    },
+    { id: 'cti-asof', title: '10 · Piano temporale — as_of', pipeline: -1, action: 'none',
+      text: 'Ogni memoria ha <code>valid_from</code> e <code>valid_to</code>. Le versioni non si sovrascrivono. Puoi interrogare <b>lo stato di conoscenza a un istante T</b>.',
+      code: 'GET /v1/memories/&lt;path&gt;?as_of=2026-06-15T10:00:00Z\n→ v1: "Suspected APT29 activity; LOW confidence"\nGET /v1/memories/&lt;path&gt;\n→ v2 (current): "Confirmed APT29; HIGH confidence (multi-vendor)"',
+      qna: [
+        { q: 'Differenza con kg_timeline (Constellation)?', a: 'kg_timeline dice <b>quando</b> un\'entità è apparsa nel corpus. as_of dice <b>cosa affermava un record specifico a T</b> — inclusa un\'attribuzione poi superata. È ricostruzione di stato, non ordinamento eventi.' },
+        { q: 'Usa storage extra?', a: 'Append-only: ogni versione è una riga nuova. Storage lineare col numero di update. Compattazione policy-based.' },
+        { q: 'Anche le entità sono versionate?', a: 'Le mentions sì (Phase B ricrea le edge per versione). Le entità come nodo restano, ma la relazione memoria→entità porta l\'info di quale versione l\'ha creata.' }
+      ]
+    },
+    { id: 'cti-summary', title: '11 · Sintesi — dove si posiziona PCMI', pipeline: -1, action: 'none',
+      text: 'Il messaggio unico: <b>PCMI non è un Neo4j Constellation</b>. È il layer sotto — versioning, memoria condivisa, retrieval ibrido, entity graph "light".',
+      callout: 'Retrieval ibrido (top-N per rilevanza) + Entity graph (correlazione via entità condivise) + Link proposals (LLM review) + as_of (stato al tempo T).',
+      qna: [
+        { q: 'Come si integra col tuo stack?', a: 'Gli agenti Autogen del tuo pipeline scrivono in PCMI le conclusioni per briefing. La settimana dopo ripartono con quel contesto <b>versionato</b>. Il tuo Neo4j resta la verità di dominio.' },
+        { q: 'Cosa mi porto a casa?', a: 'Tre cose: (1) entity graph cross-vendor funziona (APT28/FROZENLAKE 3 vendor); (2) canonicalization "light" — sai i limiti; (3) as_of è la killer feature longitudinale che il tuo Constellation non ha.' }
+      ]
+    }
+  ];
+}
+
+function applyWalkthroughRetrieveForm(cfg) {
+  setViewMode('retrieval');
+  const ta = document.getElementById('retrieval-query');
+  if (ta) ta.value = cfg.retrieveQuery;
+  const sel = document.getElementById('retrieval-scenario');
+  if (sel) {
+    sel.style.display = window.CTI_DEMO_ACTIVE ? '' : 'none';
+    if (window.CTI_DEMO_ACTIVE) { sel.value = 'dprk_cs'; applyRetrievalScenario(); }
+  }
+}
+
+let walkthroughIndex = 0;
+let walkthroughBusy = false;
+
+function openWalkthroughPanel(open) {
+  const p = document.getElementById('walkthrough-panel');
+  if (!p) return;
+  p.classList.toggle('open', !!open);
+  p.setAttribute('aria-hidden', open ? 'false' : 'true');
+}
+
+function renderWalkthroughPanel() {
+  const steps = getWalkthroughSteps();
+  const step = steps[walkthroughIndex];
+  const body = document.getElementById('wt-body');
+  const counter = document.getElementById('wt-counter');
+  const bar = document.getElementById('wt-progress-bar');
+  const prev = document.getElementById('wt-prev');
+  const next = document.getElementById('wt-next');
+  const cfg = getGraphDemoConfig();
+  const wtTitle = document.getElementById('wt-title');
+  const wtSub = document.getElementById('wt-sub');
+  if (wtTitle) wtTitle.textContent = 'Walkthrough · ' + cfg.label;
+  if (wtSub) wtSub.textContent = cfg.pathPrefix + ' · premi Avanti quando sei pronto';
+  if (!step || !body) return;
+  if (counter) counter.textContent = (walkthroughIndex + 1) + ' / ' + steps.length;
+  if (bar) bar.style.width = (((walkthroughIndex + 1) / steps.length) * 100) + '%';
+  if (prev) prev.disabled = walkthroughIndex <= 0 || walkthroughBusy;
+  if (next) {
+    next.disabled = walkthroughBusy;
+    next.textContent = walkthroughIndex >= steps.length - 1 ? 'Fine ✓' : 'Avanti →';
+  }
+  let html = '<div class="wt-step-title">' + escapeHtml(step.title) + '</div>';
+  html += '<div class="wt-step-text">' + step.text + '</div>';
+  if (step.callout) html += '<div class="wt-callout ' + (step.tone || '') + '">' + step.callout + '</div>';
+  if (step.code) html += '<div class="wt-code">' + escapeHtml(step.code) + '</div>';
+  if (step.qna && step.qna.length) {
+    html += '<div class="wt-qna"><div class="wt-qna-hdr">Domande frequenti</div>';
+    step.qna.forEach(function (qa) {
+      html += '<details><summary>' + escapeHtml(qa.q) + '</summary><div class="wt-qna-a">' + qa.a + '</div></details>';
+    });
+    html += '</div>';
+  }
+  if (step.pipeline >= 0) {
+    const pipe = retrievalPipelineSteps(cfg);
+    html += '<div class="wt-mini-steps">';
+    pipe.forEach((p, i) => {
+      const cls = i === step.pipeline ? 'on' : (i < step.pipeline ? 'done' : '');
+      html += '<div class="wt-mini-step ' + cls + '">' + (i + 1) + '. ' + escapeHtml(p.label) + '</div>';
+    });
+    html += '</div>';
+  }
+  body.innerHTML = html;
+}
+
+async function applyWalkthroughStep(idx) {
+  const step = getWalkthroughSteps()[idx];
+  if (!step) return;
+  const cfg = getGraphDemoConfig();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
+  switch (step.action) {
+    case 'graph_explore':
+      setViewMode('links');
+      setLinkTypes(cfg.linkTypes);
+      document.getElementById('mem-id').value = cfg.defaultMemId;
+      document.getElementById('depth').value = String(cfg.exploreDepth);
+      await explore();
+      await loadMemoryCache(true);
+      break;
+    case 'retrieval_setup':
+      applyWalkthroughRetrieveForm(cfg);
+      if (step.pipeline >= 0) renderRetrievalPipeline(step.pipeline, step.pipeline);
+      else renderRetrievalPipelineIdle();
+      break;
+    case 'retrieval_run':
+      applyWalkthroughRetrieveForm(cfg);
+      await runHybridRetrievePanel(true);
+      break;
+    case 'retrieval_only':
+      applyWalkthroughRetrieveForm(cfg);
+      renderRetrievalPipelineIdle();
+      break;
+    case 'none':
+    default:
+      break;
+  }
+}
+
+async function walkthroughGoTo(idx) {
+  if (walkthroughBusy) return;
+  const steps = getWalkthroughSteps();
+  idx = Math.max(0, Math.min(steps.length - 1, idx));
+  walkthroughIndex = idx;
+  try { sessionStorage.setItem('pcmi_graph_walkthrough_idx', String(idx)); } catch (e) { /* ignore */ }
+  renderWalkthroughPanel();
+  walkthroughBusy = true;
+  try {
+    await applyWalkthroughStep(idx);
+  } catch (e) {
+    toast('Walkthrough: ' + e.message, true);
+  } finally {
+    walkthroughBusy = false;
+    renderWalkthroughPanel();
+  }
+}
+
+function walkthroughNext() {
+  if (walkthroughIndex >= getWalkthroughSteps().length - 1) {
+    toast('Walkthrough completato');
+    return;
+  }
+  walkthroughGoTo(walkthroughIndex + 1);
+}
+
+function walkthroughPrev() {
+  walkthroughGoTo(walkthroughIndex - 1);
+}
+
+function startGraphWalkthrough() {
+  dismissCtiWelcome();
+  dismissWelcome();
+  document.body.classList.add('graph-walkthrough');
+  window.GRAPH_WALKTHROUGH_ACTIVE = true;
+  openWalkthroughPanel(true);
+  showRetrieveViewButton(true);
+  walkthroughGoTo(0);
+}
+
+function startCtiWalkthrough() { startGraphWalkthrough(); }
+
+function initWalkthroughUi() {
+  document.body.classList.add('graph-walkthrough');
+  window.GRAPH_WALKTHROUGH_ACTIVE = true;
+  openWalkthroughPanel(true);
+  showRetrieveViewButton(true);
+  const saved = parseInt(sessionStorage.getItem('pcmi_graph_walkthrough_idx') || '0', 10);
+  walkthroughIndex = isNaN(saved) ? 0 : saved;
+  renderWalkthroughPanel();
+  const gt = document.getElementById('btn-guide-toggle');
+  if (gt) gt.textContent = 'Walkthrough';
+  renderDemoMemoryBar();
+}
+
+function initCtiWalkthroughUi() { initWalkthroughUi(); }
+
 function renderRetrievalResults(entries, scenario) {
   const el = document.getElementById('retrieval-results');
   if (!el) return;
+  const modeInfo = inferRetrievalMode(entries);
+  setRetrievalMode(modeInfo.kind, modeInfo.text);
   if (!entries.length) {
-    el.innerHTML = '<p class="empty-note">Nessun risultato — embeddings in corso? Attendi ~60s dopo load_multi_cti.py.</p>';
+    el.innerHTML = '<p class="empty-note">Nessun risultato — vedi messaggio sopra. Dopo il load attendi il worker embedding (~60s).</p>';
     return;
   }
   const expect = (scenario && scenario.expectPaths) || [];
-  const vendorsSeen = new Set();
   let html = '';
   entries.forEach((h, i) => {
     const path = (h.path || '').toLowerCase();
     const vendor = (h.metadata && (h.metadata.vendor || h.metadata.attributed_to)) || '—';
     const actor = (h.metadata && (h.metadata.actor || h.metadata.attributed_to)) || '—';
     const score = h.relevance_score != null ? h.relevance_score : (h.score || 0);
-    const cross = expect.some(p => path.indexOf(p) >= 0);
-    if (cross) vendorsSeen.add(path.split('.').slice(-3, -1).join('.') || path.slice(-40));
+    const cross = expect.length ? expect.some(p => path.indexOf(p) >= 0) : (i < 3);
     html += '<div class="retrieval-hit' + (cross ? ' cross' : '') + '" onclick="focusRetrievalHit(' + h.id + ')">'
       + '<div><span class="rank">#' + (i + 1) + '</span> · mem.' + h.id
       + ' · <span class="score">score=' + Number(score).toFixed(4) + '</span>'
-      + (cross ? ' · <span style="color:var(--ok)">cross-vendor</span>' : '')
       + '</div>'
       + '<div class="path">' + escapeHtml(h.path || '') + '</div>'
       + '<div class="snippet">' + escapeHtml((h.content || '').slice(0, 120)) + '…</div>'
       + '<div class="path">vendor=' + escapeHtml(String(vendor)) + ' · actor=' + escapeHtml(String(actor)) + '</div>'
       + '</div>';
   });
-  const matched = expect.filter(p => entries.some(h => ((h.path || '').toLowerCase()).indexOf(p) >= 0));
-  const miss = expect.filter(p => !matched.includes(p));
-  html = '<p class="empty-note" style="margin-bottom:8px">'
-    + matched.length + '/' + expect.length + ' pattern attesi nel top-' + entries.length
-    + (miss.length ? ' · mancanti: ' + escapeHtml(miss.join(', ')) : ' · ✓ correlazione cross-vendor')
-    + '</p>' + html;
+  if (expect.length) {
+    const matched = expect.filter(p => entries.some(h => ((h.path || '').toLowerCase()).indexOf(p) >= 0));
+    html = '<p class="empty-note" style="margin-bottom:8px">' + matched.length + '/' + expect.length
+      + ' pattern nel top-' + entries.length + '</p>' + html;
+  } else {
+    html = '<p class="empty-note" style="margin-bottom:8px">' + entries.length
+      + ' risultati ranked sotto ' + escapeHtml(getGraphDemoConfig().pathPrefix) + '</p>' + html;
+  }
   el.innerHTML = html;
 }
 
@@ -2570,24 +3346,40 @@ async function focusRetrievalHit(memId) {
   selectNode(parseInt(memId, 10));
 }
 
-async function runCtiRetrievalPanel() {
+async function runHybridRetrievePanel(skipAnim) {
   if (!apiKey()) { toast('Enter your API key', true); return; }
+  const cfg = getGraphDemoConfig();
   const sel = document.getElementById('retrieval-scenario');
   const ta = document.getElementById('retrieval-query');
-  const scenario = CTI_RETRIEVAL_SCENARIOS[(sel && sel.value) || 'dprk_cs'];
-  const query = (ta && ta.value.trim()) || (scenario && scenario.query) || '';
+  const scenario = (window.CTI_DEMO_ACTIVE && sel && CTI_RETRIEVAL_SCENARIOS[sel.value])
+    ? CTI_RETRIEVAL_SCENARIOS[sel.value] : null;
+  const query = (ta && ta.value.trim()) || (scenario && scenario.query) || cfg.retrieveQuery;
+  const limit = (scenario && scenario.limit) || cfg.retrieveLimit;
   if (!query) { toast('Inserisci una query', true); return; }
   showLoading(true, 'Hybrid retrieve…');
   try {
-    const hits = await runCtiRetrievalPreview(query, (scenario && scenario.limit) || 12);
+    if (!skipAnim) {
+      renderRetrievalPipeline(0, 0);
+      await sleep(350);
+      renderRetrievalPipeline(1, 1);
+      await sleep(350);
+      renderRetrievalPipeline(2, 2);
+      await sleep(350);
+      renderRetrievalPipeline(3, 3);
+    }
+    const hits = await runHybridRetrievePreview(query, limit);
+    renderRetrievalPipeline(4, 5);
     renderRetrievalResults(hits, scenario);
-    toast(hits.length + ' risultati · clicca una riga per evidenziare nel grafo');
+    toast(hits.length + ' risultati · ' + cfg.pathPrefix + ' · clicca riga → grafo');
   } catch (e) {
+    renderRetrievalPipelineIdle();
     toast('Retrieve failed: ' + e.message, true);
   } finally {
     showLoading(false);
   }
 }
+
+async function runCtiRetrievalPanel(skipAnim) { return runHybridRetrievePanel(skipAnim); }
 
 async function runCtiGuidedDemo() {
   dismissCtiWelcome();
@@ -2718,14 +3510,21 @@ async function runCtiGuidedDemo() {
     await pause(4500);
 
     updateCtiGuideUI('retrieval');
-    R.caption('Passo 12 / 12', 'Retrieval ibrida BM25 + pgvector',
-      'Pannello Retrieve: query "Forest Blizzard PROMPTSTEAL" recupera report Mandiant + IOC GTIG '
-      + 'nello stesso top-N — fusione keyword + semantica, senza tabella alias a query time.');
+    R.caption('Passo 12 / 12', 'Retrieval ibrida — il giro completo',
+      '1) POST /v1/retrieve con query PRESSURE CHOLLIMA · 2) embed query · 3) SQL fusione BM25+pgvector · '
+      + '4) #1 CrowdStrike (BM25 alto) · #2 Microsoft Sapphire Sleet (cosine, naming diverso) — senza tabella alias.');
     setViewMode('retrieval');
+    document.getElementById('retrieval-scenario').value = 'dprk_cs';
+    applyRetrievalScenario();
+    renderRetrievalPipelineIdle();
+    await runCtiRetrievalPanel();
+    await pause(5500);
+    R.caption('Passo 12 / 12 (cont.)', 'Stesso meccanismo — APT28 cross-vendor',
+      'Query Forest Blizzard → recupera Mandiant PROMPTSTEAL nello stesso top-N. Prova anche gli altri scenari nel menu.');
     document.getElementById('retrieval-scenario').value = 'apt28_ms';
     applyRetrievalScenario();
     await runCtiRetrievalPanel();
-    await pause(5500);
+    await pause(4500);
     toast('Tour CTI completato · Registry alias + retrieval ibrida');
     await pause(3000);
   } catch (e) {
@@ -2737,10 +3536,12 @@ async function runCtiGuidedDemo() {
 
 function initCtiDemoMode() {
   window.CTI_DEMO_ACTIVE = true;
+  window.GRAPH_DEMO_PRESET = 'cti';
   document.getElementById('entity-flags').style.display = 'inline-flex';
-  const retBtn = document.getElementById('btn-view-retrieval');
-  if (retBtn) retBtn.style.display = '';
+  showRetrieveViewButton(true);
   applyRetrievalScenario();
+  renderRetrievalPipelineIdle();
+  if (isWalkthroughRequested()) initWalkthroughUi();
   if (!apiKey()) {
     document.getElementById('api-key').value = 'testkey123';
     localStorage.setItem('pcmi_graph_apikey', 'testkey123');
@@ -2751,10 +3552,12 @@ function initCtiDemoMode() {
   setLinkTypes('supports,related,causal,temporal');
   renderCtiGuideBar();
   renderCtiLegend();
+  renderDemoMemoryBar();
   const qs = new URLSearchParams(location.search);
-  if (qs.get('autostart') === '1') {
+  if (qs.get('walkthrough') === '1' || qs.get('walkthrough') === 'start' || qs.get('autostart') === '1') {
     dismissCtiWelcome();
     document.getElementById('overlay').classList.remove('show');
+    setTimeout(() => startGraphWalkthrough(), 600);
   } else if (!localStorage.getItem('pcmi_cti_welcome_dismissed') && nodesData.length === 0) {
     renderCtiWelcomeOverlay();
     document.getElementById('overlay').classList.add('show');
@@ -2764,25 +3567,52 @@ function initCtiDemoMode() {
 }
 
 function initSocDemoMode() {
+  window.GRAPH_DEMO_PRESET = 'soc';
   const qs = new URLSearchParams(location.search);
   if (qs.get('mem')) document.getElementById('mem-id').value = qs.get('mem');
   else document.getElementById('mem-id').value = '73';
   setLinkTypes('causal,temporal,related');
   document.getElementById('entity-flags').style.display = 'inline-flex';
   updateGuideUI('links');
-  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0) {
-    renderWelcomeOverlay();
+  if (isWalkthroughRequested()) initWalkthroughUi();
+  renderDemoMemoryBar();
+  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0 && !isWalkthroughRequested()) {
+    renderSocWelcomeOverlay();
     document.getElementById('overlay').classList.add('show');
   }
 }
 
+function renderSocWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Demo · SOC incident graph</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Dataset Akira/Sandworm sotto <code>root.soc.*</code>.</p>'
+    + '<ol><li><b>Grafo</b> — incidenti e link causal/temporal</li>'
+    + '<li><b>Walkthrough</b> — retrieval ibrido universale (8 passi)</li>'
+    + '<li><b>Extract / Registry</b> — Phase A–D opzionale</li></ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>'
+    + '<button class="btn-secondary" onclick="launchAllDemoMemories()">▶ Apri tutte le memorie</button>'
+    + '<button class="btn-secondary" onclick="dismissWelcome()">Esplora manualmente</button></div>';
+}
+
 function initDemoMode() {
+  window.GRAPH_WALKTHROUGH_ACTIVE = isWalkthroughRequested();
   const qs = new URLSearchParams(location.search);
   if (qs.get('demo') === 'soc') {
     initSocDemoMode();
+    if (GRAPH_WALKTHROUGH_ACTIVE) setTimeout(() => startGraphWalkthrough(), 600);
     return;
   }
-  initCtiDemoMode();
+  if (qs.get('demo') === 'cti') {
+    initCtiDemoMode();
+    return;
+  }
+  if (GRAPH_WALKTHROUGH_ACTIVE) {
+    initWalkthroughUi();
+    setTimeout(() => startGraphWalkthrough(), 600);
+  }
 }
 initDemoMode();
 
@@ -2892,9 +3722,6 @@ async function runSocGuidedDemo() {
       await explore();
     },
   };
-  if (qs.get('autostart') === '1') {
-    setTimeout(() => runCtiGuidedDemo(), 1400);
-  }
 })();
 </script>
 </body>

@@ -18,20 +18,6 @@ import urllib.request
 
 # Path suffixes for the 12-step CTI tour. Prefer nodes that participate in memory_links
 # (consolidated/distillation-only nodes often have zero AGE edges).
-TOUR_PATHS: dict[str, str] = {
-    # Operational STIX dataset entry: CISA MAR BRICKSTORM (real bundle IOCs)
-    "root": "root.cti.vendors.cisa.brickstorm.mar-251165",
-    "brickstorm": "root.cti.vendors.cisa.brickstorm.mar-251165",
-    "brickstorm_sample": "root.cti.vendors.cisa.brickstorm.samples.aaf5569c8e349c15",
-    "cs_pressure": "root.cti.vendors.wiz.tradertraitor.bybit_safe_wallet_2025",
-    "ms_sapphire": "root.cti.vendors.microsoft.threat_intel.sapphire_sleet",
-    "mdt_ps": "root.cti.vendor_reports.mandiant.mtrends2026.promptsteal",
-    "ms_forest": "root.cti.vendors.microsoft.threat_intel.forest_blizzard",
-    "apt28": "root.cti.vendors.google_gtig.apt28.promptsteal",
-    "ti_sapphire": "root.cti.distillation.campaign_actor_overlap_cs_pressure_chollima_bybit_ms_sapphire_sleet",
-    "ti_forest": "root.cti.distillation.malware_linked_to_actor_mdt_promptsteal_ms_forest_blizzard_atc",
-}
-
 FALLBACK_SUFFIXES: dict[str, tuple[str, ...]] = {
     "root": (
         "root.cti.vendors.cisa.brickstorm.mar-251165",

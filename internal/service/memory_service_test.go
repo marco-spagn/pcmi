@@ -40,6 +40,15 @@ func (r *fullMockRepo) GetByPath(_ context.Context, _ string, path string, _ *in
 	return &model.MemoryEntry{ID: 1, Path: path}, nil
 }
 
+func (r *fullMockRepo) GetByIDResolveCurrent(_ context.Context, _ string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	entry, err := r.GetByPath(context.Background(), "", "root", nil, nil)
+	if err != nil {
+		return nil, memoryID, err
+	}
+	entry.ID = memoryID
+	return entry, memoryID, nil
+}
+
 func (r *fullMockRepo) GetHistoricalVersion(_ context.Context, _ string, path string, _ *int, _ *time.Time) (*model.MemoryEntry, error) {
 	if r.getHistoricalFn != nil {
 		return r.getHistoricalFn(path)

@@ -80,6 +80,19 @@ func (r *stressRepo) GetByPath(_ context.Context, tenantID, path string, _ *int,
 	return nil, nil
 }
 
+func (r *stressRepo) GetByIDResolveCurrent(_ context.Context, tenantID string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	r.sleep()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, e := range r.stored[tenantID] {
+		if e.ID == memoryID {
+			cp := e
+			return &cp, memoryID, nil
+		}
+	}
+	return nil, memoryID, nil
+}
+
 func (r *stressRepo) GetHistoricalVersion(_ context.Context, _ string, _ string, _ *int, _ *time.Time) (*model.MemoryEntry, error) {
 	return nil, nil
 }

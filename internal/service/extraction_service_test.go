@@ -54,6 +54,9 @@ func (f *fakeExtractionMemoryRepo) GetHistoricalVersion(context.Context, string,
 func (f *fakeExtractionMemoryRepo) GetByPath(context.Context, string, string, *int, *time.Time) (*model.MemoryEntry, error) {
 	panic("unused")
 }
+func (f *fakeExtractionMemoryRepo) GetByIDResolveCurrent(context.Context, string, int64) (*model.MemoryEntry, int64, error) {
+	panic("unused")
+}
 func (f *fakeExtractionMemoryRepo) ExportMemories(context.Context, string, string, int, bool) ([]model.MemoryEntry, error) {
 	panic("unused")
 }

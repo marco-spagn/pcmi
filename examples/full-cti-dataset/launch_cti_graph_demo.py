@@ -21,7 +21,7 @@ RESOLVER = os.path.join(ROOT, "resolve_demo_ids.py")
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Launch CTI graph UI guided tour")
-    parser.add_argument("--autostart", action="store_true", help="Auto-play 9-step tour")
+    parser.add_argument("--autostart", action="store_true", help="Open with walkthrough=1 (manual steps)")
     parser.add_argument("--no-open", action="store_true", help="Print URL only")
     args = parser.parse_args()
 
@@ -38,8 +38,8 @@ def main() -> int:
         return proc.returncode
 
     url = proc.stdout.strip()
-    if args.autostart:
-        url += "&autostart=1" if "?" in url else "?autostart=1"
+    if args.autostart and "walkthrough=" not in url:
+        url += "&walkthrough=1" if "?" in url else "?walkthrough=1"
 
     print(url)
     if not args.no_open:

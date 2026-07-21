@@ -40,6 +40,15 @@ func (r *fullMockRepo) GetByPath(_ context.Context, _ string, path string, _ *in
 	return &model.MemoryEntry{ID: 1, Path: path}, nil
 }
 
+func (r *fullMockRepo) GetByIDResolveCurrent(_ context.Context, _ string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	entry, err := r.GetByPath(context.Background(), "", "root", nil, nil)
+	if err != nil {
+		return nil, memoryID, err
+	}
+	entry.ID = memoryID
+	return entry, memoryID, nil
+}
+
 func (r *fullMockRepo) GetHistoricalVersion(_ context.Context, _ string, path string, _ *int, _ *time.Time) (*model.MemoryEntry, error) {
 	if r.getHistoricalFn != nil {
 		return r.getHistoricalFn(path)
@@ -170,6 +179,18 @@ func TestMemoryServiceGetByPathNotFound(t *testing.T) {
 	_, err := svc.GetByPath(context.Background(), "tid", "missing", nil, nil)
 	if err == nil {
 		t.Fatal("expected not-found error")
+	}
+}
+
+func TestMemoryServiceGetByIDResolveCurrent(t *testing.T) {
+	repo := &fullMockRepo{}
+	svc := NewMemoryService(repo, nil)
+	entry, requestedID, err := svc.GetByIDResolveCurrent(context.Background(), "tid", 99)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.ID != 99 || requestedID != 99 {
+		t.Fatalf("entry=%+v requestedID=%d", entry, requestedID)
 	}
 }
 

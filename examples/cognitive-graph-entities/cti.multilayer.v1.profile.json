@@ -1,0 +1,28 @@
+{
+  "profile_id": "cti.multilayer.v1",
+  "version": 1,
+  "description": "Multi-layer CTI dataset: SOC incidents, vendor reports (Mandiant/CrowdStrike/Unit42/Microsoft), TI Mindmap HUB briefs.",
+  "required_slots": [
+    {"name": "kind", "type": "string", "nullable": true},
+    {"name": "vendor", "type": "string", "nullable": true},
+    {"name": "layer", "type": "enum", "values": ["soc", "vendors", "ti_hub", "stix"], "nullable": true},
+    {"name": "severity", "type": "string", "nullable": true},
+    {"name": "actor", "type": "string", "nullable": true},
+    {"name": "cve", "type": "string", "nullable": true},
+    {"name": "campaign_id", "type": "string", "nullable": true},
+    {"name": "issue", "type": "string", "nullable": true}
+  ],
+  "entity_promotion": {
+    "actor": {"vertex_label": "ThreatActor", "normalize": "trim"},
+    "cve": {"vertex_label": "CVE", "normalize": "upper"},
+    "campaign_id": {"vertex_label": "Campaign", "normalize": "upper"},
+    "vendor": {"vertex_label": "Organization", "normalize": "trim"}
+  },
+  "link_proposal_hints": [
+    "supports when vendor/TI brief evidence backs an SOC incident or another record",
+    "related when shared actor, CVE, or campaign across layers",
+    "temporal when issue numbers or report dates show progression",
+    "causal when SOC incident chain or kill-chain is described",
+    "contradicts when disposition or attribution conflicts on same entity"
+  ]
+}

@@ -2,6 +2,11 @@
 // SPIKE — not production-ready.
 package graph
 
+import (
+	"fmt"
+	"strings"
+)
+
 const (
 	LinkTypeCausal      = "causal"
 	LinkTypeTemporal    = "temporal"
@@ -9,6 +14,29 @@ const (
 	LinkTypeSupports    = "supports"
 	LinkTypeRelated     = "related"
 )
+
+// TraversalDirection controls edge direction for FindRelated.
+type TraversalDirection string
+
+const (
+	TraversalOut  TraversalDirection = "out"
+	TraversalIn   TraversalDirection = "in"
+	TraversalBoth TraversalDirection = "both"
+)
+
+// ParseTraversalDirection normalises the HTTP direction query param.
+func ParseTraversalDirection(raw string) (TraversalDirection, error) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "", string(TraversalBoth):
+		return TraversalBoth, nil
+	case string(TraversalOut):
+		return TraversalOut, nil
+	case string(TraversalIn):
+		return TraversalIn, nil
+	default:
+		return "", fmt.Errorf("direction must be out, in, or both")
+	}
+}
 
 // RelatedMemory is a node reachable from a source memory via graph traversal.
 type RelatedMemory struct {

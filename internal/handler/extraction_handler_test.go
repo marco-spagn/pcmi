@@ -21,7 +21,7 @@ func TestExtractionHandler_disabledRun(t *testing.T) {
 		return c.Next()
 	})
 	cfg := &config.Config{ExtractionEnabled: false}
-	handler.RegisterExtractionRoutes(app, nil, nil, cfg)
+	handler.RegisterExtractionRoutes(app, nil, nil, cfg, nil)
 
 	req := httptest.NewRequest("POST", "/v1/memories/extraction/42", nil)
 	resp, err := app.Test(req)
@@ -43,7 +43,7 @@ func TestExtractionHandler_invalidMemoryID(t *testing.T) {
 		return c.Next()
 	})
 	cfg := &config.Config{ExtractionEnabled: true}
-	handler.RegisterExtractionRoutes(app, nil, nil, cfg)
+	handler.RegisterExtractionRoutes(app, nil, nil, cfg, nil)
 
 	req := httptest.NewRequest("POST", "/v1/memories/extraction/not-a-number", nil)
 	resp, err := app.Test(req)
@@ -64,7 +64,7 @@ func TestExtractionHandler_upsertProfileBadJSON(t *testing.T) {
 		return c.Next()
 	})
 	cfg := &config.Config{}
-	handler.RegisterExtractionRoutes(app, nil, nil, cfg)
+	handler.RegisterExtractionRoutes(app, nil, nil, cfg, nil)
 
 	req := httptest.NewRequest("PUT", "/v1/extraction-profiles/soc.siem.v1", strings.NewReader(`{`))
 	req.Header.Set("Content-Type", "application/json")

@@ -1,0 +1,1264 @@
+{
+  "name": "CTI Vendor Reports Dataset — Real Data 2025-2026",
+  "description": "Dataset CTI costruito da dati reali estratti dai report 2025-2026 di Mandiant (M-Trends 2026), CrowdStrike (GTR 2026), Unit 42 (GIRR 2026), e Microsoft Threat Intelligence. Ogni nodo è un finding grezzo come pubblicato dal vendor originale. Le correlazioni cross-vendor nei link sono il valore aggiunto che PCMI abilita come memory layer longitudinale.",
+  "metadata": {
+    "version": "1.0.0",
+    "generated": "2026-06-30T17:48:53Z",
+    "generator": "generate_vendor_reports_dataset.py",
+    "pcmi_path_namespace": "root.cti.vendor_reports",
+    "vendors": [
+      {
+        "name": "Mandiant/Google",
+        "report": "M-Trends 2026",
+        "date": "2026-03-23",
+        "data_period": "2025"
+      },
+      {
+        "name": "CrowdStrike",
+        "report": "Global Threat Report 2026",
+        "date": "2026-02-24",
+        "data_period": "2025"
+      },
+      {
+        "name": "Unit 42 / Palo Alto",
+        "report": "GIRR 2026",
+        "date": "2026",
+        "data_period": "2024-10 to 2025-09"
+      },
+      {
+        "name": "Microsoft",
+        "report": "Threat Intelligence blogs",
+        "date": "2025-2026",
+        "data_period": "2024-2026"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "key": "mdt_landscape_2025",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.landscape",
+      "content": "In 2025, Mandiant observed a clear divergence in adversary pacing. Cyber criminal groups optimized for immediate impact and deliberate recovery denial. Sophisticated cyber espionage groups and insider threats optimized for extreme persistence, utilizing unmonitored edge devices and native network functionalities to evade detection. Grounded in over 500,000 hours of frontline incident investigations conducted by Mandiant globally in 2025.",
+      "tags": [
+        "landscape",
+        "mandiant",
+        "mtrends",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "landscape_overview",
+        "investigation_hours": 500000
+      }
+    },
+    {
+      "key": "mdt_initial_vectors",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.initial_vectors",
+      "content": "Exploitation of internet-facing systems remained the leading initial infection vector for the sixth consecutive year, accounting for 32% of cases. Voice phishing climbed to the second-most common initial infection vector at 11%, displacing traditional email phishing which fell to just 6% — less than half its share the prior year.",
+      "tags": [
+        "initial-access",
+        "mandiant",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "exploit_pct": 32,
+        "vishing_pct": 11,
+        "email_phishing_pct": 6,
+        "note": "email phishing declined from 22% in 2022 to 6% in 2025"
+      }
+    },
+    {
+      "key": "mdt_breakout_time",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.breakout_handoff",
+      "content": "Access-broker handoffs measured in 22 seconds. A growing share of Mandiant investigations followed a division-of-labor model in which one threat cluster gains initial access and transfers it to a separate group for follow-on operations. This pattern appeared in 9% of 2025 investigations, up from 4% in 2022.",
+      "tags": [
+        "breakout-time",
+        "mandiant",
+        "access-broker",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "fastest_handoff_seconds": 22,
+        "division_of_labor_pct": 9,
+        "prior_year_pct": 4
+      }
+    },
+    {
+      "key": "mdt_unc6201_brickstorm",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.unc6201",
+      "content": "Threat cluster UNC6201 deliberately targets edge and core network devices — VPNs and routers — that typically lack standard EDR telemetry. Mandiant investigated incidents where UNC6201 deployed the BRICKSTORM backdoor on Linux- and BSD-based appliances from multiple manufacturers. Using valid credentials likely captured on the network device, UNC6201 accessed VMware vCenter servers and ESXi hosts. With access to vCenter, the cluster cloned virtual machines including SSO identity providers, secret vaults, and domain controllers. BRICKSTORM achieved dwell times of nearly 400 days.",
+      "tags": [
+        "unc6201",
+        "brickstorm",
+        "edge-device",
+        "espionage",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC6201",
+        "malware": "BRICKSTORM",
+        "targets": [
+          "VPNs",
+          "routers",
+          "vCenter",
+          "ESXi"
+        ],
+        "dwell_time_days": 400,
+        "technique": "cloned VMs of SSO providers and DCs"
+      }
+    },
+    {
+      "key": "mdt_unc6040_vishing",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.unc6040",
+      "content": "In first half of 2025, UNC6040 used voice phishing to convince targets to hand over credentials and authorize attacker-controlled versions of legitimate SaaS applications. Victims later received ShinyHunters-branded extortion notes. Threat actors bypass standard defenses by harvesting long-lived OAuth tokens and session cookies.",
+      "tags": [
+        "unc6040",
+        "vishing",
+        "saas",
+        "shinyhunters",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC6040",
+        "technique": "voice phishing → SaaS takeover",
+        "extortion_brand": "ShinyHunters",
+        "tokens_harvested": [
+          "OAuth tokens",
+          "session cookies"
+        ]
+      }
+    },
+    {
+      "key": "mdt_unc3944_scattered",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.unc3944",
+      "content": "UNC3944, a financially motivated cluster with overlap with publicly reported Scattered Spider activity, continued targeting help desk staff by impersonating employees requesting password resets and multi-factor authentication changes.",
+      "tags": [
+        "unc3944",
+        "scattered-spider",
+        "social-engineering",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "threat_cluster",
+        "cluster": "UNC3944",
+        "public_alias": "Scattered Spider",
+        "technique": "help desk impersonation for MFA bypass"
+      }
+    },
+    {
+      "key": "mdt_promptflux",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.promptflux",
+      "content": "PROMPTFLUX: experimental VBScript dropper first identified by GTIG in June 2025. Uses the Gemini API to rewrite its own source code on an hourly basis, generating fresh malicious code on demand that evades signature-based detection. First observed instance of 'just-in-time' AI integration in malicious software. Still in testing phases and not yet capable of widespread compromise.",
+      "tags": [
+        "promptflux",
+        "ai-malware",
+        "vbscript",
+        "gemini",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "PROMPTFLUX",
+        "type": "dropper",
+        "language": "VBScript",
+        "ai_integration": "Gemini API for hourly code rewrite",
+        "status": "experimental/testing",
+        "first_seen": "2025-06"
+      }
+    },
+    {
+      "key": "mdt_promptsteal",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.promptsteal",
+      "content": "PROMPTSTEAL: attributed to Russian government-backed actor APT28 (also tracked as FROZENLAKE). Queries an LLM to generate one-line Windows commands for document theft. Marking the first confirmed attribution of LLM-assisted malware to a nation-state actor.",
+      "tags": [
+        "promptsteal",
+        "apt28",
+        "frozenlake",
+        "ai-malware",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "PROMPTSTEAL",
+        "attributed_to": "APT28 / FROZENLAKE",
+        "ai_integration": "LLM query for Windows command generation",
+        "purpose": "document theft",
+        "significance": "first LLM-assisted malware attributed to nation-state"
+      }
+    },
+    {
+      "key": "mdt_quietvault",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.quietvault",
+      "content": "QUIETVAULT credential stealer observed checking targeted machines for local AI command-line tools, executing predefined prompts to search for configuration files.",
+      "tags": [
+        "quietvault",
+        "credential-stealer",
+        "ai-abuse",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "malware",
+        "family": "QUIETVAULT",
+        "type": "credential stealer",
+        "technique": "searches for local AI CLI tools and config files"
+      }
+    },
+    {
+      "key": "mdt_cve_2025_31324",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.cve_2025_31324",
+      "content": "CVE-2025-31324: improper authorization flaw in SAP NetWeaver Visual Composer component allowing unauthenticated file uploads. Multiple threat clusters exploited it as a zero-day before SAP patched it in April 2025. Several suspected PRC-nexus espionage groups exploited it afterward. Post-compromise activity centered on web shell installation and reconnaissance.",
+      "tags": [
+        "cve",
+        "sap",
+        "zero-day",
+        "china",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "vulnerability",
+        "cve": "CVE-2025-31324",
+        "product": "SAP NetWeaver Visual Composer",
+        "type": "improper authorization / unauthenticated file upload",
+        "exploited_as": "zero-day",
+        "actors": "multiple PRC-nexus clusters",
+        "patch_date": "2025-04"
+      }
+    },
+    {
+      "key": "mdt_cve_2025_61882",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.cve_2025_61882",
+      "content": "CVE-2025-61882: improper authentication vulnerability in Oracle E-Business Suite allowing unauthenticated remote code execution. A threat cluster claiming CL0P affiliation sent extortion emails in September 2025. Mandiant identified evidence of successful exploitation as early as August 2025 and attributes the activity to a suspected FIN11 cluster.",
+      "tags": [
+        "cve",
+        "oracle",
+        "zero-day",
+        "clop",
+        "fin11",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "vulnerability",
+        "cve": "CVE-2025-61882",
+        "product": "Oracle E-Business Suite",
+        "type": "improper authentication / unauthenticated RCE",
+        "actors": "FIN11 / CL0P",
+        "first_exploitation": "2025-08"
+      }
+    },
+    {
+      "key": "mdt_malware_stats",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.malware_stats",
+      "content": "GTIG began tracking 714 new malware families in 2025, a significant increase from 632 in 2024, bringing the total to over 6,000 tracked families. 224 malware families observed in 2025 investigations (126 newly tracked, 98 from prior years). Most frequently observed roles: backdoors 36%, downloaders 11%, ransomware 10%, droppers 10%, credential stealers 9%.",
+      "tags": [
+        "malware-stats",
+        "mandiant",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "new_families_2025": 714,
+        "total_tracked": 6000,
+        "observed_in_investigations": 224,
+        "role_distribution": {
+          "backdoors": 36,
+          "downloaders": 11,
+          "ransomware": 10,
+          "droppers": 10,
+          "credential_stealers": 9,
+          "other": 24
+        }
+      }
+    },
+    {
+      "key": "mdt_exploit_timeline",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.exploit_timeline",
+      "content": "M-Trends 2026 reveals that the mean time to exploit vulnerabilities dropped to an estimated -7 days, meaning exploitation is routinely occurring before a patch is even released.",
+      "tags": [
+        "exploit-timeline",
+        "zero-day",
+        "mandiant",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "mean_time_to_exploit_days": -7,
+        "note": "exploitation before patch release is routine"
+      }
+    },
+    {
+      "key": "mdt_detection_source",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.detection_source",
+      "content": "In 2025, 52% of organizations detected evidence of malicious activity internally (up from 43% in 2024). External entity notifications declined from 43% to 34%. Adversary notification (e.g. ransom note) remained at 14%.",
+      "tags": [
+        "detection",
+        "mandiant",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "statistic",
+        "internal_detection_pct": 52,
+        "external_notification_pct": 34,
+        "adversary_notification_pct": 14
+      }
+    },
+    {
+      "key": "mdt_ransomware_recovery_denial",
+      "path": "root.cti.vendor_reports.mandiant.mtrends2026.recovery_denial",
+      "content": "Ransomware operators have moved beyond dual-threat encryption-and-theft toward systematically denying organizations the ability to recover. They target identity services, virtualization management planes, and backup infrastructure. Mandiant investigated breaches where threat actors exploited misconfigured AD CS templates to create admin accounts exempt from MFA. Attackers extracted dozens of high-privilege credentials from enterprise credential vaults, forced password changes on privileged accounts, locked defenders out during crisis. Deployed ransomware at hypervisor level.",
+      "tags": [
+        "ransomware",
+        "recovery-denial",
+        "mandiant",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Mandiant M-Trends 2026",
+        "vendor": "Mandiant/Google",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "url": "https://cloud.google.com/security/resources/m-trends",
+        "kind": "technique_trend",
+        "trend": "recovery denial over encryption",
+        "targets": [
+          "AD CS",
+          "credential vaults",
+          "hypervisors",
+          "backup infrastructure",
+          "identity services"
+        ]
+      }
+    },
+    {
+      "key": "cs_landscape_2025",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.landscape",
+      "content": "2025: the year of the evasive adversary. Threat landscape defined by attacks that targeted trusted relationships, demonstrated fluency with AI tools, and incorporated tradecraft tailored to exploit security blind spots. CrowdStrike tracked 24 new adversaries in 2025, bringing the total to 281. 82% of detections were malware-free. 89% increase in attacks by AI-enabled adversaries.",
+      "tags": [
+        "landscape",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "landscape_overview",
+        "total_adversaries": 281,
+        "new_adversaries": 24,
+        "malware_free_pct": 82,
+        "ai_enabled_increase_pct": 89
+      }
+    },
+    {
+      "key": "cs_breakout_time",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.breakout_time",
+      "content": "Average eCrime breakout time fell to 29 minutes in 2025, a 65% increase in speed from 2024. Fastest observed breakout time: 27 seconds. Breakout time has decreased roughly 70% from 2021 to 2025.",
+      "tags": [
+        "breakout-time",
+        "crowdstrike",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "avg_breakout_minutes": 29,
+        "fastest_breakout_seconds": 27,
+        "yoy_speed_increase_pct": 65,
+        "five_year_reduction_pct": 70
+      }
+    },
+    {
+      "key": "cs_pressure_chollima_bybit",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.pressure_chollima",
+      "content": "PRESSURE CHOLLIMA stole $1.46 billion USD worth of cryptocurrency from Bybit exchange on February 21, 2025, through trojanized software delivered via supply chain compromise of Safe{Wallet}. The largest single financial theft ever reported. Attackers compromised a developer's macOS workstation, injected malicious JavaScript into Safe{Wallet}'s front-end during routine update, spoofed the signing UI to redirect multi-sig cold wallet transaction. Over 400,000 ETH stolen.",
+      "tags": [
+        "pressure-chollima",
+        "lazarus",
+        "bybit",
+        "crypto-theft",
+        "supply-chain",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "incident",
+        "actor": "PRESSURE CHOLLIMA / Lazarus Group / TraderTraitor",
+        "target": "Bybit cryptocurrency exchange",
+        "amount_stolen": "$1.46B",
+        "asset": "ETH",
+        "date": "2025-02-21",
+        "technique": "supply chain compromise of Safe{Wallet}",
+        "mitre_techniques": [
+          "T1195.002",
+          "T1059.007"
+        ],
+        "fbi_attribution": true
+      }
+    },
+    {
+      "key": "cs_famous_chollima",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.famous_chollima",
+      "content": "FAMOUS CHOLLIMA activity more than doubled in 2025. Accounted for 47% of all state-sponsored hands-on-keyboard operations against the tech sector. IT worker infiltration campaigns: sought fraudulent employment at tech companies across North America, Europe, and Asia. Primary motivation is financial gain for the DPRK regime. DPRK-linked incidents rose more than 130% overall.",
+      "tags": [
+        "famous-chollima",
+        "dprk",
+        "insider-threat",
+        "it-worker",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_actor_activity",
+        "actor": "FAMOUS CHOLLIMA",
+        "activity_increase_pct": ">100%",
+        "tech_sector_keyboard_pct": 47,
+        "dprk_incidents_increase_pct": 130,
+        "technique": "fraudulent IT worker employment"
+      }
+    },
+    {
+      "key": "cs_stardust_axios",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.stardust_chollima",
+      "content": "STARDUST CHOLLIMA compromised the Axios npm package, downloaded 100 million times per week, in operations that likely exposed millions of downstream systems. Supply chain compromise through public code repositories.",
+      "tags": [
+        "stardust-chollima",
+        "dprk",
+        "npm",
+        "supply-chain",
+        "axios",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "incident",
+        "actor": "STARDUST CHOLLIMA",
+        "target": "Axios npm package",
+        "weekly_downloads": "100M",
+        "technique": "npm supply chain compromise"
+      }
+    },
+    {
+      "key": "cs_china_nexus",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.china_nexus",
+      "content": "China-nexus activity increased 38% in 2025. Logistics vertical had greatest increase in targeting, up 85%. 67% of all exploited vulnerabilities by China-nexus actors delivered immediate system access. 40% targeted internet-facing edge devices. Adversaries including MURKY PANDA, MUSTANG PANDA, OVERCAST PANDA, SUNRISE PANDA, and WARP PANDA targeted the tech sector more than any other industry. 58% of state-sponsored targeted intrusions attributed to China-nexus adversaries.",
+      "tags": [
+        "china",
+        "panda",
+        "edge-device",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_landscape_regional",
+        "region": "China-nexus",
+        "activity_increase_pct": 38,
+        "logistics_increase_pct": 85,
+        "immediate_access_vuln_pct": 67,
+        "edge_device_targeting_pct": 40,
+        "actors": [
+          "MURKY PANDA",
+          "MUSTANG PANDA",
+          "OVERCAST PANDA",
+          "SUNRISE PANDA",
+          "WARP PANDA"
+        ],
+        "state_intrusions_pct": 58
+      }
+    },
+    {
+      "key": "cs_cozy_bear_oauth",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.cozy_bear",
+      "content": "COZY BEAR used OAuth device-code phishing that kept victims on Microsoft's authentic infrastructure. Cloud-conscious intrusions rose 37% year-over-year, with a 266% increase among named state-nexus actors. Valid account abuse accounted for 35% of cloud incidents.",
+      "tags": [
+        "cozy-bear",
+        "oauth",
+        "cloud",
+        "identity",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "threat_actor_activity",
+        "actor": "COZY BEAR (APT-29)",
+        "technique": "OAuth device-code phishing on Microsoft infra",
+        "cloud_intrusions_increase_pct": 37,
+        "state_nexus_cloud_increase_pct": 266,
+        "valid_account_abuse_pct": 35
+      }
+    },
+    {
+      "key": "cs_zero_day_stats",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.zero_day",
+      "content": "42% year-over-year increase in zero-days exploited prior to public disclosure. China-nexus actors operationalised exploits within days of disclosure. GRACEFUL SPIDER repeatedly leveraged zero-days in large-scale campaigns.",
+      "tags": [
+        "zero-day",
+        "crowdstrike",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "zero_day_increase_yoy_pct": 42,
+        "actors": [
+          "China-nexus",
+          "GRACEFUL SPIDER"
+        ]
+      }
+    },
+    {
+      "key": "cs_fake_captcha",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.fake_captcha",
+      "content": "563% increase in incidents using fake CAPTCHA lures in 2025. Adversaries trick users into executing malicious code via convincing, socially engineered delivery methods including CAPTCHAs, video conference verifications, driver updates, and enterprise software compliance verification.",
+      "tags": [
+        "fake-captcha",
+        "social-engineering",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "technique_trend",
+        "technique": "fake CAPTCHA lures",
+        "increase_pct": 563
+      }
+    },
+    {
+      "key": "cs_ai_exploitation",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.ai_exploitation",
+      "content": "90+ organizations had legitimate AI tools exploited to generate malicious commands and steal sensitive data. ChatGPT was mentioned in criminal forums 550% more than any other model. SparkCat mobile malware uses AI optical character recognition to select image files for exfiltration. FunkLocker and RALord ransomware variants share encryption flaw associated with WormGPT.",
+      "tags": [
+        "ai-abuse",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "technique_trend",
+        "orgs_with_ai_exploited": 90,
+        "chatgpt_forum_mentions_increase_pct": 550,
+        "malware_ai": [
+          "SparkCat (AI OCR)",
+          "FunkLocker (WormGPT)",
+          "RALord (WormGPT)"
+        ]
+      }
+    },
+    {
+      "key": "cs_spam_increase",
+      "path": "root.cti.vendor_reports.crowdstrike.gtr2026.spam",
+      "content": "141% increase in spam emails in 2025. Combined with increasing cryptocurrency prices amplifying extortion incentives. Big game hunting groups continue to drive high-impact ransomware operations.",
+      "tags": [
+        "spam",
+        "ransomware",
+        "crowdstrike",
+        "2025"
+      ],
+      "metadata": {
+        "source": "CrowdStrike 2026 Global Threat Report",
+        "vendor": "CrowdStrike",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "url": "https://www.crowdstrike.com/en-us/global-threat-report/",
+        "kind": "statistic",
+        "spam_increase_pct": 141
+      }
+    },
+    {
+      "key": "u42_landscape",
+      "path": "root.cti.vendor_reports.unit42.girr2026.landscape",
+      "content": "In 2025, Unit 42 responded to more than 750 major cyber incidents across over 50 countries. AI is compressing the attack lifecycle from access to impact. Identity weaknesses played a material role in almost 90% of Unit 42 investigations. 87% of attacks unfolded across multiple attack surfaces.",
+      "tags": [
+        "landscape",
+        "unit42",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "landscape_overview",
+        "incidents_responded": 750,
+        "countries": 50,
+        "identity_weakness_pct": 90,
+        "multi_surface_pct": 87
+      }
+    },
+    {
+      "key": "u42_exfil_speed",
+      "path": "root.cti.vendor_reports.unit42.girr2026.exfil_speed",
+      "content": "Speed now defines risk: attacks are 4X faster. The fastest 25% of intrusions reached data exfiltration in just 72 minutes — down from 285 minutes the previous year. 65% of initial access is driven by identity-based techniques.",
+      "tags": [
+        "exfiltration",
+        "speed",
+        "unit42",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "statistic",
+        "fastest_25pct_exfil_minutes": 72,
+        "prior_year_minutes": 285,
+        "speed_multiplier": "4X",
+        "identity_initial_access_pct": 65
+      }
+    },
+    {
+      "key": "u42_extortion_evolution",
+      "path": "root.cti.vendor_reports.unit42.girr2026.extortion",
+      "content": "In 2025, encryption appeared in 78% of extortion cases, down sharply from above 90% in previous years. Attackers increasingly relying on data theft and exposure as primary leverage. Median ransom demands rose from US$1.25 million in 2024 to US$1.5 million in 2025.",
+      "tags": [
+        "extortion",
+        "ransomware",
+        "unit42",
+        "statistics",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "statistic",
+        "encryption_in_extortion_pct": 78,
+        "median_ransom_demand": "$1.5M",
+        "prior_year_demand": "$1.25M",
+        "trend": "shift from encryption to data theft leverage"
+      }
+    },
+    {
+      "key": "u42_screening_serpens",
+      "path": "root.cti.vendor_reports.unit42.girr2026.screening_serpens",
+      "content": "Screening Serpens: Iran-nexus APT group conducting cyberespionage aligned with Iranian intelligence objectives. In late 2025, expanded from Middle East to Western Europe. Six new RAT variants deployed between February and April 2026: MiniUpdate and MiniJunk V2 families. Uses AppDomainManager hijacking to abuse .NET application startup process. Targets aerospace, defense manufacturing and telecommunications via job-seeker lures.",
+      "tags": [
+        "screening-serpens",
+        "iran",
+        "apt",
+        "rat",
+        "unit42",
+        "2025-2026"
+      ],
+      "metadata": {
+        "source": "Unit 42 research June 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "threat_actor_campaign",
+        "actor": "Screening Serpens",
+        "attribution": "Iran-nexus",
+        "malware_families": [
+          "MiniUpdate",
+          "MiniJunk V2"
+        ],
+        "technique": "AppDomainManager hijacking, DLL sideloading",
+        "targets": [
+          "aerospace",
+          "defense manufacturing",
+          "telecommunications"
+        ],
+        "expansion": "Middle East → Western Europe → US, Israel, UAE",
+        "lure_type": "job recruitment"
+      }
+    },
+    {
+      "key": "u42_boggy_serpens",
+      "path": "root.cti.vendor_reports.unit42.girr2026.boggy_serpens",
+      "content": "Boggy Serpens: Iran-nexus threat actor. Four distinct waves of attack against a national marine and energy company in the Middle East from August 2025 through February 2026. Uses AI-generated code and Rust-based tools. New malware families: BlackBeard (Rust backdoor), Phoenix, UDPGangster, LampoRAT, Nuso. Leverages standard HTTP status codes, customized UDP traffic, and Telegram API for C2. Custom web-based orchestration platform for mass email delivery on port 5000.",
+      "tags": [
+        "boggy-serpens",
+        "iran",
+        "maritime",
+        "energy",
+        "rust",
+        "unit42",
+        "2025-2026"
+      ],
+      "metadata": {
+        "source": "Unit 42 Boggy Serpens Assessment March 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "threat_actor_campaign",
+        "actor": "Boggy Serpens",
+        "attribution": "Iran-nexus",
+        "malware_families": [
+          "BlackBeard",
+          "Phoenix",
+          "UDPGangster",
+          "LampoRAT",
+          "Nuso"
+        ],
+        "target": "national marine and energy company, Middle East",
+        "attack_waves": 4,
+        "period": "2025-08 to 2026-02",
+        "c2_channels": [
+          "HTTP",
+          "UDP custom",
+          "Telegram API"
+        ],
+        "ai_usage": "AI-generated code for rapid implant development"
+      }
+    },
+    {
+      "key": "u42_supply_chain",
+      "path": "root.cti.vendor_reports.unit42.girr2026.supply_chain",
+      "content": "Supply chain risk has expanded beyond vulnerable code to the misuse of trusted connectivity. Attackers exploit SaaS integrations, vendor tools and application dependencies to bypass perimeters at scale. The defining pattern was downstream disruption: when an upstream provider reported a compromise, customers had limited visibility into their own exposure. Attackers start scanning for newly disclosed CVEs within 15 minutes of announcement.",
+      "tags": [
+        "supply-chain",
+        "saas",
+        "unit42",
+        "2025"
+      ],
+      "metadata": {
+        "source": "Unit 42 Global Incident Response Report 2026",
+        "vendor": "Palo Alto Networks / Unit 42",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "url": "https://www.paloaltonetworks.com/resources/research/unit-42-incident-response-report",
+        "kind": "technique_trend",
+        "trend": "supply chain via trusted connectivity",
+        "cve_scan_start_minutes": 15
+      }
+    },
+    {
+      "key": "ms_void_blizzard",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.void_blizzard",
+      "content": "Void Blizzard (LAUNDRY BEAR): new Russia-affiliated threat actor conducting espionage targeting NATO countries providing military or humanitarian aid to Ukraine. Uses stolen credentials from online marketplaces for initial access. In April 2025, began adversary-in-the-middle spear phishing targeting 20+ NGOs in Europe and US using typosquatted Microsoft Entra portal. Lures posed as European Defense and Security Summit invitations. Compromised organizations overlap with targets of Forest Blizzard, Midnight Blizzard, and Secret Blizzard.",
+      "tags": [
+        "void-blizzard",
+        "laundry-bear",
+        "russia",
+        "nato",
+        "microsoft",
+        "2025"
+      ],
+      "metadata": {
+        "kind": "threat_actor_campaign",
+        "source": "Microsoft Threat Intelligence blog May 2025",
+        "vendor": "Microsoft",
+        "report_date": "2025-05-27",
+        "actor": "Void Blizzard",
+        "public_alias": "LAUNDRY BEAR",
+        "attribution": "Russia-affiliated",
+        "technique": "stolen credentials + AitM spear phishing",
+        "targets": [
+          "NATO countries",
+          "NGOs",
+          "government",
+          "defense",
+          "transportation",
+          "media"
+        ],
+        "overlap_with": [
+          "Forest Blizzard",
+          "Midnight Blizzard",
+          "Secret Blizzard"
+        ],
+        "partner_agencies": [
+          "AIVD",
+          "MIVD",
+          "FBI"
+        ]
+      }
+    },
+    {
+      "key": "ms_seashell_badpilot",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.seashell_badpilot",
+      "content": "Seashell Blizzard (Sandworm) subgroup conducts multiyear global access operation tracked as the 'BadPilot campaign'. Targets energy, telecom, and government sectors. Linked to destructive attacks since the start of the war in Ukraine. Spear-phishing campaigns against European energy sector observed.",
+      "tags": [
+        "seashell-blizzard",
+        "sandworm",
+        "badpilot",
+        "energy",
+        "microsoft",
+        "2025"
+      ],
+      "metadata": {
+        "kind": "threat_actor_campaign",
+        "source": "Microsoft Threat Intelligence blog Feb 2025",
+        "vendor": "Microsoft",
+        "report_date": "2025-02-12",
+        "actor": "Seashell Blizzard subgroup",
+        "public_alias": "Sandworm / IRIDIUM",
+        "campaign_name": "BadPilot",
+        "attribution": "GRU",
+        "targets": [
+          "energy",
+          "telecom",
+          "government"
+        ],
+        "scope": "multiyear global access operation"
+      }
+    },
+    {
+      "key": "ms_forest_blizzard_atc",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.forest_blizzard",
+      "content": "Forest Blizzard: since at least August 2024, has conducted increasing password spray attacks against several NATO member states' air traffic control providers. Previously targeted prominent aviation organization in Ukraine in 2023. Linked to the Russian military.",
+      "tags": [
+        "forest-blizzard",
+        "apt28",
+        "nato",
+        "aviation",
+        "microsoft",
+        "2025"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Forest Blizzard",
+        "public_alias": "APT-28 / Fancy Bear",
+        "attribution": "Russian military (GRU)",
+        "technique": "password spray attacks",
+        "targets": [
+          "NATO ATC providers",
+          "Ukrainian aviation"
+        ]
+      }
+    },
+    {
+      "key": "ms_midnight_blizzard_oauth",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.midnight_blizzard",
+      "content": "Since October 22, 2024, Midnight Blizzard sending highly targeted spear-phishing emails to individuals in government, academia, defense, non-governmental organizations. Used OAuth device-code phishing keeping victims on Microsoft's authentic infrastructure. In January 2024, compromised Microsoft Corporate through password spraying on legacy accounts.",
+      "tags": [
+        "midnight-blizzard",
+        "apt29",
+        "cozy-bear",
+        "oauth",
+        "microsoft",
+        "2024-2025"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Midnight Blizzard",
+        "public_alias": "APT-29 / Cozy Bear / NOBELIUM",
+        "attribution": "SVR",
+        "techniques": [
+          "OAuth device-code phishing",
+          "password spray"
+        ],
+        "targets": [
+          "government",
+          "academia",
+          "defense",
+          "NGOs"
+        ],
+        "notable": "compromised Microsoft Corporate Jan 2024"
+      }
+    },
+    {
+      "key": "ms_secret_blizzard_kazuar",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.secret_blizzard",
+      "content": "Secret Blizzard: Kazuar backdoor has been under constant development for years and continues to evolve for espionage operations. Since January 2024, observed compromising infrastructure and backdoors of Pakistan-based Storm-0156 for espionage against targets in Ukraine. Uses other threat groups' tools and infrastructure.",
+      "tags": [
+        "secret-blizzard",
+        "kazuar",
+        "turla",
+        "microsoft",
+        "2024-2025"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Threat Intelligence",
+        "vendor": "Microsoft",
+        "actor": "Secret Blizzard",
+        "public_alias": "Turla",
+        "malware": "Kazuar (KazuarV2), Tavdig",
+        "technique": "hijacking other threat actors' infrastructure",
+        "compromised_actor": "Storm-0156 (Pakistan-based)"
+      }
+    },
+    {
+      "key": "ms_sapphire_sleet",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.sapphire_sleet",
+      "content": "Sapphire Sleet: North Korean threat actor. Sophisticated macOS intrusion campaign abusing user-driven execution and social engineering to bypass macOS security protections and steal credentials, cryptocurrency assets, and sensitive data.",
+      "tags": [
+        "sapphire-sleet",
+        "dprk",
+        "macos",
+        "crypto",
+        "microsoft",
+        "2025-2026"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "source": "Microsoft Security blog 2026",
+        "vendor": "Microsoft",
+        "actor": "Sapphire Sleet",
+        "attribution": "DPRK",
+        "platform": "macOS",
+        "targets": [
+          "cryptocurrency",
+          "credentials"
+        ],
+        "technique": "social engineering + user-driven execution"
+      }
+    },
+    {
+      "key": "ms_stealc_amadey_takedown",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.stealc_takedown",
+      "content": "On June 24, 2026, Microsoft's Digital Crimes Unit (DCU) facilitated the takedown, suspension, and blocking of domains that formed the backbone of the StealC and Amadey infrastructure.",
+      "tags": [
+        "stealc",
+        "amadey",
+        "takedown",
+        "microsoft",
+        "2026"
+      ],
+      "metadata": {
+        "kind": "law_enforcement_action",
+        "source": "Microsoft Security blog June 2026",
+        "vendor": "Microsoft",
+        "date": "2026-06-24",
+        "action": "domain takedown",
+        "targets": [
+          "StealC infrastructure",
+          "Amadey infrastructure"
+        ],
+        "unit": "Microsoft Digital Crimes Unit (DCU)"
+      }
+    },
+    {
+      "key": "ms_gentlemen_ransomware",
+      "path": "root.cti.vendor_reports.microsoft.threat_intel.gentlemen",
+      "content": "The Gentlemen: Go-based ransomware deployed by affiliates of Storm-2697. Combines per-file ephemeral key encryption with aggressive self-propagation module. Deploys itself across entire network using series of simultaneous lateral movement techniques per target.",
+      "tags": [
+        "gentlemen",
+        "ransomware",
+        "storm-2697",
+        "go-lang",
+        "microsoft",
+        "2026"
+      ],
+      "metadata": {
+        "kind": "malware",
+        "source": "Microsoft Threat Intelligence 2026",
+        "vendor": "Microsoft",
+        "family": "The Gentlemen",
+        "language": "Go",
+        "operator": "Storm-2697 affiliates",
+        "features": [
+          "per-file ephemeral key encryption",
+          "self-propagation",
+          "simultaneous lateral movement"
+        ]
+      }
+    }
+  ],
+  "links": [
+    {
+      "from": "mdt_promptsteal",
+      "to": "mdt_landscape_2025",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "PROMPTSTEAL è un esempio concreto dell'uso di AI da parte di attori statali."
+    },
+    {
+      "from": "mdt_promptflux",
+      "to": "mdt_landscape_2025",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "PROMPTFLUX esemplifica l'integrazione AI nel malware documentata nel report."
+    },
+    {
+      "from": "mdt_unc6201_brickstorm",
+      "to": "mdt_initial_vectors",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": "UNC6201 sfrutta edge devices, coerente con exploit come vettore #1."
+    },
+    {
+      "from": "mdt_cve_2025_31324",
+      "to": "mdt_exploit_timeline",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "SAP zero-day sfruttato prima della patch conferma il -7 giorni medio."
+    },
+    {
+      "from": "cs_pressure_chollima_bybit",
+      "to": "cs_landscape_2025",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": "Bybit theft è il caso più eclatante del 2025."
+    },
+    {
+      "from": "cs_stardust_axios",
+      "to": "cs_pressure_chollima_bybit",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Entrambi DPRK-nexus supply chain attacks nel 2025."
+    },
+    {
+      "from": "cs_cozy_bear_oauth",
+      "to": "cs_zero_day_stats",
+      "type": "related",
+      "weight": 0.5,
+      "rationale": "Convergenza tra identity abuse e zero-day exploitation."
+    },
+    {
+      "from": "u42_screening_serpens",
+      "to": "u42_landscape",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "Screening Serpens è esempio di APT multi-surface documentata."
+    },
+    {
+      "from": "u42_boggy_serpens",
+      "to": "u42_landscape",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "Boggy Serpens con 4 onde di attacco mostra la persistenza nel 2025."
+    },
+    {
+      "from": "ms_void_blizzard",
+      "to": "ms_forest_blizzard_atc",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "Microsoft documenta overlap di targeting tra Void e Forest Blizzard."
+    },
+    {
+      "from": "ms_void_blizzard",
+      "to": "ms_midnight_blizzard_oauth",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "Void Blizzard targeting overlaps con Midnight Blizzard per obiettivi NATO."
+    },
+    {
+      "from": "ms_void_blizzard",
+      "to": "ms_secret_blizzard_kazuar",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Shared espionage interests tra attori russi su target ucraini."
+    },
+    {
+      "from": "ms_seashell_badpilot",
+      "to": "ms_forest_blizzard_atc",
+      "type": "related",
+      "weight": 0.5,
+      "rationale": "Entrambi GRU, targeting settore energia/aviazione in Europa."
+    },
+    {
+      "from": "cs_pressure_chollima_bybit",
+      "to": "ms_sapphire_sleet",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Entrambi DPRK-nexus targeting crypto. Vendor diversi, stesso attore ombrello."
+    },
+    {
+      "from": "cs_famous_chollima",
+      "to": "ms_sapphire_sleet",
+      "type": "related",
+      "weight": 0.5,
+      "rationale": "DPRK IT worker + macOS crypto theft: operazioni complementari."
+    },
+    {
+      "from": "mdt_promptsteal",
+      "to": "ms_forest_blizzard_atc",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "PROMPTSTEAL (Mandiant/FROZENLAKE) = Forest Blizzard (Microsoft). Stesso attore, naming diverso tra vendor."
+    },
+    {
+      "from": "cs_cozy_bear_oauth",
+      "to": "ms_midnight_blizzard_oauth",
+      "type": "related",
+      "weight": 0.9,
+      "rationale": "Stessa campagna OAuth device-code phishing documentata da entrambi. COZY BEAR (CS) = Midnight Blizzard (MS)."
+    },
+    {
+      "from": "ms_seashell_badpilot",
+      "to": "mdt_unc6201_brickstorm",
+      "type": "related",
+      "weight": 0.5,
+      "rationale": "Entrambi targeting edge devices per persistence. Pattern convergente tra attori diversi o possibile overlap."
+    },
+    {
+      "from": "mdt_ransomware_recovery_denial",
+      "to": "cs_landscape_2025",
+      "type": "supports",
+      "weight": 0.6,
+      "rationale": "Trend recovery denial documentato indipendentemente da entrambi."
+    },
+    {
+      "from": "mdt_promptflux",
+      "to": "cs_ai_exploitation",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "AI-enabled malware documentato indipendentemente da Mandiant e CS."
+    },
+    {
+      "from": "mdt_breakout_time",
+      "to": "cs_breakout_time",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "Metriche di velocità complementari: Mandiant misura handoff (22s), CrowdStrike misura breakout (27s)."
+    },
+    {
+      "from": "cs_breakout_time",
+      "to": "u42_exfil_speed",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "CrowdStrike breakout 27s → Unit42 exfil 72min: fasi diverse della kill chain."
+    },
+    {
+      "from": "cs_stardust_axios",
+      "to": "u42_supply_chain",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "Axios npm compromise conferma il trend supply chain di Unit42."
+    },
+    {
+      "from": "u42_screening_serpens",
+      "to": "u42_boggy_serpens",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Due gruppi Iran-nexus attivi contemporaneamente, uno su tech/defense, l'altro su energia/maritime."
+    },
+    {
+      "from": "cs_zero_day_stats",
+      "to": "mdt_exploit_timeline",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": "CrowdStrike +42% zero-day conferma il -7 giorni medio di Mandiant."
+    }
+  ]
+}

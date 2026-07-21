@@ -1,0 +1,3729 @@
+{
+  "name": "Operational CTI Dataset — Real STIX IOCs + Vendor Intelligence (2025-2026)",
+  "description": "Dataset operativo con IOC reali estratti da bundle STIX 2.1 CISA MAR (BRICKSTORM) e IOC pubblicati da Microsoft DCU, Google GTIG, CrowdStrike, Endor Labs, Wiz, ThreatLocker. Nessun IOC inventato. Ogni nodo malware/infrastructure include hash, IP, domini o CVE concreti.",
+  "metadata": {
+    "version": "1.0.0",
+    "generated": "2026-07-04T23:55:32Z",
+    "pcmi_path_namespace": "root.cti",
+    "stix_bundles": [
+      "MAR-251165.c1.v1.CLEAR_stix2.json",
+      "MAR-251217.r1.v1.CLEAR_stix2.json",
+      "MAR-261234.r1.v1.CLEAR_stix2.json"
+    ],
+    "node_counts": {
+      "total": 74,
+      "from_stix": 16,
+      "from_vendor_intel": 58
+    },
+    "link_count": 72
+  },
+  "nodes": [
+    {
+      "key": "brickstorm_campaign_mar-251165",
+      "path": "root.cti.vendors.cisa.brickstorm.mar-251165",
+      "content": "BRICKSTORM — MAR-251165. The Cybersecurity and Infrastructure Security Agency (CISA) analyzed eight BRICKSTORM samples obtained from victim organizations. BRICKSTORM is a custom Executable and Linkable Format (ELF) Go-based backdoor. The Cybersecurity and Infrastructure Security Agency (CISA), National Security Agency (NSA), and Canadian Centre for Cyber Security (Cyber Centre) assess People’s Republic of China (PRC) state-sponsored cyber actors are using BRICKSTORM malware for long-term persistence on victim systems.\r\n",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "cisa-mar",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "report",
+        "layer": "vendors",
+        "campaign": "BRICKSTORM",
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "c2_protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_aaf5569c8e34",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.aaf5569c8e349c15",
+      "content": "BRICKSTORM sample 1: ELF 64-bit (Go) backdoor.\n\nSHA-256: aaf5569c8e349c15028bc3fac09eb982efb06eabac955b705a6d447263658e38\n\nFile name: vmsrc\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan, Linux/Brick-B\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its s",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--82a0396b-2f7f-5a01-b4df-9fbb5c42a6f3",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "aaf5569c8e349c15028bc3fac09eb982efb06eabac955b705a6d447263658e38",
+          "md5": "8e4c88d00b6eb46229a1ed7001451320",
+          "sha1": "9bf4c786ebd68c0181cfe3eb85d2fd202ed12c54",
+          "file_name": "vmsrc",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_251165_02"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_b3b6a992540d",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.b3b6a992540da963",
+      "content": "BRICKSTORM sample 2: ELF 64-bit (Go) backdoor.\n\nSHA-256: b3b6a992540da96375e4781afd3052118ad97cfe60ccf004d732f76678f6820a\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its s",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--beedb4f5-d0b3-5822-82f3-e09e636bf0af",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "b3b6a992540da96375e4781afd3052118ad97cfe60ccf004d732f76678f6820a",
+          "md5": "0a4fa52803a389311a9ddc49b7b19138",
+          "sha1": "97001baaa379bcd83677dca7bc5b8048fdfaaddc",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_57bd98dbb5a0",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.57bd98dbb5a00e54",
+      "content": "BRICKSTORM sample 3: ELF 64-bit (Go) backdoor.\n\nSHA-256: 57bd98dbb5a00e54f07ffacda1fea91451a0c0b532cd7d570e98ce2ff741c21d\n\nAV/sandbox: a variant of Linux/Packed.Obfuscated.B suspicious application\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its s",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--ea36678c-0575-5968-991c-104d15a3155f",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "57bd98dbb5a00e54f07ffacda1fea91451a0c0b532cd7d570e98ce2ff741c21d",
+          "md5": "dbca28ad420408850a94d5c325183b28",
+          "sha1": "fb11c6caa4ea844942fe97f46d7eb42bc76911ab",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_251186_02"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_73fe8b8fb4bd",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.73fe8b8fb4bd7776",
+      "content": "BRICKSTORM sample 4: ELF 64-bit (Rust) backdoor.\n\nSHA-256: 73fe8b8fb4bd7776362fd356fdc189c93cf5d9f6724f6237d829024c10263fe5\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM, which is designed to handle environment variables for connection parameters, set up logging, configure a WebSocket connector, create service instances, and define request handlers for different request types. The backdoor uses the SOCKS proxying, VSOCK proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor uses XOR cipher encryption to hide key strings within its code. T",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--7cfa9e0d-f4d5-522c-ac5a-0b50692005e0",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "73fe8b8fb4bd7776362fd356fdc189c93cf5d9f6724f6237d829024c10263fe5",
+          "md5": "a02469742f7b0bc9a8ab5e26822b3fa8",
+          "sha1": "10d811029f6e5f58cd06143d6353d3b05bc06d0f",
+          "file_type": "ELF 64-bit (Rust)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_39b3d8a8aedf",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.39b3d8a8aedffc1b",
+      "content": "BRICKSTORM sample 5: ELF 64-bit (Rust) backdoor.\n\nSHA-256: 39b3d8a8aedffc1b40820f205f6a4dc041cd37262880e5030b008175c45b0c46\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM, which is designed to handle environment variables for connection parameters, set up logging, configure a WebSocket connector, create service instances, and define request handlers for different request types. The backdoor uses the VSOCK proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor uses Exclusive OR (XOR) cipher encryption to hide key strings within its code. Th",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--1ccb31a2-c105-5188-8560-2d48ea5a5179",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "39b3d8a8aedffc1b40820f205f6a4dc041cd37262880e5030b008175c45b0c46",
+          "md5": "a52e36a70b5e0307cbcaa5fd7c97882c",
+          "sha1": "44a3d3f15ef75d9294345462e1b82272b0d11985",
+          "file_type": "ELF 64-bit (Rust)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_013211c56caa",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.013211c56caaa697",
+      "content": "BRICKSTORM sample 6: ELF 64-bit (Go) backdoor.\n\nSHA-256: 013211c56caaa697914b5b5871e4998d0298902e336e373ebb27b7db30917eaf\n\nAV/sandbox: a variant of Linux/Packed.Obfuscated.B suspicious application\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor symbolic debugging information, such as function names and variable names, has ",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--a6183d27-0008-5c4f-b8fc-d7b67ba57d27",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "013211c56caaa697914b5b5871e4998d0298902e336e373ebb27b7db30917eaf",
+          "md5": "39111508bfde89ce6e0fe6abe0365552",
+          "sha1": "f639d9404c03af86ce452db5c5e0c528b81dc0d7",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_251186_01"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_f7cda90174b8",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.f7cda90174b806a3",
+      "content": "BRICKSTORM sample 7: ELF 64-bit (Go) backdoor.\n\nSHA-256: f7cda90174b806a34381d5043e89b23ba826abcc89f7abd520060a64475ed506\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its s",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--5aec0c50-a1b8-59a2-b70d-f78e7f99f8e8",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "f7cda90174b806a34381d5043e89b23ba826abcc89f7abd520060a64475ed506",
+          "md5": "18f895e24fe1181bb559215ff9cf6ce3",
+          "sha1": "c3549d4e5e39a11f609fc6fbf5cc1f2c0ec272b4",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_22c15a32b691",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.22c15a32b69116a4",
+      "content": "BRICKSTORM sample 8: ELF 64-bit (Go) backdoor.\n\nSHA-256: 22c15a32b69116a46eb5d0f2b228cc37cd1b5915a91ec8f38df79d3eed1da26b\n\nAV/sandbox: a variant of Linux/BrickStorm.A trojan\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested TLS encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its s",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251165"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251165",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--5a409e0a-2141-556b-b195-44f5d8e6abb1",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "22c15a32b69116a46eb5d0f2b228cc37cd1b5915a91ec8f38df79d3eed1da26b",
+          "md5": "82bf31e7d768e6d4d3bc7c8c8ef2b358",
+          "sha1": "de28546ec356c566cd8bca205101a733e9a4a22d",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_campaign_mar-251217",
+      "path": "root.cti.vendors.cisa.brickstorm.mar-251217",
+      "content": "BRICKSTORM — MAR-251217. CISA received three 64-bit Executable and Linkable Format (ELF) files for analysis. One file is a custom Go-based application that has been identified as the BRICKSTORM backdoor malware variant. The backdoor uses sophisticated techniques, such as SOCKS proxying, multi-layered encrypted communication over web services, and varied command execution methods to obscure its activities. The backdoor command-and-control (C2) communication blends in with legitimate network traffic through multi-layered ",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "cisa-mar",
+        "stix",
+        "mar-251217"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251217",
+        "cti_source": "stix",
+        "stix_type": "report",
+        "layer": "vendors",
+        "campaign": "BRICKSTORM",
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "c2_protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_77b49c854afd",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.77b49c854afd6746",
+      "content": "BRICKSTORM sample 1: ELF 64-bit (Go) backdoor.\n\nSHA-256: 77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c\n\nAV/sandbox: a variant of Linux/BrickStorm.B trojan, TR/LINUX.Agent.DSK\n\nThis artifact is a malicious 64-bit ELF executable written in the Go programming language. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS proxying, multi-layered web service communication, and varied command execution to obscure its activities. The backdoor combines several sophisticated techniques, including DoH, nested Transport Layer Security (TLS) encryption, and the abuse of a legitimate cloud service to evade detection. The backdoor contains the authentication key, HTTPS and WebSocket",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251217"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251217",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--767349f9-26b6-5963-ba3a-effaea727720",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "77b49c854afd6746fee393711b48979376fb910b34105c0e18a3fdc24ea31d5c",
+          "md5": "34d6af5ae2ab7a08fa474358a0b95539",
+          "sha1": "38f6baad1dff7466a07eb456808cc8aa46a3e50c",
+          "file_type": "ELF 64-bit (Go)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_6a67a9769a55",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.6a67a9769a55ec88",
+      "content": "BRICKSTORM sample 2: ELF 64-bit (Rust) backdoor.\n\nSHA-256: 6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800\n\nThis sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"4f984e49q4y9392q8u9q\" ==> authentication key\r\n\"https://[redacted].com\" ==> HTTPS address\r\n\"wss://[redacted].com/home\" ==> WebSocket ad",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251217"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251217",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--4e3894f7-96e6-5ed4-83b6-1a642001fd26",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "6a67a9769a55ec889a5dd4199b2fc08965d39d737838836853bc13c81c56a800",
+          "md5": "d1f608cfb395d9274aa52b6a524d9fb5",
+          "sha1": "7cec4d74931d925996b03a75da0d79e95f47ed86",
+          "file_type": "ELF 64-bit (Rust)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_251196_01",
+          "CISA_251217_03"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_ed907d39efd5",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.ed907d39efd57502",
+      "content": "BRICKSTORM sample 3: ELF 64-bit (Rust) backdoor.\n\nSHA-256: ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae\n\nThis sample is a 64-bit Linux ELF binary written in Rust. The binary has been identified as a backdoor variant named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses multi-layered web service communication and varied command execution to obscure its activities. The backdoor contains the authentication key, HTTPS and WebSocket addresses as part of its sophisticated, multi-layered C2 evasion technique.\r\n\r\n--Begin Elements--\r\n\"4f984e49q4y9392q8u9q\" ==> authentication key\r\n\"https://[redacted].com\" ==> HTTPS address\r\n\"wss://[redacted].com/home\" ==> WebSocket ad",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-251217"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-251217",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--1cd75644-80e5-5b3b-aa6f-1a539be3cc92",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "ed907d39efd5750236b075ca9fbb1f090d7bf578578c38faab24210d298a60ae",
+          "md5": "6c20a810134025a9f05cf312d4b34967",
+          "sha1": "fa664bb3369d4a48db88f4e8d7364f7582f64313",
+          "file_type": "ELF 64-bit (Rust)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_251196_01",
+          "CISA_251217_03"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_campaign_mar-261234",
+      "path": "root.cti.vendors.cisa.brickstorm.mar-261234",
+      "content": "BRICKSTORM — MAR-261234. CISA received one 64-bit Executable and Linkable Format (ELF) files for analysis. The file is a compiled .NET Native Ahead-Of-Time (AOT) binary that has been identified as a new variant of the BRICKSTORM backdoor malware that uses SOCKS4/5, Hypertext Transfer Protocol (HTTP) and Hypertext Transfer Protocol Secure (HTTPS) proxies, multi-layered web service communication, and varied command execution to obscure its activities.",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "cisa-mar",
+        "stix",
+        "mar-261234"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-261234",
+        "cti_source": "stix",
+        "stix_type": "report",
+        "layer": "vendors",
+        "campaign": "BRICKSTORM",
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "c2_protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_sample_24a11a26a258",
+      "path": "root.cti.vendors.cisa.brickstorm.samples.24a11a26a2586f4f",
+      "content": "BRICKSTORM sample 1: ELF 64-bit (.NET Native AOT) backdoor.\n\nSHA-256: 24a11a26a2586f4fba7bfe89df2e21a0809ad85069e442da98c37c4add369a0c\n\nThis sample is a 64-bit Linux ELF file built from a .NET application using Native AOT compilation. The .NET Native AOT binary requires no runtime to be installed and all its dependencies statically linked together, including the runtime itself. The binary has been identified as a new variant of the backdoor named BRICKSTORM that uses several advanced techniques to evade detection. The backdoor uses SOCKS4/5, HTTP/HTTPS proxies, multi-layered web service communication, and varied command execution to obscure its activities. \r\n\r\nUpon execution, the backdoor performs environmental checks, includi",
+      "tags": [
+        "malware",
+        "brickstorm",
+        "sample",
+        "stix",
+        "mar-261234"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-261234",
+        "cti_source": "stix",
+        "stix_type": "file",
+        "stix_id": "file--f6714e91-79f0-5388-ae0c-d4774435529a",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "24a11a26a2586f4fba7bfe89df2e21a0809ad85069e442da98c37c4add369a0c",
+          "md5": "2654c08491a0f7c4a3dfc6282de5638b",
+          "sha1": "4b8ab808442bf7cb084fddf983a558c2cd4b3ff2",
+          "file_type": "ELF 64-bit (.NET Native AOT)"
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": []
+        },
+        "mitre_techniques": [
+          "T1037",
+          "T1090",
+          "T1071.001",
+          "T1573.002",
+          "T1078",
+          "T1021.004"
+        ],
+        "yara_rules": [
+          "CISA_261234_01"
+        ],
+        "cve_exploited": [
+          "CVE-2026-22769"
+        ],
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high",
+        "first_seen": "2024-04",
+        "last_seen": "2025-09",
+        "dwell_time_days": 393
+      }
+    },
+    {
+      "key": "brickstorm_net_149_248_11_71",
+      "path": "root.cti.vendors.cisa.brickstorm.infrastructure.brickstorm_net_149_248_11_71",
+      "content": "BRICKSTORM backdoor C2 domain used for communication.",
+      "tags": [
+        "infrastructure",
+        "brickstorm",
+        "c2",
+        "stix",
+        "mar-261234"
+      ],
+      "metadata": {
+        "kind": "network_indicator",
+        "vendor": "CISA/Mandiant",
+        "source": "MAR-261234",
+        "cti_source": "stix",
+        "stix_type": "indicator",
+        "stix_id": "indicator--31e96e3e-e89c-4cd1-bbfd-cb9a2dff3ae8",
+        "layer": "vendors",
+        "iocs": {
+          "ips": [
+            "149.248.11.71"
+          ],
+          "domains": [],
+          "urls": []
+        },
+        "c2": {
+          "protocol": "DNS-over-HTTPS + WebSocket + nested TLS",
+          "domains": [],
+          "ips": [
+            "149.248.11.71"
+          ],
+          "urls": []
+        },
+        "actor": "UNC5221 / UNC6201",
+        "attribution": "PRC state-sponsored",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "ms_dcu_stealc_amadey_2026",
+      "path": "root.cti.vendors.microsoft.dcu.stealc_amadey_2026",
+      "content": "Microsoft DCU + Europol Operation Endgame takedown (June 24, 2026). Coordinated disruption of 200+ Amadey and StealC C2 domains/IPs. Amadey loader delivers StealC infostealer in cybercrime assembly-line model.",
+      "tags": [
+        "infostealer",
+        "stealc",
+        "amadey",
+        "microsoft-dcu",
+        "operation-endgame",
+        "2026-06"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "operation": "Operation Endgame",
+        "c2_count": 200,
+        "mitre_techniques": [
+          "T1555",
+          "T1005",
+          "T1071.001",
+          "T1105"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stealc_sample_8f32456359f2",
+      "path": "root.cti.vendors.microsoft.dcu.stealc.samples.8f32456359f209a6",
+      "content": "StealC infostealer sample. SHA-256: 8f32456359f209a63adfd24b94235e1727382ac7f7bb7f2bcaf754e721925b64. MaaS stealer targeting browsers, crypto wallets, messaging apps.",
+      "tags": [
+        "malware",
+        "stealc",
+        "infostealer",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "8f32456359f209a63adfd24b94235e1727382ac7f7bb7f2bcaf754e721925b64",
+          "file_type": "PE32/PE32+"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1555",
+          "T1005",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stealc_sample_0215f734867b",
+      "path": "root.cti.vendors.microsoft.dcu.stealc.samples.0215f734867bd71c",
+      "content": "StealC infostealer sample. SHA-256: 0215f734867bd71c57ff5c524d8cc670be5b4f1861b2c390cf46d18784a53624. MaaS stealer targeting browsers, crypto wallets, messaging apps.",
+      "tags": [
+        "malware",
+        "stealc",
+        "infostealer",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "0215f734867bd71c57ff5c524d8cc670be5b4f1861b2c390cf46d18784a53624",
+          "file_type": "PE32/PE32+"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1555",
+          "T1005",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stealc_sample_2a0f053855da",
+      "path": "root.cti.vendors.microsoft.dcu.stealc.samples.2a0f053855da59b3",
+      "content": "StealC infostealer sample. SHA-256: 2a0f053855da59b3b56812e580d7baeba59fc9493694722aa9e3f121ee3363f1. MaaS stealer targeting browsers, crypto wallets, messaging apps.",
+      "tags": [
+        "malware",
+        "stealc",
+        "infostealer",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "2a0f053855da59b3b56812e580d7baeba59fc9493694722aa9e3f121ee3363f1",
+          "file_type": "PE32/PE32+"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1555",
+          "T1005",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stealc_sample_977b33a9b481",
+      "path": "root.cti.vendors.microsoft.dcu.stealc.samples.977b33a9b481cf71",
+      "content": "StealC infostealer sample. SHA-256: 977b33a9b481cf714946b7d386865cd5d284312aa5ecfa0546c197b1003e1bde. MaaS stealer targeting browsers, crypto wallets, messaging apps.",
+      "tags": [
+        "malware",
+        "stealc",
+        "infostealer",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "977b33a9b481cf714946b7d386865cd5d284312aa5ecfa0546c197b1003e1bde",
+          "file_type": "PE32/PE32+"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1555",
+          "T1005",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_b7d1f172ff3f",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.b7d1f172ff3feafe",
+      "content": "Amadey loader v5.87. SHA-256: b7d1f172ff3feafe65d47fd1cbe0cc249316371ae0e1cbe3a7c741c738b3353d. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "b7d1f172ff3feafe65d47fd1cbe0cc249316371ae0e1cbe3a7c741c738b3353d",
+          "file_type": "PE32",
+          "version": "5.87"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_9383572a30ae",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.9383572a30ae5b76",
+      "content": "Amadey loader v5.86. SHA-256: 9383572a30ae5b76fadd0700fbd7a1aa7b05d0b6c8f9cdaef9b30a3e1f65d57d. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "9383572a30ae5b76fadd0700fbd7a1aa7b05d0b6c8f9cdaef9b30a3e1f65d57d",
+          "file_type": "PE32",
+          "version": "5.86"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_5f5b25b2e35d",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.5f5b25b2e35d4040",
+      "content": "Amadey loader v5.80. SHA-256: 5f5b25b2e35d404034d0d60975cf1ffbc6f141761ec3f4f15d6f7c6213a056f6. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "5f5b25b2e35d404034d0d60975cf1ffbc6f141761ec3f4f15d6f7c6213a056f6",
+          "file_type": "PE32",
+          "version": "5.80"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_98e504cc7125",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.98e504cc7125b79e",
+      "content": "Amadey loader v5.78. SHA-256: 98e504cc7125b79eda5491f40b998605a05f4cd968b961aab4cce7beb074fefe. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "98e504cc7125b79eda5491f40b998605a05f4cd968b961aab4cce7beb074fefe",
+          "file_type": "PE32",
+          "version": "5.78"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_30cef3d3d956",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.30cef3d3d956e83e",
+      "content": "Amadey loader v5.77. SHA-256: 30cef3d3d956e83e2c50579cfbe57a49159cccbcc8b0b0422f27d55e1c401ad9. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "30cef3d3d956e83e2c50579cfbe57a49159cccbcc8b0b0422f27d55e1c401ad9",
+          "file_type": "PE32",
+          "version": "5.77"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_8cef760d11d2",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.8cef760d11d24fc2",
+      "content": "Amadey loader v5.73. SHA-256: 8cef760d11d24fc2e9bbd9f770dca5105854f7ece3b0e6948d7c8b7fdd1765ea. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "8cef760d11d24fc2e9bbd9f770dca5105854f7ece3b0e6948d7c8b7fdd1765ea",
+          "file_type": "PE32",
+          "version": "5.73"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_99507f18c4e6",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.99507f18c4e61fdb",
+      "content": "Amadey loader v5.70. SHA-256: 99507f18c4e61fdb109805404bf6a79ea8ce2fddc590ce48d717e97516ab7e8d. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "99507f18c4e61fdb109805404bf6a79ea8ce2fddc590ce48d717e97516ab7e8d",
+          "file_type": "PE32",
+          "version": "5.70"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_1246c5b89ab6",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.1246c5b89ab668c1",
+      "content": "Amadey loader v5.65. SHA-256: 1246c5b89ab668c1137f377507bc3e266a98e93248382aa026610ae1e764a497. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "1246c5b89ab668c1137f377507bc3e266a98e93248382aa026610ae1e764a497",
+          "file_type": "PE32",
+          "version": "5.65"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_d43c988d6f9c",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.d43c988d6f9cb355",
+      "content": "Amadey loader v5.64. SHA-256: d43c988d6f9cb355497696b580621fb1bdb7b6ed6d90f97520ecf6da5a1a41ff. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "d43c988d6f9cb355497696b580621fb1bdb7b6ed6d90f97520ecf6da5a1a41ff",
+          "file_type": "PE32",
+          "version": "5.64"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_ca4d4c4fc3e5",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.ca4d4c4fc3e5d5cf",
+      "content": "Amadey loader v5.63. SHA-256: ca4d4c4fc3e5d5cfa922b898f2d7411f03a446dddb139ba45dfd4f8f0018b64f. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "ca4d4c4fc3e5d5cfa922b898f2d7411f03a446dddb139ba45dfd4f8f0018b64f",
+          "file_type": "PE32",
+          "version": "5.63"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "amadey_sample_43455f1ff4a6",
+      "path": "root.cti.vendors.microsoft.dcu.amadey.samples.43455f1ff4a623b7",
+      "content": "Amadey loader v5.60. SHA-256: 43455f1ff4a623b783da670d052eb77eaaacb0c66a9f1e8508f802bf22e8129e. Modular C++ backdoor/loader delivering StealC and other payloads.",
+      "tags": [
+        "malware",
+        "amadey",
+        "loader",
+        "sample",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "43455f1ff4a623b783da670d052eb77eaaacb0c66a9f1e8508f802bf22e8129e",
+          "file_type": "PE32",
+          "version": "5.60"
+        },
+        "c2": {
+          "domains": [],
+          "ips": [],
+          "urls": [
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "mitre_techniques": [
+          "T1105",
+          "T1071.001",
+          "T1059.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stealc_amadey_c2_infra",
+      "path": "root.cti.vendors.microsoft.dcu.stealc_amadey.c2_infrastructure",
+      "content": "StealC and Amadey C2 URLs seized in June 2026 DCU takedown. PHP panel endpoints on compromised/registrar domains.",
+      "tags": [
+        "infrastructure",
+        "c2",
+        "stealc",
+        "amadey",
+        "microsoft-dcu"
+      ],
+      "metadata": {
+        "kind": "network_indicator",
+        "vendor": "Microsoft DCU",
+        "source": "MS-Security-Blog-2026-06-24",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php",
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "c2": {
+          "urls": [
+            "http://polse.us/62ea47cac2534aa18f74.php",
+            "http://roger99699.xyz/425f1faf4b214434b8a3.php",
+            "http://bluescry.com/01f96fd710e905ca2326.php",
+            "http://secure.controlpanel.asia/330311481fe14ab99814.php",
+            "https://neltron-geltron.shop/e396586b99ee49d19cc3.php",
+            "http://cdntestconnect.com/ed54b97a570943999715.php",
+            "https://bartsen284.online/39d9612df78e45b5a4bb.php",
+            "http://goodpanelforgoodjob.com/hg8jjfSr5hy/index.php",
+            "http://rebustan.top/gd7djkDveE2/index.php",
+            "http://svclsc.com/ms/index.php",
+            "http://microsoft-telemetry.at/cvdfnaFJBmC0/index.php",
+            "http://spasopro.at/Lsge63sd3/index.php"
+          ]
+        },
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "apt28_promptsteal_2025",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal",
+      "content": "PROMPTSTEAL (CERT-UA: LAMEHUG) — first malware using LLM APIs at runtime. APT28/FROZENLAKE queries Hugging Face Qwen2.5-Coder-32B-Instruct to generate Windows recon/exfil commands executed blindly. Target: Ukraine defense sector.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "ai-malware",
+        "frozenlake"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "Google GTIG / CERT-UA",
+        "source": "GTIG-AI-Threat-Tracker-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "APT28 / FROZENLAKE",
+        "attribution": "Russia GRU Unit 26165",
+        "mitre_techniques": [
+          "T1059.001",
+          "T1102",
+          "T1071.001",
+          "T1567"
+        ],
+        "llm_model": "Qwen2.5-Coder-32B-Instruct",
+        "llm_platform": "Hugging Face",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_165eaf8183f6",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.165eaf8183f693f6",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 165eaf8183f693f644a8a24d2ec138cd4f8d9fd040e8bafc1b021a0f973692dd. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "165eaf8183f693f644a8a24d2ec138cd4f8d9fd040e8bafc1b021a0f973692dd",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_2eb18873273e",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.2eb18873273e157a",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 2eb18873273e157a7244bb165d53ea3637c76087eea84b0ab635d04417ffbe1b. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "2eb18873273e157a7244bb165d53ea3637c76087eea84b0ab635d04417ffbe1b",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_384e8f3d3002",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.384e8f3d30020554",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 384e8f3d300205546fb8c9b9224011b3b3cb71adc994180ff55e1e6416f65715. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "384e8f3d300205546fb8c9b9224011b3b3cb71adc994180ff55e1e6416f65715",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_5ab16a59b12c",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.5ab16a59b12c7c55",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 5ab16a59b12c7c5539d9e22a090ba6c7942fbc5ab8abbc5dffa6b6de6e0f2fc6. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "5ab16a59b12c7c5539d9e22a090ba6c7942fbc5ab8abbc5dffa6b6de6e0f2fc6",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_766c356d6a4b",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.766c356d6a4b0007",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 766c356d6a4b00078a0293460c5967764fcd788da8c1cd1df708695f3a15b777. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "766c356d6a4b00078a0293460c5967764fcd788da8c1cd1df708695f3a15b777",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_8013b23cb784",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.8013b23cb7840767",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: 8013b23cb78407675f323d54b6b8dfb2a61fb40fb13309337f5b662dbd812a5d. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "8013b23cb78407675f323d54b6b8dfb2a61fb40fb13309337f5b662dbd812a5d",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_a30930dfb655",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.a30930dfb655aa39",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: a30930dfb655aa39c571c163ada65ba4dec30600df3bf548cc48bedd0e841416. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "a30930dfb655aa39c571c163ada65ba4dec30600df3bf548cc48bedd0e841416",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_a32a3751dfd4",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.a32a3751dfd4d7a0",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: a32a3751dfd4d7a0a66b7ecbd9bacb5087076377d486afdf05d3de3de3cb7555501. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "a32a3751dfd4d7a0a66b7ecbd9bacb5087076377d486afdf05d3de3de3cb7555501",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_a67465075c91",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.a67465075c91bb15",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: a67465075c91bb15b81e1f898f2b773196d3711d8e1fb321a9d6647958be436b. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "a67465075c91bb15b81e1f898f2b773196d3711d8e1fb321a9d6647958be436b",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_ae6ed1721d37",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.ae6ed1721d374774",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: ae6ed1721d37477494f3f755c124d53a7dd3e24e98c20f3a1372f45cc8130989. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "ae6ed1721d37477494f3f755c124d53a7dd3e24e98c20f3a1372f45cc8130989",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_b3fcba809984",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.b3fcba809984eaff",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: b3fcba809984eaffc5b88a1bcded28ac50e71965e61a66dd959792f7750b9e87. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "b3fcba809984eaffc5b88a1bcded28ac50e71965e61a66dd959792f7750b9e87",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_b49aa9efd41f",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.b49aa9efd41f82b3",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: b49aa9efd41f82b34a7811a7894f0ebf04e1d9aab0b622e0083b78f54fe8b466. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "b49aa9efd41f82b34a7811a7894f0ebf04e1d9aab0b622e0083b78f54fe8b466",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_bb2836148527",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.bb2836148527744b",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: bb2836148527744b11671347d73ca798aca9954c6875082f9e1176d7b52b720f. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "bb2836148527744b11671347d73ca798aca9954c6875082f9e1176d7b52b720f",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_bdb33bbb4ea1",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.bdb33bbb4ea11884",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: bdb33bbb4ea11884b15f67e5c974136e6294aa87459cdc276ac2eea85b1deaa3. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "bdb33bbb4ea11884b15f67e5c974136e6294aa87459cdc276ac2eea85b1deaa3",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_cf4d430d0760",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.cf4d430d0760d59e",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: cf4d430d0760d59e2fa925792f9e2b62d335eaf4d664d02bff16dd1b522a462a. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "cf4d430d0760d59e2fa925792f9e2b62d335eaf4d664d02bff16dd1b522a462a",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "promptsteal_sample_d6af1c9f5ce4",
+      "path": "root.cti.vendors.google_gtig.apt28.promptsteal.samples.d6af1c9f5ce407e5",
+      "content": "PROMPTSTEAL/LAMEHUG Python sample. SHA-256: d6af1c9f5ce407e53ec73c8e7187ed804fb4f80cf8dbd6722fc69e15e135db2e. Masquerades as image generation tool; queries LLM for dynamic attack commands.",
+      "tags": [
+        "malware",
+        "promptsteal",
+        "lamehug",
+        "apt28",
+        "sample",
+        "python"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "ThreatLocker/CERT-UA",
+        "source": "ThreatLocker-IOC-2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "d6af1c9f5ce407e53ec73c8e7187ed804fb4f80cf8dbd6722fc69e15e135db2e",
+          "file_type": "Python"
+        },
+        "c2": {
+          "domains": [
+            "stayathomeclasses.com",
+            "router.huggingface.co"
+          ],
+          "ips": [
+            "144.126.202.227",
+            "107.180.50.236"
+          ],
+          "urls": [
+            "https://stayathomeclasses.com/",
+            "https://stayathomeclasses.com/slpw/up.php"
+          ]
+        },
+        "actor": "APT28 / FROZENLAKE",
+        "mitre_techniques": [
+          "T1059.006",
+          "T1102",
+          "T1071.001"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "stardust_chollima_axios_2026",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios_npm_2026",
+      "content": "Axios npm supply chain compromise (March 31, 2026). STARDUST CHOLLIMA (UNC1069) hijacked maintainer credentials, published axios@1.14.1 and axios@0.30.4 with malicious plain-crypto-js@4.2.1 postinstall dropper deploying WAVESHAPER.V2/ZshBucket RAT.",
+      "tags": [
+        "supply-chain",
+        "npm",
+        "axios",
+        "stardust-chollima",
+        "dprk",
+        "2026-03"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "CrowdStrike / Google GTIG / Endor Labs",
+        "source": "CrowdStrike-STARDUST-CHOLLIMA-Axios-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "STARDUST CHOLLIMA / UNC1069",
+        "attribution": "DPRK-nexus",
+        "mitre_techniques": [
+          "T1195.002",
+          "T1059.007",
+          "T1071.001"
+        ],
+        "malicious_packages": [
+          "axios@1.14.1",
+          "axios@0.30.4",
+          "plain-crypto-js@4.2.1"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_5bb67e888460",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.5bb67e88846096f1",
+      "content": "Axios npm compromise artifact: axios-1.14.1.tgz. SHA-256: 5bb67e88846096f1f8d42a0f0350c9c46260591567612ff9af46f98d1b7571cd.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "5bb67e88846096f1f8d42a0f0350c9c46260591567612ff9af46f98d1b7571cd",
+          "file_name": "axios-1.14.1.tgz"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_59336a964f11",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.59336a964f110c25",
+      "content": "Axios npm compromise artifact: axios-0.30.4.tgz. SHA-256: 59336a964f110c25c112bcc5adca7090296b54ab33fa95c0744b94f8a0d80c0f.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "59336a964f110c25c112bcc5adca7090296b54ab33fa95c0744b94f8a0d80c0f",
+          "file_name": "axios-0.30.4.tgz"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_58401c195fe0",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.58401c195fe0a620",
+      "content": "Axios npm compromise artifact: plain-crypto-js-4.2.1.tgz. SHA-256: 58401c195fe0a6204b42f5f90995ece5fab74ce7c69c67a24c61a057325af668.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "58401c195fe0a6204b42f5f90995ece5fab74ce7c69c67a24c61a057325af668",
+          "file_name": "plain-crypto-js-4.2.1.tgz"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_e10b1fa84f1d",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.e10b1fa84f1d6481",
+      "content": "Axios npm compromise artifact: setup.js (Stage 1). SHA-256: e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "e10b1fa84f1d6481625f741b69892780140d4e0e7769e7491e5f4d894c2e0e09",
+          "file_name": "setup.js (Stage 1)"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_92ff08773995",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.92ff08773995ebc8",
+      "content": "Axios npm compromise artifact: com.apple.act.mond (macOS RAT). SHA-256: 92ff08773995ebc8d55ec4b8e1a225d0d1e51efa4ef88b8849d0071230c9645a.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "92ff08773995ebc8d55ec4b8e1a225d0d1e51efa4ef88b8849d0071230c9645a",
+          "file_name": "com.apple.act.mond (macOS RAT)"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_617b67a8e121",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.617b67a8e1210e4f",
+      "content": "Axios npm compromise artifact: Stage 2 PS1 RAT (Windows). SHA-256: 617b67a8e1210e4fc87c92d1d1da45a2f311c08d26e89b12307cf583c900d101.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "617b67a8e1210e4fc87c92d1d1da45a2f311c08d26e89b12307cf583c900d101",
+          "file_name": "Stage 2 PS1 RAT (Windows)"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_fcb81618bb15",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.fcb81618bb15edfd",
+      "content": "Axios npm compromise artifact: ld.py (Stage 2 Linux). SHA-256: fcb81618bb15edfdedfb638b4c08a2af9cac9ecfa551af135a8402bf980375cf.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "fcb81618bb15edfdedfb638b4c08a2af9cac9ecfa551af135a8402bf980375cf",
+          "file_name": "ld.py (Stage 2 Linux)"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_sample_f7d335205b8d",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.samples.f7d335205b8d7b20",
+      "content": "Axios npm compromise artifact: system.bat (persistence). SHA-256: f7d335205b8d7b20208fb3ef93ee6dc817905dc3ae0c10a0b164f4e7d07121cd.",
+      "tags": [
+        "malware",
+        "supply-chain",
+        "npm",
+        "axios",
+        "sample"
+      ],
+      "metadata": {
+        "kind": "malware_sample",
+        "vendor": "Endor Labs",
+        "source": "EndorLabs-Axios-Compromise-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "sha256": "f7d335205b8d7b20208fb3ef93ee6dc817905dc3ae0c10a0b164f4e7d07121cd",
+          "file_name": "system.bat (persistence)"
+        },
+        "c2": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "actor": "STARDUST CHOLLIMA",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "axios_c2_infra",
+      "path": "root.cti.vendors.crowdstrike.stardust_chollima.axios.c2",
+      "content": "Axios npm compromise C2: sfrclak.com (142.11.206.73) serving platform-specific RAT payloads on port 8000.",
+      "tags": [
+        "infrastructure",
+        "c2",
+        "axios",
+        "stardust-chollima"
+      ],
+      "metadata": {
+        "kind": "network_indicator",
+        "vendor": "CrowdStrike / Huntress",
+        "source": "CrowdStrike-STARDUST-CHOLLIMA-Axios-2026-03-31",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "domains": [
+            "sfrclak.com",
+            "callnrwise.com"
+          ],
+          "ips": [
+            "142.11.206.73",
+            "23.254.203.244",
+            "23.254.167.216"
+          ],
+          "urls": [
+            "http://sfrclak.com:8000/6202033"
+          ]
+        },
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "tradertraitor_bybit_2025",
+      "path": "root.cti.vendors.wiz.tradertraitor.bybit_safe_wallet_2025",
+      "content": "Bybit $1.5B theft (Feb 21, 2025). TraderTraitor/PRESSURE CHOLLIMA compromised Safe{Wallet} developer workstation, injected malicious JS into AWS S3 frontend, manipulated multisig transaction to upgrade Bybit cold wallet contract.",
+      "tags": [
+        "supply-chain",
+        "crypto",
+        "bybit",
+        "safe-wallet",
+        "tradertraitor",
+        "dprk",
+        "2025-02"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "Wiz / FBI / Sygnia",
+        "source": "Wiz-TraderTraitor-Deep-Dive",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "TraderTraitor / PRESSURE CHOLLIMA (Lazarus)",
+        "attribution": "DPRK state-sponsored",
+        "mitre_techniques": [
+          "T1609",
+          "T1580",
+          "T1578.005",
+          "T1195.002"
+        ],
+        "loss_usd": 1500000000,
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "bybit_c2_getstockprice",
+      "path": "root.cti.vendors.wiz.tradertraitor.bybit.infrastructure",
+      "content": "TraderTraitor C2 domain getstockprice.com registered early Feb 2025; used during Safe{Wallet} developer compromise.",
+      "tags": [
+        "infrastructure",
+        "c2",
+        "bybit",
+        "tradertraitor"
+      ],
+      "metadata": {
+        "kind": "network_indicator",
+        "vendor": "Wiz",
+        "source": "Wiz-TraderTraitor-Deep-Dive",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "domains": [
+            "getstockprice.com"
+          ]
+        },
+        "c2": {
+          "domains": [
+            "getstockprice.com"
+          ]
+        },
+        "actor": "TraderTraitor / PRESSURE CHOLLIMA (Lazarus)",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "midnight_blizzard_oauth_2024",
+      "path": "root.cti.vendors.microsoft.midnight_blizzard.oauth_2024",
+      "content": "Midnight Blizzard (APT29) OAuth/token abuse campaign against Microsoft corporate email (2024). CISA ED 24-02: exfiltrated FCEB agency correspondence; actors reuse secrets for lateral cloud access. No public STIX bundle — techniques and remediation from CISA directive.",
+      "tags": [
+        "apt29",
+        "midnight-blizzard",
+        "oauth",
+        "token-abuse",
+        "russia",
+        "2024"
+      ],
+      "metadata": {
+        "kind": "campaign_report",
+        "vendor": "Microsoft / CISA",
+        "source": "CISA-ED-24-02",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "Midnight Blizzard / APT29 / COZY BEAR",
+        "attribution": "Russia SVR",
+        "mitre_techniques": [
+          "T1078",
+          "T1098.003",
+          "T1528",
+          "T1114"
+        ],
+        "confidence": "high",
+        "note": "No public STIX IOC bundle; OAuth app audit required"
+      }
+    },
+    {
+      "key": "cve_2026_22769",
+      "path": "root.cti.vulnerabilities.cve_2026_22769",
+      "content": "CVE-2026-22769: Dell RecoverPoint, CVSS 10.0. Exploited by UNC5221/BRICKSTORM.",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-22769"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-22769"
+        },
+        "cve": "CVE-2026-22769",
+        "cvss": 10.0,
+        "product": "Dell RecoverPoint",
+        "exploited_by": "UNC5221/BRICKSTORM",
+        "actor": "PRC state-sponsored",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2026_21962",
+      "path": "root.cti.vulnerabilities.cve_2026_21962",
+      "content": "CVE-2026-21962: Oracle HTTP Server / WebLogic Proxy Plug-in, CVSS 10.0",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-21962"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-21962"
+        },
+        "cve": "CVE-2026-21962",
+        "cvss": 10.0,
+        "product": "Oracle HTTP Server / WebLogic Proxy Plug-in",
+        "auth_required": false,
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2026_0755",
+      "path": "root.cti.vulnerabilities.cve_2026_0755",
+      "content": "CVE-2026-0755: gemini-mcp-tool, CVSS 9.8",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-0755"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-0755"
+        },
+        "cve": "CVE-2026-0755",
+        "cvss": 9.8,
+        "product": "gemini-mcp-tool",
+        "exploited": true,
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2025_8088",
+      "path": "root.cti.vulnerabilities.cve_2025_8088",
+      "content": "CVE-2025-8088: WinRAR",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2025-8088"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2025-8088"
+        },
+        "cve": "CVE-2025-8088",
+        "cvss": null,
+        "product": "WinRAR",
+        "malware_delivered": [
+          "NESTPACKER",
+          "POISONIVY",
+          "XWorm",
+          "AsyncRAT"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2025_31324",
+      "path": "root.cti.vulnerabilities.cve_2025_31324",
+      "content": "CVE-2025-31324: SAP NetWeaver Visual Composer",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2025-31324"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2025-31324"
+        },
+        "cve": "CVE-2025-31324",
+        "cvss": null,
+        "product": "SAP NetWeaver Visual Composer",
+        "zero_day": true,
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2025_29927",
+      "path": "root.cti.vulnerabilities.cve_2025_29927",
+      "content": "CVE-2025-29927: Next.js, CVSS 9.1",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2025-29927"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2025-29927"
+        },
+        "cve": "CVE-2025-29927",
+        "cvss": 9.1,
+        "product": "Next.js",
+        "actor": "TeamPCP",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2026_31431",
+      "path": "root.cti.vulnerabilities.cve_2026_31431",
+      "content": "CVE-2026-31431: Linux kernel AF_ALG/algif_aead, CVSS 10.0 (Copy Fail)",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-31431"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-31431"
+        },
+        "cve": "CVE-2026-31431",
+        "cvss": 10.0,
+        "product": "Linux kernel AF_ALG/algif_aead",
+        "alias": "Copy Fail",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2026_43284",
+      "path": "root.cti.vulnerabilities.cve_2026_43284",
+      "content": "CVE-2026-43284: Linux kernel ESP, CVSS 9.8 (Dirty Frag)",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-43284"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-43284"
+        },
+        "cve": "CVE-2026-43284",
+        "cvss": 9.8,
+        "product": "Linux kernel ESP",
+        "alias": "Dirty Frag",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "cve_2026_0300",
+      "path": "root.cti.vulnerabilities.cve_2026_0300",
+      "content": "CVE-2026-0300: PAN-OS Captive Portal, CVSS 9.5",
+      "tags": [
+        "cve",
+        "vulnerability",
+        "cve-2026-0300"
+      ],
+      "metadata": {
+        "kind": "vulnerability",
+        "vendor": "Public TI advisories",
+        "source": "TI-Mindmap-HUB-vendor-reports",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "iocs": {
+          "cve": "CVE-2026-0300"
+        },
+        "cve": "CVE-2026-0300",
+        "cvss": 9.5,
+        "product": "PAN-OS Captive Portal",
+        "actor": "CL-STA-1132",
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "ms_threat_intel_sapphire_sleet",
+      "path": "root.cti.vendors.microsoft.threat_intel.sapphire_sleet",
+      "content": "Sapphire Sleet (Microsoft Threat Intelligence): North Korean state-sponsored threat actor. Sophisticated macOS intrusion campaign using social engineering and user-driven execution to bypass macOS protections and steal credentials, cryptocurrency wallets, and sensitive data. Same DPRK-nexus umbrella as CrowdStrike PRESSURE CHOLLIMA and TraderTraitor: includes the February 2025 Bybit $1.5 billion Safe{Wallet} supply-chain theft via compromised developer macOS workstation and trojanized front-end JavaScript.",
+      "tags": [
+        "sapphire-sleet",
+        "dprk",
+        "macos",
+        "crypto",
+        "microsoft",
+        "cross-vendor"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "vendor": "Microsoft",
+        "source": "Microsoft Security blog 2026",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "Sapphire Sleet",
+        "attribution": "DPRK state-sponsored",
+        "vendor_aliases": [
+          "PRESSURE CHOLLIMA",
+          "TraderTraitor",
+          "Lazarus Group",
+          "FAMOUS CHOLLIMA"
+        ],
+        "crowdstrike_equivalent": "PRESSURE CHOLLIMA",
+        "mitre_techniques": [
+          "T1195.002",
+          "T1059.007",
+          "T1609",
+          "T1578.005"
+        ],
+        "targets": [
+          "cryptocurrency exchanges",
+          "fintech",
+          "macOS developers"
+        ],
+        "confidence": "high"
+      }
+    },
+    {
+      "key": "ms_threat_intel_forest_blizzard",
+      "path": "root.cti.vendors.microsoft.threat_intel.forest_blizzard",
+      "content": "Forest Blizzard (Microsoft Threat Intelligence): Russian military intelligence (GRU) threat actor. Public aliases APT-28, Fancy Bear, Sofacy. Since August 2024 increased password spray attacks against NATO member states' air traffic control providers; previously targeted Ukrainian aviation (2023). Mandiant/Google tracks the same intrusion set as FROZENLAKE and attributes PROMPTSTEAL (CERT-UA: LAMEHUG) LLM-assisted malware — first nation-state malware querying Hugging Face APIs at runtime against Ukraine.",
+      "tags": [
+        "forest-blizzard",
+        "apt28",
+        "frozenlake",
+        "russia",
+        "gru",
+        "microsoft",
+        "cross-vendor"
+      ],
+      "metadata": {
+        "kind": "threat_actor_activity",
+        "vendor": "Microsoft",
+        "source": "Microsoft Threat Intelligence 2025",
+        "cti_source": "vendor_intel",
+        "layer": "vendors",
+        "actor": "Forest Blizzard",
+        "attribution": "Russia GRU Unit 26165",
+        "vendor_aliases": [
+          "APT28",
+          "FROZENLAKE",
+          "Fancy Bear",
+          "Sofacy",
+          "UAC-0001"
+        ],
+        "mandiant_equivalent": "APT28 / FROZENLAKE",
+        "malware_families": [
+          "PROMPTSTEAL",
+          "LAMEHUG"
+        ],
+        "mitre_techniques": [
+          "T1110.003",
+          "T1078",
+          "T1059.006",
+          "T1102"
+        ],
+        "targets": [
+          "NATO ATC providers",
+          "Ukrainian aviation",
+          "Ukraine government"
+        ],
+        "confidence": "high"
+      }
+    }
+  ],
+  "links": [
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_aaf5569c8e34",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_b3b6a992540d",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_57bd98dbb5a0",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_73fe8b8fb4bd",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_39b3d8a8aedf",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_013211c56caa",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_f7cda90174b8",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251165",
+      "to": "brickstorm_sample_22c15a32b691",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251165 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251165"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251217",
+      "to": "brickstorm_sample_77b49c854afd",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251217 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251217"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251217",
+      "to": "brickstorm_sample_6a67a9769a55",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251217 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251217"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-251217",
+      "to": "brickstorm_sample_ed907d39efd5",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-251217 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-251217"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-261234",
+      "to": "brickstorm_sample_24a11a26a258",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "MAR-261234 malware sample indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-261234"
+      }
+    },
+    {
+      "from": "brickstorm_campaign_mar-261234",
+      "to": "brickstorm_net_149_248_11_71",
+      "type": "supports",
+      "weight": 0.85,
+      "rationale": "MAR-261234 C2/network indicator",
+      "metadata": {
+        "cti_source": "stix",
+        "mar_id": "MAR-261234"
+      }
+    },
+    {
+      "from": "brickstorm_sample_24a11a26a258",
+      "to": "brickstorm_net_149_248_11_71",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "Same MAR-261234 campaign infrastructure",
+      "metadata": {
+        "cti_source": "stix"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "stealc_sample_8f32456359f2",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "stealc_sample_0215f734867b",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "stealc_sample_2a0f053855da",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "stealc_sample_977b33a9b481",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_b7d1f172ff3f",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_9383572a30ae",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_5f5b25b2e35d",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_98e504cc7125",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_30cef3d3d956",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_8cef760d11d2",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_99507f18c4e6",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_1246c5b89ab6",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_d43c988d6f9c",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_ca4d4c4fc3e5",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "amadey_sample_43455f1ff4a6",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_dcu_stealc_amadey_2026",
+      "to": "stealc_amadey_c2_infra",
+      "type": "supports",
+      "weight": 0.95,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_165eaf8183f6",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_2eb18873273e",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_384e8f3d3002",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_5ab16a59b12c",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_766c356d6a4b",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_8013b23cb784",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_a30930dfb655",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_a32a3751dfd4",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_a67465075c91",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_ae6ed1721d37",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_b3fcba809984",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_b49aa9efd41f",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_bb2836148527",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_bdb33bbb4ea1",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_cf4d430d0760",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "promptsteal_sample_d6af1c9f5ce4",
+      "type": "supports",
+      "weight": 0.88,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_5bb67e888460",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_59336a964f11",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_58401c195fe0",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_e10b1fa84f1d",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_92ff08773995",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_617b67a8e121",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_fcb81618bb15",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_sample_f7d335205b8d",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "stardust_chollima_axios_2026",
+      "to": "axios_c2_infra",
+      "type": "supports",
+      "weight": 0.95,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "tradertraitor_bybit_2025",
+      "to": "bybit_c2_getstockprice",
+      "type": "supports",
+      "weight": 0.9,
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "ms_threat_intel_sapphire_sleet",
+      "to": "tradertraitor_bybit_2025",
+      "type": "related",
+      "weight": 0.85,
+      "rationale": "Sapphire Sleet (MS) = PRESSURE CHOLLIMA/TraderTraitor (CS/Wiz). DPRK crypto theft.",
+      "metadata": {
+        "cti_source": "vendor_intel",
+        "cross_vendor": true
+      }
+    },
+    {
+      "from": "tradertraitor_bybit_2025",
+      "to": "ms_threat_intel_sapphire_sleet",
+      "type": "related",
+      "weight": 0.85,
+      "rationale": "Sapphire Sleet (MS) = PRESSURE CHOLLIMA/TraderTraitor (CS/Wiz). DPRK crypto theft.",
+      "metadata": {
+        "cti_source": "vendor_intel",
+        "cross_vendor": true
+      }
+    },
+    {
+      "from": "ms_threat_intel_forest_blizzard",
+      "to": "apt28_promptsteal_2025",
+      "type": "related",
+      "weight": 0.85,
+      "rationale": "Forest Blizzard (MS) = FROZENLAKE (Mandiant). PROMPTSTEAL is their LLM malware.",
+      "metadata": {
+        "cti_source": "vendor_intel",
+        "cross_vendor": true
+      }
+    },
+    {
+      "from": "apt28_promptsteal_2025",
+      "to": "ms_threat_intel_forest_blizzard",
+      "type": "related",
+      "weight": 0.85,
+      "rationale": "Forest Blizzard (MS) = FROZENLAKE (Mandiant). PROMPTSTEAL is their LLM malware.",
+      "metadata": {
+        "cti_source": "vendor_intel",
+        "cross_vendor": true
+      }
+    },
+    {
+      "from": "brickstorm_sample_aaf5569c8e34",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_b3b6a992540d",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_57bd98dbb5a0",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_73fe8b8fb4bd",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_39b3d8a8aedf",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_013211c56caa",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_f7cda90174b8",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_22c15a32b691",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_77b49c854afd",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_6a67a9769a55",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_ed907d39efd5",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    },
+    {
+      "from": "brickstorm_sample_24a11a26a258",
+      "to": "cve_2026_22769",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "BRICKSTORM campaign exploited CVE-2026-22769 (Dell RecoverPoint)",
+      "metadata": {
+        "cti_source": "vendor_intel"
+      }
+    }
+  ]
+}

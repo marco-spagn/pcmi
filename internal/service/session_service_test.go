@@ -30,6 +30,9 @@ func (s *stubMemoryRepo) Retrieve(context.Context, model.RetrieveRequest, string
 func (s *stubMemoryRepo) GetByPath(context.Context, string, string, *int, *time.Time) (*model.MemoryEntry, error) {
 	return nil, errors.New("not implemented")
 }
+func (s *stubMemoryRepo) GetByIDResolveCurrent(context.Context, string, int64) (*model.MemoryEntry, int64, error) {
+	return nil, 0, errors.New("not implemented")
+}
 func (s *stubMemoryRepo) GetHistoricalVersion(context.Context, string, string, *int, *time.Time) (*model.MemoryEntry, error) {
 	return nil, errors.New("not implemented")
 }

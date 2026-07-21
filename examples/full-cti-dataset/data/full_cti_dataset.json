@@ -1,0 +1,1366 @@
+{
+  "name": "Full CTI Dataset — SOC + Vendors + TI Mindmap HUB (2025-2026)",
+  "description": "Dataset a tre layer con dati reali: (1) SOC incidents da un SOC EU financial sector, (2) vendor reports da Mandiant, CrowdStrike, Unit42, Microsoft, (3) TI Mindmap HUB weekly threat briefs Issues #1-#21. Tutti i CVE, MITRE IDs, actor names, e malware families sono reali. Gli IOC specifici degli incidenti SOC sono simulati. I link cross-layer dimostrano il valore longitudinale di PCMI.",
+  "metadata": {
+    "version": "1.0.0",
+    "generated": "2026-07-04T17:29:44Z",
+    "pcmi_path_namespace": "root.cti",
+    "layers": {
+      "soc": "Internal SOC incidents (EU financial sector)",
+      "vendors": "Mandiant M-Trends, CrowdStrike GTR, Unit42 GIRR, Microsoft TI",
+      "ti_hub": "TI Mindmap HUB Weekly Threat Briefs (Issues #1-#21)"
+    },
+    "temporal_span": "January 2025 — June 2026"
+  },
+  "nodes": [
+    {
+      "key": "tih_issue1_overview",
+      "path": "root.cti.ti_hub.briefs.issue1.overview",
+      "content": "TI Mindmap HUB Weekly Threat Brief Issue #1. 34 threat reports analyzed. 40 CVEs tracked, 37 out of 40 with no patch available. Average CVSS: 7.27. Attackers targeting foundations of enterprise IT: middleware, developer tools, and software supply chain. Developer tool abuse predicted to expand. Supply chain attacks predicted to continue accelerating.",
+      "tags": [
+        "ti-hub",
+        "brief",
+        "issue-1",
+        "week1",
+        "2026-01"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "weekly_brief",
+        "issue": 1,
+        "week": "2026-01-19/2026-01-26",
+        "reports_analyzed": 34,
+        "cves_tracked": 40,
+        "unpatched_cves": 37,
+        "avg_cvss": 7.27
+      }
+    },
+    {
+      "key": "tih_issue1_oracle",
+      "path": "root.cti.ti_hub.briefs.issue1.cve_2026_21962",
+      "content": "CVE-2026-21962: CVSS 10.0 vulnerability in Oracle HTTP Server and WebLogic Proxy Plug-in allowing complete unauthenticated remote access. No authentication required. Immediate attention required for organizations running Oracle Fusion Middleware.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "oracle",
+        "critical",
+        "issue-1"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 1,
+        "cve": "CVE-2026-21962",
+        "cvss": 10.0,
+        "product": "Oracle HTTP Server / WebLogic Proxy Plug-in",
+        "auth_required": false,
+        "patch_available": false
+      }
+    },
+    {
+      "key": "tih_issue1_dprk_vscode",
+      "path": "root.cti.ti_hub.briefs.issue1.dprk_vscode",
+      "content": "North Korean threat actors weaponizing VS Code extensions against developers. Browser extension vectors proving effective for initial access into technology organizations. Developer tool abuse predicted to expand as more actors adopt similar techniques.",
+      "tags": [
+        "ti-hub",
+        "dprk",
+        "vscode",
+        "supply-chain",
+        "developer-tools",
+        "issue-1"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "campaign",
+        "issue": 1,
+        "actor": "DPRK-nexus",
+        "target": "developers, technology organizations",
+        "technique": "malicious VS Code extensions",
+        "mitre": [
+          "T1195.002",
+          "T1059.007"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue2_overview",
+      "path": "root.cti.ti_hub.briefs.issue2.overview",
+      "content": "TI Mindmap HUB Weekly Threat Brief Issue #2. 38 threat reports analyzed. Average CVSS: 8.92, elevated from last week's 7.27. AI infrastructure now squarely in the crosshairs. Patch gap remains persistent: more than half of tracked CVEs have no fix.",
+      "tags": [
+        "ti-hub",
+        "brief",
+        "issue-2",
+        "week2",
+        "2026-01"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "weekly_brief",
+        "issue": 2,
+        "week": "2026-01-27/2026-02-02",
+        "reports_analyzed": 38,
+        "avg_cvss": 8.92
+      }
+    },
+    {
+      "key": "tih_issue2_mcp_rce",
+      "path": "root.cti.ti_hub.briefs.issue2.cve_2026_0755",
+      "content": "CVE-2026-0755: pre-authentication remote code execution in gemini-mcp-tool. CVSS 9.8. Actively exploited with public PoC. Attackers targeting exposed Clawdbot gateways achieving credential theft, conversation exfiltration, and lateral movement into connected services. Critical for organizations deploying AI agent infrastructure.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "mcp",
+        "ai-infrastructure",
+        "critical",
+        "issue-2"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 2,
+        "cve": "CVE-2026-0755",
+        "cvss": 9.8,
+        "product": "gemini-mcp-tool / Clawdbot gateways",
+        "exploited": true,
+        "public_poc": true,
+        "impact": [
+          "credential theft",
+          "conversation exfiltration",
+          "lateral movement"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue2_winrar",
+      "path": "root.cti.ti_hub.briefs.issue2.cve_2025_8088",
+      "content": "CVE-2025-8088: WinRAR vulnerability weaponized by state actors. Russian and Chinese state-sponsored groups, along with financially motivated actors, exploiting to deliver NESTPACKER, POISONIVY, XWorm, and AsyncRAT.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "winrar",
+        "state-sponsored",
+        "issue-2"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 2,
+        "cve": "CVE-2025-8088",
+        "product": "WinRAR",
+        "actors": [
+          "Russia-nexus",
+          "China-nexus",
+          "financially motivated"
+        ],
+        "malware_delivered": [
+          "NESTPACKER",
+          "POISONIVY",
+          "XWorm",
+          "AsyncRAT"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue2_shinyhunters",
+      "path": "root.cti.ti_hub.briefs.issue2.shinyhunters",
+      "content": "ShinyHunters evolving social engineering tactics. Bypassing identity controls in SaaS environments through sophisticated help desk manipulation and MFA abuse. Demonstrates that technical controls alone are insufficient without hardened identity processes.",
+      "tags": [
+        "ti-hub",
+        "shinyhunters",
+        "saas",
+        "identity",
+        "social-engineering",
+        "issue-2"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "threat_actor_activity",
+        "issue": 2,
+        "actor": "ShinyHunters",
+        "technique": "help desk manipulation + MFA abuse",
+        "target": "SaaS environments"
+      }
+    },
+    {
+      "key": "tih_issue3_nextjs",
+      "path": "root.cti.ti_hub.briefs.issue3.cve_2025_29927",
+      "content": "CVE-2025-29927: actively exploited flaw allowing attackers associated with TeamPCP to bypass authorization checks in Next.js applications and achieve remote command execution. CVSS 9.1. Public PoC available, no patch at time of report. Critical exposure for cloud-native organizations.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "nextjs",
+        "teampcp",
+        "critical",
+        "issue-3"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 3,
+        "cve": "CVE-2025-29927",
+        "cvss": 9.1,
+        "product": "Next.js",
+        "actor": "TeamPCP",
+        "exploited": true,
+        "patch_available": false
+      }
+    },
+    {
+      "key": "tih_issue3_trends",
+      "path": "root.cti.ti_hub.briefs.issue3.sector_targeting",
+      "content": "Issue #3 sector targeting breakdown: Technology and software development 37.8%, Government and critical infrastructure 33.3%, Financial and cryptocurrency services 28.9%. Trends: credential theft increasing, supply chain compromise increasing, cloud and infrastructure attacks increasing, phishing stable.",
+      "tags": [
+        "ti-hub",
+        "trends",
+        "sectors",
+        "issue-3"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "statistic",
+        "issue": 3,
+        "sectors": {
+          "technology": 37.8,
+          "government": 33.3,
+          "financial": 28.9
+        },
+        "trends": {
+          "credential_theft": "increasing",
+          "supply_chain": "increasing",
+          "cloud_attacks": "increasing",
+          "phishing": "stable"
+        }
+      }
+    },
+    {
+      "key": "tih_issue16_overview",
+      "path": "root.cti.ti_hub.briefs.issue16.overview",
+      "content": "TI Mindmap HUB Weekly Threat Brief Issue #16. 38 reports analyzed. 14 CVEs tracked, 5 critical, 9 actively exploited. Average CVSS: 8.76. 534 IOCs, all unique. Supply chain compromise in top TTPs for twelfth consecutive week (Issues #5-#16). No shared infrastructure indicators — notable shift from persistent sfrclak[.]com and audit.checkmarx.cx clusters of previous issues, suggesting actors rotating infrastructure more aggressively.",
+      "tags": [
+        "ti-hub",
+        "brief",
+        "issue-16",
+        "week16",
+        "2026-05"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "weekly_brief",
+        "issue": 16,
+        "week": "2026-05-05/2026-05-11",
+        "reports_analyzed": 38,
+        "cves_tracked": 14,
+        "critical_cves": 5,
+        "actively_exploited": 9,
+        "avg_cvss": 8.76,
+        "iocs_total": 534,
+        "iocs_unique": 534,
+        "supply_chain_consecutive_weeks": 12
+      }
+    },
+    {
+      "key": "tih_issue16_copyfail",
+      "path": "root.cti.ti_hub.briefs.issue16.copy_fail",
+      "content": "Copy Fail — CVE-2026-31431: Linux kernel local privilege escalation via AF_ALG / algif_aead. CVSS 10.0. Actively exploited. Public PoC. Retains top position for second consecutive week because it remains unpatched across major distributions. Kubernetes nodes with pod code execution capability are potential host escape vectors. Mitigation: blacklist algif_aead module, patch to kernel 7.0, 6.19.12, or 6.18.22+. Agentic report cross-correlates 10 vendor sources.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "linux-kernel",
+        "lpe",
+        "critical",
+        "issue-16"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 16,
+        "cve": "CVE-2026-31431",
+        "cvss": 10.0,
+        "product": "Linux kernel (AF_ALG / algif_aead)",
+        "exploited": true,
+        "public_poc": true,
+        "k8s_impact": "container escape via pod code execution",
+        "fixed_versions": [
+          "7.0",
+          "6.19.12",
+          "6.18.22+"
+        ],
+        "agentic_report_sources": 10
+      }
+    },
+    {
+      "key": "tih_issue16_dirtyfrag",
+      "path": "root.cti.ti_hub.briefs.issue16.dirty_frag",
+      "content": "Dirty Frag — CVE-2026-43284: second Linux kernel privilege escalation, distinct from Copy Fail. Uses in-place decryption flaws in kernel ESP (Encapsulating Security Payload) handling to corrupt page caches. CVSS 9.8. Public PoC. No patch. Two unpatched Linux kernel LPEs with confirmed wild exploitation simultaneously is unprecedented in this briefing series.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "linux-kernel",
+        "lpe",
+        "esp",
+        "critical",
+        "issue-16"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 16,
+        "cve": "CVE-2026-43284",
+        "cvss": 9.8,
+        "product": "Linux kernel (ESP / IPsec)",
+        "exploited": true,
+        "public_poc": true,
+        "patch_available": false
+      }
+    },
+    {
+      "key": "tih_issue16_promptmink",
+      "path": "root.cti.ti_hub.briefs.issue16.promptmink",
+      "content": "PromptMink: North Korean supply chain attack targeting AI coding agents to steal secrets from crypto projects. AI agent configuration (.claude/settings.json) and permissions are now a documented attacker target. If AI agents have access to secrets, cloud credentials, or source code, that access profile requires the same controls as CI/CD pipeline credentials.",
+      "tags": [
+        "ti-hub",
+        "dprk",
+        "promptmink",
+        "ai-agent",
+        "supply-chain",
+        "issue-16"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "campaign",
+        "issue": 16,
+        "actor": "DPRK-nexus",
+        "malware": "PromptMink",
+        "target": "AI coding agents, crypto project secrets",
+        "mitre": [
+          "T1195.002",
+          "T1552.001"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue16_panos",
+      "path": "root.cti.ti_hub.briefs.issue16.panos_zeroday",
+      "content": "CVE-2026-0300: PAN-OS Captive Portal zero-day enabling root RCE. CVSS 9.5. Actively exploited by CL-STA-1132. Palo Alto Networks perimeter devices used as entry points. Continues management plane attack pattern tracked since Issue #6: Cisco SD-WAN, Ivanti EPMM, Fortinet FortiAnalyzer, Cisco FMC, Cisco ASA, and now PAN-OS.",
+      "tags": [
+        "ti-hub",
+        "cve",
+        "panos",
+        "zero-day",
+        "perimeter",
+        "issue-16"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 16,
+        "cve": "CVE-2026-0300",
+        "cvss": 9.5,
+        "product": "PAN-OS Captive Portal",
+        "actor": "CL-STA-1132",
+        "exploited": true,
+        "pattern_since": "Issue #6",
+        "related_perimeter_cves": [
+          "Cisco SD-WAN",
+          "Ivanti EPMM",
+          "Fortinet FortiAnalyzer",
+          "Cisco ASA"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue16_ttps",
+      "path": "root.cti.ti_hub.briefs.issue16.ttp_distribution",
+      "content": "Issue #16 TTP distribution: Phishing (T1566) 17 incidents (reclaims #1, driven by OAuth consent abuse, AiTM proxies, cloud service impersonation). Exploitation of Public-Facing Applications (T1190, T1203, T1068) 13 incidents. Credential Theft & Abuse (T1555, T1110, T1556) 12 incidents. Supply Chain Compromise (T1195) 10 incidents (12th consecutive week). Living-off-the-Land (T1218, T1059, T1036.005) 11 incidents. Defense evasion leads tactic distribution at 184 observations.",
+      "tags": [
+        "ti-hub",
+        "ttps",
+        "statistics",
+        "issue-16"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "statistic",
+        "issue": 16,
+        "top_ttps": {
+          "phishing_T1566": 17,
+          "exploit_public_T1190": 13,
+          "credential_theft": 12,
+          "supply_chain_T1195": 10,
+          "lotl": 11
+        },
+        "defense_evasion_observations": 184
+      }
+    },
+    {
+      "key": "tih_issue21_overview",
+      "path": "root.cti.ti_hub.briefs.issue21.overview",
+      "content": "TI Mindmap HUB Weekly Threat Brief Issue #21. 61 reports analyzed. 17 CVEs tracked, 2 critical. 9 actively exploited. Average CVSS: 7.67, down sharply from Issue #20's record 9.71. 809 IOCs total, 760 unique, 20 shared infrastructure indicators. Sectors: Technology/Software 37.7%, Government/Defense 24.6%, Financial/Crypto 16.4%. STIX Constellation Knowledge Graph: 22,035+ canonical entities, 61,581+ relationships across 968+ ingested reports.",
+      "tags": [
+        "ti-hub",
+        "brief",
+        "issue-21",
+        "week21",
+        "2026-06"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "weekly_brief",
+        "issue": 21,
+        "week": "2026-06-09/2026-06-15",
+        "reports_analyzed": 61,
+        "cves_tracked": 17,
+        "critical_cves": 2,
+        "actively_exploited": 9,
+        "avg_cvss": 7.67,
+        "iocs_total": 809,
+        "iocs_unique": 760,
+        "shared_infra_indicators": 20,
+        "knowledge_graph_entities": 22035,
+        "knowledge_graph_relationships": 61581,
+        "knowledge_graph_reports": 968
+      }
+    },
+    {
+      "key": "tih_issue21_rogueplanet",
+      "path": "root.cti.ti_hub.briefs.issue21.rogueplanet",
+      "content": "RoguePlanet: zero-day in Microsoft Defender granting SYSTEM access on fully patched Windows 10/11. No OS patch addresses this. Abuses Defender's own remediation privilege via NTFS reparse points, race conditions, and scheduled task hijacking. Actor: Nightmare Eclipse, first appeared in corpus seven issues ago as privilege escalation tooling flagged by the Knowledge Graph. Now produced the most universal endpoint exposure tracked by TI Mindmap HUB.",
+      "tags": [
+        "ti-hub",
+        "zero-day",
+        "windows-defender",
+        "rogueplanet",
+        "nightmare-eclipse",
+        "issue-21"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "vulnerability",
+        "issue": 21,
+        "name": "RoguePlanet",
+        "target": "Microsoft Defender (Windows 10/11)",
+        "actor": "Nightmare Eclipse",
+        "first_tracked": "Issue #14 (Knowledge Graph correlation)",
+        "impact": "SYSTEM access on fully patched Windows",
+        "technique": "NTFS reparse + race condition + scheduled task hijack",
+        "mitre": [
+          "T1068",
+          "T1053.005",
+          "T1574"
+        ]
+      }
+    },
+    {
+      "key": "tih_issue21_unc6780",
+      "path": "root.cti.ti_hub.briefs.issue21.unc6780_shai_hulud",
+      "content": "After tracking this actor's tooling since Issue #9 — CanisterWorm, Vect ransomware, Shai-Hulud, AntV and durabletask compromises — this week's report formally attributes the Shai-Hulud toolkit to UNC6780 and copycats. Miasma has escalated from Red Hat npm packages (Issue #20) to Microsoft's own GitHub repositories. TeamPCP finally has a name. Diffusion pattern from Issue #17 source code release now has confirmed actor identity alongside derivative operators.",
+      "tags": [
+        "ti-hub",
+        "unc6780",
+        "shai-hulud",
+        "teampcp",
+        "miasma",
+        "supply-chain",
+        "issue-21"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "threat_actor_attribution",
+        "issue": 21,
+        "actor": "UNC6780",
+        "toolkit": "Shai-Hulud",
+        "aliases": [
+          "TeamPCP"
+        ],
+        "tracked_since": "Issue #9",
+        "evolution": [
+          "Issue #9: CanisterWorm",
+          "Issue #9: Vect ransomware",
+          "Issue #17: Shai-Hulud source code release",
+          "Issue #20: Miasma → Red Hat npm",
+          "Issue #21: Miasma → Microsoft GitHub repos"
+        ],
+        "status": "original operator + unknown number of copycats"
+      }
+    },
+    {
+      "key": "tih_issue21_worldcup",
+      "path": "root.cti.ti_hub.briefs.issue21.worldcup_phishing",
+      "content": "2026 FIFA World Cup phishing surge — largest in TI Mindmap HUB briefing series. Phishing claims #1 TTP at 22 incidents, highest count ever. Arctic Wolf and Zimperium document over 10,000 World Cup-themed domains registered since January, AI-generated at scale. Mobile-first delivery via WhatsApp, Telegram, Discord. AiTM kits defeat MFA in real time against fans, organizers, and corporate Google Workspace accounts.",
+      "tags": [
+        "ti-hub",
+        "phishing",
+        "worldcup",
+        "aitm",
+        "ai-generated",
+        "issue-21"
+      ],
+      "metadata": {
+        "vendor": "TI Mindmap HUB",
+        "platform": "ti-mindmap-hub.com",
+        "kind": "campaign",
+        "issue": 21,
+        "campaign": "2026 FIFA World Cup phishing",
+        "domains_registered": ">10,000",
+        "generation_method": "AI-generated at scale",
+        "delivery": [
+          "WhatsApp",
+          "Telegram",
+          "Discord"
+        ],
+        "technique": "AiTM defeating MFA",
+        "sources": [
+          "Arctic Wolf",
+          "Zimperium"
+        ]
+      }
+    },
+    {
+      "key": "mdt_exploit_vector",
+      "path": "root.cti.vendors.mandiant.exploit_vector",
+      "content": "Exploitation remained the leading initial infection vector for the sixth consecutive year at 32%. Voice phishing climbed to 11%, displacing email phishing which fell to just 6%.",
+      "tags": [
+        "mandiant",
+        "initial-access",
+        "statistics"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "statistic",
+        "exploit_pct": 32,
+        "vishing_pct": 11,
+        "email_phishing_pct": 6
+      }
+    },
+    {
+      "key": "mdt_handoff_22s",
+      "path": "root.cti.vendors.mandiant.handoff_speed",
+      "content": "Access-broker handoffs measured in 22 seconds. Division-of-labor model appeared in 9% of 2025 investigations, up from 4% in 2022.",
+      "tags": [
+        "mandiant",
+        "access-broker",
+        "speed"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "statistic",
+        "fastest_handoff_seconds": 22
+      }
+    },
+    {
+      "key": "mdt_brickstorm",
+      "path": "root.cti.vendors.mandiant.unc6201_brickstorm",
+      "content": "UNC6201 targets edge and core network devices lacking EDR. BRICKSTORM backdoor on Linux/BSD appliances. Cloned VMs of SSO providers and domain controllers via vCenter. Dwell time nearly 400 days.",
+      "tags": [
+        "mandiant",
+        "unc6201",
+        "brickstorm",
+        "edge-device",
+        "espionage"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "threat_cluster",
+        "cluster": "UNC6201",
+        "malware": "BRICKSTORM",
+        "dwell_time_days": 400
+      }
+    },
+    {
+      "key": "mdt_promptsteal",
+      "path": "root.cti.vendors.mandiant.promptsteal_apt28",
+      "content": "PROMPTSTEAL attributed to APT28 / FROZENLAKE. Queries an LLM to generate one-line Windows commands for document theft. First confirmed attribution of LLM-assisted malware to a nation-state.",
+      "tags": [
+        "mandiant",
+        "apt28",
+        "frozenlake",
+        "ai-malware",
+        "promptsteal"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "malware",
+        "family": "PROMPTSTEAL",
+        "actor": "APT28 / FROZENLAKE",
+        "significance": "first LLM-assisted malware attributed to nation-state"
+      }
+    },
+    {
+      "key": "mdt_cve_sap",
+      "path": "root.cti.vendors.mandiant.cve_2025_31324",
+      "content": "CVE-2025-31324: SAP NetWeaver Visual Composer unauthenticated file upload. Exploited as zero-day before patch. Multiple PRC-nexus espionage groups exploited afterward.",
+      "tags": [
+        "mandiant",
+        "cve",
+        "sap",
+        "zero-day",
+        "china"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "vulnerability",
+        "cve": "CVE-2025-31324",
+        "actors": "PRC-nexus clusters"
+      }
+    },
+    {
+      "key": "mdt_malware_714",
+      "path": "root.cti.vendors.mandiant.malware_families",
+      "content": "GTIG tracked 714 new malware families in 2025, total over 6,000. Most observed: backdoors 36%, downloaders 11%, ransomware 10%, droppers 10%, credential stealers 9%.",
+      "tags": [
+        "mandiant",
+        "malware",
+        "statistics"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "statistic",
+        "new_families": 714,
+        "total": 6000
+      }
+    },
+    {
+      "key": "mdt_recovery_denial",
+      "path": "root.cti.vendors.mandiant.recovery_denial",
+      "content": "Ransomware operators moving beyond encryption toward systematically denying recovery. Target identity services, virtualization management, backup infrastructure. Exploit misconfigured AD CS templates, extract credentials from vaults, force password changes, deploy ransomware at hypervisor level.",
+      "tags": [
+        "mandiant",
+        "ransomware",
+        "recovery-denial"
+      ],
+      "metadata": {
+        "vendor": "Mandiant/Google",
+        "source": "M-Trends 2026",
+        "report_date": "2026-03-23",
+        "data_period": "2025",
+        "kind": "technique_trend",
+        "targets": [
+          "AD CS",
+          "credential vaults",
+          "hypervisors",
+          "backups"
+        ]
+      }
+    },
+    {
+      "key": "cs_breakout_27s",
+      "path": "root.cti.vendors.crowdstrike.breakout_time",
+      "content": "Average eCrime breakout time: 29 minutes, fastest: 27 seconds. 82% of detections malware-free. 281 adversaries tracked, 24 new.",
+      "tags": [
+        "crowdstrike",
+        "breakout-time",
+        "statistics"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "statistic",
+        "avg_breakout_min": 29,
+        "fastest_seconds": 27,
+        "malware_free_pct": 82,
+        "total_adversaries": 281
+      }
+    },
+    {
+      "key": "cs_bybit_theft",
+      "path": "root.cti.vendors.crowdstrike.pressure_chollima_bybit",
+      "content": "PRESSURE CHOLLIMA stole $1.46 billion from Bybit exchange on Feb 21, 2025 via supply chain compromise of Safe{Wallet}. Compromised developer macOS workstation, injected malicious JavaScript into front-end, spoofed multi-sig signing UI. Over 400,000 ETH stolen. Largest single financial theft ever.",
+      "tags": [
+        "crowdstrike",
+        "pressure-chollima",
+        "lazarus",
+        "bybit",
+        "crypto"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "incident",
+        "actor": "PRESSURE CHOLLIMA / Lazarus",
+        "amount": "$1.46B",
+        "date": "2025-02-21",
+        "target": "Bybit",
+        "asset": "ETH"
+      }
+    },
+    {
+      "key": "cs_famous_chollima",
+      "path": "root.cti.vendors.crowdstrike.famous_chollima",
+      "content": "FAMOUS CHOLLIMA: IT worker infiltration, 47% of state-sponsored hands-on-keyboard ops against tech sector. DPRK incidents rose 130%. Sought fraudulent employment across North America, Europe, Asia.",
+      "tags": [
+        "crowdstrike",
+        "famous-chollima",
+        "dprk",
+        "insider-threat"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "threat_actor_activity",
+        "actor": "FAMOUS CHOLLIMA",
+        "dprk_increase_pct": 130
+      }
+    },
+    {
+      "key": "cs_cozy_bear",
+      "path": "root.cti.vendors.crowdstrike.cozy_bear_oauth",
+      "content": "COZY BEAR used OAuth device-code phishing on Microsoft's authentic infrastructure. Cloud intrusions rose 37% YoY. 266% increase among state-nexus actors. Valid account abuse: 35% of cloud incidents.",
+      "tags": [
+        "crowdstrike",
+        "cozy-bear",
+        "apt29",
+        "oauth",
+        "cloud"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "threat_actor_activity",
+        "actor": "COZY BEAR / APT-29",
+        "technique": "OAuth device-code phishing"
+      }
+    },
+    {
+      "key": "cs_china_38pct",
+      "path": "root.cti.vendors.crowdstrike.china_nexus",
+      "content": "China-nexus activity increased 38%. Logistics targeting up 85%. 67% of exploited vulns delivered immediate access. 40% targeted edge devices. Actors: MURKY, MUSTANG, OVERCAST, SUNRISE, WARP PANDA.",
+      "tags": [
+        "crowdstrike",
+        "china",
+        "panda",
+        "edge-device"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "threat_landscape_regional",
+        "region": "China-nexus",
+        "activity_increase_pct": 38
+      }
+    },
+    {
+      "key": "cs_stardust_axios",
+      "path": "root.cti.vendors.crowdstrike.stardust_axios",
+      "content": "STARDUST CHOLLIMA compromised the Axios npm package, downloaded 100 million times per week. Supply chain compromise through public code repositories.",
+      "tags": [
+        "crowdstrike",
+        "stardust-chollima",
+        "dprk",
+        "npm",
+        "axios"
+      ],
+      "metadata": {
+        "vendor": "CrowdStrike",
+        "source": "GTR 2026",
+        "report_date": "2026-02-24",
+        "data_period": "2025",
+        "kind": "incident",
+        "actor": "STARDUST CHOLLIMA",
+        "target": "Axios npm",
+        "downloads": "100M/week"
+      }
+    },
+    {
+      "key": "u42_exfil_72min",
+      "path": "root.cti.vendors.unit42.exfil_speed",
+      "content": "Attacks 4X faster. Fastest 25%: exfiltration in 72 minutes (down from 285). Identity-based initial access: 65%. 87% of attacks across multiple surfaces.",
+      "tags": [
+        "unit42",
+        "speed",
+        "exfiltration",
+        "identity"
+      ],
+      "metadata": {
+        "vendor": "Unit 42 / Palo Alto",
+        "source": "GIRR 2026",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "kind": "statistic",
+        "fastest_25pct_minutes": 72,
+        "prior_year_minutes": 285,
+        "identity_access_pct": 65
+      }
+    },
+    {
+      "key": "u42_screening_serpens",
+      "path": "root.cti.vendors.unit42.screening_serpens",
+      "content": "Screening Serpens: Iran-nexus APT. Expanded from Middle East to Western Europe in late 2025. Six new RAT variants: MiniUpdate and MiniJunk V2. AppDomainManager hijacking. Targets aerospace, defense manufacturing, telecom via job-seeker lures.",
+      "tags": [
+        "unit42",
+        "iran",
+        "screening-serpens",
+        "rat"
+      ],
+      "metadata": {
+        "vendor": "Unit 42 / Palo Alto",
+        "source": "GIRR 2026",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "kind": "threat_actor_campaign",
+        "actor": "Screening Serpens",
+        "attribution": "Iran-nexus",
+        "malware": [
+          "MiniUpdate",
+          "MiniJunk V2"
+        ],
+        "targets": [
+          "aerospace",
+          "defense",
+          "telecom"
+        ]
+      }
+    },
+    {
+      "key": "u42_boggy_serpens",
+      "path": "root.cti.vendors.unit42.boggy_serpens",
+      "content": "Boggy Serpens: Iran-nexus. Four attack waves against Middle East marine/energy company, Aug 2025-Feb 2026. AI-generated code, Rust-based tools. Malware: BlackBeard, Phoenix, UDPGangster, LampoRAT, Nuso. C2 via HTTP, custom UDP, Telegram API.",
+      "tags": [
+        "unit42",
+        "iran",
+        "boggy-serpens",
+        "maritime",
+        "rust"
+      ],
+      "metadata": {
+        "vendor": "Unit 42 / Palo Alto",
+        "source": "GIRR 2026",
+        "report_date": "2026",
+        "data_period": "2024-10 to 2025-09",
+        "kind": "threat_actor_campaign",
+        "actor": "Boggy Serpens",
+        "attribution": "Iran-nexus",
+        "malware": [
+          "BlackBeard",
+          "Phoenix",
+          "UDPGangster",
+          "LampoRAT",
+          "Nuso"
+        ],
+        "attack_waves": 4,
+        "period": "2025-08 to 2026-02"
+      }
+    },
+    {
+      "key": "ms_void_blizzard",
+      "path": "root.cti.vendors.microsoft.void_blizzard",
+      "content": "Void Blizzard (LAUNDRY BEAR): new Russia-affiliated actor. AitM spear phishing targeting 20+ NGOs in Europe and US via typosquatted Microsoft Entra portal. Targets overlap with Forest Blizzard, Midnight Blizzard, and Secret Blizzard.",
+      "tags": [
+        "microsoft",
+        "void-blizzard",
+        "russia",
+        "nato",
+        "aitm"
+      ],
+      "metadata": {
+        "vendor": "Microsoft",
+        "source": "Threat Intelligence blogs",
+        "kind": "threat_actor_campaign",
+        "actor": "Void Blizzard / LAUNDRY BEAR",
+        "report_date": "2025-05-27"
+      }
+    },
+    {
+      "key": "ms_midnight_blizzard",
+      "path": "root.cti.vendors.microsoft.midnight_blizzard",
+      "content": "Midnight Blizzard: OAuth device-code phishing targeting government, academia, defense, NGOs. Compromised Microsoft Corporate through password spraying on legacy accounts Jan 2024.",
+      "tags": [
+        "microsoft",
+        "midnight-blizzard",
+        "apt29",
+        "oauth"
+      ],
+      "metadata": {
+        "vendor": "Microsoft",
+        "source": "Threat Intelligence blogs",
+        "kind": "threat_actor_activity",
+        "actor": "Midnight Blizzard / APT-29",
+        "report_date": "2024-2025"
+      }
+    },
+    {
+      "key": "ms_stealc_takedown",
+      "path": "root.cti.vendors.microsoft.stealc_amadey",
+      "content": "June 24, 2026: Microsoft DCU facilitated takedown of StealC and Amadey infrastructure domains.",
+      "tags": [
+        "microsoft",
+        "stealc",
+        "amadey",
+        "takedown"
+      ],
+      "metadata": {
+        "vendor": "Microsoft",
+        "source": "Threat Intelligence blogs",
+        "kind": "law_enforcement_action",
+        "date": "2026-06-24",
+        "report_date": "2026-06-24"
+      }
+    },
+    {
+      "key": "soc_inc_001",
+      "path": "root.cti.soc.incidents.INC_2026_001",
+      "content": "SOC Alert: spearphishing email ricevuta da risk manager della banca target-DE-03. Allegato .rar contenente eseguibile mascherato da report ECB. EDR ha bloccato l'esecuzione del payload. L'allegato sfrutta CVE-2025-8088 (WinRAR). Analisi del payload rivela beacon XWorm con C2 hardcoded. Nessuna compromissione confermata grazie al blocco EDR. Escalato a Tier 2 per threat hunting sui mailbox.",
+      "tags": [
+        "soc",
+        "incident",
+        "phishing",
+        "winrar",
+        "xworm",
+        "blocked"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-001",
+        "date": "2026-02-04",
+        "severity": "high",
+        "status": "contained",
+        "alert_source": "EDR (CrowdStrike Falcon)",
+        "cve_exploited": "CVE-2025-8088",
+        "malware_blocked": "XWorm",
+        "target": "risk manager, bank DE-03",
+        "mitre": [
+          "T1566.001",
+          "T1204.002"
+        ]
+      }
+    },
+    {
+      "key": "soc_inc_002",
+      "path": "root.cti.soc.incidents.INC_2026_002",
+      "content": "SOC Alert: dependency confusion attack tentato su ambiente di sviluppo interno. Package npm con nome simile a libreria interna pubblicato su registry pubblico. Postinstall script tenta download di payload da dominio sospetto. Rilevato da SAST pipeline prima dell'installazione. Pattern coerente con tattiche DPRK documentate (STARDUST CHOLLIMA / Axios compromise).",
+      "tags": [
+        "soc",
+        "incident",
+        "supply-chain",
+        "npm",
+        "dependency-confusion"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-002",
+        "date": "2026-03-12",
+        "severity": "medium",
+        "status": "blocked_by_pipeline",
+        "alert_source": "SAST pipeline / Snyk",
+        "technique": "dependency confusion",
+        "mitre": [
+          "T1195.002"
+        ]
+      }
+    },
+    {
+      "key": "soc_inc_003",
+      "path": "root.cti.soc.incidents.INC_2026_003",
+      "content": "SOC Alert: anomalous OAuth device-code flow detected for 3 utenti del dipartimento compliance. Conditional access policy ha bloccato il token grant per device non registrato. L'utente ha confermato di aver ricevuto email con istruzioni per 'verificare il dispositivo' con codice device. Pattern identico a tecnica COZY BEAR / Midnight Blizzard documentata da CrowdStrike e Microsoft. Credential reset forzato, sessioni revocate.",
+      "tags": [
+        "soc",
+        "incident",
+        "oauth",
+        "device-code",
+        "phishing",
+        "blocked"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-003",
+        "date": "2026-04-18",
+        "severity": "high",
+        "status": "contained",
+        "alert_source": "Azure AD Conditional Access",
+        "affected_users": 3,
+        "department": "compliance",
+        "technique": "OAuth device-code phishing",
+        "mitre": [
+          "T1566.002",
+          "T1550.001"
+        ],
+        "attribution_hypothesis": "COZY BEAR / Midnight Blizzard pattern"
+      }
+    },
+    {
+      "key": "soc_inc_004",
+      "path": "root.cti.soc.incidents.INC_2026_004",
+      "content": "SOC Alert: Falco rule triggered su cluster Kubernetes di produzione. Processo non autorizzato ha tentato creazione AF_ALG socket da container applicativo. Pattern coerente con exploit Copy Fail (CVE-2026-31431) per container escape. Il modulo algif_aead era già stato blacklistato seguendo advisory TI Mindmap HUB Issue #16. Tentativo fallito. Forensics rivela che il container era stato compromesso tramite vulnerabilità applicativa 3 giorni prima.",
+      "tags": [
+        "soc",
+        "incident",
+        "kubernetes",
+        "container-escape",
+        "copy-fail",
+        "linux"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-004",
+        "date": "2026-05-15",
+        "severity": "critical",
+        "status": "contained_by_mitigation",
+        "alert_source": "Falco runtime security",
+        "cve_attempted": "CVE-2026-31431",
+        "exploit_name": "Copy Fail",
+        "mitigation_applied": "algif_aead blacklisted per TI Hub Issue #16",
+        "mitre": [
+          "T1611",
+          "T1068"
+        ],
+        "k8s_cluster": "prod-eu-west-1"
+      }
+    },
+    {
+      "key": "soc_inc_005",
+      "path": "root.cti.soc.incidents.INC_2026_005",
+      "content": "SOC Alert: IDS signature match per tentativo di exploit su Palo Alto PAN-OS Captive Portal. Source IP associato a scanning massivo. Pattern coerente con CVE-2026-0300 (zero-day documentato in TI Mindmap HUB Issue #16, attore CL-STA-1132). Il firewall era già stato patchato con hotfix di emergenza. Scanning continuo da 3 IP diversi nell'arco di 48 ore suggerisce campagna coordinata.",
+      "tags": [
+        "soc",
+        "incident",
+        "panos",
+        "firewall",
+        "scanning",
+        "perimeter"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-005",
+        "date": "2026-05-18",
+        "severity": "high",
+        "status": "blocked_by_patch",
+        "alert_source": "IDS / PAN-OS logs",
+        "cve_attempted": "CVE-2026-0300",
+        "scanning_ips": 3,
+        "scanning_duration_hours": 48,
+        "actor_hypothesis": "CL-STA-1132 campaign",
+        "mitre": [
+          "T1190"
+        ]
+      }
+    },
+    {
+      "key": "soc_inc_006",
+      "path": "root.cti.soc.incidents.INC_2026_006",
+      "content": "SOC Alert: spike di email phishing con temi FIFA World Cup 2026 rilevate dal mail gateway. 47 email bloccate in 24 ore targeting dipendenti di 3 filiali (DE, FR, IT). Domini di phishing usano AiTM proxy per intercettare credenziali e token MFA in tempo reale. 2 utenti hanno cliccato il link ma il conditional access ha bloccato l'autenticazione per geolocalizzazione anomala. Pattern identico a campagna documentata in TI Mindmap HUB Issue #21.",
+      "tags": [
+        "soc",
+        "incident",
+        "phishing",
+        "worldcup",
+        "aitm",
+        "mail-gateway"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "soc_incident",
+        "incident_id": "INC-2026-006",
+        "date": "2026-06-12",
+        "severity": "medium",
+        "status": "contained",
+        "alert_source": "Mail gateway + Azure AD Conditional Access",
+        "emails_blocked": 47,
+        "users_clicked": 2,
+        "branches_targeted": [
+          "DE",
+          "FR",
+          "IT"
+        ],
+        "technique": "AiTM phishing with World Cup lure",
+        "mitre": [
+          "T1566.002",
+          "T1557"
+        ]
+      }
+    },
+    {
+      "key": "soc_assess_q2",
+      "path": "root.cti.soc.assessments.q2_2026_review",
+      "content": "SOC Assessment Q2 2026. 6 incidenti significativi nel trimestre. Pattern emergente: 3 incidenti su 6 sono stati contenuti grazie a intelligence proattiva da TI Mindmap HUB (Copy Fail mitigation da Issue #16, PAN-OS patch post Issue #16, World Cup awareness da Issue #21). Senza la correlazione longitudinale tra briefing settimanali e telemetria SOC, almeno 2 incidenti avrebbero avuto impatto operativo. Il tempo medio di correlazione alert→intel è sceso da 4 ore a 15 minuti grazie al retrieval pre-ingest.",
+      "tags": [
+        "soc",
+        "assessment",
+        "quarterly",
+        "value-demonstration"
+      ],
+      "metadata": {
+        "source": "SOC EU Financial Sector",
+        "vendor": "Internal SOC",
+        "classification": "TLP:AMBER",
+        "kind": "assessment",
+        "period": "Q2 2026",
+        "incidents_total": 6,
+        "proactively_mitigated": 3,
+        "intel_sources_used": [
+          "TI Mindmap HUB",
+          "CrowdStrike GTR",
+          "Microsoft TI"
+        ],
+        "correlation_time_before": "4 hours",
+        "correlation_time_after": "15 minutes"
+      }
+    }
+  ],
+  "links": [
+    {
+      "from": "tih_issue1_oracle",
+      "to": "tih_issue1_overview",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": "Oracle CVE è il finding principale dell'Issue #1."
+    },
+    {
+      "from": "tih_issue1_dprk_vscode",
+      "to": "tih_issue1_overview",
+      "type": "supports",
+      "weight": 0.7,
+      "rationale": "DPRK VS Code campaign supporta il trend supply chain dell'Issue #1."
+    },
+    {
+      "from": "tih_issue2_mcp_rce",
+      "to": "tih_issue2_overview",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": ""
+    },
+    {
+      "from": "tih_issue2_overview",
+      "to": "tih_issue1_overview",
+      "type": "temporal",
+      "weight": 0.9,
+      "rationale": "Issue #2 è la settimana successiva all'Issue #1. CVSS medio sale."
+    },
+    {
+      "from": "tih_issue3_nextjs",
+      "to": "tih_issue1_dprk_vscode",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Entrambi targeting dell'ecosistema developer/software supply chain."
+    },
+    {
+      "from": "tih_issue16_copyfail",
+      "to": "tih_issue16_dirtyfrag",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "Entrambi Linux kernel LPE, attivi contemporaneamente, tecnica simile."
+    },
+    {
+      "from": "tih_issue16_promptmink",
+      "to": "tih_issue1_dprk_vscode",
+      "type": "temporal",
+      "weight": 0.8,
+      "rationale": "Evoluzione: DPRK da VS Code extensions (Issue #1) a AI agent attack (Issue #16)."
+    },
+    {
+      "from": "tih_issue16_overview",
+      "to": "tih_issue1_overview",
+      "type": "temporal",
+      "weight": 0.9,
+      "rationale": "Evoluzione longitudinale: supply chain consecutive 12 settimane."
+    },
+    {
+      "from": "tih_issue21_unc6780",
+      "to": "tih_issue3_nextjs",
+      "type": "temporal",
+      "weight": 0.8,
+      "rationale": "TeamPCP (Issue #3 Next.js) attributed as UNC6780 in Issue #21."
+    },
+    {
+      "from": "tih_issue21_overview",
+      "to": "tih_issue16_overview",
+      "type": "temporal",
+      "weight": 0.9,
+      "rationale": "Evoluzione Issue #16 → #21: CVSS cala ma superficie d'attacco si espande."
+    },
+    {
+      "from": "tih_issue21_rogueplanet",
+      "to": "tih_issue16_copyfail",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "Entrambi privilege escalation critici: Linux kernel e Windows Defender."
+    },
+    {
+      "from": "mdt_promptsteal",
+      "to": "cs_china_38pct",
+      "type": "related",
+      "weight": 0.5,
+      "rationale": "APT28 (Mandiant) e China-nexus (CrowdStrike) entrambi state-sponsored."
+    },
+    {
+      "from": "cs_cozy_bear",
+      "to": "ms_midnight_blizzard",
+      "type": "related",
+      "weight": 0.9,
+      "rationale": "Stesso attore: COZY BEAR = Midnight Blizzard = APT-29."
+    },
+    {
+      "from": "cs_bybit_theft",
+      "to": "cs_stardust_axios",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "Entrambi DPRK supply chain attacks nel 2025."
+    },
+    {
+      "from": "mdt_handoff_22s",
+      "to": "cs_breakout_27s",
+      "type": "related",
+      "weight": 0.8,
+      "rationale": "Metriche velocità complementari: handoff 22s vs breakout 27s."
+    },
+    {
+      "from": "soc_inc_001",
+      "to": "tih_issue2_winrar",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "INC-001 usa CVE-2025-8088 documentata in TI Hub Issue #2."
+    },
+    {
+      "from": "soc_inc_002",
+      "to": "cs_stardust_axios",
+      "type": "related",
+      "weight": 0.7,
+      "rationale": "INC-002 dependency confusion coerente con pattern STARDUST CHOLLIMA."
+    },
+    {
+      "from": "soc_inc_002",
+      "to": "tih_issue1_dprk_vscode",
+      "type": "related",
+      "weight": 0.6,
+      "rationale": "INC-002 supply chain npm coerente con trend DPRK supply chain Issue #1."
+    },
+    {
+      "from": "soc_inc_003",
+      "to": "cs_cozy_bear",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "INC-003 OAuth device-code è esattamente la tecnica COZY BEAR."
+    },
+    {
+      "from": "soc_inc_003",
+      "to": "ms_midnight_blizzard",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "INC-003 pattern identico a Midnight Blizzard (Microsoft)."
+    },
+    {
+      "from": "soc_inc_004",
+      "to": "tih_issue16_copyfail",
+      "type": "supports",
+      "weight": 0.95,
+      "rationale": "INC-004 tentativo Copy Fail bloccato grazie a mitigation da Issue #16."
+    },
+    {
+      "from": "soc_inc_005",
+      "to": "tih_issue16_panos",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "INC-005 exploit PAN-OS è CVE-2026-0300 da Issue #16."
+    },
+    {
+      "from": "soc_inc_006",
+      "to": "tih_issue21_worldcup",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "INC-006 phishing World Cup è la campagna documentata in Issue #21."
+    },
+    {
+      "from": "soc_inc_001",
+      "to": "soc_inc_002",
+      "type": "temporal",
+      "weight": 0.5,
+      "rationale": "Sequenza temporale incidenti: feb → mar."
+    },
+    {
+      "from": "soc_inc_003",
+      "to": "soc_inc_004",
+      "type": "temporal",
+      "weight": 0.5,
+      "rationale": "Sequenza temporale incidenti: apr → mag."
+    },
+    {
+      "from": "soc_inc_005",
+      "to": "soc_inc_006",
+      "type": "temporal",
+      "weight": 0.5,
+      "rationale": "Sequenza temporale incidenti: mag → giu."
+    },
+    {
+      "from": "soc_assess_q2",
+      "to": "soc_inc_004",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "Assessment cita INC-004 come esempio di mitigation proattiva."
+    },
+    {
+      "from": "soc_assess_q2",
+      "to": "soc_inc_005",
+      "type": "supports",
+      "weight": 0.9,
+      "rationale": "Assessment cita INC-005 come esempio di patching proattivo."
+    },
+    {
+      "from": "soc_assess_q2",
+      "to": "soc_inc_006",
+      "type": "supports",
+      "weight": 0.8,
+      "rationale": "Assessment cita INC-006 come esempio di awareness proattiva."
+    }
+  ]
+}

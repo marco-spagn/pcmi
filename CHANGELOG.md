@@ -13,9 +13,17 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 - **Entity extraction Phase A**: migration `022_extraction_profiles.sql`; `EXTRACTION_ENABLED` worker/API flag; tenant profiles (`GET/PUT/DELETE /v1/extraction-profiles/{id}`); LLM slot extraction into `metadata.pcmi_extract` (`GET/POST /v1/memories/extraction/{memory_id}`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
 
-- **Cognitive Graph entity layer (design only)**: [docs/cognitive-graph-entities.md](docs/cognitive-graph-entities.md) — proposed tenant extraction profiles, LLM attribute slots, `:Entity` AGE vertices, and link-proposal workflow. Example profiles under `examples/cognitive-graph-entities/`. README and [cognitive-graph.md](docs/cognitive-graph.md) clarified: current spike = memory↔memory links only.
+- **Entity extraction Phase B**: migration `023_entity_graph.sql`; promoted slots become `:Entity` vertices with `:mentions` edges from `:Memory` when extraction validates and AGE is available; `GET /v1/graph/entities/memory`, `GET /v1/graph/entities/related` (by `kind`+`key` or shared entities via `memory_id`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
+- **LLM link proposals Phase C**: migration `024_graph_link_proposals.sql`; `LINK_PROPOSALS_ENABLED` flag; async/manual LLM proposals after extraction; `GET /v1/graph/link-proposals`, `POST /v1/graph/link-proposals/generate/{memory_id}`, `POST .../{id}/accept|reject` materializes reviewed edges to `memory_links`. See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
+- **Entity registry Phase D**: migrations `025_entity_registry.sql`, `026_entity_graph_same_as.sql`; canonical entity registry + alias table + evolution snapshots (generic across all extraction profiles); `ENTITY_ALIAS_PROPOSALS_ENABLED`; `GET /v1/entities/registry`, `GET /v1/entities/registry/{kind}/{canonical_key}`, `POST /v1/entities/registry/aliases`, `GET/POST /v1/graph/entity-alias-proposals/*`. Re-extraction reconciles `mentions` and appends snapshots. See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
+
+- **Entity extraction race fix**: async worker no longer overwrites a successful sync extraction (`status: ok`) with a later `validation_failed` from a duplicate LLM call.
 
 ### Fixed
+
+- **`GET /v1/graph/related` bidirectional traversal**: default `direction=both` follows `memory_links` in either direction so incoming cross-campaign correlations and leaf nodes (e.g. postmortems) appear in graph exploration. Use `direction=out` for legacy outgoing-only behaviour; `direction=in` for incoming-only.
 
 - **Session promote path collision** (`internal/repository/session_repository.go`): `POST /v1/sessions/:id/promote` re-paths working-memory rows in place. When a target long-term path already held a current memory, the `UPDATE` violated the `uq_memory_entries_open_version` unique index (added in the versioning-race fix), aborting the **entire** promotion with an opaque DB error (and, before that index, silently created two "current" rows at the same path). Promote now detects an occupied target — including two session rows that map to the same path — skips those items instead of failing or overwriting, and reports them in a new `skipped` field on the promote response.
 

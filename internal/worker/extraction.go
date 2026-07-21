@@ -8,22 +8,34 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/marco-spagn/pcmi/internal/config"
+	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 )
 
 // ExtractionWorker runs LLM attribute extraction after memory store/update events.
 type ExtractionWorker struct {
-	svc *service.ExtractionService
+	svc          *service.ExtractionService
+	proposals    *service.LinkProposalService
+	aliasProps   *service.EntityAliasProposalService
 }
 
 // NewExtractionWorker wires the extraction service for async worker use.
 func NewExtractionWorker(db *pgxpool.Pool, cfg *config.Config) *ExtractionWorker {
+	graphClient := graph.NewGraphClient(db)
 	profiles := repository.NewExtractionRepository(db, nil)
 	memRepo := repository.NewMemoryRepository(db, nil)
+	links := repository.NewLinksRepository(db, nil)
+	proposalsRepo := repository.NewLinkProposalRepository(db, nil)
+	entityRepo := repository.NewEntityRegistryRepository(db, nil)
+	aliasProposalRepo := repository.NewEntityAliasProposalRepository(db, nil)
+	entitySvc := service.NewEntityRegistryService(entityRepo)
+	graphClient.SetEntityKeyExpander(entitySvc.ExpandEntityKeys)
 	llm, _ := NewLLMClient(cfg)
-	svc := service.NewExtractionService(profiles, memRepo, llm, cfg)
-	return &ExtractionWorker{svc: svc}
+	svc := service.NewExtractionService(profiles, memRepo, llm, cfg, graphClient, entitySvc)
+	proposals := service.NewLinkProposalService(proposalsRepo, profiles, links, graphClient, llm, cfg)
+	aliasProps := service.NewEntityAliasProposalService(aliasProposalRepo, entityRepo, entitySvc, profiles, llm, cfg)
+	return &ExtractionWorker{svc: svc, proposals: proposals, aliasProps: aliasProps}
 }
 
 // Enabled reports whether extraction is turned on in config.
@@ -41,6 +53,17 @@ func (w *ExtractionWorker) OnMemoryEvent(tenantID, path string, memoryID int64, 
 		defer cancel()
 		if err := w.svc.ExtractPath(ctx, tenantID, path, memoryID, version); err != nil {
 			log.Printf("extraction worker: tenant=%s path=%s id=%d: %v", tenantID, path, memoryID, err)
+			return
+		}
+		if w.proposals != nil && w.proposals.Enabled() {
+			if _, err := w.proposals.GenerateForMemory(ctx, tenantID, memoryID); err != nil {
+				log.Printf("link proposal worker: tenant=%s id=%d: %v", tenantID, memoryID, err)
+			}
+		}
+		if w.aliasProps != nil && w.aliasProps.Enabled() {
+			if _, err := w.aliasProps.GenerateForMemory(ctx, tenantID, memoryID); err != nil {
+				log.Printf("entity alias proposal worker: tenant=%s id=%d: %v", tenantID, memoryID, err)
+			}
 		}
 	}()
 }

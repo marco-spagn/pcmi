@@ -33,7 +33,7 @@ func TestFindRelated_AGENotAvailable(t *testing.T) {
 	// With a nil db, AGE is never available — FindRelated must return empty
 	// slice and nil error (graceful degradation).
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "tenant-1", 42, nil, 3, 0, 50)
+	result, err := gc.FindRelated(context.Background(), "tenant-1", 42, nil, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("expected nil error, got %v", err)
 	}
@@ -152,7 +152,7 @@ func TestCreateLink_NilDB_ReturnsError(t *testing.T) {
 func TestFindRelated_MaxDepthZero_Normalised(t *testing.T) {
 	// maxDepth <= 0 must be normalised to 1 inside FindRelated (not panic).
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "tenant-1", 42, nil, 0, 0, 50)
+	result, err := gc.FindRelated(context.Background(), "tenant-1", 42, nil, 0, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestFindRelated_MaxDepthZero_Normalised(t *testing.T) {
 func TestFindRelated_NilLinkTypes_AllEdges(t *testing.T) {
 	// nil linkTypes must not cause a panic (all-edges traversal path).
 	gc := NewGraphClient(nil)
-	_, err := gc.FindRelated(context.Background(), "t", 1, nil, 2, 0, 50)
+	_, err := gc.FindRelated(context.Background(), "t", 1, nil, 2, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("nil linkTypes: unexpected error: %v", err)
 	}
@@ -173,7 +173,7 @@ func TestFindRelated_NilLinkTypes_AllEdges(t *testing.T) {
 
 func TestFindRelated_EmptyLinkTypes_AllEdges(t *testing.T) {
 	gc := NewGraphClient(nil)
-	_, err := gc.FindRelated(context.Background(), "t", 1, []string{}, 2, 0, 50)
+	_, err := gc.FindRelated(context.Background(), "t", 1, []string{}, 2, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("empty linkTypes: unexpected error: %v", err)
 	}
@@ -432,7 +432,7 @@ func TestAutoTenantScopeCypher_InvalidPattern(t *testing.T) {
 
 func TestFindRelated_CursorBeyondTotal(t *testing.T) {
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 1000, 50)
+	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 1000, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -443,7 +443,7 @@ func TestFindRelated_CursorBeyondTotal(t *testing.T) {
 
 func TestFindRelated_ZeroLimit(t *testing.T) {
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 0)
+	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 0, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -455,7 +455,7 @@ func TestFindRelated_ZeroLimit(t *testing.T) {
 
 func TestFindRelated_NegativeCursor(t *testing.T) {
 	gc := NewGraphClient(nil)
-	_, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, -5, 50)
+	_, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, -5, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("negative offset should not error: %v", err)
 	}
@@ -465,7 +465,7 @@ func TestFindRelated_NegativeCursor(t *testing.T) {
 
 func TestFindRelated_LinkTypesWithSpecialChars(t *testing.T) {
 	gc := NewGraphClient(nil)
-	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal-injection", "has space"}, 3, 0, 50)
+	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal-injection", "has space"}, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("link types with special chars: %v", err)
 	}
@@ -473,7 +473,7 @@ func TestFindRelated_LinkTypesWithSpecialChars(t *testing.T) {
 
 func TestFindRelated_NilClient(t *testing.T) {
 	var gc *GraphClient
-	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 50)
+	result, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("nil receiver: unexpected error: %v", err)
 	}
@@ -907,7 +907,7 @@ func TestFindRelated_DepthNormalisedWhenAGEUnavailable(t *testing.T) {
 	// With nil db: IsAvailable returns false → returns empty. Verify normalisations
 	// do not execute (they are after the IsAvailable guard).
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal"}, -1, 0, 0)
+	result, err := gc.FindRelated(context.Background(), "t", 1, []string{"causal"}, -1, 0, 0, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -918,7 +918,7 @@ func TestFindRelated_DepthNormalisedWhenAGEUnavailable(t *testing.T) {
 
 func TestFindRelated_AllParams_NilDB(t *testing.T) {
 	gc := NewGraphClient(nil)
-	result, err := gc.FindRelated(context.Background(), "t", 42, []string{"causal", "temporal"}, 10, 100, 200)
+	result, err := gc.FindRelated(context.Background(), "t", 42, []string{"causal", "temporal"}, 10, 100, 200, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1090,7 +1090,7 @@ func TestIsAvailable_NilPool(t *testing.T) {
 
 func TestFindRelated_LinkTypeWithSQLKeywords(t *testing.T) {
 	gc := NewGraphClient(nil)
-	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"SELECT", "DROP", "causal_injection"}, 3, 0, 50)
+	_, err := gc.FindRelated(context.Background(), "t", 1, []string{"SELECT", "DROP", "causal_injection"}, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("SQL-like link types should be sanitised, not error: %v", err)
 	}
@@ -1100,7 +1100,7 @@ func TestFindRelated_LimitClamped(t *testing.T) {
 	// FindRelated normalises limit=0 → 50 before calling AGE. With nil db we never
 	// reach the normalisation, but we can verify the guard works.
 	gc := NewGraphClient(nil)
-	result, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100)
+	result, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100, TraversalBoth)
 	if result.Memories == nil {
 		t.Error("expected non-nil Memories")
 	}
@@ -1593,19 +1593,19 @@ func TestFindRelated_NormalisationRunsBeforeAGE(t *testing.T) {
 	gc := NewGraphClient(nil)
 
 	// maxDepth=0 → normalised to 1
-	r1, _ := gc.FindRelated(context.Background(), "t", 1, nil, 0, 0, 50)
+	r1, _ := gc.FindRelated(context.Background(), "t", 1, nil, 0, 0, 50, TraversalBoth)
 	if len(r1.Memories) != 0 {
 		t.Error("maxDepth=0: expected empty (AGE unavailable)")
 	}
 
 	// limit=0 → normalised to 50
-	r2, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 0)
+	r2, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 0, TraversalBoth)
 	if len(r2.Memories) != 0 {
 		t.Error("limit=0: expected empty (AGE unavailable)")
 	}
 
 	// cursor=-1 → normalised to 0
-	r3, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, -1, 50)
+	r3, _ := gc.FindRelated(context.Background(), "t", 1, nil, 3, -1, 50, TraversalBoth)
 	if len(r3.Memories) != 0 {
 		t.Error("cursor=-1: expected empty (AGE unavailable)")
 	}
@@ -1613,7 +1613,7 @@ func TestFindRelated_NormalisationRunsBeforeAGE(t *testing.T) {
 
 func TestFindRelated_MaxDepthAlreadyValid(t *testing.T) {
 	gc := NewGraphClient(nil)
-	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 5, 0, 50)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 5, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1624,7 +1624,7 @@ func TestFindRelated_MaxDepthAlreadyValid(t *testing.T) {
 
 func TestFindRelated_LimitAlreadyValid(t *testing.T) {
 	gc := NewGraphClient(nil)
-	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 0, 100, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1635,7 +1635,7 @@ func TestFindRelated_LimitAlreadyValid(t *testing.T) {
 
 func TestFindRelated_CursorAlreadyValid(t *testing.T) {
 	gc := NewGraphClient(nil)
-	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 100, 50)
+	r, err := gc.FindRelated(context.Background(), "t", 1, nil, 3, 100, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

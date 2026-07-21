@@ -52,7 +52,20 @@ Requires Apache AGE (`docker compose --profile graph`). See [`../docs/cognitive-
 | HTTP | Notes |
 |------|--------|
 | `GET /v1/graph/health` | No auth; `{"available": bool, "extension": "apache-age"}` |
-| `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`; 501 when AGE absent |
+| `GET /v1/graph/related` | Read role; query `memory_id`, `depth`, `link_types`, `direction` (`both`|`out`|`in`); 501 when AGE absent |
+| `GET /v1/graph/entities/memory` | Read role; list promoted entities for `memory_id`; 501 when AGE absent |
+| `GET /v1/graph/entities/related` | Read role; correlate by `kind`+`key` or shared entities via `memory_id`; 501 when AGE absent |
+| `GET /v1/graph/link-proposals` | List LLM link proposals (`status`, `source_memory_id`) |
+| `POST /v1/graph/link-proposals/generate/{memory_id}` | Generate proposals (503 when `LINK_PROPOSALS_ENABLED=false`) |
+| `POST /v1/graph/link-proposals/{id}/accept` | Materialize pending proposal to `memory_links` |
+| `POST /v1/graph/link-proposals/{id}/reject` | Reject pending proposal |
+| `GET /v1/entities/registry` | List canonical entities (`?kind=`, `?limit=`) — any extraction profile |
+| `GET /v1/entities/registry/{kind}/{canonical_key}` | Entity detail + aliases + evolution snapshots |
+| `POST /v1/entities/registry/aliases` | Register manual alias merge (write role) |
+| `GET /v1/graph/entity-alias-proposals` | List pending entity alias merge proposals |
+| `POST /v1/graph/entity-alias-proposals/generate/{memory_id}` | LLM alias proposals (503 when `ENTITY_ALIAS_PROPOSALS_ENABLED=false`) |
+| `POST /v1/graph/entity-alias-proposals/{id}/accept` | Accept alias → registry + AGE `same_as` |
+| `POST /v1/graph/entity-alias-proposals/{id}/reject` | Reject alias proposal |
 | `GET /v1/extraction-profiles` | List tenant LLM extraction profiles (Phase A) |
 | `PUT /v1/extraction-profiles/{profile_id}` | Upsert profile (`path_prefix`, `profile`, `enabled`) |
 | `DELETE /v1/extraction-profiles/{profile_id}` | Remove profile |

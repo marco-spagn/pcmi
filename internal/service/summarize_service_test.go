@@ -178,6 +178,9 @@ func (s *summarizeMemRepoStub) GetHistoricalVersion(context.Context, string, str
 func (s *summarizeMemRepoStub) GetByPath(context.Context, string, string, *int, *time.Time) (*model.MemoryEntry, error) {
 	return nil, nil
 }
+func (s *summarizeMemRepoStub) GetByIDResolveCurrent(context.Context, string, int64) (*model.MemoryEntry, int64, error) {
+	return nil, 0, nil
+}
 
 func (s *summarizeMemRepoStub) ExportMemories(context.Context, string, string, int, bool) ([]model.MemoryEntry, error) {
 	return nil, nil

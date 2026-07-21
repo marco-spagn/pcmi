@@ -216,7 +216,7 @@ func TestIntegration_FindRelated_WithRealDB(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-00000000aa01"
 	a, _, _ := seedGraph(t, pool, tenantID)
 
-	result, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, 0, 50)
+	result, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("FindRelated: %v", err)
 	}
@@ -242,7 +242,7 @@ func TestIntegration_FindRelated_DeduplicatesMultiplePaths(t *testing.T) {
 	tenantID := "00000000-0000-0000-0000-00000000aa11"
 	a, b, c := seedGraph(t, pool, tenantID)
 
-	result, err := gc.FindRelated(ctx, tenantID, a, nil, 3, 0, 50)
+	result, err := gc.FindRelated(ctx, tenantID, a, nil, 3, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("FindRelated: %v", err)
 	}
@@ -290,7 +290,7 @@ func TestIntegration_FindRelated_NumericPaginationBoundary(t *testing.T) {
 	var got []int64
 	cursor := int64(0)
 	for {
-		page, err := gc.FindRelated(ctx, tenantID, hubID, []string{LinkTypeRelated}, 1, cursor, 2)
+		page, err := gc.FindRelated(ctx, tenantID, hubID, []string{LinkTypeRelated}, 1, cursor, 2, TraversalBoth)
 		if err != nil {
 			t.Fatalf("FindRelated page cursor=%d: %v", cursor, err)
 		}
@@ -362,7 +362,7 @@ func TestIntegration_MemoryLinkDeleteRemovesAGEEdge(t *testing.T) {
 	insertMemoryWithID(t, pool, tenantID, toID, fmt.Sprintf("root.graph_int.drift.to_%d", toID), "Graph drift target")
 	insertGraphLink(t, pool, tenantID, fromID, toID, LinkTypeCausal)
 
-	before, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50)
+	before, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("FindRelated before delete: %v", err)
 	}
@@ -387,7 +387,7 @@ func TestIntegration_MemoryLinkDeleteRemovesAGEEdge(t *testing.T) {
 		t.Fatalf("delete memory link: %v", err)
 	}
 
-	after, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50)
+	after, err := gc.FindRelated(ctx, tenantID, fromID, []string{LinkTypeCausal}, 1, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("FindRelated after delete: %v", err)
 	}
@@ -512,14 +512,14 @@ func TestIntegration_FindRelated_Pagination(t *testing.T) {
 	a, _, _ := seedGraph(t, pool, tenantID)
 
 	// First page — limit 1.
-	p1, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, 0, 1)
+	p1, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, 0, 1, TraversalBoth)
 	if err != nil {
 		t.Fatalf("page 1: %v", err)
 	}
 	t.Logf("page1: %d entries, nextCursor=%d", len(p1.Memories), p1.NextCursor)
 
 	if p1.NextCursor > 0 {
-		p2, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, p1.NextCursor, 1)
+		p2, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 3, p1.NextCursor, 1, TraversalBoth)
 		if err != nil {
 			t.Fatalf("page 2: %v", err)
 		}
@@ -583,7 +583,7 @@ func TestIntegration_FindRelated_MaxDepth(t *testing.T) {
 	a, _, _ := seedGraph(t, pool, tenantID)
 
 	// Depth 1 should find only direct neighbours.
-	result, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 1, 0, 50)
+	result, err := gc.FindRelated(ctx, tenantID, a, []string{"causal"}, 1, 0, 50, TraversalBoth)
 	if err != nil {
 		t.Fatalf("FindRelated depth=1: %v", err)
 	}
@@ -618,6 +618,43 @@ func TestIntegration_FindChain_ReverseDirection(t *testing.T) {
 	// With directed causal edges, reverse should be not connected.
 	if result.Connected {
 		t.Log("reverse direction unexpectedly connected (may have other link types)")
+	}
+}
+
+func TestIntegration_FindRelated_IncomingEdges(t *testing.T) {
+	pool := realDB(t)
+	gc := NewGraphClient(pool)
+	ctx := context.Background()
+
+	if !gc.IsAvailable(ctx) {
+		t.Skip("AGE not available — skipping FindRelated incoming test")
+	}
+
+	tenantID := "00000000-0000-0000-0000-00000000aa16"
+	_, b, c := seedGraph(t, pool, tenantID)
+
+	out, err := gc.FindRelated(ctx, tenantID, c, []string{"causal"}, 1, 0, 50, TraversalOut)
+	if err != nil {
+		t.Fatalf("FindRelated out: %v", err)
+	}
+	if out.Total != 0 {
+		t.Fatalf("outgoing depth=1 from c: total=%d, want 0", out.Total)
+	}
+
+	both, err := gc.FindRelated(ctx, tenantID, c, []string{"causal"}, 1, 0, 50, TraversalBoth)
+	if err != nil {
+		t.Fatalf("FindRelated both: %v", err)
+	}
+	if both.Total != 1 || len(both.Memories) != 1 || both.Memories[0].ID != b {
+		t.Fatalf("both depth=1 from c: got %+v, want neighbour b=%d", both.Memories, b)
+	}
+
+	in, err := gc.FindRelated(ctx, tenantID, c, []string{"causal"}, 1, 0, 50, TraversalIn)
+	if err != nil {
+		t.Fatalf("FindRelated in: %v", err)
+	}
+	if in.Total != 1 || in.Memories[0].ID != b {
+		t.Fatalf("incoming depth=1 from c: got %+v, want b=%d", in.Memories, b)
 	}
 }
 

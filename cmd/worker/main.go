@@ -131,6 +131,11 @@ func main() {
 	} else {
 		log.Println("ℹ️  Entity extraction worker disabled (EXTRACTION_ENABLED=false)")
 	}
+	if cfg.LinkProposalsEnabled {
+		log.Println("✅ LLM link proposal worker enabled (LINK_PROPOSALS_ENABLED=true)")
+	} else {
+		log.Println("ℹ️  LLM link proposal worker disabled (LINK_PROPOSALS_ENABLED=false)")
+	}
 
 	var extractionWorker *worker.ExtractionWorker
 	if cfg.ExtractionEnabled {

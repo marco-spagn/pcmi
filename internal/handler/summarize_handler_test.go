@@ -39,6 +39,10 @@ func (s *summarizeMemStub) GetByPath(context.Context, string, string, *int, *tim
 	return nil, nil
 }
 
+func (s *summarizeMemStub) GetByIDResolveCurrent(context.Context, string, int64) (*model.MemoryEntry, int64, error) {
+	return nil, 0, errors.New("memory not found")
+}
+
 func (s *summarizeMemStub) ExportMemories(context.Context, string, string, int, bool) ([]model.MemoryEntry, error) {
 	return nil, nil
 }

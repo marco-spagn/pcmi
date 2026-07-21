@@ -63,6 +63,17 @@ func (d *dedupHandlerMockRepo) GetByPath(_ context.Context, _ string, path strin
 	}
 	return nil, errors.New("not found")
 }
+func (d *dedupHandlerMockRepo) GetByIDResolveCurrent(_ context.Context, _ string, memoryID int64) (*model.MemoryEntry, int64, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	for _, e := range d.entries {
+		if e.ID == memoryID {
+			cp := *e
+			return &cp, memoryID, nil
+		}
+	}
+	return nil, memoryID, errors.New("memory not found")
+}
 func (d *dedupHandlerMockRepo) ExportMemories(context.Context, string, string, int, bool) ([]model.MemoryEntry, error) {
 	return nil, nil
 }

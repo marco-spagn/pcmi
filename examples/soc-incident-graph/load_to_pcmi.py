@@ -35,6 +35,8 @@ ID_MAP    = os.path.join(ROOT, "id_map.json")
 ID_MAP_META = os.path.join(ROOT, "id_map.meta.json")
 MAX_BATCH = 50
 EMB_MODEL = os.environ.get("PCMI_EMBEDDING_MODEL", "")
+DEFAULT_LINK_WORKERS = int(os.environ.get("PCMI_LINK_WORKERS", "4"))
+LINK_MAX_ATTEMPTS = 12
 
 CORE = {"external_id", "path", "content", "tags"}
 NUMERIC = {"cvss_score": float, "ttd_minutes": int, "ttr_minutes": int, "alert_count": int}
@@ -161,11 +163,28 @@ def load_nodes(batch_size, limit):
     print(f"  ✓ nodi caricati: {len(id_map)} totali, errori={errors}")
     return id_map
 
-def collect_edges(id_map):
+def allowed_external_ids(limit):
+    """When --limit is set, only link endpoints present in the first N node rows."""
+    if not limit:
+        return None
+    allowed = set()
+    with open(NODES_CSV, encoding="utf-8") as f:
+        for i, row in enumerate(csv.DictReader(f)):
+            if i >= limit:
+                break
+            allowed.add(row["external_id"])
+    return allowed
+
+def collect_edges(id_map, limit=0):
     edges = []
     skipped = 0
+    allowed = allowed_external_ids(limit)
     with open(LINKS_CSV, encoding="utf-8") as f:
         for row in csv.DictReader(f):
+            if allowed is not None:
+                if row["from_external_id"] not in allowed or row["to_external_id"] not in allowed:
+                    skipped += 1
+                    continue
             a = id_map.get(row["from_external_id"]); b = id_map.get(row["to_external_id"])
             if a is None or b is None:
                 skipped += 1; continue
@@ -173,27 +192,39 @@ def collect_edges(id_map):
     return edges, skipped
 
 def load_links(id_map, workers, limit):
-    edges, skipped = collect_edges(id_map)
+    edges, skipped = collect_edges(id_map, limit)
 
     total = len(edges)
-    print(f"  da creare: {total} archi (workers={workers}, skip(nomap)={skipped})")
+    print(f"  da creare: {total} archi (workers={workers}, skip={skipped})")
     done = {"n": 0}; errors = {"n": 0}; lock = threading.Lock(); t0 = time.time()
+    sample_errors = []
 
     def post_edge(e):
         fp, tp, lt, why = e
         payload = {"from_path": fp, "to_path": tp, "link_type": lt}
         if why: payload["metadata"] = {"rationale": why}
-        for attempt in range(1, 4):
+        for attempt in range(1, LINK_MAX_ATTEMPTS + 1):
             try:
-                st, _ = http("POST", "/v1/memories/links", payload, timeout=30)
-                if st in (200, 201): return True
+                st, resp = http("POST", "/v1/memories/links", payload, timeout=30)
+                if st in (200, 201):
+                    return True
                 if st == 429:
-                    time.sleep(3 * attempt)
+                    retry_after = resp.get("_retry_after") or ""
+                    try:
+                        wait = float(retry_after) if retry_after else min(60, 2 ** attempt)
+                    except ValueError:
+                        wait = min(60, 2 ** attempt)
+                    time.sleep(wait)
                     continue
-                raise RuntimeError(f"HTTP {st}")
-            except Exception:
-                if attempt == 3: return False
-                time.sleep(1.5 * attempt)
+                err = resp.get("error") or resp
+                raise RuntimeError(f"HTTP {st}: {err}")
+            except Exception as ex:
+                if attempt == LINK_MAX_ATTEMPTS:
+                    with lock:
+                        if len(sample_errors) < 5:
+                            sample_errors.append(str(ex))
+                    return False
+                time.sleep(min(30, 1.5 * attempt))
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = [ex.submit(post_edge, e) for e in edges]
@@ -207,12 +238,19 @@ def load_links(id_map, workers, limit):
                     print(f"  archi {done['n']}/{total}  ({rate:.0f}/s)  errori={errors['n']}", flush=True)
 
     print(f"  ✓ archi creati: {total-errors['n']}/{total}, errori={errors['n']}")
+    if errors["n"] and sample_errors:
+        print("  ⚠ errori di esempio:")
+        for msg in sample_errors:
+            print(f"    - {msg}")
+        if any("429" in m or "rate limit" in m.lower() for m in sample_errors):
+            print("  hint: export RATE_LIMIT_DISABLED=true sull'API oppure usa --link-workers 2")
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--batch", type=int, default=MAX_BATCH,
                     help=f"batch size (max {MAX_BATCH} per PCMI API)")
-    ap.add_argument("--link-workers", type=int, default=16)
+    ap.add_argument("--link-workers", type=int, default=DEFAULT_LINK_WORKERS,
+                    help=f"parallel link POST workers (default {DEFAULT_LINK_WORKERS}; lower if 429)")
     ap.add_argument("--limit", type=int, default=0, help="limita i nodi; i link sono filtrati sugli endpoint caricati")
     ap.add_argument("--nodes-only", action="store_true")
     ap.add_argument("--links-only", action="store_true")
@@ -220,10 +258,10 @@ def main():
     if args.batch < 1 or args.batch > MAX_BATCH:
         print(f"✗ --batch must be 1–{MAX_BATCH} (API limit)"); sys.exit(1)
 
-    print(f"PCMI loader → {BASE}")
+    print(f"PCMI loader → {BASE}", flush=True)
     try:
         st, h = http("GET", "/v1/graph/health")
-        print(f"  graph health: {h}")
+        print(f"  graph health: {h}", flush=True)
     except Exception as e:
         print(f"  ⚠ health check fallito: {e}")
 

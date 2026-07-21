@@ -248,6 +248,305 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .toast.err { border-color: rgba(248,113,113,.5); }
+
+/* entity + proposals demo */
+.proposals-panel {
+  width: 0; flex-shrink: 0; background: var(--bg-panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transition: width .22s cubic-bezier(.4,0,.2,1); z-index: 24;
+}
+.proposals-panel.open { width: 340px; }
+.prop-head {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-shrink: 0;
+}
+.prop-title { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; color: var(--text-mute); font-weight: 700; }
+.prop-body { flex: 1; overflow-y: auto; padding: 10px 12px 16px; }
+.prop-body::-webkit-scrollbar { width: 8px; }
+.prop-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.prop-card {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 11px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.prop-card:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.prop-card.active { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.06); }
+.prop-card .edge {
+  font-family: var(--mono); font-size: 11.5px; color: var(--text); line-height: 1.45; margin-bottom: 6px;
+}
+.prop-card .meta { font-size: 11px; color: var(--text-mute); margin-bottom: 8px; line-height: 1.45; }
+.prop-card .actions { display: flex; gap: 6px; }
+.prop-card .actions button {
+  flex: 1; font-size: 11px; font-weight: 600; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-elev); color: var(--text-dim);
+}
+.prop-card .actions .accept { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.35); color: var(--ok); }
+.prop-card .actions .reject { background: rgba(248,113,113,.1); border-color: rgba(248,113,113,.35); color: var(--danger); }
+.prop-tabs {
+  display: flex; gap: 4px; padding: 8px 12px 0; flex-shrink: 0;
+}
+.prop-tabs button {
+  flex: 1; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+  padding: 7px 6px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text-mute);
+}
+.prop-tabs button.active {
+  background: rgba(45,212,191,.1); border-color: rgba(45,212,191,.35); color: var(--primary);
+}
+.registry-card {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 9px;
+  padding: 10px 11px; margin-bottom: 8px; cursor: pointer; transition: border-color .15s, background .15s;
+}
+.registry-card:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.registry-card.active { border-color: rgba(168,85,247,.45); background: rgba(168,85,247,.06); }
+.registry-card .kind {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-mute); margin-bottom: 4px;
+}
+.registry-card .key { font-family: var(--mono); font-size: 11.5px; color: var(--text); line-height: 1.45; word-break: break-all; }
+.registry-card .meta { font-size: 11px; color: var(--text-mute); margin-top: 5px; }
+.registry-filter { padding: 0 12px 8px; flex-shrink: 0; }
+.registry-filter select {
+  width: 100%; font-size: 11px; padding: 6px 8px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text-dim);
+}
+.retrieval-panel .retrieval-query {
+  width: 100%; min-height: 52px; padding: 8px 10px; border-radius: 7px; margin-top: 8px;
+  border: 1px solid var(--border); background: var(--bg-input); color: var(--text);
+  font-size: 11.5px; font-family: var(--sans); resize: vertical; line-height: 1.45;
+}
+.retrieval-hit {
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  margin-bottom: 6px; cursor: pointer; background: var(--bg-elev);
+}
+.retrieval-hit:hover { border-color: var(--border-2); }
+.retrieval-hit.cross { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.06); }
+.retrieval-hit .rank { font-family: var(--mono); font-size: 11px; color: var(--text-mute); }
+.retrieval-hit .score { font-family: var(--mono); font-size: 11px; color: var(--primary); }
+.retrieval-hit .path { font-size: 11px; color: var(--text-dim); word-break: break-all; margin-top: 3px; }
+.retrieval-hit .snippet { font-size: 11px; color: var(--text); margin-top: 4px; line-height: 1.4; }
+.retrieval-summary {
+  font-size: 11.5px; color: var(--text-dim); line-height: 1.5; padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.retrieval-pipeline {
+  padding: 0 12px 10px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+  flex-shrink: 0;
+}
+.retrieval-pipeline .pipe-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--text-mute); margin-bottom: 6px;
+}
+.retrieval-pipe-steps { display: flex; flex-direction: column; gap: 4px; }
+.retrieval-pipe-step {
+  display: flex; gap: 8px; align-items: flex-start; font-size: 11px; line-height: 1.4;
+  color: var(--text-mute); padding: 4px 6px; border-radius: 6px;
+}
+.retrieval-pipe-step.active { color: var(--text); background: rgba(56,189,248,.08); }
+.retrieval-pipe-step.done { color: var(--text-dim); }
+.retrieval-pipe-step .pipe-num {
+  font-family: var(--mono); font-size: 10px; min-width: 18px; color: var(--primary);
+}
+.retrieval-pipe-step .pipe-detail { font-size: 10px; color: var(--text-mute); margin-top: 1px; }
+.retrieval-mode {
+  font-size: 11px; padding: 6px 10px; margin: 0 12px 8px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg-input); line-height: 1.45;
+}
+.retrieval-mode.hybrid { border-color: rgba(45,212,191,.35); color: var(--text); }
+.retrieval-mode.fallback { border-color: rgba(245,158,11,.35); color: var(--text-dim); }
+.retrieval-mode.empty { border-color: rgba(239,68,68,.35); }
+.retrieval-score-formula {
+  font-family: var(--mono); font-size: 10px; color: var(--text-mute);
+  padding: 0 12px 8px; line-height: 1.5;
+}
+.snap-timeline { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.snap-row {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 11px; line-height: 1.45;
+}
+.snap-row .when { color: var(--text-mute); font-size: 10px; margin-bottom: 3px; }
+.snap-row .slot { font-family: var(--mono); color: var(--primary); font-size: 10px; }
+.alias-chip {
+  display: inline-block; font-family: var(--mono); font-size: 10px;
+  padding: 2px 7px; margin: 2px 4px 2px 0; border-radius: 999px;
+  background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.3); color: #c4b5fd;
+}
+.extract-box {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-family: var(--mono); font-size: 11px; color: var(--text-dim); line-height: 1.5;
+  max-height: 140px; overflow-y: auto;
+}
+.flag-badge {
+  font-size: 10px; font-weight: 700; letter-spacing: .4px; padding: 3px 8px; border-radius: 999px;
+  background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.35); color: #c4b5fd;
+}
+
+/* guided workflow bar */
+.guide-bar {
+  background: linear-gradient(180deg, rgba(19,28,48,.98), rgba(14,21,37,.95));
+  border-bottom: 1px solid var(--border);
+  padding: 10px 20px 12px;
+  flex-shrink: 0;
+  z-index: 19;
+}
+.guide-bar.hidden { display: none; }
+.guide-top {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+}
+.guide-top h2 { font-size: 13px; font-weight: 650; color: var(--text); margin-right: auto; }
+.guide-top .sub { font-size: 11px; color: var(--text-mute); font-weight: 500; }
+.guide-steps {
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px;
+}
+@media (max-width: 1200px) { .guide-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.gstep {
+  background: var(--bg-input); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 11px; cursor: pointer; transition: border-color .15s, background .15s, transform .15s;
+  user-select: none;
+}
+.gstep:active { transform: scale(0.98); }
+.gstep:hover { border-color: var(--border-2); background: var(--bg-elev); }
+.gstep.active { border-color: rgba(45,212,191,.45); background: rgba(45,212,191,.08); box-shadow: 0 0 0 1px rgba(45,212,191,.15); }
+.gstep.done { opacity: .72; }
+.gstep .num {
+  font-size: 10px; font-weight: 800; letter-spacing: .08em; color: var(--primary); margin-bottom: 4px;
+}
+.gstep .title { font-size: 12px; font-weight: 650; color: var(--text); margin-bottom: 3px; }
+.gstep .desc { font-size: 11px; color: var(--text-mute); line-height: 1.45; }
+.guide-now {
+  margin-top: 10px; padding: 9px 12px; border-radius: 8px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.22);
+  font-size: 12px; color: var(--text-dim); line-height: 1.5;
+}
+.guide-now b { color: var(--accent); }
+.guide-now kbd {
+  font-family: var(--mono); font-size: 10px; background: var(--bg-elev);
+  border: 1px solid var(--border-2); border-radius: 4px; padding: 1px 5px; color: var(--text);
+}
+.ctrl-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ctrl-group-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-mute); padding: 2px 6px; border-radius: 4px; background: var(--bg-elev);
+  border: 1px solid var(--border);
+}
+.welcome-card { max-width: 520px; text-align: left; }
+.welcome-card h3 { text-align: center; margin-bottom: 12px; }
+.welcome-card ol { margin: 0 0 16px 18px; font-size: 12.5px; color: var(--text-dim); line-height: 1.65; }
+.welcome-card li { margin: 6px 0; }
+.welcome-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.welcome-actions button { flex: 1; min-width: 160px; }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45,212,191,.35); }
+  50% { box-shadow: 0 0 0 6px rgba(45,212,191,0); }
+}
+
+/* CTI manual walkthrough — fixed left column beside live demo */
+.walkthrough-panel {
+  width: 0; flex-shrink: 0; overflow: hidden;
+  background: var(--bg-panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; z-index: 26;
+  transition: width .22s cubic-bezier(.4,0,.2,1);
+}
+.walkthrough-panel.open { width: 360px; }
+.wt-head {
+  padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.wt-head h2 { font-size: 13px; font-weight: 650; margin-bottom: 4px; }
+.wt-head .sub { font-size: 10.5px; color: var(--text-mute); line-height: 1.45; }
+.wt-progress {
+  height: 3px; background: var(--border); flex-shrink: 0;
+}
+.wt-progress > div {
+  height: 100%; background: var(--primary); transition: width .2s ease;
+}
+.wt-body {
+  flex: 1; overflow-y: auto; padding: 12px 14px 16px;
+}
+.wt-body::-webkit-scrollbar { width: 8px; }
+.wt-body::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.wt-step-title { font-size: 14px; font-weight: 650; margin-bottom: 8px; color: var(--text); }
+.wt-step-text { font-size: 12px; color: var(--text-dim); line-height: 1.55; margin-bottom: 10px; }
+.wt-callout {
+  font-size: 11.5px; line-height: 1.5; padding: 9px 10px; border-radius: 8px; margin-bottom: 10px;
+  background: rgba(56,189,248,.08); border: 1px solid rgba(56,189,248,.22); color: var(--text-dim);
+}
+.wt-callout.warn { background: rgba(245,158,11,.08); border-color: rgba(245,158,11,.28); }
+.wt-callout.ok { background: rgba(52,211,153,.08); border-color: rgba(52,211,153,.28); }
+.wt-qna { margin-bottom: 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.wt-qna-hdr { font-size: 10.5px; font-weight: 500; padding: 6px 10px; background: var(--bg-input); color: var(--text-dim); border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.4px; }
+.wt-qna details { border-top: 1px solid var(--border); }
+.wt-qna details:first-of-type { border-top: 0; }
+.wt-qna summary { font-size: 11.5px; padding: 7px 10px; cursor: pointer; color: var(--text); line-height: 1.35; list-style: none; }
+.wt-qna summary::-webkit-details-marker { display: none; }
+.wt-qna summary::before { content: '▸ '; color: var(--text-dim); margin-right: 3px; }
+.wt-qna details[open] > summary::before { content: '▾ '; }
+.wt-qna .wt-qna-a { font-size: 11.5px; line-height: 1.55; padding: 4px 10px 10px 22px; color: var(--text-dim); }
+.wt-qna .wt-qna-a code { font-family: var(--mono); font-size: 10.5px; background: var(--bg-input); padding: 1px 4px; border-radius: 3px; }
+.wt-code {
+  font-family: var(--mono); font-size: 10.5px; line-height: 1.5; padding: 8px 10px;
+  border-radius: 7px; background: var(--bg-input); border: 1px solid var(--border);
+  color: var(--text-dim); white-space: pre-wrap; margin-bottom: 10px;
+}
+.wt-mini-steps { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.wt-mini-step {
+  font-size: 10.5px; padding: 5px 8px; border-radius: 6px; color: var(--text-mute);
+  border: 1px solid transparent;
+}
+.wt-mini-step.on { color: var(--text); background: rgba(45,212,191,.08); border-color: rgba(45,212,191,.25); }
+.wt-mini-step.done { color: var(--text-dim); opacity: .85; }
+.wt-nav {
+  padding: 10px 12px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+}
+.wt-nav button {
+  font-size: 11px; font-weight: 600; padding: 7px 12px; border-radius: 7px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-elev); color: var(--text-dim);
+}
+.wt-nav button.primary { background: rgba(45,212,191,.15); border-color: rgba(45,212,191,.4); color: var(--primary); }
+.wt-nav button:disabled { opacity: .4; cursor: not-allowed; }
+.wt-nav .wt-counter {
+  margin-left: auto; margin-right: auto; font-size: 11px; font-family: var(--mono); color: var(--text-mute);
+}
+body.graph-walkthrough .guide-bar { display: none; }
+
+/* demo memory launcher — one chip per memory + “open all” */
+.demo-mem-bar {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 16px 10px;
+  flex-shrink: 0;
+  z-index: 18;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.demo-mem-bar.visible { display: flex; }
+.demo-mem-bar .demo-mem-title {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-mute); white-space: nowrap;
+}
+.demo-mem-chips {
+  display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0;
+  max-height: 72px; overflow-y: auto;
+}
+.demo-mem-chips::-webkit-scrollbar { height: 6px; width: 6px; }
+.demo-mem-chips::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 4px; }
+.demo-mem-chip {
+  font-family: var(--mono); font-size: 10.5px; font-weight: 600;
+  padding: 4px 9px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-2); background: var(--bg-input); color: var(--text-dim);
+  transition: border-color .15s, background .15s, color .15s;
+  white-space: nowrap;
+}
+.demo-mem-chip:hover { border-color: rgba(45,212,191,.45); color: var(--text); background: rgba(45,212,191,.06); }
+.demo-mem-chip.active {
+  border-color: rgba(45,212,191,.55); background: rgba(45,212,191,.12); color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(45,212,191,.15);
+}
+.demo-mem-chip .tag {
+  font-size: 9px; font-weight: 700; letter-spacing: .04em; opacity: .75; margin-right: 4px;
+}
+body.graph-walkthrough .main-area .retrieval-panel.open { width: 320px; }
 </style>
 </head>
 <body>
@@ -263,6 +562,8 @@ button:disabled { opacity: .4; cursor: not-allowed; }
     <h1>Cognitive Graph Explorer <small>PCMI</small></h1>
   </div>
   <span id="age-status" class="status off">checking…</span>
+  <span id="entity-flags" class="flag-badge" style="display:none" title="Extraction + registry + LLM proposals">Phase A–D</span>
+  <button class="btn-secondary seg" id="btn-guide-toggle" onclick="toggleGuideBar()">Guida</button>
   <div class="stats">
     <span>nodes <b id="stat-nodes">0</b></span>
     <span>edges <b id="stat-edges">0</b></span>
@@ -271,6 +572,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 </div>
 
 <div class="controls">
+  <span class="ctrl-group-label">Layout</span>
   <button id="btn-force"  class="btn-active seg"     onclick="setLayout('force')">Force</button>
   <button id="btn-tree"   class="btn-secondary seg"  onclick="setLayout('tree')">Tree</button>
   <button id="btn-radial" class="btn-secondary seg"  onclick="setLayout('radial')">Radial</button>
@@ -278,15 +580,15 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   <button id="btn-clusters" class="btn-secondary seg" onclick="toggleClusters()">Clusters</button>
   <button id="btn-timeline" class="btn-secondary seg" onclick="toggleTimeline()">Timeline</button>
   <div class="control-sep"></div>
-
+  <span class="ctrl-group-label">Auth</span>
   <div class="api-key-area">
     <span class="lbl">Key</span>
     <input type="text" id="api-key" placeholder="X-API-Key" autocomplete="off" spellcheck="false">
   </div>
   <div class="control-sep"></div>
-
+  <span class="ctrl-group-label">Query</span>
   <span class="lbl">Memory ID</span>
-  <input type="number" id="mem-id" value="172" min="1">
+  <input type="number" id="mem-id" value="4400" min="1" title="CTI demo: root.cti.soc.incidents.consolidated (resolve via launch_cti_graph_demo.py)">
   <span class="lbl">Depth</span>
   <input type="number" id="depth" value="3" min="1" max="10" style="width:60px">
 
@@ -299,19 +601,146 @@ button:disabled { opacity: .4; cursor: not-allowed; }
   </div>
 
   <div class="control-sep"></div>
-  <button class="btn-primary"   id="btn-explore" onclick="explore()">Explore</button>
+  <span class="ctrl-group-label">Modalità</span>
+  <span class="lbl">View</span>
+  <button id="btn-view-links" class="btn-active seg" onclick="setViewMode('links')">Links</button>
+  <button id="btn-view-entities" class="btn-secondary seg" onclick="setViewMode('entities')">Entities</button>
+  <button id="btn-view-registry" class="btn-secondary seg" onclick="setViewMode('registry')">Registry</button>
+  <button id="btn-view-retrieval" class="btn-secondary seg" style="display:none" onclick="setViewMode('retrieval')">Retrieve</button>
+  <button id="btn-view-proposals" class="btn-secondary seg" onclick="setViewMode('proposals')">Proposals</button>
+  <div class="control-sep"></div>
+  <button class="btn-primary"   id="btn-explore" onclick="runExplore()">Explore</button>
+  <button class="btn-secondary" id="btn-extract" onclick="runExtract()" title="POST /v1/memories/extraction/{id}">Extract</button>
+  <button class="btn-secondary" id="btn-propose" onclick="generateProposals()" title="LLM link proposals (LINK_PROPOSALS_ENABLED)">Link Propose</button>
+  <button class="btn-secondary" id="btn-alias-propose" onclick="generateAliasProposals()" title="LLM entity alias merges (ENTITY_ALIAS_PROPOSALS_ENABLED)">Alias Propose</button>
   <button class="btn-secondary" id="btn-chain"   onclick="findChain()" disabled>Find Chain</button>
   <button class="btn-secondary" id="btn-clear"   onclick="clearGraph()">Clear</button>
 </div>
 
+<div class="demo-mem-bar" id="demo-mem-bar" aria-hidden="true">
+  <span class="demo-mem-title">Memorie demo</span>
+  <div class="demo-mem-chips" id="demo-mem-chips"></div>
+  <button type="button" class="btn-primary seg" id="btn-demo-mem-all" onclick="launchAllDemoMemories()">▶ Apri tutte</button>
+</div>
+
+<div class="guide-bar" id="guide-bar">
+  <div class="guide-top">
+    <h2>Demo CTI · Operational STIX dataset</h2>
+    <span class="sub"><code>operational_stix_cti_dataset.json</code> · BRICKSTORM · Wiz Bybit · PROMPTSTEAL · Forest Blizzard</span>
+    <button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>
+    <button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>
+  </div>
+  <div class="guide-now" id="guide-now">
+    <b>Avvio:</b> API key <kbd>testkey123</kbd> → clicca <kbd>▶ Tour automatico</kbd> (12 passi, banner in basso). Colori nodi: teal=SOC · arancio=vendor · viola=STIX.
+  </div>
+</div>
+
 <div class="main-area">
+  <aside class="walkthrough-panel" id="walkthrough-panel" aria-hidden="true">
+    <div class="wt-head">
+      <h2 id="wt-title">Walkthrough · Hybrid retrieve</h2>
+      <div class="sub" id="wt-sub">Universale — stesso flusso su root.soc, root.cti o root.*</div>
+    </div>
+    <div class="wt-progress"><div id="wt-progress-bar" style="width:0%"></div></div>
+    <div class="wt-body" id="wt-body"></div>
+    <div class="wt-nav">
+      <button type="button" id="wt-prev" onclick="walkthroughPrev()">← Indietro</button>
+      <span class="wt-counter" id="wt-counter">1 / 8</span>
+      <button type="button" class="primary" id="wt-next" onclick="walkthroughNext()">Avanti →</button>
+    </div>
+  </aside>
+  <aside class="proposals-panel" id="proposals-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Review queue</div>
+      <button class="btn-secondary seg" onclick="refreshProposalPanel()">Refresh</button>
+    </div>
+    <div class="prop-tabs">
+      <button type="button" id="tab-prop-links" class="active" onclick="setProposalTab('links')">Link</button>
+      <button type="button" id="tab-prop-aliases" onclick="setProposalTab('aliases')">Alias</button>
+    </div>
+    <div id="links-list-wrap">
+      <div class="prop-body" id="proposals-list">
+        <p class="empty-note">Switch to Proposals view and click Refresh, or run Link Propose on a memory.</p>
+      </div>
+    </div>
+    <div id="aliases-list-wrap" style="display:none">
+      <div class="prop-body" id="alias-proposals-list">
+        <p class="empty-note">Run <b>Alias Propose</b> on a memory with extracted entities.</p>
+      </div>
+    </div>
+  </aside>
+  <aside class="proposals-panel" id="registry-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Entity registry</div>
+      <button class="btn-secondary seg" onclick="loadRegistryEntities()">Refresh</button>
+    </div>
+    <div class="registry-filter">
+      <select id="registry-kind-filter" onchange="loadRegistryEntities()">
+        <option value="">All kinds</option>
+        <option value="ThreatActor">ThreatActor</option>
+        <option value="IPAddress">IPAddress</option>
+        <option value="Asset">Asset</option>
+        <option value="User">User</option>
+        <option value="Domain">Domain</option>
+        <option value="Campaign">Campaign</option>
+      </select>
+    </div>
+    <div class="prop-body" id="registry-list">
+      <p class="empty-note">Run <b>Extract</b> first — registry populates on extraction (Phase D).</p>
+    </div>
+  </aside>
+  <aside class="proposals-panel retrieval-panel" id="retrieval-panel" aria-hidden="true">
+    <div class="prop-head">
+      <div class="prop-title">Hybrid retrieve</div>
+      <button class="btn-secondary seg" onclick="runCtiRetrievalPanel()">Run</button>
+    </div>
+    <div class="registry-filter">
+      <select id="retrieval-scenario" onchange="applyRetrievalScenario()">
+        <option value="dprk_cs">DPRK · CrowdStrike → Microsoft</option>
+        <option value="dprk_ms">DPRK · Microsoft → CrowdStrike</option>
+        <option value="apt28_mandiant">APT28 · PROMPTSTEAL → IOC operativi</option>
+        <option value="apt28_ms">APT28 · Forest Blizzard → Mandiant</option>
+      </select>
+      <textarea id="retrieval-query" class="retrieval-query" rows="3"
+        placeholder="Query POST /v1/retrieve (path_prefix=root.cti)…"></textarea>
+    </div>
+    <div class="retrieval-summary" id="retrieval-summary">
+      BM25 (keyword) + pgvector (semantica) fusi in un unico score — nessuna tabella alias a query time.
+      I risultati <span style="color:var(--ok)">verdi</span> collegano vendor diversi nello stesso top-N.
+    </div>
+    <div class="retrieval-pipeline" id="retrieval-pipeline">
+      <div class="pipe-title">Pipeline retrieve</div>
+      <div class="retrieval-pipe-steps" id="retrieval-pipe-steps"></div>
+    </div>
+    <div class="retrieval-score-formula" id="retrieval-formula">
+      score = 0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency
+    </div>
+    <div class="retrieval-mode" id="retrieval-mode" style="display:none"></div>
+    <div class="prop-body" id="retrieval-results">
+      <p class="empty-note">Scegli uno scenario e clicca <b>Run</b>. Clicca un risultato → evidenzia il nodo nel grafo.</p>
+    </div>
+  </aside>
   <div class="canvas-wrap">
     <div id="graph"></div>
 
     <div class="overlay show" id="overlay">
-      <div class="card" id="overlay-card">
-        <h3>No graph loaded</h3>
-        <p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b> to traverse the cognitive graph.</p>
+      <div class="card welcome-card" id="overlay-card">
+        <h3>Demo CTI · Operational STIX dataset</h3>
+        <p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">
+          Dataset <b>operational_stix_cti_dataset.json</b>: IOC reali CISA MAR, Wiz Bybit, Microsoft DCU, GTIG APT28.
+        </p>
+        <ol>
+          <li><b>Layer</b> — SOC/teal, vendor reports/arancio, STIX/viola</li>
+          <li><b>BRICKSTORM</b> — SHA-256 e YARA reali da bundle CISA MAR</li>
+          <li><b>DPRK</b> — CrowdStrike vs Microsoft naming sullo stesso attore</li>
+          <li><b>APT28</b> — Mandiant PROMPTSTEAL vs Microsoft Forest Blizzard</li>
+          <li><b>Retrieval ibrido</b> — embed → BM25+pgvector → cross-vendor (passo 12)</li>
+        </ol>
+        <div class="welcome-actions">
+          <button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>
+          <button class="btn-secondary" onclick="startGuidedDemo()">Tour automatico (12 passi)</button>
+          <button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button>
+        </div>
       </div>
     </div>
 
@@ -323,9 +752,13 @@ button:disabled { opacity: .4; cursor: not-allowed; }
       <div class="row"><span class="swatch" style="background:#a855f7"></span>depth 4</div>
       <div class="row"><span class="swatch" style="background:#ef4444"></span>depth 5+</div>
       <div class="row"><span class="swatch" style="background:#facc15"></span>chain path</div>
+      <div class="row"><span class="swatch" style="background:#a78bfa;border-radius:2px"></span>entity vertex</div>
+      <div class="row"><span class="swatch" style="background:#94a3b8;border-radius:2px"></span>LLM proposal (pending)</div>
+      <div class="row"><span class="swatch" style="background:#2dd4bf;border-radius:2px"></span>LLM accepted ✓</div>
+      <div class="row"><span class="swatch" style="background:#c084fc;border-radius:2px"></span>same_as (alias merge)</div>
     </div>
 
-    <div class="hint">Click a node to inspect · <kbd>dbl-click</kbd> to expand</div>
+    <div class="hint" id="canvas-hint">Click = ispeziona · dbl-click = espandi · trascina = sposta nodi</div>
 
     <div id="timeline-container">
       <div id="timeline-bar"></div>
@@ -361,6 +794,22 @@ let nodeTimestamps = {};
 let nodeMeta = {};            // id -> { linkType, depth }
 let memCache = {};            // id -> full MemoryEntry (path, content, tags, metadata, ...)
 let cacheLoaded = false;
+let viewMode = 'links';       // links | entities | registry | retrieval | proposals
+let proposalTab = 'links';    // links | aliases
+let pendingProposals = [];    // last fetched link proposals
+let pendingAliasProposals = [];
+let registryEntities = [];    // last fetched registry rows
+let selectedEntity = null;    // { kind, key } when an entity node is selected
+const entityKindColors = {
+  IPAddress: '#38bdf8', Asset: '#22c55e', User: '#f59e0b',
+  ThreatActor: '#ef4444', Domain: '#a855f7', Campaign: '#2dd4bf'
+};
+function entityNodeId(kind, key) { return 'entity:' + kind + ':' + key; }
+function isEntityNodeId(id) { return typeof id === 'string' && id.indexOf('entity:') === 0; }
+function parseEntityNodeId(id) {
+  const parts = String(id).split(':');
+  return { kind: parts[1] || '', key: parts.slice(2).join(':') };
+}
 
 // ── auth ──────────────────────────────────────────────────────────────────
 const savedKey = localStorage.getItem('pcmi_graph_apikey');
@@ -381,6 +830,10 @@ function authHeaders(){ const k = apiKey(); return k ? { 'X-API-Key': k, 'Conten
     st.textContent = d.available ? 'AGE ready' : 'AGE offline';
     st.className   = d.available ? 'status on' : 'status off';
   } catch(e) { st.textContent = 'API unreachable'; st.className = 'status err'; }
+  if (new URLSearchParams(location.search).get('entity') === '1' ||
+      new URLSearchParams(location.search).get('demo') === '1') {
+    document.getElementById('entity-flags').style.display = 'inline-flex';
+  }
 })();
 
 // ── colors ────────────────────────────────────────────────────────────────
@@ -400,6 +853,7 @@ function depthColor(d) {
 
 // Cluster key derived from real metadata when present, else stable id-based fallback.
 function clusterKey(id) {
+  if (isEntityNodeId(id)) return 'entity-' + parseEntityNodeId(id).kind;
   const m = memCache[id];
   const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : null;
   if (md && (md.category || md.scenario || md.type)) return String(md.category || md.scenario || md.type);
@@ -416,13 +870,65 @@ function clusterColor(key) {
 function clusterLabel(key) { return String(key).replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()); }
 
 // ── memory cache (id -> full entry) via /v1/retrieve ────────────────────────
+async function fetchMemoryById(id) {
+  id = parseInt(id, 10);
+  if (!id || isNaN(id)) return null;
+  if (memCache[id]) return memCache[id];
+  const alias = Object.values(memCache).find(e => e && e.id === id);
+  if (alias) {
+    memCache[id] = alias;
+    return alias;
+  }
+  if (!apiKey()) return null;
+  try {
+    const r = await fetch(apiUrl + '/v1/memories/id/' + encodeURIComponent(id), { headers: authHeaders() });
+    if (!r.ok) return null;
+    const data = await r.json();
+    const entry = data.entry || data;
+    if (!entry || entry.id == null) return null;
+    memCache[entry.id] = entry;
+    memCache[id] = entry;
+    if (data.resolved_from_id && data.resolved_from_id !== entry.id) {
+      memCache[data.resolved_from_id] = entry;
+    }
+    refreshNodeLabelsForEntry(entry, data.resolved_from_id || id);
+    document.getElementById('stat-cache').textContent = Object.keys(memCache).length;
+    return entry;
+  } catch (_) {
+    return null;
+  }
+}
+
+function refreshNodeLabelsForEntry(entry, graphNodeId) {
+  if (!entry || entry.id == null) return;
+  const ids = new Set([entry.id]);
+  if (graphNodeId != null) ids.add(parseInt(graphNodeId, 10));
+  ids.forEach(nid => {
+    if (nodesData.get(nid)) {
+      nodesData.update({ id: nid, label: nodeLabel(entry.id), title: nodeTitle(entry.id) });
+    }
+  });
+}
+
+async function hydrateVisibleMemories() {
+  const ids = nodesData.getIds().filter(id => !isEntityNodeId(id));
+  const missing = [];
+  for (const raw of ids) {
+    const id = parseInt(raw, 10);
+    if (id && !memCache[id]) missing.push(id);
+  }
+  for (let i = 0; i < missing.length; i += 10) {
+    await Promise.all(missing.slice(i, i + 10).map(fetchMemoryById));
+  }
+}
+
 async function loadMemoryCache(force) {
   if (cacheLoaded && !force) return;
   if (!apiKey()) return;
   let cursor = '', pages = 0;
   try {
     do {
-      const body = { path_prefix: 'root', limit: 500 };
+      const body = { path_prefix: (typeof getGraphDemoConfig === 'function' ? getGraphDemoConfig().pathPrefix : (window.CTI_DEMO_ACTIVE ? 'root.cti' : 'root')), limit: 500 };
       if (cursor) body.cursor = cursor;
       const r = await fetch(apiUrl + '/v1/retrieve', {
         method: 'POST', headers: authHeaders(), body: JSON.stringify(body)
@@ -430,7 +936,18 @@ async function loadMemoryCache(force) {
       if (!r.ok) break;
       const data = await r.json();
       for (const e of (data.entries || [])) {
-        if (e && (e.id || e.id === 0)) memCache[e.id] = e;
+        if (!e || (e.id == null && e.id !== 0)) continue;
+        const path = e.path || '';
+        const prev = memCache[e.id];
+        if (!prev) {
+          memCache[e.id] = e;
+          continue;
+        }
+        const prevOp = (prev.metadata || {}).cti_source;
+        const nextOp = (e.metadata || {}).cti_source;
+        const prevScore = (prevOp === 'stix' || prevOp === 'vendor_intel') ? 1 : 0;
+        const nextScore = (nextOp === 'stix' || nextOp === 'vendor_intel') ? 1 : 0;
+        if (nextScore > prevScore || (nextScore === prevScore && e.id > prev.id)) memCache[e.id] = e;
       }
       cursor = data.next_cursor || '';
       pages++;
@@ -508,16 +1025,9 @@ function initNetwork(layout) {
     if (p.nodes.length === 0) return;
     const id = p.nodes[0];
     if (typeof id === 'string' && id.indexOf('cluster:') === 0) { network.clustering.openCluster(id); return; }
-    document.getElementById('mem-id').value = id; explore();
+    document.getElementById('mem-id').value = id; runExplore();
   });
   if (clustersOn && currentLayout === 'force') applyClusters();
-}
-
-function selectNode(id) {
-  selectedNode = id;
-  document.getElementById('btn-chain').disabled = false;
-  network.selectNodes([id]);
-  openInspector(id);
 }
 
 // ── INSPECTOR ───────────────────────────────────────────────────────────────
@@ -530,14 +1040,63 @@ function fmtDate(iso) {
   return d.toLocaleString(undefined, { year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit' });
 }
 
-function openInspector(id) {
+function renderOperationalIocs(md) {
+  if (!md || typeof md !== 'object') return '';
+  const iocs = md.iocs;
+  const src = md.cti_source || '';
+  const mar = md.source || md.mar_id || '';
+  if (!iocs && src !== 'stix' && src !== 'vendor_intel') return '';
+  let rows = '';
+  if (src) rows += '<tr><td class="k">dataset</td><td class="v"><b>' + escapeHtml(src) + '</b> · operational_stix_cti_dataset.json</td></tr>';
+  if (mar) rows += '<tr><td class="k">source</td><td class="v">' + escapeHtml(String(mar)) + '</td></tr>';
+  if (iocs && typeof iocs === 'object') {
+    if (iocs.sha256) rows += '<tr><td class="k">SHA-256</td><td class="v"><code style="word-break:break-all">' + escapeHtml(String(iocs.sha256)) + '</code></td></tr>';
+    if (iocs.md5) rows += '<tr><td class="k">MD5</td><td class="v"><code>' + escapeHtml(String(iocs.md5)) + '</code></td></tr>';
+    const ips = iocs.ips || iocs.ip;
+    if (ips) rows += '<tr><td class="k">IP</td><td class="v">' + escapeHtml(Array.isArray(ips) ? ips.join(', ') : String(ips)) + '</td></tr>';
+    const domains = iocs.domains || iocs.domain;
+    if (domains) rows += '<tr><td class="k">domain</td><td class="v">' + escapeHtml(Array.isArray(domains) ? domains.join(', ') : String(domains)) + '</td></tr>';
+    if (iocs.cve) rows += '<tr><td class="k">CVE</td><td class="v">' + escapeHtml(String(iocs.cve)) + '</td></tr>';
+  }
+  if (md.yara_rules && md.yara_rules.length) {
+    rows += '<tr><td class="k">YARA</td><td class="v">' + escapeHtml(md.yara_rules.slice(0, 2).join(' · ')) + '</td></tr>';
+  }
+  if (md.loss_usd) rows += '<tr><td class="k">loss</td><td class="v">$' + escapeHtml(Number(md.loss_usd).toLocaleString()) + '</td></tr>';
+  if (!rows) return '';
+  return '<div class="insp-section"><div class="label">Operational IOC (real, not synthetic)</div><table class="kv">' + rows + '</table></div>';
+}
+
+function selectNode(id) {
+  selectedNode = id;
+  document.getElementById('btn-chain').disabled = isEntityNodeId(id);
+  network.selectNodes([id]);
+  if (isEntityNodeId(id)) openEntityInspector(id);
+  else openInspector(id);
+}
+
+async function openInspector(id) {
   const insp = document.getElementById('inspector');
   insp.classList.add('open'); insp.setAttribute('aria-hidden', 'false');
 
-  const m  = memCache[id];
-  const nm = nodeMeta[id] || {};
   document.getElementById('insp-id').textContent   = 'memory.' + id;
+  document.getElementById('insp-path').textContent = '';
+
+  const body = document.getElementById('insp-body');
+  body.innerHTML = '<div class="insp-section"><p class="empty-note">Loading memory…</p></div>';
+
+  let m = memCache[id];
+  if (!m) m = await fetchMemoryById(id);
+  renderInspectorBody(id, m);
+}
+
+function renderInspectorBody(id, m) {
+  const nm = nodeMeta[id] || {};
   document.getElementById('insp-path').textContent = m && m.path ? m.path : '';
+  if (m && m.id && m.id !== parseInt(id, 10)) {
+    document.getElementById('insp-id').textContent = 'memory.' + id + ' → memory.' + m.id;
+  } else {
+    document.getElementById('insp-id').textContent = 'memory.' + id;
+  }
 
   const body = document.getElementById('insp-body');
   const md = m && m.metadata && typeof m.metadata === 'object' ? m.metadata : {};
@@ -547,6 +1106,8 @@ function openInspector(id) {
   if (nm.depth != null)  badges += '<span class="badge"><span class="dot" style="background:' + depthColor(nm.depth) + '"></span>depth ' + nm.depth + '</span>';
   if (nm.linkType)       badges += '<span class="badge"><span class="dot" style="background:' + (linkColors[nm.linkType]||'#64748b') + '"></span>' + escapeHtml(nm.linkType) + '</span>';
   if (md.severity)       badges += '<span class="badge sev-' + escapeHtml(md.severity) + '">' + escapeHtml(md.severity) + '</span>';
+  if (md.cti_source === 'stix') badges += '<span class="badge" style="border-color:#8b5cf6;color:#c4b5fd">STIX MAR</span>';
+  if (md.cti_source === 'vendor_intel') badges += '<span class="badge" style="border-color:#06b6d4;color:#67e8f9">operational IOC</span>';
   if (md.category)       badges += '<span class="badge">' + escapeHtml(clusterLabel(md.category)) + '</span>';
   if (md.status)         badges += '<span class="badge">' + escapeHtml(md.status) + '</span>';
 
@@ -555,8 +1116,9 @@ function openInspector(id) {
   if (!m) {
     html += '<div class="insp-section">'
       + '<div class="label">Details</div>'
-      + '<p class="empty-note">This node is not in the local cache, so its content could not be loaded. '
-      + 'It may be a superseded version or outside <code>root</code>. Try <b>Refresh cache</b> below.</p>'
+      + '<p class="empty-note">Impossibile caricare memory.' + id
+      + ' — nodo assente dal database (grafo AGE stale) o fuori dal tenant. '
+      + 'Prova <b>Clear</b> + <b>Explore</b> oppure ricarica il dataset CTI.</p>'
       + '</div>'
       + '<div class="insp-section"><div class="insp-actions">'
       + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
@@ -565,6 +1127,15 @@ function openInspector(id) {
     body.innerHTML = html;
     return;
   }
+
+  if (m.id !== parseInt(id, 10)) {
+    html += '<div class="insp-section"><div class="insp-badges">'
+      + '<span class="badge" style="border-color:#f59e0b;color:#fcd34d">stale graph id · versione corrente mem.'
+      + m.id + ' v' + (m.version || '?') + '</span></div></div>';
+  }
+
+  // operational IOC panel (operational_stix_cti_dataset.json)
+  html += renderOperationalIocs(md);
 
   // content
   html += '<div class="insp-section"><div class="label">Content</div>'
@@ -576,8 +1147,8 @@ function openInspector(id) {
           + m.tags.map(t => '<span class="tag">' + escapeHtml(t) + '</span>').join('') + '</div></div>';
   }
 
-  // metadata
-  const mdKeys = Object.keys(md);
+  // metadata (skip nested pcmi_extract blob in table — shown separately)
+  const mdKeys = Object.keys(md).filter(k => k !== 'pcmi_extract');
   if (mdKeys.length) {
     let rows = '';
     for (const k of mdKeys) {
@@ -586,6 +1157,17 @@ function openInspector(id) {
       rows += '<tr><td class="k">' + escapeHtml(k) + '</td><td class="v">' + escapeHtml(v) + '</td></tr>';
     }
     html += '<div class="insp-section"><div class="label">Metadata · ' + mdKeys.length + '</div><table class="kv">' + rows + '</table></div>';
+  }
+
+  const extract = md.pcmi_extract;
+  if (extract && typeof extract === 'object') {
+    const slots = extract.slots || {};
+    const slotKeys = Object.keys(slots);
+    html += '<div class="insp-section"><div class="label">Extraction · ' + escapeHtml(extract.status || 'unknown') + '</div>'
+          + '<div class="extract-box">' + escapeHtml(JSON.stringify(slots, null, 2)) + '</div></div>';
+    if (!slotKeys.length && extract.status !== 'ok') {
+      html += '<div class="insp-section"><p class="empty-note">No slots yet — use <b>Extract</b> in the toolbar.</p></div>';
+    }
   }
 
   // provenance
@@ -600,21 +1182,124 @@ function openInspector(id) {
   // actions
   html += '<div class="insp-section"><div class="insp-actions">'
         + '<button class="act-primary" onclick="exploreFrom(' + id + ')">Explore from here</button>'
+        + '<button class="act-ghost" onclick="runExtract(' + id + ')">Extract</button>'
         + '<button class="act-ghost" onclick="copyPath(' + id + ')">Copy path</button>'
         + '</div></div>';
 
   body.innerHTML = html;
 }
+function openEntityInspector(id) {
+  const insp = document.getElementById('inspector');
+  insp.classList.add('open'); insp.setAttribute('aria-hidden', 'false');
+  const { kind, key } = parseEntityNodeId(id);
+  selectedEntity = { kind, key };
+  document.getElementById('insp-id').textContent = kind;
+  document.getElementById('insp-path').textContent = key;
+  document.getElementById('insp-body').innerHTML =
+    '<div class="insp-section"><p class="empty-note">Loading registry…</p></div>';
+  loadEntityRegistryDetail(kind, key);
+}
+async function loadEntityRegistryDetail(kind, key) {
+  const body = document.getElementById('insp-body');
+  if (!apiKey()) {
+    body.innerHTML = '<div class="insp-section"><p class="empty-note">Enter API key to load registry detail.</p></div>';
+    return;
+  }
+  try {
+    const url = apiUrl + '/v1/entities/registry/' + encodeURIComponent(kind) + '/' + encodeURIComponent(key);
+    const r = await fetch(url, { headers: authHeaders() });
+    if (r.status === 404) {
+      body.innerHTML =
+        '<div class="insp-section"><div class="insp-badges">'
+        + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
+        + escapeHtml(kind) + '</span></div></div>'
+        + '<div class="insp-section"><div class="label">Entity key</div>'
+        + '<div class="content-box">' + escapeHtml(key) + '</div></div>'
+        + '<div class="insp-section"><p class="empty-note">Not in registry yet — run <b>Extract</b> on a memory mentioning this entity.</p></div>'
+        + '<div class="insp-section"><div class="insp-actions">'
+        + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
+        + '</div></div>';
+      return;
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      body.innerHTML = '<div class="insp-section"><p class="empty-note">Registry error ' + r.status + ': '
+        + escapeHtml(err.error || r.statusText) + '</p></div>';
+      return;
+    }
+    const data = await r.json();
+    const ent = data.entity || {};
+    const aliases = data.aliases || [];
+    const snaps = data.snapshots || [];
+    const canon = ent.canonical_key || key;
+    let html =
+      '<div class="insp-section"><div class="insp-badges">'
+      + '<span class="badge"><span class="dot" style="background:' + (entityKindColors[kind] || '#94a3b8') + '"></span>'
+      + escapeHtml(kind) + '</span>'
+      + '<span class="badge">' + snaps.length + ' snapshots</span>'
+      + '<span class="badge">' + aliases.length + ' aliases</span></div></div>'
+      + '<div class="insp-section"><div class="label">Canonical key</div>'
+      + '<div class="content-box">' + escapeHtml(canon) + '</div></div>';
+    if (ent.display_name) {
+      html += '<div class="insp-section"><div class="label">Display name</div>'
+        + '<div class="content-box">' + escapeHtml(ent.display_name) + '</div></div>';
+    }
+    if (aliases.length) {
+      html += '<div class="insp-section"><div class="label">Aliases</div><div>';
+      for (const a of aliases) {
+        html += '<span class="alias-chip" title="' + escapeHtml(a.source || '') + ' · '
+          + Math.round((a.confidence || 0) * 100) + '%">' + escapeHtml(a.alias_key) + '</span>';
+        if (a.alias_key !== canon) addSameAsEdge(kind, a.alias_key, canon);
+      }
+      html += '</div></div>';
+    }
+    if (snaps.length) {
+      html += '<div class="insp-section"><div class="label">Evolution timeline</div><div class="snap-timeline">';
+      for (const s of snaps.slice(0, 40)) {
+        html += '<div class="snap-row">'
+          + '<div class="when">memory.' + s.memory_id + ' · v' + s.memory_version
+          + (s.created_at ? ' · ' + escapeHtml(fmtDate(s.created_at)) : '') + '</div>'
+          + '<div class="slot">' + escapeHtml(s.slot || '') + '</div>'
+          + (s.raw_key && s.raw_key !== canon ? '<div>' + escapeHtml(s.raw_key) + '</div>' : '')
+          + (s.attributes ? '<div style="color:var(--text-mute);margin-top:3px">' + escapeHtml(JSON.stringify(s.attributes)) + '</div>' : '')
+          + '</div>';
+      }
+      html += '</div></div>';
+    } else {
+      html += '<div class="insp-section"><p class="empty-note">No snapshots yet.</p></div>';
+    }
+    html += '<div class="insp-section"><div class="insp-actions">'
+      + '<button class="act-primary" onclick="exploreEntityByKindKey()">Explore memories</button>'
+      + '<button class="act-ghost" onclick="focusRegistryEntity()">Highlight in registry</button>'
+      + '</div></div>';
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = '<div class="insp-section"><p class="empty-note">Request failed: ' + escapeHtml(e.message) + '</p></div>';
+  }
+}
+function exploreEntityByKindKey(kind, key) {
+  const k = kind || (selectedEntity && selectedEntity.kind);
+  const v = key || (selectedEntity && selectedEntity.key);
+  if (!k || !v) return;
+  document.getElementById('mem-id').value = '';
+  setViewMode('entities');
+  exploreEntityCorrelated(null, k, v);
+}
 function closeInspector() {
   const insp = document.getElementById('inspector');
   insp.classList.remove('open'); insp.setAttribute('aria-hidden', 'true');
 }
-function exploreFrom(id) { document.getElementById('mem-id').value = id; explore(); }
+function exploreFrom(id) { document.getElementById('mem-id').value = id; runExplore(); }
 function copyPath(id) {
   const m = memCache[id]; if (!m || !m.path) return;
   navigator.clipboard?.writeText(m.path).then(() => toast('Path copied: ' + m.path));
 }
-async function refreshCache() { await loadMemoryCache(true); if (selectedNode != null) openInspector(selectedNode); toast('Cache refreshed · ' + Object.keys(memCache).length + ' memories'); }
+async function refreshCache() {
+  await loadMemoryCache(true);
+  await hydrateVisibleMemories();
+  if (selectedNode != null) await openInspector(selectedNode);
+  toast('Cache refreshed · ' + Object.keys(memCache).length + ' memories');
+}
 
 // ── layout ──────────────────────────────────────────────────────────────────
 function setLayout(layout) {
@@ -712,20 +1397,35 @@ function buildTimeline() {
 }
 
 // ── counts / overlay / toast ──────────────────────────────────────────────────
+function welcomeDismissed() {
+  if (window.CTI_DEMO_ACTIVE) return !!localStorage.getItem('pcmi_cti_welcome_dismissed');
+  return !!localStorage.getItem('pcmi_graph_welcome_dismissed');
+}
+
 function updateCounts() {
   document.getElementById('stat-nodes').textContent = nodesData.length;
   document.getElementById('stat-edges').textContent = edgesData.length;
-  document.getElementById('overlay').classList.toggle('show', nodesData.length === 0);
+  const ov = document.getElementById('overlay');
+  if (nodesData.length > 0) {
+    ov.classList.remove('show');
+  } else if (!welcomeDismissed()) {
+    ov.classList.add('show');
+  }
 }
 function showLoading(on, msg) {
   const ov = document.getElementById('overlay');
   if (on) {
     ov.classList.add('show');
+    document.getElementById('overlay-card').className = 'card';
     document.getElementById('overlay-card').innerHTML = '<div class="spinner"></div><p>' + (msg || 'Loading…') + '</p>';
   } else if (nodesData.length > 0) {
     ov.classList.remove('show');
+  } else if (!welcomeDismissed()) {
+    ov.classList.add('show');
+    if (window.CTI_DEMO_ACTIVE) renderCtiWelcomeOverlay();
+    else renderWelcomeOverlay();
   } else {
-    document.getElementById('overlay-card').innerHTML = '<h3>No graph loaded</h3><p>Enter your API key and a Memory ID, then press <b style="color:var(--primary)">Explore</b>.</p>';
+    ov.classList.remove('show');
   }
 }
 let toastTimer = null;
@@ -735,9 +1435,726 @@ function toast(msg, isErr) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => el.className = 'toast', 2600);
 }
 
+// ── view mode / entity demo ───────────────────────────────────────────────
+function setViewMode(mode) {
+  viewMode = mode;
+  ['links','entities','registry','retrieval','proposals'].forEach(m => {
+    const b = document.getElementById('btn-view-' + m);
+    if (b) b.className = (m === mode ? 'btn-active' : 'btn-secondary') + ' seg';
+  });
+  const propPanel = document.getElementById('proposals-panel');
+  const regPanel = document.getElementById('registry-panel');
+  const retPanel = document.getElementById('retrieval-panel');
+  const propOpen = mode === 'proposals';
+  const regOpen = mode === 'registry';
+  const retOpen = mode === 'retrieval';
+  propPanel.classList.toggle('open', propOpen);
+  propPanel.setAttribute('aria-hidden', propOpen ? 'false' : 'true');
+  regPanel.classList.toggle('open', regOpen);
+  regPanel.setAttribute('aria-hidden', regOpen ? 'false' : 'true');
+  if (retPanel) {
+    retPanel.classList.toggle('open', retOpen);
+    retPanel.setAttribute('aria-hidden', retOpen ? 'false' : 'true');
+  }
+  if (propOpen) refreshProposalPanel();
+  if (regOpen) loadRegistryEntities();
+  if (retOpen) applyRetrievalScenario();
+  if (window.CTI_DEMO_ACTIVE) {
+    /* keep CTI guide bar text — do not overwrite with SOC GUIDE_NOW */
+  } else {
+    updateGuideUI(mode);
+  }
+  updateCanvasHint(mode);
+}
+
+function setProposalTab(tab) {
+  proposalTab = tab;
+  document.getElementById('tab-prop-links').className = tab === 'links' ? 'active' : '';
+  document.getElementById('tab-prop-aliases').className = tab === 'aliases' ? 'active' : '';
+  document.getElementById('links-list-wrap').style.display = tab === 'links' ? '' : 'none';
+  document.getElementById('aliases-list-wrap').style.display = tab === 'aliases' ? '' : 'none';
+  refreshProposalPanel();
+}
+
+function refreshProposalPanel() {
+  if (proposalTab === 'aliases') loadAliasProposals();
+  else loadProposals();
+}
+
+function runExplore() {
+  if (viewMode === 'entities') return exploreEntities();
+  if (viewMode === 'registry') return loadRegistryEntities(true);
+  if (viewMode === 'retrieval') return runCtiRetrievalPanel();
+  if (viewMode === 'proposals') return visualizeProposals();
+  return explore();
+}
+
+function addMemoryNode(id, opts) {
+  opts = opts || {};
+  if (nodesData.get(id)) return false;
+  nodeMeta[id] = opts.meta || { depth: opts.depth || 0, linkType: opts.linkType || null };
+  const m = memCache[id];
+  nodesData.add({
+    id,
+    label: nodeLabel(id),
+    title: nodeTitle(id),
+    size: opts.size || 20,
+    color: opts.color || nodeStyle(id, opts.depth || 0, opts.linkType, !!opts.isRoot),
+    borderWidth: opts.borderWidth || 2.5
+  });
+  nodeTimestamps[id] = (m && (m.created_at || m.valid_from)) || new Date().toISOString();
+  return true;
+}
+
+function addEntityNode(kind, key, slot) {
+  const id = entityNodeId(kind, key);
+  if (nodesData.get(id)) return id;
+  const color = entityKindColors[kind] || '#94a3b8';
+  nodesData.add({
+    id,
+    label: key.length > 18 ? key.slice(0, 16) + '…' : key,
+    title: kind + '\n' + key + (slot ? '\nslot: ' + slot : ''),
+    shape: 'diamond',
+    size: 18,
+    color: { background: color + '33', border: color, highlight: { background: color, border: '#fff' } },
+    font: { size: 10, color: '#cbd6e8' }
+  });
+  return id;
+}
+
+function addMentionEdge(memId, entId, slot) {
+  const edgeId = 'mention:' + memId + '->' + entId;
+  if (edgesData.get(edgeId)) return;
+  edgesData.add({
+    id: edgeId, from: memId, to: entId,
+    dashes: [4, 4], width: 1,
+    label: slot || 'mentions',
+    color: { color: '#64748b', highlight: '#94a3b8' },
+    arrows: { to: { enabled: true, scaleFactor: .45 } }
+  });
+}
+
+function addSameAsEdge(kind, aliasKey, canonicalKey) {
+  if (!aliasKey || aliasKey === canonicalKey) return;
+  const fromId = addEntityNode(kind, aliasKey, 'alias');
+  const toId = addEntityNode(kind, canonicalKey, 'canonical');
+  const edgeId = 'same_as:' + kind + ':' + aliasKey + '->' + canonicalKey;
+  if (edgesData.get(edgeId)) return;
+  edgesData.add({
+    id: edgeId, from: fromId, to: toId,
+    label: 'same_as',
+    dashes: [3, 5], width: 2,
+    color: { color: '#c084fc', highlight: '#e9d5ff' },
+    arrows: { to: { enabled: true, scaleFactor: .5 } }
+  });
+}
+
+function addProposalEdge(prop, active) {
+  const edgeId = 'proposal:' + prop.id;
+  const color = active ? '#2dd4bf' : '#94a3b8';
+  edgesData.update({
+    id: edgeId,
+    from: prop.from_memory_id,
+    to: prop.to_memory_id,
+    label: prop.link_type + ' ?',
+    dashes: [8, 6],
+    width: active ? 2.5 : 1.6,
+    color: { color, highlight: '#fff' },
+    title: (prop.reason || '') + '\nconfidence: ' + (prop.confidence || 0)
+  });
+}
+
+function memoryIdFromPath(path) {
+  const m = String(path || '').match(/^memory\.(\d+)$/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function graphLinkEdgeId(fromId, toId, linkType) {
+  return fromId + '->' + toId + ':' + linkType;
+}
+
+function materializeGraphLink(link, highlight) {
+  if (!link) return null;
+  const fromId = memoryIdFromPath(link.from_path);
+  const toId = memoryIdFromPath(link.to_path);
+  if (!fromId || !toId) return null;
+  const meta = link.metadata && typeof link.metadata === 'object' ? link.metadata : {};
+  const lt = link.link_type || 'related';
+  const isLLM = meta.proposed_by === 'llm' || meta.accepted === true;
+  const rootId = parseInt(document.getElementById('mem-id').value, 10) || fromId;
+
+  if (!nodesData.get(fromId)) {
+    addMemoryNode(fromId, {
+      depth: fromId === rootId ? 0 : 1, linkType: lt, isRoot: fromId === rootId,
+      size: fromId === rootId ? 26 : 20,
+      borderWidth: fromId === rootId ? 3 : 2.5,
+      color: fromId === rootId
+        ? { ...nodeStyle(fromId, 0, null, true), highlight: { background:'#115e54', border:'#5eead4' } }
+        : nodeStyle(fromId, 1, lt, false)
+    });
+  }
+  if (!nodesData.get(toId)) {
+    addMemoryNode(toId, { depth: 1, linkType: lt });
+  }
+  if (isLLM) {
+    nodesData.update({
+      id: toId,
+      borderWidth: 3,
+      color: { background: '#0d3b34', border: '#2dd4bf', highlight: { background: '#115e54', border: '#5eead4' } }
+    });
+  }
+
+  const edgeId = graphLinkEdgeId(fromId, toId, lt);
+  const edge = {
+    id: edgeId, from: fromId, to: toId,
+    label: lt + (isLLM ? ' ✓' : ''),
+    dashes: false,
+    width: highlight ? 3.2 : (isLLM ? 2.8 : 1.4),
+    color: { color: isLLM ? '#2dd4bf' : (linkColors[lt] || '#64748b'), highlight: '#fff' },
+    title: (meta.reason || link.reason || '') + (isLLM ? '\n✓ approvato dall\'analista' : '')
+  };
+  if (edgesData.get(edgeId)) edgesData.update(edge);
+  else edgesData.add(edge);
+  return { fromId, toId, edgeId };
+}
+
+async function loadAcceptedLLMLinks(sourceId) {
+  if (!apiKey()) return [];
+  let url = apiUrl + '/v1/graph/link-proposals?status=accepted&limit=100';
+  if (sourceId) url += '&source_memory_id=' + encodeURIComponent(sourceId);
+  const r = await fetch(url, { headers: authHeaders() });
+  if (!r.ok) return [];
+  const data = await r.json();
+  return data.proposals || [];
+}
+
+async function renderAcceptedLLMLinks(sourceId, highlightProposalId) {
+  await loadMemoryCache();
+  if (!network) initNetwork(currentLayout);
+  const accepted = await loadAcceptedLLMLinks(sourceId);
+  let last = null;
+  for (const prop of accepted) {
+    const link = {
+      from_path: prop.from_path,
+      to_path: prop.to_path,
+      link_type: prop.link_type,
+      metadata: { proposed_by: 'llm', accepted: true, reason: prop.reason },
+      reason: prop.reason
+    };
+    last = materializeGraphLink(link, highlightProposalId && prop.id === highlightProposalId);
+  }
+  updateCounts();
+  if (network && last) {
+    network.selectEdges([last.edgeId]);
+    network.focus(last.toId, { scale: 1.12, animation: { duration: 450 } });
+  }
+  return accepted.length;
+}
+
+async function exploreEntities() {
+  const memId = document.getElementById('mem-id').value;
+  if (!memId) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+
+  document.getElementById('btn-explore').disabled = true;
+  showLoading(true, 'Loading entity graph…');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    const rootId = parseInt(memId, 10);
+
+    const entR = await fetch(apiUrl + '/v1/graph/entities/memory?memory_id=' + encodeURIComponent(memId), { headers: authHeaders() });
+    if (!entR.ok) {
+      const err = await entR.json().catch(() => ({}));
+      toast('Entities error ' + entR.status + ': ' + (err.error || err.hint || entR.statusText), true);
+      return;
+    }
+    const entData = await entR.json();
+    addMemoryNode(rootId, { isRoot: true, depth: 0, size: 26, borderWidth: 3,
+      color: { ...nodeStyle(rootId, 0, null, true), highlight: { background:'#115e54', border:'#5eead4' } } });
+
+    let entityCount = 0;
+    for (const e of entData.entities || []) {
+      if (!e.kind || !e.key) continue;
+      const entId = addEntityNode(e.kind, e.key, e.slot);
+      addMentionEdge(rootId, entId, e.slot);
+      entityCount++;
+    }
+
+    const relR = await fetch(apiUrl + '/v1/graph/entities/related?memory_id=' + encodeURIComponent(memId) + '&limit=80', { headers: authHeaders() });
+    if (!relR.ok) {
+      const err = await relR.json().catch(() => ({}));
+      toast('Related error ' + relR.status + ': ' + (err.error || relR.statusText), true);
+      return;
+    }
+    const relData = await relR.json();
+    let added = 0;
+    for (const mem of relData.entries || relData.memories || []) {
+      if (!mem.id || mem.id === rootId) continue;
+      if (addMemoryNode(mem.id, { depth: 1, linkType: 'related' })) added++;
+      if (mem.shared_kind && mem.shared_key) {
+        const entId = addEntityNode(mem.shared_kind, mem.shared_key, mem.slot);
+        addMentionEdge(mem.id, entId, mem.slot);
+        const sharedEdge = 'entity-link:' + rootId + '->' + mem.id + ':' + mem.shared_kind;
+        if (!edgesData.get(sharedEdge)) {
+          edgesData.add({
+            id: sharedEdge, from: rootId, to: mem.id,
+            label: mem.shared_kind,
+            color: { color: entityKindColors[mem.shared_kind] || '#8b5cf6', highlight: '#fff' },
+            width: 1.5
+          });
+        }
+      }
+    }
+
+    updateCounts();
+    network.fit({ animation: { duration: 500 } });
+    toast('Entities · ' + entityCount + ' promoted · +' + added + ' correlated memories');
+    selectNode(rootId);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-explore').disabled = false;
+    showLoading(false);
+  }
+}
+
+async function exploreEntityCorrelated(memId, kind, key) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  showLoading(true, 'Entity ' + kind + ' …');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    const entId = addEntityNode(kind, key, '');
+    let url = apiUrl + '/v1/graph/entities/related?kind=' + encodeURIComponent(kind) + '&key=' + encodeURIComponent(key) + '&limit=80';
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) { toast('Error ' + r.status, true); return; }
+    const data = await r.json();
+    let n = 0;
+    for (const mem of data.entries || data.memories || []) {
+      if (addMemoryNode(mem.id, { depth: 1 })) n++;
+      addMentionEdge(mem.id, entId, mem.slot);
+    }
+    updateCounts();
+    network.fit({ animation: { duration: 450 } });
+    toast(n + ' memories share ' + kind + ':' + key);
+    selectNode(entId);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally { showLoading(false); }
+}
+
+async function loadProposals() {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const memId = document.getElementById('mem-id').value.trim();
+  let url = apiUrl + '/v1/graph/link-proposals?status=pending&limit=100';
+  if (memId) url += '&source_memory_id=' + encodeURIComponent(memId);
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Proposals error ' + r.status + ': ' + (err.error || err.hint || r.statusText), true);
+      return;
+    }
+    const data = await r.json();
+    pendingProposals = data.proposals || [];
+    renderProposalsList();
+    const acceptedN = await renderAcceptedLLMLinks(memId || null);
+    if (pendingProposals.length) {
+      toast(pendingProposals.length + ' pending · ' + acceptedN + ' già approvati nel grafo');
+    } else if (acceptedN) {
+      toast(acceptedN + ' link LLM approvati — linee teal ✓ nel grafo');
+    } else {
+      toast('Nessuna proposta — usa LLM Propose');
+    }
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderProposalsList() {
+  const el = document.getElementById('proposals-list');
+  const memId = document.getElementById('mem-id').value.trim();
+  if (!pendingProposals.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna proposta pending.'
+      + (memId ? ' I link già <b>Accept</b>ati compaiono nel grafo come archi teal <b>✓</b>.' : '')
+      + ' Clicca <b>Link Propose</b> per generarne di nuove.</p>'
+      + '<div class="insp-actions" style="margin-top:10px">'
+      + '<button class="act-primary" onclick="renderAcceptedLLMLinks(document.getElementById(\'mem-id\').value)">Mostra approvati</button>'
+      + '<button class="act-ghost" onclick="jumpToGuideStep(\'links\')">Vista Links</button>'
+      + '</div>';
+    return;
+  }
+  el.innerHTML = pendingProposals.map(p => {
+    const conf = (p.confidence != null) ? (Math.round(p.confidence * 100) + '%') : '—';
+    return '<div class="prop-card" data-prop-id="' + p.id + '" onclick="highlightProposal(' + p.id + ')">'
+      + '<div class="edge">memory.' + p.from_memory_id + ' → memory.' + p.to_memory_id
+      + ' <span style="color:var(--primary)">' + escapeHtml(p.link_type) + '</span></div>'
+      + '<div class="meta">' + escapeHtml(p.reason || '') + '<br>confidence ' + conf + '</div>'
+      + '<div class="actions" onclick="event.stopPropagation()">'
+      + '<button class="accept" onclick="acceptProposal(' + p.id + ')">Accept</button>'
+      + '<button class="reject" onclick="rejectProposal(' + p.id + ')">Reject</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function highlightProposal(id) {
+  document.querySelectorAll('.prop-card').forEach(c => c.classList.toggle('active', c.dataset.propId === String(id)));
+  const prop = pendingProposals.find(p => p.id === id);
+  if (!prop || !network) return;
+  visualizeProposals(prop);
+}
+
+async function visualizeProposals(focusProp) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  showLoading(true, 'Rendering proposals…');
+  try {
+    await loadMemoryCache();
+    if (!network) initNetwork(currentLayout);
+    if (!pendingProposals.length) await loadProposals();
+    else await renderAcceptedLLMLinks(document.getElementById('mem-id').value.trim() || null);
+    for (const p of pendingProposals) {
+      addMemoryNode(p.from_memory_id, { depth: 0, linkType: p.link_type });
+      addMemoryNode(p.to_memory_id, { depth: 1, linkType: p.link_type });
+      const edgeId = 'proposal:' + p.id;
+      if (!edgesData.get(edgeId)) {
+        edgesData.add({
+          id: edgeId, from: p.from_memory_id, to: p.to_memory_id,
+          label: p.link_type + ' ?', dashes: [8, 6], width: 1.6,
+          color: { color: '#94a3b8', highlight: '#fff' },
+          title: p.reason || ''
+        });
+      }
+      addProposalEdge(p, focusProp && focusProp.id === p.id);
+    }
+    updateCounts();
+    network.fit({ animation: { duration: 450 } });
+    if (focusProp) selectNode(focusProp.from_memory_id);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally { showLoading(false); }
+}
+
+async function acceptProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/link-proposals/' + id + '/accept', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return; }
+  edgesData.remove('proposal:' + id);
+  pendingProposals = pendingProposals.filter(p => p.id !== id);
+  await loadMemoryCache(true);
+  const mat = materializeGraphLink(data.link, true);
+  renderProposalsList();
+  updateCounts();
+  if (network && mat) {
+    network.selectEdges([mat.edgeId]);
+    network.focus(mat.toId, { scale: 1.15, animation: { duration: 500 } });
+  }
+  toast('Accept · ' + (data.link && data.link.link_type) + ' ✓ — arco teal nel grafo');
+  updateGuideUI('proposals');
+}
+
+async function rejectProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/link-proposals/' + id + '/reject', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Reject failed: ' + (data.error || r.statusText), true); return; }
+  toast('Proposal rejected');
+  pendingProposals = pendingProposals.filter(p => p.id !== id);
+  edgesData.remove('proposal:' + id);
+  renderProposalsList();
+  updateCounts();
+}
+
+// ── Phase D: entity registry + alias proposals ─────────────────────────────
+async function loadRegistryEntities(focusSelected) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const kindEl = document.getElementById('registry-kind-filter');
+  const kind = kindEl ? kindEl.value : '';
+  let url = apiUrl + '/v1/entities/registry?limit=120';
+  if (kind) url += '&kind=' + encodeURIComponent(kind);
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      if (r.status === 404) {
+        toast('Registry API non disponibile — rebuild API con Phase D + migration 025', true);
+      } else {
+        toast('Registry error ' + r.status + ': ' + (err.error || r.statusText), true);
+      }
+      return;
+    }
+    const data = await r.json();
+    registryEntities = data.entities || [];
+    renderRegistryList();
+    if (registryEntities.length) {
+      toast(registryEntities.length + ' canonical entit' + (registryEntities.length === 1 ? 'y' : 'ies') + ' in registry');
+    } else {
+      toast('Registry vuoto — esegui Extract su una memoria CTI (es. Sapphire Sleet, BRICKSTORM)');
+    }
+    if (focusSelected && selectedEntity) focusRegistryEntity(selectedEntity.kind, selectedEntity.canonical || selectedEntity.key);
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderRegistryList() {
+  const el = document.getElementById('registry-list');
+  if (!registryEntities.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna entità in registry. '
+      + 'Clicca <b>Extract</b> su una memoria CTI (threat actor / BRICKSTORM).</p>';
+    return;
+  }
+  el.innerHTML = registryEntities.map(ent => {
+    const active = selectedEntity && selectedEntity.kind === ent.kind
+      && (selectedEntity.key === ent.canonical_key || selectedEntity.canonical === ent.canonical_key);
+    return '<div class="registry-card' + (active ? ' active' : '') + '" data-kind="' + escapeHtml(ent.kind) + '" data-key="'
+      + escapeHtml(ent.canonical_key) + '" onclick="focusRegistryEntity(\'' + String(ent.kind).replace(/'/g, "\\'") + '\',\''
+      + String(ent.canonical_key).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + '\')">'
+      + '<div class="kind">' + escapeHtml(ent.kind) + '</div>'
+      + '<div class="key">' + escapeHtml(ent.display_name || ent.canonical_key) + '</div>'
+      + '<div class="meta">' + escapeHtml(ent.canonical_key)
+      + (ent.updated_at ? ' · ' + escapeHtml(fmtDate(ent.updated_at)) : '') + '</div></div>';
+  }).join('');
+}
+
+async function focusRegistryEntity(kind, key) {
+  const k = kind || (selectedEntity && selectedEntity.kind);
+  const v = key || (selectedEntity && (selectedEntity.canonical || selectedEntity.key));
+  if (!k || !v) return;
+  selectedEntity = { kind: k, key: v, canonical: v };
+  renderRegistryList();
+  if (!network) initNetwork(currentLayout);
+  const entId = addEntityNode(k, v, '');
+  selectNode(entId);
+  await loadEntityRegistryDetail(k, v);
+  if (network) network.focus(entId, { scale: 1.2, animation: { duration: 450 } });
+}
+
+function entityKeyById(id) {
+  if (!id) return null;
+  const ent = registryEntities.find(e => e.id === id);
+  return ent ? ent.canonical_key : null;
+}
+
+async function loadAliasProposals() {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  if (!registryEntities.length) {
+    const rr = await fetch(apiUrl + '/v1/entities/registry?limit=200', { headers: authHeaders() });
+    if (rr.ok) registryEntities = ((await rr.json()).entities) || [];
+  }
+  let url = apiUrl + '/v1/graph/entity-alias-proposals?status=pending&limit=100';
+  try {
+    const r = await fetch(url, { headers: authHeaders() });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      toast('Alias proposals error ' + r.status + ': ' + (err.error || err.hint || r.statusText), true);
+      return;
+    }
+    const data = await r.json();
+    pendingAliasProposals = data.proposals || [];
+    renderAliasProposalsList();
+    if (pendingAliasProposals.length) {
+      toast(pendingAliasProposals.length + ' pending alias merge(s)');
+    }
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  }
+}
+
+function renderAliasProposalsList() {
+  const el = document.getElementById('alias-proposals-list');
+  if (!pendingAliasProposals.length) {
+    el.innerHTML = '<p class="empty-note">Nessuna proposta alias pending. '
+      + 'Clicca <b>Alias Propose</b> dopo Extract.</p>'
+      + '<div class="insp-actions" style="margin-top:10px">'
+      + '<button class="act-primary" onclick="generateAliasProposals()">Alias Propose</button></div>';
+    return;
+  }
+  el.innerHTML = '<div class="insp-actions" style="margin-bottom:10px">'
+    + '<button class="act-primary" onclick="acceptAllPendingAliases()">Accept all (' + pendingAliasProposals.length + ')</button>'
+    + '</div>'
+    + pendingAliasProposals.map(p => {
+    const conf = (p.confidence != null) ? (Math.round(p.confidence * 100) + '%') : '—';
+    const targetKey = entityKeyById(p.target_entity_id) || (p.target_entity_id || '').slice(0, 8) + '…';
+    return '<div class="prop-card" data-alias-id="' + p.id + '">'
+      + '<div class="edge">' + escapeHtml(p.kind) + ': '
+      + '<span style="color:var(--danger)">' + escapeHtml(p.alias_key) + '</span>'
+      + ' → <span style="color:var(--ok)">' + escapeHtml(targetKey) + '</span></div>'
+      + '<div class="meta">' + escapeHtml(p.reason || '') + '<br>confidence ' + conf + '</div>'
+      + '<div class="actions" onclick="event.stopPropagation()">'
+      + '<button class="accept" onclick="acceptAliasProposal(' + p.id + ')">Accept</button>'
+      + '<button class="reject" onclick="rejectAliasProposal(' + p.id + ')">Reject</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+async function acceptAliasProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/' + id + '/accept', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Accept failed: ' + (data.error || r.statusText), true); return false; }
+  const prop = data.proposal || {};
+  pendingAliasProposals = pendingAliasProposals.filter(p => p.id !== id);
+  const targetKey = entityKeyById(prop.target_entity_id);
+  if (prop.kind && prop.alias_key && targetKey) addSameAsEdge(prop.kind, prop.alias_key, targetKey);
+  renderAliasProposalsList();
+  updateCounts();
+  toast('Alias accepted · same_as nel grafo (viola)');
+  updateGuideUI('proposals');
+  return true;
+}
+
+async function acceptAllPendingAliases() {
+  if (!pendingAliasProposals.length) {
+    await loadAliasProposals();
+  }
+  if (!pendingAliasProposals.length) {
+    toast('Nessuna proposta alias pending', true);
+    return 0;
+  }
+  const batch = pendingAliasProposals.slice();
+  let n = 0;
+  for (const p of batch) {
+    if (await acceptAliasProposal(p.id)) n += 1;
+  }
+  toast(n + ' alias merge accettati · archi same_as viola nel grafo');
+  return n;
+}
+
+async function rejectAliasProposal(id) {
+  const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/' + id + '/reject', { method: 'POST', headers: authHeaders() });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { toast('Reject failed: ' + (data.error || r.statusText), true); return; }
+  pendingAliasProposals = pendingAliasProposals.filter(p => p.id !== id);
+  renderAliasProposalsList();
+  toast('Alias proposal rejected');
+}
+
+async function generateAliasProposals(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const btn = document.getElementById('btn-alias-propose');
+  if (btn) btn.disabled = true;
+  showLoading(true, 'LLM proposing entity aliases…');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/entity-alias-proposals/generate/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = String(data.error || data.hint || r.statusText);
+      if (r.status === 503) {
+        toast('Alias Propose disabilitato: ENTITY_ALIAS_PROPOSALS_ENABLED=true su API', true);
+      } else if (r.status === 422 && err.indexOf('extraction') !== -1) {
+        toast('Prima clicca Extract su memory ' + id, true);
+      } else {
+        toast('Alias propose failed: ' + err, true);
+      }
+      return;
+    }
+    toast('+' + (data.count || 0) + ' alias proposal(s) for memory.' + id);
+    setViewMode('proposals');
+    setProposalTab('aliases');
+    await loadAliasProposals();
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+    showLoading(false);
+  }
+}
+
+async function generateProposals(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  document.getElementById('btn-propose').disabled = true;
+  showLoading(true, 'LLM proposing links…');
+  try {
+    const r = await fetch(apiUrl + '/v1/graph/link-proposals/generate/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const err = String(data.error || data.hint || r.statusText);
+      if (err.indexOf('graph_link_proposals') !== -1) {
+        toast('Tabella graph_link_proposals mancante — esegui migration 024 su postgres-age (:5433)', true);
+      } else if (r.status === 503) {
+        toast('LLM Propose disabilitato: LINK_PROPOSALS_ENABLED=true su API', true);
+      } else if (r.status === 422 && err.indexOf('extraction') !== -1) {
+        toast('Prima clicca Extract su memory ' + id, true);
+      } else {
+        toast('Propose failed: ' + err, true);
+      }
+      return;
+    }
+    toast('+' + (data.count || 0) + ' proposal(s) for memory.' + id);
+    setViewMode('proposals');
+    setProposalTab('links');
+    await loadProposals();
+    await visualizeProposals();
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-propose').disabled = false;
+    showLoading(false);
+  }
+}
+
+async function runExtract(memId) {
+  const id = memId || document.getElementById('mem-id').value;
+  if (!id) { toast('Enter a Memory ID', true); return; }
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  document.getElementById('btn-extract').disabled = true;
+  showLoading(true, 'Running LLM extraction…');
+  try {
+    const r = await fetch(apiUrl + '/v1/memories/extraction/' + encodeURIComponent(id), {
+      method: 'POST', headers: authHeaders()
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 503) {
+        toast('Extract disabilitato — riavvia lo stack con make demo (EXTRACTION_ENABLED)', true);
+      } else if (r.status === 422 && (data.error || '').indexOf('no matching extraction profile') !== -1) {
+        toast('Nessun profilo extraction per questo path — usa memoria SOC (73) o realistic (2372+)', true);
+      } else {
+        toast('Extract fallito: ' + (data.error || data.hint || r.statusText), true);
+      }
+      return;
+    }
+    toast('Extraction ok · memory.' + id);
+    cacheLoaded = false;
+    await loadMemoryCache(true);
+    if (selectedNode === parseInt(id, 10)) openInspector(parseInt(id, 10));
+  } catch (e) {
+    toast('Request failed: ' + e.message, true);
+  } finally {
+    document.getElementById('btn-extract').disabled = false;
+    showLoading(false);
+  }
+}
+
 // ── explore ───────────────────────────────────────────────────────────────────
+function ctiNodeDatasetColor(id) {
+  const entry = memCache[id] || {};
+  const md = entry.metadata || {};
+  const src = md.cti_source || entry.cti_source;
+  const colors = { soc: '#0d9488', vendor_reports: '#d97706', stix: '#8b5cf6', vendor_intel: '#06b6d4' };
+  if (colors[src]) return colors[src];
+  const p = entry.path || '';
+  if (p.includes('.cisa.brickstorm') || p.includes('.stix.')) return colors.stix;
+  if (p.includes('.wiz.') || p.includes('.google_gtig.') || p.includes('.microsoft.dcu.')) return colors.vendor_intel;
+  if (p.includes('.vendor_reports.')) return colors.vendor_reports;
+  if (p.includes('.vendors.')) return colors.vendor_intel;
+  if (p.includes('.soc.') || p.includes('.ti_hub.')) return colors.soc;
+  return null;
+}
+
 function nodeStyle(id, depth, linkType, isRoot) {
   if (isRoot) return { background: '#0d3b34', border: '#2dd4bf' };
+  if (window.CTI_DEMO_ACTIVE) {
+    const dc = ctiNodeDatasetColor(id);
+    if (dc) return { background: dc, border: linkColors[linkType] || '#64748b' };
+  }
   return { background: depthColor(depth), border: linkColors[linkType] || '#64748b' };
 }
 
@@ -801,6 +2218,7 @@ async function explore() {
     updateCounts();
     if (clustersOn && currentLayout === 'force') applyClusters(); else network.fit({ animation: { duration: 500 } });
     if (timelineOn) buildTimeline();
+    await hydrateVisibleMemories();
     toast(added > 0 ? ('+' + added + ' related node' + (added>1?'s':'')) : 'No new related nodes');
     selectNode(rootId);
   } catch(e) {
@@ -859,7 +2277,7 @@ async function findChain() {
 function clearGraph() {
   nodesData.clear(); edgesData.clear();
   nodeTimestamps = {}; nodeMeta = {};
-  selectedNode = null;
+  selectedNode = null; selectedEntity = null;
   document.getElementById('btn-chain').disabled = true;
   closeInspector();
   updateCounts();
@@ -867,15 +2285,1360 @@ function clearGraph() {
 }
 
 // Enter-to-explore
+document.getElementById('mem-id').addEventListener('change', function() {
+  updateGuideUI(viewMode);
+  toast('Memory ID cambiato → Clear + Explore per ricaricare il grafo', false);
+});
 ['mem-id','depth','api-key'].forEach(id => {
-  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') explore(); });
+  document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') runExplore(); });
 });
 
 updateCounts();
 
-// ── recording / demo walkthrough (?record=1) ───────────────────────────────
+// ── guided UX (Italian) ───────────────────────────────────────────────────
+let guideStep = 'links';
+const GUIDE_NOW = {
+  links: '<b>Prossimo passo:</b> View <b>Links</b> → spunta <kbd>causal</kbd> + <kbd>temporal</kbd> → clicca <kbd>Explore</kbd> con Memory ID <kbd>73</kbd>.',
+  entities: '<b>Prossimo passo:</b> View <b>Entities</b> → <kbd>Explore</kbd>. I diamanti sono entità (Akira, IP…); i cerchi sono altre memorie correlate.',
+  registry: '<b>Prossimo passo:</b> View <b>Registry</b> → clicca un\'entità. Inspector: alias attivi + timeline snapshot (evoluzione Phase D).',
+  extract: '<b>Prossimo passo:</b> seleziona un cerchio (memoria) → clicca <kbd>Extract</kbd> → controlla gli slot nel pannello destro.',
+  proposals: '<b>Prossimo passo:</b> tab <b>Link</b> / <b>Alias</b> → <kbd>Link Propose</kbd> o <kbd>Alias Propose</kbd> → Accept. Link = arco teal ✓ · Alias = arco viola same_as.'
+};
+
+function renderWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Benvenuto nel Cognitive Graph Explorer</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Esplora il dataset SOC con quattro layer: <b>link</b>, <b>entità AGE</b>, <b>registry/evoluzione</b>, <b>proposte LLM</b>.</p>'
+    + '<ol><li><b>Links</b> — grafo causale/temporale tra incidenti</li>'
+    + '<li><b>Entities</b> — vertici AGE da extraction (diamanti)</li>'
+    + '<li><b>Registry</b> — canonical + alias + snapshot timeline</li>'
+    + '<li><b>Extract</b> — estrae slot SIEM dalla memoria</li>'
+    + '<li><b>Proposals</b> — review link + alias merge LLM</li></ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="runGuidedDemo()">▶ Avvia demo guidata</button>'
+    + '<button class="btn-secondary" onclick="dismissWelcome()">Esplora da solo</button></div>';
+}
+
+function dismissWelcome() {
+  localStorage.setItem('pcmi_graph_welcome_dismissed', '1');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+function toggleGuideBar() {
+  if (window.GRAPH_WALKTHROUGH_ACTIVE) {
+    const p = document.getElementById('walkthrough-panel');
+    if (!p) return;
+    const open = !p.classList.contains('open');
+    openWalkthroughPanel(open);
+    const btn = document.getElementById('btn-guide-toggle');
+    if (btn) btn.className = (open ? 'btn-active' : 'btn-secondary') + ' seg';
+    return;
+  }
+  if (window.CTI_DEMO_ACTIVE) {
+    const p = document.getElementById('walkthrough-panel');
+    if (!p) return;
+    const open = !p.classList.contains('open');
+    openWalkthroughPanel(open);
+    const btn = document.getElementById('btn-guide-toggle');
+    if (btn) btn.className = (open ? 'btn-active' : 'btn-secondary') + ' seg';
+    return;
+  }
+  const bar = document.getElementById('guide-bar');
+  const hidden = bar.classList.toggle('hidden');
+  document.getElementById('btn-guide-toggle').className = (hidden ? 'btn-secondary' : 'btn-active') + ' seg';
+}
+
+function setLinkTypes(types) {
+  const want = new Set((types || '').split(',').filter(Boolean));
+  document.querySelectorAll('#link-types input').forEach(el => { el.checked = want.has(el.value); });
+}
+
+function updateGuideUI(step) {
+  guideStep = step || viewMode;
+  document.querySelectorAll('.gstep').forEach(el => {
+    const s = el.dataset.step;
+    el.classList.toggle('active', s === guideStep);
+    el.classList.toggle('done', isGuideStepDone(s));
+  });
+  const now = document.getElementById('guide-now');
+  if (now) now.innerHTML = GUIDE_NOW[guideStep] || GUIDE_NOW.links;
+}
+
+function isGuideStepDone(step) {
+  if (step === 'links') return viewMode === 'links' && nodesData.length > 1;
+  if (step === 'entities') {
+    return [...nodesData.getIds()].some(id => isEntityNodeId(id));
+  }
+  if (step === 'registry') return registryEntities.length > 0;
+  if (step === 'extract') {
+    const m = memCache[parseInt(document.getElementById('mem-id').value, 10)];
+    return m && m.metadata && m.metadata.pcmi_extract;
+  }
+  if (step === 'proposals') return pendingProposals.length > 0 || pendingAliasProposals.length > 0;
+  return false;
+}
+
+function updateCanvasHint(mode) {
+  const el = document.getElementById('canvas-hint');
+  if (!el) return;
+  if (mode === 'entities') {
+    el.textContent = 'Cerchio teal = memoria root · Diamante = entità · linea tratteggiata = mentions';
+  } else if (mode === 'registry') {
+    el.textContent = 'Pannello sinistro = registry canonico · clicca entità → inspector con snapshot timeline';
+  } else if (mode === 'proposals') {
+    el.textContent = 'Tab Link: grigio pending / teal ✓ approvato · Tab Alias: merge same_as viola dopo Accept';
+  } else if (mode === 'retrieval') {
+    el.textContent = 'Retrieve: risultati verdi = cross-vendor nel top-N · clicca riga → evidenzia nodo memoria';
+  } else {
+    el.textContent = 'Click = ispeziona · dbl-click = espandi · trascina = sposta nodi';
+  }
+}
+
+function pulseEl(sel) {
+  const el = document.querySelector(sel);
+  if (!el) return;
+  el.classList.add('pulse');
+  setTimeout(() => el.classList.remove('pulse'), 2800);
+}
+
+async function jumpToGuideStep(step) {
+  dismissWelcome();
+  updateGuideUI(step);
+  if (step === 'links') {
+    setViewMode('links');
+    setLinkTypes('causal,temporal,related');
+    pulseEl('#btn-explore');
+    return;
+  }
+  if (step === 'entities') {
+    setViewMode('entities');
+    pulseEl('#btn-explore');
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await exploreEntities();
+    return;
+  }
+  if (step === 'registry') {
+    setViewMode('registry');
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await loadRegistryEntities();
+    return;
+  }
+  if (step === 'extract') {
+    if (!apiKey()) { toast('Inserisci API key testkey123', true); return; }
+    await runExtract(parseInt(document.getElementById('mem-id').value, 10));
+    return;
+  }
+  if (step === 'proposals') {
+    setViewMode('proposals');
+    pulseEl('#btn-propose');
+    await loadProposals();
+    await loadAliasProposals();
+  }
+}
+
+function startGuidedDemo() {
+  if (window.CTI_DEMO_ACTIVE) runCtiGuidedDemo();
+  else runSocGuidedDemo();
+}
+
+// ── CTI cross-vendor guided demo (?demo=cti) ───────────────────────────────
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+function isWalkthroughRequested() {
+  const qs = new URLSearchParams(location.search);
+  return qs.get('walkthrough') === '1' || qs.get('walkthrough') === 'start';
+}
+
+function showRetrieveViewButton(show) {
+  const retBtn = document.getElementById('btn-view-retrieval');
+  if (retBtn) retBtn.style.display = show ? '' : 'none';
+}
+
+function getGraphDemoConfig() {
+  const qs = new URLSearchParams(location.search);
+  const demo = (qs.get('demo') || window.GRAPH_DEMO_PRESET || '').toLowerCase();
+  const memQ = qs.get('mem') || '';
+  if (demo === 'soc') {
+    return {
+      preset: 'soc',
+      label: 'SOC incident graph',
+      pathPrefix: 'root.soc',
+      defaultMemId: memQ || '73',
+      exploreDepth: 3,
+      linkTypes: 'causal,temporal,related',
+      retrieveQuery: 'Akira lateral movement SMB PsExec campaign incident',
+      retrieveLimit: 12,
+      datasetNote: 'Memorie sotto root.soc.*'
+    };
+  }
+  if (demo === 'cti' || window.CTI_DEMO_ACTIVE) {
+    const M = ctiMemIds();
+    return {
+      preset: 'cti',
+      label: 'CTI cognitive graph',
+      pathPrefix: 'root.cti',
+      defaultMemId: memQ || M.brickstorm || M.root || '73',
+      exploreDepth: 2,
+      linkTypes: 'supports,related',
+      retrieveQuery: 'threat actor campaign intelligence correlation',
+      retrieveLimit: 12,
+      datasetNote: 'Memorie sotto root.cti.*'
+    };
+  }
+  return {
+    preset: 'generic',
+    label: 'Memory graph',
+    pathPrefix: 'root',
+    defaultMemId: memQ || document.getElementById('mem-id')?.value || '1',
+    exploreDepth: 3,
+    linkTypes: 'related,supports',
+    retrieveQuery: 'security incident threat correlation',
+    retrieveLimit: 10,
+    datasetNote: 'Memorie sotto root.*'
+  };
+}
+
+function ctiMemIds() {
+  const qs = new URLSearchParams(location.search);
+  const n = (k, fallback) => qs.get(k) || fallback;
+  return {
+    root: n('root', n('mem', '4322')),
+    brickstorm: n('brickstorm', '4322'),
+    brickstorm_sample: n('brickstorm_sample', '4336'),
+    cs_pressure: n('cs_pressure', '4382'),
+    ms_sapphire: n('ms_sapphire', '4394'),
+    mdt_ps: n('mdt_ps', '4289'),
+    ms_forest: n('ms_forest', '4395'),
+    apt28: n('apt28', '4355'),
+    ti_sapphire: n('ti_sapphire', '47'),
+    ti_forest: n('ti_forest', '46'),
+  };
+}
+
+function socDemoMemIds() {
+  const qs = new URLSearchParams(location.search);
+  const raw = qs.get('demo_mems') || qs.get('soc_mems') || '';
+  if (raw.trim()) {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+  const mem = qs.get('mem') || getGraphDemoConfig().defaultMemId || '73';
+  return [mem];
+}
+
+/** Deduped catalog of { id, label, tag } for demo memory launcher chips. */
+function getDemoMemoryCatalog() {
+  const cfg = getGraphDemoConfig();
+  const seen = new Set();
+  const out = [];
+  function add(id, label, tag) {
+    const sid = String(id);
+    if (!sid || sid === '0' || seen.has(sid)) return;
+    seen.add(sid);
+    out.push({ id: sid, label: label || ('memory.' + sid), tag: tag || '' });
+  }
+  if (cfg.preset === 'cti' || window.CTI_DEMO_ACTIVE) {
+    const M = ctiMemIds();
+    add(M.brickstorm, 'BRICKSTORM MAR', 'STIX');
+    add(M.brickstorm_sample, 'Sample SHA-256', 'STIX');
+    add(M.cs_pressure, 'TraderTraitor / CS', 'vendor');
+    add(M.ms_sapphire, 'Sapphire Sleet', 'MS');
+    add(M.mdt_ps, 'PROMPTSTEAL', 'Mandiant');
+    add(M.ms_forest, 'Forest Blizzard', 'MS');
+    add(M.apt28, 'APT28 GTIG', 'Google');
+    add(M.ti_sapphire, 'Distill · DPRK', 'TI');
+    add(M.ti_forest, 'Distill · APT28', 'TI');
+    return out;
+  }
+  if (cfg.preset === 'soc') {
+    const labels = (new URLSearchParams(location.search).get('demo_mem_labels') || '').split('|');
+    socDemoMemIds().forEach((id, i) => {
+      add(id, labels[i] || ('Incident · ' + id), 'SOC');
+    });
+    return out;
+  }
+  const mem = cfg.defaultMemId;
+  if (mem) add(mem, 'Default memory', 'demo');
+  return out;
+}
+
+let demoMemLaunchLock = false;
+let demoMemActiveId = null;
+
+function showDemoMemoryBar(show) {
+  const bar = document.getElementById('demo-mem-bar');
+  if (!bar) return;
+  bar.classList.toggle('visible', !!show);
+  bar.setAttribute('aria-hidden', show ? 'false' : 'true');
+}
+
+function renderDemoMemoryBar() {
+  const wrap = document.getElementById('demo-mem-chips');
+  if (!wrap) return;
+  const catalog = getDemoMemoryCatalog();
+  if (!catalog.length) {
+    showDemoMemoryBar(false);
+    return;
+  }
+  showDemoMemoryBar(true);
+  wrap.innerHTML = catalog.map((item) => {
+    const active = demoMemActiveId === item.id ? ' active' : '';
+    const tag = item.tag ? '<span class="tag">' + escapeHtml(item.tag) + '</span>' : '';
+    return '<button type="button" class="demo-mem-chip' + active + '" data-mem-id="' + escapeHtml(item.id)
+      + '" title="memory.' + escapeHtml(item.id) + '" onclick="launchDemoMemory(\'' + escapeHtml(item.id) + '\')">'
+      + tag + escapeHtml(item.label) + ' <span style="opacity:.65">#' + escapeHtml(item.id) + '</span></button>';
+  }).join('');
+}
+
+function highlightDemoMemChip(memId) {
+  demoMemActiveId = memId ? String(memId) : null;
+  document.querySelectorAll('.demo-mem-chip').forEach((el) => {
+    el.classList.toggle('active', el.dataset.memId === demoMemActiveId);
+  });
+}
+
+async function launchDemoMemory(memId, opts) {
+  if (demoMemLaunchLock && !(opts && opts.force)) return;
+  const id = parseInt(String(memId), 10);
+  if (!id) return;
+  dismissCtiWelcome();
+  dismissWelcome();
+  const cfg = getGraphDemoConfig();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
+  setViewMode('links');
+  setLinkTypes(cfg.linkTypes);
+  document.getElementById('mem-id').value = String(id);
+  document.getElementById('depth').value = String((opts && opts.depth) || cfg.exploreDepth);
+  highlightDemoMemChip(String(id));
+  try {
+    await explore();
+    await loadMemoryCache(true);
+    selectNode(id);
+    if (network) network.focus(id, { scale: 1.08, animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+    const item = getDemoMemoryCatalog().find((m) => m.id === String(id));
+    toast('memory.' + id + (item && item.label ? ' · ' + item.label : ''));
+  } catch (e) {
+    toast('Memoria ' + id + ': ' + e.message, true);
+  }
+}
+
+async function launchAllDemoMemories() {
+  if (demoMemLaunchLock) return;
+  const catalog = getDemoMemoryCatalog();
+  if (!catalog.length) return;
+  const btn = document.getElementById('btn-demo-mem-all');
+  demoMemLaunchLock = true;
+  if (btn) btn.disabled = true;
+  dismissCtiWelcome();
+  dismissWelcome();
+  try {
+    for (let i = 0; i < catalog.length; i++) {
+      const item = catalog[i];
+      if (btn) btn.textContent = '▶ ' + (i + 1) + '/' + catalog.length;
+      await launchDemoMemory(item.id, { force: true });
+      await sleep(i < catalog.length - 1 ? 2800 : 400);
+    }
+    toast('Tour memorie demo completato (' + catalog.length + ')');
+  } catch (e) {
+    toast('Tour memorie interrotto: ' + e.message, true);
+  } finally {
+    demoMemLaunchLock = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '▶ Apri tutte';
+    }
+  }
+}
+
+const CTI_GUIDE_NOW = {
+  layers: '<b>Fase 1 · Operational STIX</b> — BRICKSTORM MAR-251165 (viola) + sample con SHA-256 reale. Dataset: <code>operational_stix_cti_dataset.json</code>.',
+  brickstorm: '<b>Fase 2 · Sample BRICKSTORM</b> — Inspector: SHA-256/YARA da bundle CISA MAR (nessun hash inventato).',
+  dprk: '<b>Fase 3–4 · Bybit $1.5B</b> — Wiz TraderTraitor/PRESSURE CHOLLIMA (ciano=vendor IOC operativo) ↔ Sapphire Sleet (Microsoft).',
+  apt28: '<b>Fase 5–7 · APT28</b> — PROMPTSTEAL con hash ThreatLocker/CERT-UA + Forest Blizzard (Microsoft).',
+  iocs: '<b>Fase 8 · IOC operativi</b> — Sample APT28/PROMPTSTEAL: pannello <b>Operational IOC</b> nell\'inspector.',
+  evolution: '<b>Fase 9–11 · Evoluzione entità</b> — Extract APT28 → Registry (alias APT28↔Forest Blizzard) → Accept merge.',
+  retrieval: '<b>Fase 12 · Retrieval ibrida</b> — 1) embed query 2) SQL ibrida BM25+pgvector 3) top-N cross-vendor (verdi). Scenario DPRK: PRESSURE CHOLLIMA → Sapphire Sleet.',
+};
+
+let ctiGuideJumpLock = false;
+
+function updateCtiGuideUI(step) {
+  if (!window.CTI_DEMO_ACTIVE) return;
+  guideStep = step;
+  document.querySelectorAll('.gstep').forEach(el => {
+    const s = el.dataset.step;
+    el.classList.toggle('active', s === step);
+  });
+  const now = document.getElementById('guide-now');
+  if (now && CTI_GUIDE_NOW[step]) now.innerHTML = CTI_GUIDE_NOW[step];
+}
+
+function bindCtiGuideSteps() {
+  const container = document.getElementById('guide-steps');
+  if (!container || container.dataset.bound === '1') return;
+  container.dataset.bound = '1';
+  container.addEventListener('click', (ev) => {
+    const el = ev.target.closest('.gstep');
+    if (!el || !el.dataset.step) return;
+    jumpToCtiGuideStep(el.dataset.step);
+  });
+}
+
+async function jumpToCtiGuideStep(step) {
+  if (ctiGuideJumpLock) return;
+  ctiGuideJumpLock = true;
+  dismissCtiWelcome();
+  dismissWelcome();
+  updateCtiGuideUI(step);
+  const M = ctiMemIds();
+  if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+  try {
+    if (step === 'layers') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.brickstorm;
+      document.getElementById('depth').value = '2';
+      await explore();
+      await loadMemoryCache(true);
+      selectNode(parseInt(M.brickstorm_sample || M.brickstorm, 10));
+    } else if (step === 'brickstorm') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.brickstorm;
+      document.getElementById('depth').value = '2';
+      await explore();
+      await loadMemoryCache(true);
+      selectNode(parseInt(M.brickstorm_sample || M.brickstorm, 10));
+    } else if (step === 'dprk') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.cs_pressure;
+      document.getElementById('depth').value = '3';
+      await explore();
+      selectNode(parseInt(M.cs_pressure, 10));
+    } else if (step === 'apt28') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.mdt_ps;
+      document.getElementById('depth').value = '3';
+      await explore();
+      selectNode(parseInt(M.mdt_ps, 10));
+    } else if (step === 'iocs') {
+      setViewMode('links');
+      setLinkTypes('supports,related');
+      clearGraph();
+      document.getElementById('mem-id').value = M.apt28;
+      document.getElementById('depth').value = '2';
+      await explore();
+      selectNode(parseInt(M.apt28, 10));
+    } else if (step === 'evolution') {
+      setViewMode('registry');
+      await loadRegistryEntities(false);
+      const aptKey = 'APT28 / FROZENLAKE';
+      if (registryEntities.some(e => e.canonical_key === aptKey)) {
+        await focusRegistryEntity('ThreatActor', aptKey);
+      } else if (registryEntities.some(e => e.canonical_key === 'APT28')) {
+        await focusRegistryEntity('ThreatActor', 'APT28');
+      } else if (registryEntities.length) {
+        const e0 = registryEntities[0];
+        await focusRegistryEntity(e0.kind, e0.canonical_key);
+      }
+    } else if (step === 'retrieval') {
+      setViewMode('retrieval');
+      document.getElementById('retrieval-scenario').value = 'dprk_cs';
+      applyRetrievalScenario();
+      renderRetrievalPipelineIdle();
+      await runCtiRetrievalPanel();
+    }
+  } catch (e) {
+    toast('Fase CTI: ' + e.message, true);
+  } finally {
+    ctiGuideJumpLock = false;
+  }
+}
+
+function renderCtiGuideBar() {
+  const M = ctiMemIds();
+  const bar = document.getElementById('guide-bar');
+  if (!bar) return;
+  bar.innerHTML =
+    '<div class="guide-top">'
+    + '<h2>Demo CTI · Operational STIX dataset</h2>'
+    + '<span class="sub"><code>operational_stix_cti_dataset.json</code> · '
+    + 'Root <b style="color:var(--primary);font-family:var(--mono)">' + M.root + '</b>'
+    + ' · STIX MAR <span style="color:#8b5cf6">■</span> · vendor IOC <span style="color:#06b6d4">■</span> · reports <span style="color:#d97706">■</span></span>'
+    + '<button class="btn-primary seg" id="btn-guided-demo" onclick="startGuidedDemo()">▶ Tour automatico</button>'
+    + '<button class="btn-secondary seg" onclick="runCtiGuidedDemo()">Ricomincia</button>'
+    + '<button class="btn-secondary seg" onclick="toggleGuideBar()">Nascondi</button>'
+    + '</div>'
+    + '<div class="guide-steps" id="guide-steps">'
+    + '<div class="gstep active" data-step="layers"><div class="num">1</div><div class="title">Operational STIX</div>'
+    + '<div class="desc">BRICKSTORM CISA MAR-251165 — SHA-256 reali da bundle STIX 2.1.</div></div>'
+    + '<div class="gstep" data-step="brickstorm"><div class="num">2</div><div class="title">Sample BRICKSTORM</div>'
+    + '<div class="desc">Inspector → pannello Operational IOC con hash verificabile.</div></div>'
+    + '<div class="gstep" data-step="dprk"><div class="num">3–4</div><div class="title">DPRK cross-vendor</div>'
+    + '<div class="desc">PRESSURE CHOLLIMA (CrowdStrike) ↔ Sapphire Sleet (Microsoft).</div></div>'
+    + '<div class="gstep" data-step="apt28"><div class="num">5–7</div><div class="title">APT28 cross-vendor</div>'
+    + '<div class="desc">PROMPTSTEAL (Mandiant) ↔ Forest Blizzard (Microsoft).</div></div>'
+    + '<div class="gstep" data-step="iocs"><div class="num">8</div><div class="title">IOC operativi</div>'
+    + '<div class="desc">Sample APT28 / PROMPTSTEAL con SHA-256 reali.</div></div>'
+    + '<div class="gstep" data-step="evolution"><div class="num">9–11</div><div class="title">Evoluzione entità</div>'
+    + '<div class="desc">Extract → Registry → snapshot timeline (Phase D).</div></div>'
+    + '<div class="gstep" data-step="retrieval"><div class="num">12</div><div class="title">Retrieval ibrida</div>'
+    + '<div class="desc">BM25 + pgvector — PRESSURE CHOLLIMA trova Sapphire Sleet senza alias table.</div></div>'
+    + '</div>'
+    + '<div class="guide-now" id="guide-now">'
+    + '<b>Tour:</b> clicca una <b>fase</b> qui sopra per saltare, oppure <kbd>▶ Tour automatico</kbd>.'
+    + ' API key: <kbd>testkey123</kbd> · link types: <kbd>supports,related</kbd>.'
+    + '</div>';
+  bindCtiGuideSteps();
+  updateCtiGuideUI('layers');
+  renderDemoMemoryBar();
+}
+
+function renderCtiWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Demo CTI · Operational STIX dataset</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Dataset <b>operational_stix_cti_dataset.json</b>: IOC reali da CISA MAR, Wiz Bybit, Microsoft DCU, GTIG APT28.</p>'
+    + '<ol>'
+    + '<li><b>STIX MAR</b> (viola) — BRICKSTORM con SHA-256 da bundle CISA</li>'
+    + '<li><b>Vendor IOC</b> (ciano) — Bybit $1.5B, StealC/Amadey, PROMPTSTEAL</li>'
+    + '<li><b>Inspector</b> — pannello Operational IOC con hash verificabili</li>'
+    + '<li><b>Cross-vendor</b> — PRESSURE CHOLLIMA ↔ Sapphire Sleet</li>'
+    + '<li><b>Retrieval ibrido</b> — embed query → BM25+pgvector → cross-vendor (passo 12)</li>'
+    + '</ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>'
+    + '<button class="btn-secondary" onclick="launchAllDemoMemories()">▶ Apri tutte le memorie</button>'
+    + '<button class="btn-secondary" onclick="startGuidedDemo()">Tour automatico</button>'
+    + '<button class="btn-secondary" onclick="dismissCtiWelcome()">Esplora manualmente</button></div>';
+}
+
+function dismissCtiWelcome() {
+  localStorage.setItem('pcmi_cti_welcome_dismissed', '1');
+  document.getElementById('overlay').classList.remove('show');
+  updateCounts();
+}
+
+function renderCtiLegend() {
+  const leg = document.querySelector('.legend');
+  if (!leg) return;
+  leg.innerHTML =
+    '<h4>Operational STIX dataset</h4>'
+    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>CISA MAR / STIX (BRICKSTORM)</div>'
+    + '<div class="row"><span class="swatch" style="background:#06b6d4"></span>vendor IOC operativi (Wiz, DCU, GTIG…)</div>'
+    + '<div class="row"><span class="swatch" style="background:#d97706"></span>vendor reports (narrative)</div>'
+    + '<div class="row"><span class="swatch" style="background:#0d9488"></span>SOC / TI hub</div>'
+    + '<h4 style="margin-top:10px">Link type</h4>'
+    + '<div class="row"><span class="swatch" style="background:#22c55e"></span>supports</div>'
+    + '<div class="row"><span class="swatch" style="background:#8b5cf6"></span>related</div>'
+    + '<div class="row"><span class="swatch" style="background:#38bdf8"></span>causal</div>'
+    + '<div class="row"><span class="swatch" style="background:#f59e0b"></span>temporal</div>'
+    + '<div class="row"><span class="swatch" style="background:#c084fc;border-radius:2px"></span>same_as (alias merge)</div>';
+  const hint = document.getElementById('canvas-hint');
+  if (hint) hint.textContent = 'CTI demo · click = inspector · dbl-click = espandi · Find chain = percorso cross-vendor';
+}
+
+async function runHybridRetrievePreview(query, limit) {
+  limit = limit || 8;
+  const cfg = getGraphDemoConfig();
+  const r = await fetch(apiUrl + '/v1/retrieve', {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ path_prefix: cfg.pathPrefix, query: query, limit: limit })
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data.entries || [];
+}
+
+function retrievalPipelineSteps(cfg) {
+  return [
+    { id: 'req', label: 'POST /v1/retrieve', detail: 'path_prefix=' + cfg.pathPrefix + ' + query' },
+    { id: 'embed', label: 'MemoryService → embedding', detail: 'OpenAI trasforma la query in vettore (1536 dim)' },
+    { id: 'sql', label: 'Repository · SQL ibrida', detail: 'ltree + BM25(content_tsv) + cosine(embedding)' },
+    { id: 'fuse', label: 'Fusione score', detail: '0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency' },
+    { id: 'out', label: 'Top-N risultati', detail: 'ORDER BY relevance_score DESC' }
+  ];
+}
+
+const RETRIEVAL_PIPELINE = retrievalPipelineSteps({ pathPrefix: 'root' });
+
+function renderRetrievalPipeline(activeIdx, doneThrough) {
+  const cfg = getGraphDemoConfig();
+  const steps = retrievalPipelineSteps(cfg);
+  const host = document.getElementById('retrieval-pipe-steps');
+  if (!host) return;
+  let html = '';
+  steps.forEach((step, i) => {
+    const cls = i === activeIdx ? 'active' : (i < doneThrough ? 'done' : '');
+    html += '<div class="retrieval-pipe-step ' + cls + '">'
+      + '<span class="pipe-num">' + (i + 1) + '</span>'
+      + '<div><div>' + escapeHtml(step.label) + '</div>'
+      + '<div class="pipe-detail">' + escapeHtml(step.detail) + '</div></div></div>';
+  });
+  host.innerHTML = html;
+}
+
+function renderRetrievalPipelineIdle() {
+  renderRetrievalPipeline(-1, 0);
+  const mode = document.getElementById('retrieval-mode');
+  if (mode) { mode.style.display = 'none'; mode.textContent = ''; }
+}
+
+function setRetrievalMode(kind, text) {
+  const mode = document.getElementById('retrieval-mode');
+  if (!mode) return;
+  mode.style.display = 'block';
+  mode.className = 'retrieval-mode ' + kind;
+  mode.innerHTML = text;
+}
+
+function inferRetrievalMode(entries) {
+  const cfg = getGraphDemoConfig();
+  if (!entries.length) {
+    return {
+      kind: 'empty',
+      text: '<b>Nessun risultato</b> — tipico se il worker non ha ancora embeddato le memorie '
+        + '(embedding IS NULL). Attendi ~60s dopo il load su <code>' + escapeHtml(cfg.pathPrefix) + '</code>, poi riprova. '
+        + 'Se persiste: il server può ripiegare su solo BM25 (keyword esatte).'
+    };
+  }
+  return {
+    kind: 'hybrid',
+    text: '<b>Retrieve completato</b> — ' + entries.length + ' memorie sotto <code>'
+      + escapeHtml(cfg.pathPrefix) + '</code>. '
+      + 'Score = BM25 (keyword) + cosine (semantica) + importance + recency.'
+  };
+}
+
+const CTI_RETRIEVAL_SCENARIOS = {
+  dprk_cs: {
+    title: 'DPRK · CrowdStrike naming → Microsoft',
+    query: 'PRESSURE CHOLLIMA Bybit Safe Wallet macOS supply chain cryptocurrency',
+    expectPaths: ['pressure_chollima', 'tradertraitor', 'sapphire_sleet'],
+    limit: 12,
+    note: 'BM25 cattura "PRESSURE CHOLLIMA"; pgvector collega al report Microsoft Sapphire Sleet.'
+  },
+  dprk_ms: {
+    title: 'DPRK · Microsoft naming → CrowdStrike',
+    query: 'Sapphire Sleet North Korean macOS cryptocurrency social engineering',
+    expectPaths: ['sapphire_sleet', 'pressure_chollima', 'tradertraitor'],
+    limit: 12,
+    note: 'Query con taxonomy Microsoft → recupera anche nodi CrowdStrike/Wiz nello stesso top-N.'
+  },
+  apt28_mandiant: {
+    title: 'APT28 · PROMPTSTEAL → IOC operativi',
+    query: 'PROMPTSTEAL FROZENLAKE LLM Hugging Face Ukraine Mandiant',
+    expectPaths: ['promptsteal', 'apt28', 'google_gtig', 'forest_blizzard', 'mandiant'],
+    limit: 10,
+    note: 'Keyword "PROMPTSTEAL" + semantica LLM/Ukraine → sample SHA-256 operativi + Forest Blizzard.'
+  },
+  apt28_ms: {
+    title: 'APT28 · Forest Blizzard → Mandiant',
+    query: 'Forest Blizzard password spray NATO aviation GRU PROMPTSTEAL LLM',
+    expectPaths: ['forest_blizzard', 'promptsteal', 'apt28', 'mandiant', 'google_gtig'],
+    limit: 15,
+    note: 'Naming Microsoft → campagna Mandiant/GTIG nello stesso ranking ibrido.'
+  }
+};
+
+function applyRetrievalScenario() {
+  const sel = document.getElementById('retrieval-scenario');
+  const ta = document.getElementById('retrieval-query');
+  const summary = document.getElementById('retrieval-summary');
+  if (!sel || !ta) return;
+  const sc = CTI_RETRIEVAL_SCENARIOS[sel.value];
+  if (!sc) return;
+  ta.value = sc.query;
+  if (summary) {
+    summary.innerHTML = '<b>' + escapeHtml(sc.title) + '</b> — ' + escapeHtml(sc.note)
+      + ' Risultati <span style="color:var(--ok)">verdi</span> = cross-vendor nel top-N.';
+  }
+}
+
+// ── Manual walkthrough (universal — SOC / CTI / root) ─────────────────────
+function buildWalkthroughSteps() {
+  const c = getGraphDemoConfig();
+  return [
+    {
+      id: 'intro', title: 'Panoramica',
+      text: 'Guida passo-passo <b>affianco al grafo live</b>. Spiega il retrieval ibrido PCMI (BM25 + pgvector) — indipendente dallo scenario dati.',
+      callout: c.label + ' · ' + c.datasetNote, tone: '', pipeline: -1, action: 'graph_explore'
+    },
+    {
+      id: 'request', title: '1 · La richiesta',
+      text: 'L\'UI invia <code>POST /v1/retrieve</code> con <code>path_prefix: ' + escapeHtml(c.pathPrefix) + '</code> e una query testuale.',
+      callout: 'Query demo: "' + escapeHtml(c.retrieveQuery) + '"', tone: '', pipeline: 0, action: 'retrieval_setup',
+      code: 'POST /v1/retrieve\n{\n  "path_prefix": "' + c.pathPrefix + '",\n  "query": "' + c.retrieveQuery + '",\n  "limit": ' + c.retrieveLimit + '\n}'
+    },
+    {
+      id: 'embed', title: '2 · Embedding della query',
+      text: '<b>MemoryService</b> embedda la query. Se fallisce, resta solo BM25.',
+      callout: 'Vettore query → cosine similarity (pgvector)', tone: '', pipeline: 1, action: 'retrieval_setup'
+    },
+    {
+      id: 'hybrid', title: '3 · Query SQL ibrida',
+      text: 'Il <b>Repository</b> filtra <code>' + escapeHtml(c.pathPrefix) + '</code> e richiede <code>embedding IS NOT NULL</code>.',
+      callout: 'score = 0.40×cosine + 0.30×BM25 + 0.15×importance + 0.15×recency', tone: '', pipeline: 2, action: 'retrieval_setup',
+      code: 'WHERE path <@ \'' + c.pathPrefix + '\'\n  AND embedding IS NOT NULL\nORDER BY relevance_score DESC'
+    },
+    {
+      id: 'scores', title: '4 · Fusione segnali',
+      text: 'BM25 premia keyword esatti; cosine premia similarità semantica anche con wording diverso.',
+      callout: 'Memorie senza embedding escluse dal ramo ibrido', tone: 'warn', pipeline: 3, action: 'graph_explore'
+    },
+    {
+      id: 'success', title: '5 · Esegui retrieve live',
+      text: 'Premi <b>Avanti</b> per lanciare la query. Risultati nel pannello Retrieve con <code>relevance_score</code>.',
+      callout: 'Clicca una riga → evidenzia nel grafo', tone: 'ok', pipeline: 4, action: 'retrieval_run'
+    },
+    {
+      id: 'empty', title: '6 · Zero risultati',
+      text: 'Worker embedding non pronto → query ibrida può tornare <b>0 righe</b>. Attendi ~60s dopo il load.',
+      callout: 'demo_soc / demo_cti attendono embeddings (Step 6b)', tone: 'warn', pipeline: -1, action: 'retrieval_only'
+    },
+    {
+      id: 'fallback', title: '7 · Fallback BM25',
+      text: 'Se l\'ibrido è vuoto, il server ripiega su solo keyword (<code>@@ websearch_to_tsquery</code>).',
+      callout: 'Solo overlap lessicale — meno recall semantico', tone: 'warn', pipeline: -1, action: 'retrieval_only'
+    },
+    {
+      id: 'summary', title: '8 · Riepilogo',
+      text: '<table style="width:100%;font-size:11px;border-collapse:collapse;margin-top:4px">'
+        + '<tr style="border-bottom:1px solid var(--border)"><th style="text-align:left;padding:4px 0">Condizione</th><th>Comportamento</th></tr>'
+        + '<tr><td style="padding:4px 0">Embeddings pronti</td><td>Ibrido BM25+cosine</td></tr>'
+        + '<tr><td style="padding:4px 0">Embeddings assenti</td><td>Fallback keyword</td></tr>'
+        + '<tr><td style="padding:4px 0">Embedder down</td><td>Solo BM25</td></tr></table>',
+      callout: 'Stesso flusso su ' + escapeHtml(c.pathPrefix), tone: 'ok', pipeline: -1, action: 'none'
+    }
+  ];
+}
+
+function getWalkthroughSteps() {
+  if (window.CTI_DEMO_ACTIVE) return buildCtiWalkthroughSteps();
+  return buildWalkthroughSteps();
+}
+
+// ── CTI walkthrough (dedicato — 12 step con Q&A esplicite) ────────────────
+function buildCtiWalkthroughSteps() {
+  return [
+    { id: 'cti-intro', title: 'Panoramica CTI', pipeline: -1, action: 'none',
+      text: 'Grafo con <b>218 memorie sotto <code>root.cti</code></b> caricate da più fonti reali: SOC + TI Mindmap HUB + report vendor (Mandiant, CrowdStrike, Microsoft, Unit 42) + STIX operativi CISA/Wiz/Endor + risultati di distillation.',
+      callout: 'Un tenant, un grafo. La UI mostra la memoria condivisa che gli agenti CTI vedono.',
+      qna: [
+        { q: 'Perché un mix di dataset?', a: 'Simula un tenant reale che accumula sorgenti eterogenee nel tempo. Fonti separabili via <code>metadata.vendor</code> o <code>path_prefix</code> in query.' },
+        { q: 'Multi-tenant?', a: 'Sì. Tutto <code>tenant_id</code>-scoped a livello di query. Un altro tenant vedrebbe solo il suo grafo. In questa demo c\'è solo il tenant di default.' },
+        { q: 'Come è caricato?', a: '<code>examples/full-cti-dataset/load_multi_cti.py --reset</code>. Ogni riga → <code>POST /v1/memories</code> con path ltree, metadata, tag.' }
+      ]
+    },
+    { id: 'cti-3layers', title: '1 · Il grafo cognitivo ha 3 piani', pipeline: -1, action: 'none',
+      text: 'PCMI Cognitive Graph = <b>Apache AGE sopra PostgreSQL</b>. Nel grafo <code>pcmi_memory_graph</code> vivono tre tipi di nodi/archi che rispondono a domande diverse:',
+      callout: '<b>1)</b> <code>:Memory</code> + link tipizzati &nbsp;·&nbsp; <b>2)</b> <code>:Entity</code> + <code>:mentions</code> &nbsp;·&nbsp; <b>3)</b> <code>graph_link_proposals</code> (LLM review queue)',
+      qna: [
+        { q: 'Che differenza rispetto a Neo4j / STIX Constellation?', a: 'Il tuo Neo4j è <b>knowledge graph di dominio</b> (entità canoniche STIX, merge rules). PCMI è <b>memoria versionata</b> (chi ha detto cosa, quando, con che confidenza). Complementare — vedi Step 12.' },
+        { q: 'Perché AGE e non Neo4j?', a: 'Zero infrastruttura extra: Cypher gira sopra Postgres, stessa transazione dei <code>memory_entries</code>. Trade-off: entity resolution "light", non full graph merge.' }
+      ]
+    },
+    { id: 'cti-memory', title: '2 · Piano 1 — Memory graph', pipeline: -1, action: 'none',
+      text: 'Ogni <code>POST /v1/memories</code> crea una riga in <code>memory_entries</code> e un vertice <code>(:Memory {id:"memory.&lt;row_id&gt;"})</code>. Ogni <code>POST /v1/memories/links</code> crea un arco tipizzato tra due memorie.',
+      callout: '5 tipi: <code>related</code> · <code>supports</code> · <code>contradicts</code> · <code>causal</code> · <code>temporal</code>',
+      qna: [
+        { q: 'I vertici sono memorie o entità?', a: 'Su questo piano, <b>ogni vertice è una VERSIONE di memoria</b> (una riga). Se la stessa memoria viene aggiornata (nuova versione al medesimo <code>path</code>), è un nodo nuovo. Il concetto "entità" vive sul Piano 2.' },
+        { q: 'Chi crea gli archi?', a: 'Client / agent via API. Nessuna inferenza automatica di causal/temporal. Il worker di consolidamento propone edge auto-detect di <code>contradicts</code>, ma vanno approvati.' },
+        { q: 'Come si esplora?', a: '<code>GET /v1/graph/related?memory_id=X&depth=N</code> per traversal, <code>GET /v1/graph/chain?from=X&to=Y</code> per shortest path.' }
+      ]
+    },
+    { id: 'cti-entity', title: '3 · Piano 2 — Entity graph (novità)', pipeline: -1, action: 'none',
+      text: 'Vertici <code>(:Entity {kind, key, tenant_id})</code> con archi <code>(:Memory)-[:mentions {slot, confidence}]-&gt;(:Entity)</code>. È la novità di questo branch — entity resolution "light".',
+      callout: '<b>Stato live</b>: 60 <code>:ThreatActor</code>, 26 <code>:Organization</code>, 20 <code>:Campaign</code>, 12 <code>:CVE</code>, 6 <code>:Asset</code>, 5 <code>:User</code>. <b>2 343 archi <code>:mentions</code></b>.',
+      qna: [
+        { q: 'Chi produce le :Entity?', a: 'La <b>Phase A extractor</b>: il worker consuma <code>memory.stored</code>, chiama LLM sul contenuto con un <code>extraction_profile</code> del tenant (slot come <code>actor</code>, <code>cve</code>, <code>campaign_id</code>). Ogni slot con <code>entity_promotion</code> viene <b>Phase B-promosso</b> a vertice via <code>reconcile_entity_mentions_for_memory</code>.' },
+        { q: 'La key è canonicalizzata?', a: 'Sì ma leggera: <code>normalize: trim</code> o <code>lower</code>. Alias table opzionale. <b>Non è STIX Constellation</b> — vedi limiti allo Step 9.' },
+        { q: 'Cosa succede quando aggiorno una memoria?', a: 'Il worker riprocessa la nuova versione, ricrea le mentions con <code>reconcile_entity_mentions_for_memory(memory_id, tenant_id, version, mentions_json)</code>. Le vecchie edge sono sostituite, non accumulate.' },
+        { q: 'Devo abilitarla?', a: 'Sì — env <code>EXTRACTION_ENABLED=true</code> sul worker. La demo <code>make demo_cti</code> lo fa (<code>ENTITY_DEMO=1</code>).' }
+      ]
+    },
+    { id: 'cti-proposals', title: '4 · Piano 3 — Link proposals (Phase C)', pipeline: -1, action: 'none',
+      text: 'LLM può <b>proporre</b> link tra memorie (o alias tra entità) — ma <b>non li applica</b>. Vanno in <code>graph_link_proposals</code>, review queue.',
+      callout: 'Nessun overwrite silenzioso di link autoriali. <code>metadata.proposed_by=llm</code> quando accettato.',
+      qna: [
+        { q: 'Perché una review queue?', a: 'Perché l\'LLM sbaglia, e in CTI un falso positivo di attribuzione ha costi. La demo mostra proposal LLM in coda; solo il <code>POST /accept</code> materializza il link.' },
+        { q: 'Endpoint?', a: '<code>GET /v1/graph/link-proposals</code>, <code>POST /v1/graph/link-proposals/generate/:memory_id</code>, <code>POST /:id/accept</code>, <code>POST /:id/reject</code>.' },
+        { q: 'Chi decide?', a: 'Un altro agente (con contesto sessione) o un analista umano. Il workflow di approvazione è tuo.' }
+      ]
+    },
+    { id: 'cti-hybrid-intro', title: '5 · Retrieval ibrido — il ranker', pipeline: 0, action: 'retrieval_setup',
+      text: 'Prima demo concreta cross-vendor: query in linguaggio naturale, <code>POST /v1/retrieve</code> risponde con un ranking unico.',
+      callout: 'score = 0.40·cosine + 0.30·BM25 + 0.15·importance + 0.15·recency',
+      qna: [
+        { q: 'Perché fondere BM25 e semantico?', a: 'BM25 tira keyword esatte (nomi di malware, CVE, hash). Semantico (pgvector 1536-d, OpenAI text-embedding-3-small) tira synonym e concetti (es. "GRU" ↔ "Russian military intelligence"). Da soli sono peggiori.' },
+        { q: 'Importance e recency?', a: '<code>importance</code> è un peso 0–1 sull\'oggetto (default 0.5); <code>recency</code> decay temporale. Configurabili per-tenant e per-request.' }
+      ]
+    },
+    { id: 'cti-hybrid-run', title: '6 · Scenario DPRK · CS → Microsoft', pipeline: 4, action: 'retrieval_run',
+      text: 'Query in vocabolario CrowdStrike sui report che citano Sapphire Sleet (Microsoft). Verifica che il ranker trovi la <b>memoria Microsoft</b> nonostante nomi diversi.',
+      callout: 'Query: <code>"PRESSURE CHOLLIMA Bybit Safe Wallet macOS supply chain cryptocurrency"</code> — usa un mix di vocabolario CS + MS.',
+      qna: [
+        { q: 'Perché nella query ci sono keyword di ENTRAMBI i vendor?', a: 'Onestà: la demo usa query multi-vocabolario perché testa il ranker, non l\'input dell\'analista. Un analista che digita solo "PRESSURE CHOLLIMA" da zero probabilmente <b>non</b> trova Sapphire Sleet in top-10. Il vero cross-naming lo fa il Piano 2 — Step 8.' },
+        { q: 'Chi tira su Sapphire Sleet?', a: 'La componente semantica: "macOS", "cryptocurrency", "DPRK" sono nel content di entrambe le memorie. BM25 da solo non basterebbe.' }
+      ]
+    },
+    { id: 'cti-apt28', title: '7 · Scenario APT28 · Forest → PROMPTSTEAL', pipeline: 4, action: 'retrieval_run',
+      text: 'Query nel vocabolario Microsoft (Forest Blizzard, GRU). Test: il ranker deve tirare su la memoria Mandiant PROMPTSTEAL — <b>senza</b> aiuti di distillation.',
+      callout: 'Match più solido di CHOLLIMA↔Sapphire perché "APT28" è testualmente presente in entrambi i lati.',
+      qna: [
+        { q: 'Che score consideriamo "buono"?', a: 'In pratica top-10 = "trovato". Per una demo live, usa il pannello Retrieval Compare per confrontare hybrid vs BM25-only e vedere quando serve il semantico.' }
+      ]
+    },
+    { id: 'cti-entity-shared', title: '8 · Entity graph — la vera novità', pipeline: -1, action: 'none',
+      text: 'Cross-vendor <b>senza affidarsi al ranking</b>: quando due memorie citano la stessa <code>:Entity {kind:"ThreatActor", key:"..."}</code>, il grafo le collega direttamente.',
+      callout: 'Live: <b>APT28 / FROZENLAKE</b> collega 3 vendor (ThreatLocker + Google GTIG + Microsoft). <b>PRESSURE CHOLLIMA / Lazarus</b> collega Wiz + CrowdStrike. <b>STARDUST CHOLLIMA</b> collega CrowdStrike + Endor Labs.',
+      code: 'GET /v1/graph/entities/related?kind=ThreatActor&key=APT28 / FROZENLAKE\nGET /v1/graph/entities/related?memory_id=4319   # correlazione via entità condivisa',
+      qna: [
+        { q: 'Qual è la differenza rispetto al retrieval?', a: 'Il retrieval fa <b>ranking</b> per rilevanza (top-N). L\'entity graph fa <b>set membership</b> (tutte le memorie che condividono l\'entità X). Deterministico, spiegabile, non dipende dalla qualità della query.' },
+        { q: 'Chi ha estratto "APT28 / FROZENLAKE" da 3 vendor diversi?', a: 'La <b>Phase A extraction</b> ha letto il campo <code>metadata.actor</code> di ognuna delle 3 memorie (che era già presente nel dataset) e il profilo <code>cti.multilayer.v1</code> lo ha promosso a <code>:Entity {kind:"ThreatActor", key:"APT28 / FROZENLAKE"}</code>. Chiave testuale identica → collasso naturale.' },
+        { q: 'Su testo libero funziona ancora?', a: 'Se il campo non è strutturato l\'LLM lo estrae dal <code>content</code>. Confidence assegnata (0.7–0.95). Sotto soglia il vertice non viene promosso.' }
+      ]
+    },
+    { id: 'cti-limits', title: '9 · Limiti onesti — frammentazione APT28', pipeline: -1, action: 'none',
+      text: 'La canonicalization è "trim/lower", <b>non</b> alias table completa. Per l\'entità APT28 nel dataset ci sono 4 chiavi diverse.',
+      callout: '<b>APT28</b> · <b>APT28 / FANCY BEAR</b> · <b>APT28 (FROZENLAKE)</b> · <b>APT28 / FROZENLAKE</b> — chiavi separate, non merged. Il Neo4j STIX Constellation le collasserebbe.',
+      tone: 'warn',
+      qna: [
+        { q: 'Come lo risolvo?', a: 'Tre opzioni: (1) alias table nel profilo (<code>normalize: alias_table</code>), (2) Phase C LLM propone <code>related</code> edge tra le entity frammentate, review-based, (3) preprocessing lato ingestion (standardize actor name).' },
+        { q: 'Perché non "smart merge" automatico?', a: 'Perché in CTI merge sbagliati sono costosi. PCMI preferisce esplicitamente "conservative + auditable". La strada Phase C è: LLM propone, analista/agente accetta, storia audit.' },
+        { q: 'Ma tu non hai un Neo4j Constellation?', a: 'No — e non lo vogliamo. PCMI è memoria condivisa degli agenti, non il knowledge graph di dominio. Se hai già un Neo4j STIX, tienilo per la verità di dominio; usa PCMI per <b>ciò che gli agenti hanno dedotto</b>, versionato nel tempo.' }
+      ]
+    },
+    { id: 'cti-asof', title: '10 · Piano temporale — as_of', pipeline: -1, action: 'none',
+      text: 'Ogni memoria ha <code>valid_from</code> e <code>valid_to</code>. Le versioni non si sovrascrivono. Puoi interrogare <b>lo stato di conoscenza a un istante T</b>.',
+      code: 'GET /v1/memories/&lt;path&gt;?as_of=2026-06-15T10:00:00Z\n→ v1: "Suspected APT29 activity; LOW confidence"\nGET /v1/memories/&lt;path&gt;\n→ v2 (current): "Confirmed APT29; HIGH confidence (multi-vendor)"',
+      qna: [
+        { q: 'Differenza con kg_timeline (Constellation)?', a: 'kg_timeline dice <b>quando</b> un\'entità è apparsa nel corpus. as_of dice <b>cosa affermava un record specifico a T</b> — inclusa un\'attribuzione poi superata. È ricostruzione di stato, non ordinamento eventi.' },
+        { q: 'Usa storage extra?', a: 'Append-only: ogni versione è una riga nuova. Storage lineare col numero di update. Compattazione policy-based.' },
+        { q: 'Anche le entità sono versionate?', a: 'Le mentions sì (Phase B ricrea le edge per versione). Le entità come nodo restano, ma la relazione memoria→entità porta l\'info di quale versione l\'ha creata.' }
+      ]
+    },
+    { id: 'cti-summary', title: '11 · Sintesi — dove si posiziona PCMI', pipeline: -1, action: 'none',
+      text: 'Il messaggio unico: <b>PCMI non è un Neo4j Constellation</b>. È il layer sotto — versioning, memoria condivisa, retrieval ibrido, entity graph "light".',
+      callout: 'Retrieval ibrido (top-N per rilevanza) + Entity graph (correlazione via entità condivise) + Link proposals (LLM review) + as_of (stato al tempo T).',
+      qna: [
+        { q: 'Come si integra col tuo stack?', a: 'Gli agenti Autogen del tuo pipeline scrivono in PCMI le conclusioni per briefing. La settimana dopo ripartono con quel contesto <b>versionato</b>. Il tuo Neo4j resta la verità di dominio.' },
+        { q: 'Cosa mi porto a casa?', a: 'Tre cose: (1) entity graph cross-vendor funziona (APT28/FROZENLAKE 3 vendor); (2) canonicalization "light" — sai i limiti; (3) as_of è la killer feature longitudinale che il tuo Constellation non ha.' }
+      ]
+    }
+  ];
+}
+
+function applyWalkthroughRetrieveForm(cfg) {
+  setViewMode('retrieval');
+  const ta = document.getElementById('retrieval-query');
+  if (ta) ta.value = cfg.retrieveQuery;
+  const sel = document.getElementById('retrieval-scenario');
+  if (sel) {
+    sel.style.display = window.CTI_DEMO_ACTIVE ? '' : 'none';
+    if (window.CTI_DEMO_ACTIVE) { sel.value = 'dprk_cs'; applyRetrievalScenario(); }
+  }
+}
+
+let walkthroughIndex = 0;
+let walkthroughBusy = false;
+
+function openWalkthroughPanel(open) {
+  const p = document.getElementById('walkthrough-panel');
+  if (!p) return;
+  p.classList.toggle('open', !!open);
+  p.setAttribute('aria-hidden', open ? 'false' : 'true');
+}
+
+function renderWalkthroughPanel() {
+  const steps = getWalkthroughSteps();
+  const step = steps[walkthroughIndex];
+  const body = document.getElementById('wt-body');
+  const counter = document.getElementById('wt-counter');
+  const bar = document.getElementById('wt-progress-bar');
+  const prev = document.getElementById('wt-prev');
+  const next = document.getElementById('wt-next');
+  const cfg = getGraphDemoConfig();
+  const wtTitle = document.getElementById('wt-title');
+  const wtSub = document.getElementById('wt-sub');
+  if (wtTitle) wtTitle.textContent = 'Walkthrough · ' + cfg.label;
+  if (wtSub) wtSub.textContent = cfg.pathPrefix + ' · premi Avanti quando sei pronto';
+  if (!step || !body) return;
+  if (counter) counter.textContent = (walkthroughIndex + 1) + ' / ' + steps.length;
+  if (bar) bar.style.width = (((walkthroughIndex + 1) / steps.length) * 100) + '%';
+  if (prev) prev.disabled = walkthroughIndex <= 0 || walkthroughBusy;
+  if (next) {
+    next.disabled = walkthroughBusy;
+    next.textContent = walkthroughIndex >= steps.length - 1 ? 'Fine ✓' : 'Avanti →';
+  }
+  let html = '<div class="wt-step-title">' + escapeHtml(step.title) + '</div>';
+  html += '<div class="wt-step-text">' + step.text + '</div>';
+  if (step.callout) html += '<div class="wt-callout ' + (step.tone || '') + '">' + step.callout + '</div>';
+  if (step.code) html += '<div class="wt-code">' + escapeHtml(step.code) + '</div>';
+  if (step.qna && step.qna.length) {
+    html += '<div class="wt-qna"><div class="wt-qna-hdr">Domande frequenti</div>';
+    step.qna.forEach(function (qa) {
+      html += '<details><summary>' + escapeHtml(qa.q) + '</summary><div class="wt-qna-a">' + qa.a + '</div></details>';
+    });
+    html += '</div>';
+  }
+  if (step.pipeline >= 0) {
+    const pipe = retrievalPipelineSteps(cfg);
+    html += '<div class="wt-mini-steps">';
+    pipe.forEach((p, i) => {
+      const cls = i === step.pipeline ? 'on' : (i < step.pipeline ? 'done' : '');
+      html += '<div class="wt-mini-step ' + cls + '">' + (i + 1) + '. ' + escapeHtml(p.label) + '</div>';
+    });
+    html += '</div>';
+  }
+  body.innerHTML = html;
+}
+
+async function applyWalkthroughStep(idx) {
+  const step = getWalkthroughSteps()[idx];
+  if (!step) return;
+  const cfg = getGraphDemoConfig();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
+  switch (step.action) {
+    case 'graph_explore':
+      setViewMode('links');
+      setLinkTypes(cfg.linkTypes);
+      document.getElementById('mem-id').value = cfg.defaultMemId;
+      document.getElementById('depth').value = String(cfg.exploreDepth);
+      await explore();
+      await loadMemoryCache(true);
+      break;
+    case 'retrieval_setup':
+      applyWalkthroughRetrieveForm(cfg);
+      if (step.pipeline >= 0) renderRetrievalPipeline(step.pipeline, step.pipeline);
+      else renderRetrievalPipelineIdle();
+      break;
+    case 'retrieval_run':
+      applyWalkthroughRetrieveForm(cfg);
+      await runHybridRetrievePanel(true);
+      break;
+    case 'retrieval_only':
+      applyWalkthroughRetrieveForm(cfg);
+      renderRetrievalPipelineIdle();
+      break;
+    case 'none':
+    default:
+      break;
+  }
+}
+
+async function walkthroughGoTo(idx) {
+  if (walkthroughBusy) return;
+  const steps = getWalkthroughSteps();
+  idx = Math.max(0, Math.min(steps.length - 1, idx));
+  walkthroughIndex = idx;
+  try { sessionStorage.setItem('pcmi_graph_walkthrough_idx', String(idx)); } catch (e) { /* ignore */ }
+  renderWalkthroughPanel();
+  walkthroughBusy = true;
+  try {
+    await applyWalkthroughStep(idx);
+  } catch (e) {
+    toast('Walkthrough: ' + e.message, true);
+  } finally {
+    walkthroughBusy = false;
+    renderWalkthroughPanel();
+  }
+}
+
+function walkthroughNext() {
+  if (walkthroughIndex >= getWalkthroughSteps().length - 1) {
+    toast('Walkthrough completato');
+    return;
+  }
+  walkthroughGoTo(walkthroughIndex + 1);
+}
+
+function walkthroughPrev() {
+  walkthroughGoTo(walkthroughIndex - 1);
+}
+
+function startGraphWalkthrough() {
+  dismissCtiWelcome();
+  dismissWelcome();
+  document.body.classList.add('graph-walkthrough');
+  window.GRAPH_WALKTHROUGH_ACTIVE = true;
+  openWalkthroughPanel(true);
+  showRetrieveViewButton(true);
+  walkthroughGoTo(0);
+}
+
+function startCtiWalkthrough() { startGraphWalkthrough(); }
+
+function initWalkthroughUi() {
+  document.body.classList.add('graph-walkthrough');
+  window.GRAPH_WALKTHROUGH_ACTIVE = true;
+  openWalkthroughPanel(true);
+  showRetrieveViewButton(true);
+  const saved = parseInt(sessionStorage.getItem('pcmi_graph_walkthrough_idx') || '0', 10);
+  walkthroughIndex = isNaN(saved) ? 0 : saved;
+  renderWalkthroughPanel();
+  const gt = document.getElementById('btn-guide-toggle');
+  if (gt) gt.textContent = 'Walkthrough';
+  renderDemoMemoryBar();
+}
+
+function initCtiWalkthroughUi() { initWalkthroughUi(); }
+
+function renderRetrievalResults(entries, scenario) {
+  const el = document.getElementById('retrieval-results');
+  if (!el) return;
+  const modeInfo = inferRetrievalMode(entries);
+  setRetrievalMode(modeInfo.kind, modeInfo.text);
+  if (!entries.length) {
+    el.innerHTML = '<p class="empty-note">Nessun risultato — vedi messaggio sopra. Dopo il load attendi il worker embedding (~60s).</p>';
+    return;
+  }
+  const expect = (scenario && scenario.expectPaths) || [];
+  let html = '';
+  entries.forEach((h, i) => {
+    const path = (h.path || '').toLowerCase();
+    const vendor = (h.metadata && (h.metadata.vendor || h.metadata.attributed_to)) || '—';
+    const actor = (h.metadata && (h.metadata.actor || h.metadata.attributed_to)) || '—';
+    const score = h.relevance_score != null ? h.relevance_score : (h.score || 0);
+    const cross = expect.length ? expect.some(p => path.indexOf(p) >= 0) : (i < 3);
+    html += '<div class="retrieval-hit' + (cross ? ' cross' : '') + '" onclick="focusRetrievalHit(' + h.id + ')">'
+      + '<div><span class="rank">#' + (i + 1) + '</span> · mem.' + h.id
+      + ' · <span class="score">score=' + Number(score).toFixed(4) + '</span>'
+      + '</div>'
+      + '<div class="path">' + escapeHtml(h.path || '') + '</div>'
+      + '<div class="snippet">' + escapeHtml((h.content || '').slice(0, 120)) + '…</div>'
+      + '<div class="path">vendor=' + escapeHtml(String(vendor)) + ' · actor=' + escapeHtml(String(actor)) + '</div>'
+      + '</div>';
+  });
+  if (expect.length) {
+    const matched = expect.filter(p => entries.some(h => ((h.path || '').toLowerCase()).indexOf(p) >= 0));
+    html = '<p class="empty-note" style="margin-bottom:8px">' + matched.length + '/' + expect.length
+      + ' pattern nel top-' + entries.length + '</p>' + html;
+  } else {
+    html = '<p class="empty-note" style="margin-bottom:8px">' + entries.length
+      + ' risultati ranked sotto ' + escapeHtml(getGraphDemoConfig().pathPrefix) + '</p>' + html;
+  }
+  el.innerHTML = html;
+}
+
+async function focusRetrievalHit(memId) {
+  if (!memId) return;
+  setViewMode('links');
+  document.getElementById('mem-id').value = memId;
+  document.getElementById('depth').value = '2';
+  await explore();
+  await loadMemoryCache(true);
+  selectNode(parseInt(memId, 10));
+}
+
+async function runHybridRetrievePanel(skipAnim) {
+  if (!apiKey()) { toast('Enter your API key', true); return; }
+  const cfg = getGraphDemoConfig();
+  const sel = document.getElementById('retrieval-scenario');
+  const ta = document.getElementById('retrieval-query');
+  const scenario = (window.CTI_DEMO_ACTIVE && sel && CTI_RETRIEVAL_SCENARIOS[sel.value])
+    ? CTI_RETRIEVAL_SCENARIOS[sel.value] : null;
+  const query = (ta && ta.value.trim()) || (scenario && scenario.query) || cfg.retrieveQuery;
+  const limit = (scenario && scenario.limit) || cfg.retrieveLimit;
+  if (!query) { toast('Inserisci una query', true); return; }
+  showLoading(true, 'Hybrid retrieve…');
+  try {
+    if (!skipAnim) {
+      renderRetrievalPipeline(0, 0);
+      await sleep(350);
+      renderRetrievalPipeline(1, 1);
+      await sleep(350);
+      renderRetrievalPipeline(2, 2);
+      await sleep(350);
+      renderRetrievalPipeline(3, 3);
+    }
+    const hits = await runHybridRetrievePreview(query, limit);
+    renderRetrievalPipeline(4, 5);
+    renderRetrievalResults(hits, scenario);
+    toast(hits.length + ' risultati · ' + cfg.pathPrefix + ' · clicca riga → grafo');
+  } catch (e) {
+    renderRetrievalPipelineIdle();
+    toast('Retrieve failed: ' + e.message, true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function runCtiRetrievalPanel(skipAnim) { return runHybridRetrievePanel(skipAnim); }
+
+async function runCtiGuidedDemo() {
+  dismissCtiWelcome();
+  dismissWelcome();
+  const btn = document.getElementById('btn-guided-demo');
+  if (btn) btn.disabled = true;
+  const R = window.pcmiRecord;
+  if (!R) { toast('Banner tour non pronto — ricarica con ?demo=cti', true); if (btn) btn.disabled = false; return; }
+  const M = ctiMemIds();
+  const pause = (ms) => sleep(ms || 3200);
+
+  try {
+    const healthR = await fetch(apiUrl + '/v1/graph/health');
+    const health = await healthR.json().catch(() => ({}));
+    if (!health.available) {
+      toast('Grafo AGE non disponibile — avvia postgres-age + API graph stack', true);
+      R.caption('Setup richiesto', 'Apache AGE non attivo',
+        'Avvia: docker compose -f docker-compose.yml -f docker-compose.graph.override.yml --profile graph up -d postgres-age redis api worker. '
+        + 'Poi: python3 examples/full-cti-dataset/launch_cti_graph_demo.py');
+      if (btn) btn.disabled = false;
+      return;
+    }
+
+    if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+    setViewMode('links');
+    R.setLinkTypes('supports,related,causal,temporal');
+
+    updateCtiGuideUI('layers');
+    R.caption('Passo 1 / 12', 'Operational STIX — BRICKSTORM MAR-251165',
+      'Dataset operational_stix_cti_dataset.json. Nodi viola = bundle CISA MAR STIX 2.1. '
+      + 'Clicca un sample figlio → inspector mostra SHA-256 reale (non sintetico).');
+    await R.clearAndExplore(M.brickstorm, 2, 'supports,related');
+    await R.waitNodes(6);
+    await loadMemoryCache(true);
+    const sampleId = parseInt(M.brickstorm_sample || M.brickstorm, 10);
+    R.pickNode(sampleId);
+    await pause(4500);
+
+    updateCtiGuideUI('brickstorm');
+    R.caption('Passo 2 / 12', 'Sample BRICKSTORM — SHA-256 verificabile',
+      'Inspector → Operational IOC. Hash estratto da MAR-251165 STIX bundle (file indicator pattern).');
+    R.pickNode(sampleId);
+    await pause(4500);
+
+    updateCtiGuideUI('dprk');
+    R.caption('Passo 3 / 12', 'Bybit $1.5B — Wiz TraderTraitor (vendor IOC operativo)',
+      'Nodo ciano = vendor_intel da operational_stix_cti_dataset.json. PRESSURE CHOLLIMA / Lazarus — furto Bybit Feb 2025.');
+    await R.clearAndExplore(M.cs_pressure, 2, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.cs_pressure, 10));
+    await pause(4500);
+
+    R.caption('Passo 4 / 12', 'Stesso attore, nome Microsoft: Sapphire Sleet',
+      'Microsoft Threat Intelligence: Sapphire Sleet = stesso ombrello DPRK. Vendor diversi → etichette diverse nel grafo.');
+    await R.clearAndExplore(M.ms_sapphire, 3, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.ms_sapphire, 10));
+    await pause(4500);
+
+    updateCtiGuideUI('apt28');
+    R.caption('Passo 5 / 12', 'Nodo distillation cross-vendor (DPRK overlap)',
+      'Il nodo distillation collega esplicitamente PRESSURE CHOLLIMA e Sapphire Sleet — stesso attore, due taxonomy vendor.');
+    await R.clearAndExplore(M.ti_sapphire, 2, 'supports,related');
+    await R.waitNodes(2);
+    R.pickNode(parseInt(M.ti_sapphire, 10));
+    await pause(4500);
+
+    R.caption('Passo 6 / 12', 'PROMPTSTEAL — campagna LLM-assisted (Mandiant)',
+      'Mandiant/Google TAG: lure LLM, payload FROZENLAKE, attribuzione APT28.');
+    await R.clearAndExplore(M.mdt_ps, 3, 'supports,related');
+    await R.waitNodes(3);
+    R.pickNode(parseInt(M.mdt_ps, 10));
+    await pause(4500);
+
+    R.caption('Passo 7 / 12', 'Forest Blizzard — stesso nexus APT28 (Microsoft)',
+      'Find chain da Mandiant PROMPTSTEAL al report Microsoft Forest Blizzard nel grafo.');
+    await R.clearAndExplore(M.mdt_ps, 2, 'supports,related');
+    await R.waitNodes(2);
+    document.getElementById('mem-id').value = M.mdt_ps;
+    selectedNode = parseInt(M.ms_forest, 10);
+    document.getElementById('btn-chain').disabled = false;
+    await findChain();
+    await pause(5000);
+
+    updateCtiGuideUI('iocs');
+    R.caption('Passo 8 / 12', 'IOC operativi APT28 / PROMPTSTEAL',
+      'Nodi sotto root.cti.vendors.google_gtig.apt28 con sample SHA-256 operativi. Inspector → metadata.iocs.');
+    await R.clearAndExplore(M.apt28, 2, 'supports,related');
+    await R.waitNodes(4);
+    R.pickNode(parseInt(M.apt28, 10));
+    await pause(4500);
+
+    updateCtiGuideUI('evolution');
+    R.caption('Passo 9 / 12', 'Extract — slot LLM su memoria APT28 (Phase A)',
+      'Estrazione su memoria PROMPTSTEAL/GTIG: actor=APT28/FROZENLAKE alimenta registry ThreatActor + grafo AGE.');
+    await R.clearAndExplore(M.apt28, 2, 'supports,related');
+    R.pickNode(parseInt(M.apt28, 10));
+    document.getElementById('mem-id').value = M.apt28;
+    await runExtract(parseInt(M.apt28, 10));
+    await pause(5000);
+
+    R.caption('Passo 10 / 12', 'Registry — APT28 + alias accettati (Phase D)',
+      'ThreatActor canonico APT28/FROZENLAKE con alias Forest Blizzard, APT28, FROZENLAKE. '
+      + 'Campaign PROMPTSTEAL alias LAMEHUG. Archi viola same_as nel grafo Entities.');
+    setViewMode('registry');
+    await loadRegistryEntities(false);
+    const aptKey = 'APT28 / FROZENLAKE';
+    if (registryEntities.some(e => e.canonical_key === aptKey)) {
+      await focusRegistryEntity('ThreatActor', aptKey);
+    } else if (registryEntities.some(e => e.canonical_key === 'APT28')) {
+      await focusRegistryEntity('ThreatActor', 'APT28');
+    } else if (registryEntities.length) {
+      await focusRegistryEntity(registryEntities[0].kind, registryEntities[0].canonical_key);
+    }
+    await pause(5500);
+
+    R.caption('Passo 11 / 12', 'Alias merge — accetta proposte cross-vendor',
+      'Tab Proposals → Alias: Accept all unisce naming Mandiant/Microsoft/CrowdStrike. '
+      + 'Oppure: python3 setup_cti_extraction_demo.py (seed + accept automatico).');
+    setViewMode('proposals');
+    setProposalTab('aliases');
+    await loadAliasProposals();
+    if (pendingAliasProposals.length) {
+      await acceptAllPendingAliases();
+    } else {
+      toast('Alias già accettati — esegui setup_cti_extraction_demo.py per seed manuali');
+    }
+    await pause(4500);
+
+    updateCtiGuideUI('retrieval');
+    R.caption('Passo 12 / 12', 'Retrieval ibrida — il giro completo',
+      '1) POST /v1/retrieve con query PRESSURE CHOLLIMA · 2) embed query · 3) SQL fusione BM25+pgvector · '
+      + '4) #1 CrowdStrike (BM25 alto) · #2 Microsoft Sapphire Sleet (cosine, naming diverso) — senza tabella alias.');
+    setViewMode('retrieval');
+    document.getElementById('retrieval-scenario').value = 'dprk_cs';
+    applyRetrievalScenario();
+    renderRetrievalPipelineIdle();
+    await runCtiRetrievalPanel();
+    await pause(5500);
+    R.caption('Passo 12 / 12 (cont.)', 'Stesso meccanismo — APT28 cross-vendor',
+      'Query Forest Blizzard → recupera Mandiant PROMPTSTEAL nello stesso top-N. Prova anche gli altri scenari nel menu.');
+    document.getElementById('retrieval-scenario').value = 'apt28_ms';
+    applyRetrievalScenario();
+    await runCtiRetrievalPanel();
+    await pause(4500);
+    toast('Tour CTI completato · Registry alias + retrieval ibrida');
+    await pause(3000);
+  } catch (e) {
+    toast('Tour CTI interrotto: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function initCtiDemoMode() {
+  window.CTI_DEMO_ACTIVE = true;
+  window.GRAPH_DEMO_PRESET = 'cti';
+  document.getElementById('entity-flags').style.display = 'inline-flex';
+  showRetrieveViewButton(true);
+  applyRetrievalScenario();
+  renderRetrievalPipelineIdle();
+  if (isWalkthroughRequested()) initWalkthroughUi();
+  if (!apiKey()) {
+    document.getElementById('api-key').value = 'testkey123';
+    localStorage.setItem('pcmi_graph_apikey', 'testkey123');
+  }
+  const M = ctiMemIds();
+  document.getElementById('mem-id').value = M.brickstorm;
+  document.getElementById('depth').value = '2';
+  setLinkTypes('supports,related,causal,temporal');
+  renderCtiGuideBar();
+  renderCtiLegend();
+  renderDemoMemoryBar();
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('walkthrough') === '1' || qs.get('walkthrough') === 'start' || qs.get('autostart') === '1') {
+    dismissCtiWelcome();
+    document.getElementById('overlay').classList.remove('show');
+    setTimeout(() => startGraphWalkthrough(), 600);
+  } else if (!localStorage.getItem('pcmi_cti_welcome_dismissed') && nodesData.length === 0) {
+    renderCtiWelcomeOverlay();
+    document.getElementById('overlay').classList.add('show');
+  } else {
+    document.getElementById('overlay').classList.remove('show');
+  }
+}
+
+function initSocDemoMode() {
+  window.GRAPH_DEMO_PRESET = 'soc';
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('mem')) document.getElementById('mem-id').value = qs.get('mem');
+  else document.getElementById('mem-id').value = '73';
+  setLinkTypes('causal,temporal,related');
+  document.getElementById('entity-flags').style.display = 'inline-flex';
+  updateGuideUI('links');
+  if (isWalkthroughRequested()) initWalkthroughUi();
+  renderDemoMemoryBar();
+  if (!localStorage.getItem('pcmi_graph_welcome_dismissed') && nodesData.length === 0 && !isWalkthroughRequested()) {
+    renderSocWelcomeOverlay();
+    document.getElementById('overlay').classList.add('show');
+  }
+}
+
+function renderSocWelcomeOverlay() {
+  document.getElementById('overlay-card').className = 'card welcome-card';
+  document.getElementById('overlay-card').innerHTML =
+    '<h3>Demo · SOC incident graph</h3>'
+    + '<p style="font-size:12.5px;color:var(--text-dim);line-height:1.55;margin-bottom:12px;text-align:center">'
+    + 'Dataset Akira/Sandworm sotto <code>root.soc.*</code>.</p>'
+    + '<ol><li><b>Grafo</b> — incidenti e link causal/temporal</li>'
+    + '<li><b>Walkthrough</b> — retrieval ibrido universale (8 passi)</li>'
+    + '<li><b>Extract / Registry</b> — Phase A–D opzionale</li></ol>'
+    + '<div class="welcome-actions">'
+    + '<button class="btn-primary" onclick="startGraphWalkthrough()">▶ Inizia walkthrough</button>'
+    + '<button class="btn-secondary" onclick="launchAllDemoMemories()">▶ Apri tutte le memorie</button>'
+    + '<button class="btn-secondary" onclick="dismissWelcome()">Esplora manualmente</button></div>';
+}
+
+function initDemoMode() {
+  window.GRAPH_WALKTHROUGH_ACTIVE = isWalkthroughRequested();
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('demo') === 'soc') {
+    initSocDemoMode();
+    if (GRAPH_WALKTHROUGH_ACTIVE) setTimeout(() => startGraphWalkthrough(), 600);
+    return;
+  }
+  if (qs.get('demo') === 'cti') {
+    initCtiDemoMode();
+    return;
+  }
+  if (GRAPH_WALKTHROUGH_ACTIVE) {
+    initWalkthroughUi();
+    setTimeout(() => startGraphWalkthrough(), 600);
+  }
+}
+initDemoMode();
+
+async function runSocGuidedDemo() {
+  dismissWelcome();
+  const btn = document.getElementById('btn-guided-demo');
+  if (btn) btn.disabled = true;
+  try {
+    if (!apiKey()) document.getElementById('api-key').value = 'testkey123';
+    document.getElementById('mem-id').value = '73';
+    clearGraph();
+    toast('SOC legacy demo (?demo=soc)');
+    setViewMode('links');
+    setLinkTypes('causal,temporal,related');
+    await explore();
+  } catch (e) {
+    toast('Demo interrotta: ' + e.message, true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ── recording / demo walkthrough (?demo=cti or default CTI UI) ─────────────
 (function initRecordMode() {
-  if (new URLSearchParams(location.search).get('record') !== '1') return;
+  const qs = new URLSearchParams(location.search);
+  if (qs.get('demo') === 'soc' || qs.get('record') === '0') return;
   const css = document.createElement('style');
   css.textContent = `
     #record-banner {

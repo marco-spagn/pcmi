@@ -108,7 +108,12 @@ func main() {
 	)))
 
 	handler.RegisterReadyRoutes(app, db)
-	handler.RegisterExtractionRoutes(app, db, pools.Read, cfg)
+	entityRepo := repository.NewEntityRegistryRepository(db, pools.Read)
+	entitySvc := service.NewEntityRegistryService(entityRepo)
+	graphClient := graph.NewGraphClient(db)
+	graphClient.SetQueryTimeout(time.Duration(cfg.GraphQueryTimeoutSecs) * time.Second)
+	graphClient.SetEntityKeyExpander(entitySvc.ExpandEntityKeys)
+	handler.RegisterExtractionRoutes(app, db, pools.Read, cfg, entitySvc)
 	if err := handler.SetupMemoryRoutes(app, db, pools.Read, cfg); err != nil {
 		log.Fatalf(" FATAL memory routes: %v", err)
 	}
@@ -118,9 +123,9 @@ func main() {
 	handler.SetupAdminRoutes(app, db)
 	handler.SetupDistillationPolicyRoutes(app, db)
 
-	graphClient := graph.NewGraphClient(db)
-	graphClient.SetQueryTimeout(time.Duration(cfg.GraphQueryTimeoutSecs) * time.Second)
 	handler.RegisterGraphRoutes(app, graphClient)
+	handler.RegisterLinkProposalRoutes(app, db, pools.Read, graphClient, cfg)
+	handler.RegisterEntityRegistryRoutes(app, db, pools.Read, graphClient, cfg, entitySvc)
 	if graphClient.IsAvailable(ctx) {
 		log.Println("🧠 Cognitive Graph (AGE) available — /v1/graph/related enabled")
 	} else {

@@ -1,0 +1,15 @@
+# Gold query set over the self-contained corpus (root.eval.*).
+# Each query names the truly-relevant path(s). `graded` (optional) assigns gain
+# for nDCG: 3 = primary answer, 1 = partially relevant. Queries use synonyms of
+# the memory wording on purpose, so BM25-only retrieval will miss several of them
+# — that gap is exactly what the semantic (pgvector) half must close.
+{"id": "q_cache_perf", "query": "what change made our API respond much faster", "graded": {"root.eval.infra.caching.redis_latency": 3}, "relevant": ["root.eval.infra.caching.redis_latency"]}
+{"id": "q_db_pool", "query": "how many database connections do we allow per pod", "graded": {"root.eval.infra.db.connection_pool": 3}, "relevant": ["root.eval.infra.db.connection_pool"]}
+{"id": "q_vector_index", "query": "tradeoff of the vector search index on write speed", "graded": {"root.eval.infra.db.index_migration": 3}, "relevant": ["root.eval.infra.db.index_migration"]}
+{"id": "q_queue_fairness", "query": "one noisy tenant blocked everyone else on the queue", "graded": {"root.eval.incident.queue_starvation_2025_03": 3}, "relevant": ["root.eval.incident.queue_starvation_2025_03"]}
+{"id": "q_backup", "query": "did we ever almost lose data and how did we recover", "graded": {"root.eval.incident.data_loss_scare": 3}, "relevant": ["root.eval.incident.data_loss_scare"]}
+{"id": "q_sso", "query": "our decision about single sign-on identity provider", "graded": {"root.eval.decision.auth_provider": 3}, "relevant": ["root.eval.decision.auth_provider"]}
+{"id": "q_embed_cost", "query": "why we did not use the bigger more expensive embedding model", "graded": {"root.eval.decision.embedding_model": 3}, "relevant": ["root.eval.decision.embedding_model"]}
+{"id": "q_webhook_dlq", "query": "what happens when a webhook keeps failing to deliver", "graded": {"root.eval.runbook.webhook_retry": 3}, "relevant": ["root.eval.runbook.webhook_retry"]}
+{"id": "q_time_travel", "query": "querying what the system knew at a point in the past", "graded": {"root.eval.knowledge.append_only_versioning": 3}, "relevant": ["root.eval.knowledge.append_only_versioning"]}
+{"id": "q_cert", "query": "expired TLS certificate incident", "graded": {"root.eval.incident.cert_expiry": 3}, "relevant": ["root.eval.incident.cert_expiry"]}

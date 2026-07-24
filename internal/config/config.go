@@ -117,26 +117,26 @@ func (c *Config) WorkerConfig() *Config { return c }
 // It does NOT return an error — call Validate() or use MustLoad().
 func Load() *Config {
 	cfg := &Config{
-		DatabaseURL:     envOr("DATABASE_URL", ""),
-		DatabaseReadURL: os.Getenv("DATABASE_READ_URL"),
+		DatabaseURL:     resolveSecret("DATABASE_URL"),
+		DatabaseReadURL: resolveSecret("DATABASE_READ_URL"),
 
 		RedisAddr:    envOr("REDIS_ADDR", "redis:6379"),
 		EventBackend: envOr("EVENT_BACKEND", "streams"),
 		APIPort:      envOr("API_PORT", "8000"),
 		GRPCPort:     envOr("GRPC_PORT", "50051"),
 
-		AdminAPIKey:        os.Getenv("ADMIN_API_KEY"),
-		MetricsScrapeToken: strings.TrimSpace(os.Getenv("METRICS_SCRAPE_TOKEN")),
+		AdminAPIKey:        resolveSecret("ADMIN_API_KEY"),
+		MetricsScrapeToken: resolveSecret("METRICS_SCRAPE_TOKEN"),
 		PCMIBaseURL:        strings.TrimSpace(os.Getenv("PCMI_BASE_URL")),
-		PCMIAPIKey:         strings.TrimSpace(os.Getenv("PCMI_API_KEY")),
-		OpenAIAPIKey:       os.Getenv("OPENAI_API_KEY"),
+		PCMIAPIKey:         resolveSecret("PCMI_API_KEY"),
+		OpenAIAPIKey:       resolveSecret("OPENAI_API_KEY"),
 		OpenAIBaseURL:      strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
 		EmbeddingModel:     envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 
 		LLMProvider:     strings.ToLower(strings.TrimSpace(os.Getenv("LLM_PROVIDER"))),
-		GrokAPIKey:      strings.TrimSpace(os.Getenv("GROK_API_KEY")),
-		AnthropicAPIKey: strings.TrimSpace(os.Getenv("ANTHROPIC_API_KEY")),
-		DeepSeekAPIKey:  strings.TrimSpace(os.Getenv("DEEPSEEK_API_KEY")),
+		GrokAPIKey:      resolveSecret("GROK_API_KEY"),
+		AnthropicAPIKey: resolveSecret("ANTHROPIC_API_KEY"),
+		DeepSeekAPIKey:  resolveSecret("DEEPSEEK_API_KEY"),
 		MigrationsDir:   envOr("MIGRATIONS_DIR", "migrations"),
 
 		DistillationModel: envOr("DISTILLATION_MODEL", "gpt-4o-mini"),
@@ -158,7 +158,6 @@ func Load() *Config {
 		LinkProposalsEnabled:               envBool("LINK_PROPOSALS_ENABLED", false),
 		EntityAliasProposalsEnabled:        envBool("ENTITY_ALIAS_PROPOSALS_ENABLED", false),
 
-
 		RateLimitDisabled:    envBool("RATE_LIMIT_DISABLED", false),
 		RateLimitBackend:     envOr("RATE_LIMIT_BACKEND", "memory"),
 		RateLimitWindowSecs:  envInt("RATE_LIMIT_WINDOW_SECS", 60),
@@ -171,7 +170,7 @@ func Load() *Config {
 		TLSCertFile: strings.TrimSpace(os.Getenv("PCMI_TLS_CERT")),
 		TLSKeyFile:  strings.TrimSpace(os.Getenv("PCMI_TLS_KEY")),
 
-		EncryptionKey: strings.TrimSpace(os.Getenv("PCMI_ENCRYPTION_KEY")),
+		EncryptionKey: resolveSecret("PCMI_ENCRYPTION_KEY"),
 
 		OTELTracesEndpoint: strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")),
 		OTELEndpoint:       strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")),

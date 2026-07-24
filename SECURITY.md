@@ -65,4 +65,31 @@ Findings land in the repository's
 `Security → Code scanning alerts` and `Security → Dependabot alerts`
 tabs. Maintainers triage on a weekly cadence.
 
+## Secrets handling
+
+Sensitive settings never have to live as raw values in the process environment.
+`config.Load()` resolves each secret through `resolveSecret`
+([`internal/config/secret.go`](internal/config/secret.go)) in this order:
+
+| Form | Meaning |
+|---|---|
+| `<NAME>_FILE=/run/secrets/x` | Read the secret from a file — Docker secrets, Kubernetes mounted secrets, or a Vault Agent sidecar that writes to a file. Takes precedence. |
+| `<NAME>=file:/run/secrets/x` | Same, expressed inline as a scheme. |
+| `<NAME>=env:OTHER_VAR` | Indirect to another environment variable. |
+| `<NAME>=<literal>` | Used verbatim (backward compatible). |
+
+File contents are trimmed; a named-but-unreadable file logs a warning and is
+treated as unset so required-secret validation (`Config.Validate`) fails loudly
+instead of the process running with a wrong or empty secret.
+
+Covered secrets: `PCMI_ENCRYPTION_KEY`, `DATABASE_URL`, `DATABASE_READ_URL`,
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROK_API_KEY`, `DEEPSEEK_API_KEY`,
+`METRICS_SCRAPE_TOKEN`, `ADMIN_API_KEY`, `PCMI_API_KEY`.
+
+**Recommended deployment:** mount secrets as files (Kubernetes `Secret` volumes,
+Docker secrets, or a Vault Agent sidecar) and point the `*_FILE` variables at
+them, so no secret is visible in `docker inspect`, `/proc/<pid>/environ`, or an
+orchestrator's environment view. TLS material is already file-based
+(`PCMI_TLS_CERT` / `PCMI_TLS_KEY`).
+
 

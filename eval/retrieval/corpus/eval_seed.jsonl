@@ -1,0 +1,18 @@
+# PCMI retrieval eval — self-contained corpus (domain: an org's engineering memory)
+# Seeded under root.eval.* by run_eval.py --seed. Designed with deliberate
+# synonym gaps (force the semantic half) and distractors (share words, wrong meaning).
+{"path": "root.eval.infra.caching.redis_latency", "content": "Adopted Redis as the caching layer. After cache warming, p99 API latency dropped from 340ms to 12ms.", "tags": ["perf", "caching"], "importance": 0.8}
+{"path": "root.eval.infra.db.connection_pool", "content": "PgBouncer pool size set to 20 per API pod. Higher values caused Postgres to exhaust max_connections under load.", "tags": ["database", "perf"], "importance": 0.6}
+{"path": "root.eval.infra.db.index_migration", "content": "Added a partial HNSW index on the embedding column. Vector search recall improved but write throughput dropped about 15 percent.", "tags": ["database", "vector"], "importance": 0.7}
+{"path": "root.eval.incident.queue_starvation_2025_03", "content": "March 2025 incident: the message queue consumer group stalled because a single tenant flooded the stream, starving all other tenants.", "tags": ["incident", "queue"], "importance": 0.9}
+{"path": "root.eval.incident.data_loss_scare", "content": "Near data-loss during a failed schema migration. Recovered from a point-in-time backup within 20 minutes. No customer impact.", "tags": ["incident", "backup"], "importance": 0.9}
+{"path": "root.eval.decision.auth_provider", "content": "Chose OIDC via Keycloak for single sign-on. SAML was deprioritized because no customer had requested it yet.", "tags": ["auth", "decision"], "importance": 0.7}
+{"path": "root.eval.decision.embedding_model", "content": "Standardized on text-embedding-3-small for cost reasons. The larger 3-large model gave only marginal recall gains, not worth six times the price.", "tags": ["ml", "cost"], "importance": 0.6}
+{"path": "root.eval.runbook.webhook_retry", "content": "Webhook deliveries retry up to five times with exponential backoff, then move to the dead-letter queue for manual replay.", "tags": ["webhook", "runbook"], "importance": 0.5}
+{"path": "root.eval.runbook.rate_limit", "content": "Per-role rate limits: admin 30 requests per minute, write 100, readonly 200. Enforced in Redis for multi-replica API deployments.", "tags": ["ratelimit", "runbook"], "importance": 0.5}
+{"path": "root.eval.knowledge.ltree_paths", "content": "Memory paths use the Postgres ltree type. Hierarchical prefixes let a query scope to a subtree cheaply through the GiST index.", "tags": ["architecture"], "importance": 0.6}
+{"path": "root.eval.knowledge.append_only_versioning", "content": "The memory store is append-only. Updates create new versions with valid_from and valid_to, which enables querying the state of knowledge at any past instant.", "tags": ["architecture", "versioning"], "importance": 0.8}
+{"path": "root.eval.incident.cert_expiry", "content": "TLS certificate expired on the staging gateway. Monitoring caught it before production. We added certificate expiry alerting.", "tags": ["incident", "tls"], "importance": 0.7}
+{"path": "root.eval.infra.frontend.cdn_cache", "content": "Frontend static assets are cached at the CDN edge. This is unrelated to the backend API caching layer.", "tags": ["frontend", "caching"], "importance": 0.4}
+{"path": "root.eval.people.onboarding", "content": "New engineer onboarding checklist: laptop provisioning, VPN, repository access, and on-call shadowing for two weeks.", "tags": ["people"], "importance": 0.3}
+{"path": "root.eval.decision.language_go", "content": "The backend is written in Go, chosen for its concurrency model and single-binary deployments.", "tags": ["decision"], "importance": 0.4}

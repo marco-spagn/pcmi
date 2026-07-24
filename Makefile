@@ -5,7 +5,8 @@
         infra-wait infra-smoke smoke-importance up down test-all-local test-all-local-quick test-all-local-host deploy-structural-test bug-hunt bug-hunt-fast \
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui graph-ui-entities demo test-cognitive-graph test-cognitive-graph-matrix \
-        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test demo_2 demo-cti-operational demo_soc demo_cti
+        graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test demo_2 demo-cti-operational demo_soc demo_cti \
+        eval-retrieval eval-retrieval-validate
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
@@ -454,6 +455,21 @@ distill-stress:
 
 # Default distillation entrypoint (~1 min). Alias for distill-smoke.
 distill: distill-smoke
+
+# ── Retrieval quality evaluation (recall@k / nDCG / MRR — NOT latency) ────────
+# Measures whether /v1/retrieve returns the RIGHT memories. Complements the SLO
+# latency benchmarks. Seeds a self-contained corpus under root.eval.*, runs the
+# gold query set, and gates on eval/retrieval/thresholds.json.
+#
+#   make eval-retrieval            # requires infra-up + OPENAI_API_KEY (semantic)
+#   make eval-retrieval-validate   # offline: validate corpus/gold format only
+EVAL_K ?= 5
+eval-retrieval:
+	python3 eval/retrieval/run_eval.py --seed --wait-embeddings 120 --k $(EVAL_K) \
+	  --report eval/retrieval/last_report.json
+
+eval-retrieval-validate:
+	python3 eval/retrieval/run_eval.py --dry-run
 
 # GitHub Actions CI runs on push/PR; manual run: gh workflow run CI
 

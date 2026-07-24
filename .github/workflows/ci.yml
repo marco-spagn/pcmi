@@ -10,6 +10,7 @@
 #   integration-smoke  → needs [go, golangci-lint, security, trivy-images]
 #   integration-e2e    → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; no retry)
 #   integration-graph  → needs [go, golangci-lint]  (complete cognitive graph matrix gate)
+#   retrieval-eval     → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; gates recall@k/nDCG on eval/retrieval/thresholds.json)
 # CodeQL: separate workflow (.github/workflows/codeql.yml)
 # Local parity: make ci-like-github → scripts/ci_like_github.sh (phases A–G)
 # Version for smoke: scripts/ci/resolve_version.sh (internal/version/version.go)
@@ -565,6 +566,86 @@ jobs:
           name: integration-e2e-logs-${{ github.run_id }}
           path: compose-failure.log
           retention-days: 7
+
+      - name: Show compose logs on failure
+        if: failure() && steps.openai.outputs.enabled == 'true'
+        run: docker compose logs --tail=100
+
+      - name: Cleanup compose
+        if: always() && steps.openai.outputs.enabled == 'true'
+        run: docker compose down -v --remove-orphans
+
+  retrieval-eval:
+    name: Retrieval quality eval (recall@k / nDCG)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [go, golangci-lint]
+    steps:
+      - uses: actions/checkout@v7
+
+      - id: openai
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::OPENAI_API_KEY secret not set — skipping retrieval eval (the semantic half needs embeddings)"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Set up Docker Buildx
+        if: steps.openai.outputs.enabled == 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Create .env for compose
+        if: steps.openai.outputs.enabled == 'true'
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          cat > .env <<EOF
+          OPENAI_API_KEY=${OPENAI_API_KEY}
+          DATABASE_URL=postgres://pcmi:pcmi@postgres:5432/pcmi
+          REDIS_ADDR=redis:6379
+          API_PORT=8000
+          RATE_LIMIT_DISABLED=true
+          EVENT_BACKEND=streams
+          EMBEDDING_MODEL=text-embedding-3-small
+          EOF
+
+      - name: Start stack (postgres, redis, api, worker)
+        if: steps.openai.outputs.enabled == 'true'
+        run: docker compose up -d --build --wait postgres redis api worker
+
+      - name: Wait for API readiness
+        if: steps.openai.outputs.enabled == 'true'
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8000/v1/ready >/dev/null; then
+              echo "API ready after ~$((i*2))s"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::API did not become ready in 120s"
+          docker compose logs --tail=100
+          exit 1
+
+      - name: Run retrieval quality eval (seeds corpus, gates on thresholds)
+        if: steps.openai.outputs.enabled == 'true'
+        env:
+          PCMI_BASE_URL: http://localhost:8000
+          PCMI_API_KEY: testkey123
+        run: |
+          python3 eval/retrieval/run_eval.py --seed --wait-embeddings 180 --k 5 \
+            --report eval/retrieval/last_report.json
+
+      - name: Upload eval report
+        if: always() && steps.openai.outputs.enabled == 'true' && hashFiles('eval/retrieval/last_report.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: retrieval-eval-report-${{ github.run_id }}
+          path: eval/retrieval/last_report.json
+          retention-days: 14
 
       - name: Show compose logs on failure
         if: failure() && steps.openai.outputs.enabled == 'true'

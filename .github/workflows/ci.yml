@@ -11,6 +11,7 @@
 #   integration-e2e    → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; no retry)
 #   integration-graph  → needs [go, golangci-lint]  (complete cognitive graph matrix gate)
 #   retrieval-eval     → needs [go, golangci-lint]  (skips if no OPENAI_API_KEY; gates recall@k/nDCG on eval/retrieval/thresholds.json)
+#   backup-restore     → needs [go, golangci-lint]  (seed→backup→wipe→restore→assert zero data loss)
 # CodeQL: separate workflow (.github/workflows/codeql.yml)
 # Local parity: make ci-like-github → scripts/ci_like_github.sh (phases A–G)
 # Version for smoke: scripts/ci/resolve_version.sh (internal/version/version.go)
@@ -654,6 +655,38 @@ jobs:
       - name: Cleanup compose
         if: always() && steps.openai.outputs.enabled == 'true'
         run: docker compose down -v --remove-orphans
+
+  backup-restore:
+    name: Backup / restore (zero data loss)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [go, golangci-lint]
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: pcmi
+          POSTGRES_USER: pcmi
+          POSTGRES_PASSWORD: pcmi
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pcmi -d pcmi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - uses: ./.github/actions/pcmi-postgres-migrate
+
+      - name: Seed → backup → wipe → restore → assert
+        env:
+          DATABASE_URL: postgres://pcmi:pcmi@127.0.0.1:5432/pcmi?sslmode=disable
+        run: bash scripts/backup/ci_backup_restore_test.sh
 
   integration-graph:
     name: Integration graph (complete AGE matrix)

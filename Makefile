@@ -6,7 +6,7 @@
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui graph-ui-entities demo test-cognitive-graph test-cognitive-graph-matrix \
         graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test demo_2 demo-cti-operational demo_soc demo_cti \
-        eval-retrieval eval-retrieval-validate
+        eval-retrieval eval-retrieval-validate backup restore backup-restore-test
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
@@ -126,6 +126,22 @@ smoke-dedup:
 # List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
 admin-list-keys:
 	DATABASE_URL=$(DATABASE_URL) go run ./cmd/pcmi-admin list
+
+# ── Backup / restore / DR (docs/runbooks/backup-restore.md) ───────────────────
+# make backup                       → ./backups/pcmi-<ts>.dump
+# make backup BACKUP_DIR=/mnt/bk
+# make restore BACKUP_FILE=./backups/pcmi-<ts>.dump [FORCE=1]
+BACKUP_DIR ?= ./backups
+backup:
+	@DATABASE_URL="$(DATABASE_URL)" bash scripts/backup/pcmi_backup.sh "$(BACKUP_DIR)"
+
+restore:
+	@test -n "$(BACKUP_FILE)" || (echo "usage: make restore BACKUP_FILE=<archive> [FORCE=1]" && exit 2)
+	@DATABASE_URL="$(DATABASE_URL)" FORCE="$(FORCE)" bash scripts/backup/pcmi_restore.sh "$(BACKUP_FILE)"
+
+# End-to-end: seed → backup → wipe → restore → assert (destructive; test DB only).
+backup-restore-test:
+	@DATABASE_URL="$(DATABASE_URL)" bash scripts/backup/ci_backup_restore_test.sh
 
 # Shortcuts
 up: infra-up

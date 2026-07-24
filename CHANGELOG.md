@@ -11,6 +11,8 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Added
 
+- **Backup / restore / DR tooling** (`scripts/backup/`): `pcmi_backup.sh` wraps `pg_dump` into a compressed, timestamped custom-format archive; `pcmi_restore.sh` wraps `pg_restore` and **refuses to overwrite a populated database unless `FORCE=1`**. Makefile targets `backup`, `restore`, `backup-restore-test`. A `docs/runbooks/backup-restore.md` runbook covers scheduled backups, restore, backup verification, DR order-of-operations, and PITR guidance. A CI job (`backup-restore`) runs the full **seed → backup → wipe → restore → assert** cycle on every PR so a regression that breaks restore fails the build. Redis holds only transient state and is not backed up.
+
 - **Entity extraction Phase A**: migration `022_extraction_profiles.sql`; `EXTRACTION_ENABLED` worker/API flag; tenant profiles (`GET/PUT/DELETE /v1/extraction-profiles/{id}`); LLM slot extraction into `metadata.pcmi_extract` (`GET/POST /v1/memories/extraction/{memory_id}`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).
 
 - **Entity extraction Phase B**: migration `023_entity_graph.sql`; promoted slots become `:Entity` vertices with `:mentions` edges from `:Memory` when extraction validates and AGE is available; `GET /v1/graph/entities/memory`, `GET /v1/graph/entities/related` (by `kind`+`key` or shared entities via `memory_id`). See [cognitive-graph-entities.md](docs/cognitive-graph-entities.md).

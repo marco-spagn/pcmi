@@ -30,6 +30,18 @@ type Config struct {
 	AdminAPIKey        string
 	MetricsScrapeToken string // optional: Bearer token for GET /metrics (Prometheus)
 
+	// SSO / OIDC (optional — enabled when OIDCIssuer is non-empty). Lets clients
+	// authenticate with an `Authorization: Bearer <jwt>` from any OIDC provider
+	// (Keycloak, Auth0, Entra, Okta, …) instead of an X-API-Key. Vendor-neutral:
+	// the issuer's discovery document + JWKS drive token verification.
+	OIDCIssuer       string // OIDC_ISSUER — discovery base URL; empty disables OIDC
+	OIDCAudience     string // OIDC_AUDIENCE — expected `aud` claim
+	OIDCRoleClaim    string // OIDC_ROLE_CLAIM — claim holding role(s); default "roles"
+	OIDCTenantClaim  string // OIDC_TENANT_CLAIM — claim holding the tenant UUID; default "tenant_id"
+	OIDCAdminRole    string // OIDC_ADMIN_ROLE — IdP role value mapped to PCMI admin
+	OIDCWriteRole    string // OIDC_WRITE_ROLE — IdP role value mapped to PCMI user (write)
+	OIDCReadonlyRole string // OIDC_READONLY_ROLE — IdP role value mapped to PCMI readonly
+
 	// MCP server (cmd/mcp — stdio JSON-RPC client to PCMI HTTP API)
 	PCMIBaseURL string
 	PCMIAPIKey  string
@@ -113,6 +125,10 @@ func (c *Config) APIConfig() *Config { return c }
 // WorkerConfig returns the subset of fields required by the Worker service.
 func (c *Config) WorkerConfig() *Config { return c }
 
+// OIDCEnabled reports whether SSO/OIDC bearer authentication is configured.
+// When false, only X-API-Key authentication is active.
+func (c *Config) OIDCEnabled() bool { return strings.TrimSpace(c.OIDCIssuer) != "" }
+
 // Load reads all environment variables and applies defaults.
 // It does NOT return an error — call Validate() or use MustLoad().
 func Load() *Config {
@@ -127,11 +143,19 @@ func Load() *Config {
 
 		AdminAPIKey:        resolveSecret("ADMIN_API_KEY"),
 		MetricsScrapeToken: resolveSecret("METRICS_SCRAPE_TOKEN"),
-		PCMIBaseURL:        strings.TrimSpace(os.Getenv("PCMI_BASE_URL")),
-		PCMIAPIKey:         resolveSecret("PCMI_API_KEY"),
-		OpenAIAPIKey:       resolveSecret("OPENAI_API_KEY"),
-		OpenAIBaseURL:      strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
-		EmbeddingModel:     envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
+
+		OIDCIssuer:       strings.TrimSpace(os.Getenv("OIDC_ISSUER")),
+		OIDCAudience:     strings.TrimSpace(os.Getenv("OIDC_AUDIENCE")),
+		OIDCRoleClaim:    envOr("OIDC_ROLE_CLAIM", "roles"),
+		OIDCTenantClaim:  envOr("OIDC_TENANT_CLAIM", "tenant_id"),
+		OIDCAdminRole:    envOr("OIDC_ADMIN_ROLE", "pcmi-admin"),
+		OIDCWriteRole:    envOr("OIDC_WRITE_ROLE", "pcmi-user"),
+		OIDCReadonlyRole: envOr("OIDC_READONLY_ROLE", "pcmi-readonly"),
+		PCMIBaseURL:      strings.TrimSpace(os.Getenv("PCMI_BASE_URL")),
+		PCMIAPIKey:       resolveSecret("PCMI_API_KEY"),
+		OpenAIAPIKey:     resolveSecret("OPENAI_API_KEY"),
+		OpenAIBaseURL:    strings.TrimSpace(os.Getenv("OPENAI_BASE_URL")),
+		EmbeddingModel:   envOr("EMBEDDING_MODEL", "text-embedding-3-small"),
 
 		LLMProvider:     strings.ToLower(strings.TrimSpace(os.Getenv("LLM_PROVIDER"))),
 		GrokAPIKey:      resolveSecret("GROK_API_KEY"),

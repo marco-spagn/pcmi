@@ -92,4 +92,33 @@ them, so no secret is visible in `docker inspect`, `/proc/<pid>/environ`, or an
 orchestrator's environment view. TLS material is already file-based
 (`PCMI_TLS_CERT` / `PCMI_TLS_KEY`).
 
+## SSO / OIDC
+
+Set `OIDC_ISSUER` to let clients authenticate with an
+`Authorization: Bearer <jwt>` from any OpenID Connect provider (Keycloak, Auth0,
+Microsoft Entra, Okta, Google, …). It is **vendor-neutral** — the issuer's
+discovery document (`<issuer>/.well-known/openid-configuration`) and JWKS drive
+token verification ([`internal/middleware/oidc.go`](internal/middleware/oidc.go)).
+
+Authentication is **additive**: a request carrying a bearer token is verified
+via OIDC; any other request continues to use `X-API-Key`. OIDC is off unless
+`OIDC_ISSUER` is set, so existing deployments are unaffected.
+
+Each token is verified for **signature (JWKS), issuer, audience, and expiry**,
+then mapped onto PCMI's model:
+
+| Setting | Purpose | Default |
+|---|---|---|
+| `OIDC_ISSUER` | Issuer base URL; enables OIDC | — |
+| `OIDC_AUDIENCE` | Expected `aud` claim; empty skips the aud check | — |
+| `OIDC_ROLE_CLAIM` | Claim holding the role(s) — string or array | `roles` |
+| `OIDC_TENANT_CLAIM` | Claim holding the tenant UUID | `tenant_id` |
+| `OIDC_ADMIN_ROLE` / `OIDC_WRITE_ROLE` / `OIDC_READONLY_ROLE` | IdP role values mapped to PCMI `admin` / `user` / `readonly` | `pcmi-admin` / `pcmi-user` / `pcmi-readonly` |
+
+When the role claim lists several values, precedence is **admin > user >
+readonly**. The tenant from the token must reference an **existing** tenant
+(no auto-provisioning); the same `set_tenant_context` RLS activation as the
+API-key path is applied. Tokens with an unknown tenant, an unmapped role, or a
+failed verification are rejected with a generic `401`.
+
 

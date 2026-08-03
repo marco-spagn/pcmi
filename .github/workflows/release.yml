@@ -60,7 +60,7 @@ jobs:
           echo "version.go Tag matches tag $RELEASE_TAG "
 
       - name: Install git-cliff
-        uses: taiki-e/install-action@v2
+        uses: taiki-e/install-action@v2.85.5
         with:
           tool: git-cliff
 

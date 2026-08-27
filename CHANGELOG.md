@@ -26,6 +26,7 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 ### Fixed
 
+- **OpenTelemetry resource schema-URL conflict** (`internal/telemetry/telemetry.go`): after the otel dependency bumps, `resource.Default()` advertises semconv schema `1.43.0` while the custom resource pinned `semconv/v1.41.0`'s schema URL, so `resource.Merge` failed with *"conflicting Schema URL"* whenever an OTLP endpoint was configured (`TestInit_OTLPHTTPExporterPostsTraces`). The custom resource now uses `resource.NewSchemaless(...)`, inheriting the SDK's schema URL and staying correct across future otel bumps.
 - **CI: Go toolchain security patch** — bumped the `toolchain` directive in `go.mod` from `go1.25.12` to `go1.25.14`, clearing the standard-library advisories (`crypto/tls`, `html/template`, `net/url`, `net/http`) that `govulncheck` flagged on `main`. Same-minor patch bump; no API or language-version change (`go 1.25.0` unchanged).
 - **CI: advisory linters no longer break the pipeline** — the `nilaway` and `gosec` steps in the `golangci-lint` job are now `continue-on-error: true`. Both are advisory (findings already non-blocking via `|| true`), but a transient failure of `go install ...@latest` was failing the whole job.
 - **`GET /v1/graph/related` bidirectional traversal**: default `direction=both` follows `memory_links` in either direction so incoming cross-campaign correlations and leaf nodes (e.g. postmortems) appear in graph exploration. Use `direction=out` for legacy outgoing-only behaviour; `direction=in` for incoming-only.

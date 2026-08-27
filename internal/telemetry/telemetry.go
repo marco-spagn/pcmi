@@ -59,9 +59,14 @@ func Init(ctx context.Context, cfg *config.Config, defaultServiceName string) (s
 		return nil, fmt.Errorf("otlp trace exporter: %w", err)
 	}
 
+	// NewSchemaless avoids pinning a semconv schema URL on the custom
+	// resource: resource.Default() carries the schema URL of whichever
+	// semconv version the otel SDK bundles, and resource.Merge rejects a
+	// conflicting schema URL. Using a schemaless resource here keeps the
+	// SDK's schema URL and stays correct across otel dependency bumps.
 	res, err := resource.Merge(
 		resource.Default(),
-		resource.NewWithAttributes(semconv.SchemaURL,
+		resource.NewSchemaless(
 			semconv.ServiceName(serviceName),
 		),
 	)

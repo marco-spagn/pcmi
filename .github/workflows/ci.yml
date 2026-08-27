@@ -70,11 +70,13 @@ jobs:
           version: v2.12.2
 
       - name: nilaway (nil-deref detection)
+        continue-on-error: true
         run: |
           go install go.uber.org/nilaway/cmd/nilaway@latest
           nilaway ./... || true
 
       - name: gosec (security lint)
+        continue-on-error: true
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
           gosec -quiet -severity medium -confidence medium ./... || true

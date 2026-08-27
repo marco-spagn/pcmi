@@ -96,9 +96,19 @@ func main() {
 		AppName: "PCMI API " + version.Tag,
 	})
 
+	// Optional SSO/OIDC: verify bearer tokens against the issuer's discovery
+	// document. nil when OIDC_ISSUER is unset — auth then stays X-API-Key only.
+	oidcVerifier, err := middleware.NewOIDCVerifier(ctx, cfg)
+	if err != nil {
+		log.Fatalf(" FATAL OIDC setup: %v", err)
+	}
+	if oidcVerifier != nil {
+		log.Printf("SSO/OIDC enabled — issuer=%s", cfg.OIDCIssuer)
+	}
+
 	app.Use(otelfiber.Middleware(otelfiber.WithNext(skipTracePath)))
 	app.Use(metrics.Middleware())
-	app.Use(middleware.APIKeyMiddleware(db))
+	app.Use(middleware.AuthMiddleware(db, oidcVerifier))
 	app.Use(middleware.RateLimitMiddleware(cfg))
 	app.Use(middleware.NewAuditMiddleware(db).Middleware())
 

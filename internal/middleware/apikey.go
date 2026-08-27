@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,14 +27,36 @@ const (
 	TenantContextKey   = "tenant_id"
 )
 
+// APIKeyMiddleware authenticates requests with X-API-Key only (no SSO).
 func APIKeyMiddleware(db *pgxpool.Pool) fiber.Handler {
-	return apiKeyMiddleware(db)
+	return authMiddleware(db, nil)
 }
 
+// AuthMiddleware authenticates requests with either an OIDC `Authorization:
+// Bearer <jwt>` (when oidc != nil) or an X-API-Key. Bearer takes precedence
+// when present; otherwise the request falls through to the API-key path, so
+// existing clients are unaffected.
+func AuthMiddleware(db *pgxpool.Pool, oidc *OIDCVerifier) fiber.Handler {
+	return authMiddleware(db, oidc)
+}
+
+// apiKeyMiddleware is the X-API-Key-only path (no OIDC). Retained for tests and
+// internal callers that predate SSO.
 func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
+	return authMiddleware(db, nil)
+}
+
+func authMiddleware(db apiKeyDB, oidc *OIDCVerifier) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if IsUnauthenticatedProbe(c.Method(), c.Path()) {
 			return c.Next()
+		}
+
+		// SSO/OIDC bearer path — additive, only when configured and present.
+		if oidc != nil {
+			if bearer := bearerToken(c); bearer != "" {
+				return authenticateBearer(c, db, oidc, bearer)
+			}
 		}
 
 		apiKey := c.Get("X-API-Key")
@@ -86,6 +109,47 @@ func apiKeyMiddleware(db apiKeyDB) fiber.Handler {
 		log.Printf("API Key authenticated → tenant=%s, role=%s", tenantID, role)
 		return c.Next()
 	}
+}
+
+// bearerToken extracts the token from an `Authorization: Bearer <token>` header.
+func bearerToken(c *fiber.Ctx) string {
+	h := c.Get("Authorization")
+	const prefix = "Bearer "
+	if len(h) > len(prefix) && strings.EqualFold(h[:len(prefix)], prefix) {
+		return strings.TrimSpace(h[len(prefix):])
+	}
+	return ""
+}
+
+// authenticateBearer verifies an OIDC bearer token, confirms the token's tenant
+// exists, and sets the same request context as the API-key path (role, tenant,
+// RLS). Generic 401s avoid leaking whether the token or the tenant was at fault.
+func authenticateBearer(c *fiber.Ctx, db apiKeyDB, oidc *OIDCVerifier, bearer string) error {
+	tenantID, role, err := oidc.Authenticate(c.Context(), bearer)
+	if err != nil {
+		log.Printf("OIDC auth rejected: %v", err)
+		return c.Status(401).JSON(fiber.Map{"error": "invalid bearer token"})
+	}
+
+	// The tenant claim must reference a real tenant. The ::uuid cast also
+	// rejects a malformed tenant id before it reaches set_tenant_context.
+	var exists bool
+	if err := db.QueryRow(c.Context(),
+		`SELECT EXISTS(SELECT 1 FROM tenants WHERE id = $1::uuid)`, tenantID,
+	).Scan(&exists); err != nil || !exists {
+		return c.Status(401).JSON(fiber.Map{"error": "unknown tenant"})
+	}
+
+	c.Locals(RoleContextKey, role)
+	c.Locals(TenantContextKey, tenantID)
+
+	if _, err := db.Exec(c.Context(), "SELECT set_tenant_context($1::uuid)", tenantID); err != nil {
+		log.Printf("set_tenant_context failed for tenant=%s: %v", tenantID, err)
+		return c.Status(503).JSON(fiber.Map{"error": "tenant context unavailable, please retry"})
+	}
+
+	log.Printf("OIDC authenticated → tenant=%s, role=%s", tenantID, role)
+	return c.Next()
 }
 
 func touchAPIKeyLastUsed(db apiKeyDB, keyID, clientIP string) {

@@ -133,6 +133,6 @@ active isolation boundary.
 | `distilled_knowledge` | Distilled summaries |
 | `memory_links` | Typed edges between paths (`link_type` set by the client on create — see [cognitive-graph.md § How data enters PCMI](cognitive-graph.md#how-data-enters-pcmi--who-classifies-what)) |
 | `webhook_endpoints` / `webhook_deliveries` | HTTP notifications |
-| `audit_log` | API request audit |
+| `audit_log` | API request audit; append-only per-tenant SHA-256 hash chain (`chain_seq`, `prev_hash`, `row_hash`, migration 027) |
 
 SQL: `migrations/` directory — order in [MIGRATIONS.md](MIGRATIONS.md).

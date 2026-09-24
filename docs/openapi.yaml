@@ -644,6 +644,64 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuditListResponse"
+  /v1/audit/verify:
+    get:
+      summary: Verify the tenant's tamper-evident audit hash chain
+      description: |
+        Recomputes every `row_hash` and `prev_hash` link of the tenant's audit
+        chain (migration 027, algorithm `sha256-chain-v1`) and reports the first
+        break, if any. Any role may call it.
+      responses:
+        "200":
+          description: Verification result (check `valid`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditVerifyResponse"
+        "500":
+          description: Database error
+  /v1/audit/export:
+    get:
+      summary: Export a sealed JSONL slice of the audit hash chain (admin)
+      description: |
+        Streams one `{"type":"entry",...}` line per audit row in ascending
+        `chain_seq`, then exactly one `{"type":"trailer",...}` line carrying the
+        head hash, a SHA-256 of all entry lines, and — when the server has
+        `AUDIT_EXPORT_SIGNING_KEY` — an HMAC-SHA256 `signature`. Verify offline
+        with `pcmi audit verify-export`. When `complete` is false, resume with
+        `from_seq = next_from_seq`.
+      parameters:
+        - name: from_seq
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+          description: First chain_seq to export
+        - name: to_seq
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+          description: Last chain_seq to export (inclusive); 0 = up to the chain head
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 50000, default: 10000 }
+          description: Maximum rows in this export
+      responses:
+        "200":
+          description: JSON Lines export
+          headers:
+            X-PCMI-Audit-Head-Hash:
+              schema: { type: string }
+              description: row_hash of the last exported row
+            X-PCMI-Audit-Complete:
+              schema: { type: string, enum: ["true", "false"] }
+              description: Whether the requested range was fully exported
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+                description: Newline-delimited AuditExportEntry lines followed by one AuditExportTrailer line
+        "400":
+          description: Invalid from_seq / to_seq / limit
+        "403":
+          description: Admin role required
   /v1/memories/refine:
     post:
       summary: Queue an asynchronous distillation-refine job for a path prefix
@@ -1389,6 +1447,64 @@ components:
             offset:
               type: integer
               description: Deprecated; always 0 (offset pagination removed)
+    AuditChainBreak:
+      type: object
+      properties:
+        chain_seq: { type: integer, format: int64 }
+        id: { type: integer, format: int64 }
+        reason:
+          type: string
+          enum: [sequence_gap, link_mismatch, hash_mismatch, genesis_mismatch, tenant_mismatch]
+        expected: { type: string }
+        actual: { type: string }
+    AuditVerifyResponse:
+      type: object
+      properties:
+        tenant_id: { type: string, format: uuid }
+        algorithm: { type: string, example: sha256-chain-v1 }
+        valid: { type: boolean }
+        checked: { type: integer, format: int64 }
+        head_seq: { type: integer, format: int64 }
+        head_hash: { type: string }
+        first_break: { $ref: "#/components/schemas/AuditChainBreak" }
+        verified_at: { type: string, format: date-time }
+    AuditExportEntry:
+      type: object
+      description: One chained audit row; fields are the exact canonical text that is hashed ("" for NULL)
+      properties:
+        type: { type: string, enum: [entry] }
+        id: { type: integer, format: int64 }
+        tenant_id: { type: string }
+        chain_seq: { type: integer, format: int64 }
+        api_key_id: { type: string }
+        event_type: { type: string }
+        path: { type: string }
+        method: { type: string }
+        status_code: { type: integer }
+        request_body: { type: string, description: "jsonb::text" }
+        response_body: { type: string, description: "jsonb::text" }
+        ip_address: { type: string }
+        user_agent: { type: string }
+        created_at: { type: string, description: "UTC, YYYY-MM-DDTHH:MM:SS.ffffffZ" }
+        prev_hash: { type: string }
+        row_hash: { type: string }
+    AuditExportTrailer:
+      type: object
+      properties:
+        type: { type: string, enum: [trailer] }
+        algorithm: { type: string }
+        tenant_id: { type: string }
+        count: { type: integer, format: int64 }
+        first_seq: { type: integer, format: int64 }
+        last_seq: { type: integer, format: int64 }
+        anchor_prev_hash: { type: string }
+        head_hash: { type: string }
+        chain_valid: { type: boolean }
+        complete: { type: boolean }
+        next_from_seq: { type: integer, format: int64 }
+        content_sha256: { type: string }
+        exported_at: { type: string, format: date-time }
+        signature: { type: string, description: "hmac-sha256=<hex>; absent when unsigned" }
     HistoryResponse:
       type: object
       properties:

@@ -207,8 +207,10 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	hh := NewHistoryHandler(dbWrite, readReplica)
 	api.Get("/memories/history", hh.Get)
 
-	ah := NewAuditHandler(dbWrite)
+	ah := NewAuditHandler(dbWrite, cfg.AuditExportSigningKey)
 	api.Get("/audit", ah.List)
+	api.Get("/audit/verify", ah.Verify)
+	api.Get("/audit/export", middleware.RequireAdminRole, ah.Export)
 
 	wh := NewWebhookHandler(dbWrite)
 	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)

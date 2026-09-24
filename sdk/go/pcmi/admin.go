@@ -92,3 +92,36 @@ func (c *Client) ListAudit(ctx context.Context, limit, offset int, since string)
 	}
 	return out, nil
 }
+
+// VerifyAudit recomputes the tenant's tamper-evident audit hash chain
+// (GET /v1/audit/verify). The result has "valid", "checked", "head_seq",
+// "head_hash" and, when the chain is broken, "first_break".
+func (c *Client) VerifyAudit(ctx context.Context) (map[string]any, error) {
+	var out map[string]any
+	if err := c.doJSON(ctx, "GET", "/v1/audit/verify", nil, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ExportAudit downloads a sealed JSONL export of the audit chain
+// (GET /v1/audit/export, admin role). Zero values use the server defaults
+// (from the first row, up to the head, 10000 rows). Verify the bytes offline
+// with `pcmi audit verify-export`.
+func (c *Client) ExportAudit(ctx context.Context, fromSeq, toSeq int64, limit int) ([]byte, error) {
+	q := url.Values{}
+	if fromSeq > 0 {
+		q.Set("from_seq", strconv.FormatInt(fromSeq, 10))
+	}
+	if toSeq > 0 {
+		q.Set("to_seq", strconv.FormatInt(toSeq, 10))
+	}
+	if limit > 0 {
+		q.Set("limit", strconv.Itoa(limit))
+	}
+	path := "/v1/audit/export"
+	if len(q) > 0 {
+		path += "?" + q.Encode()
+	}
+	return c.doRaw(ctx, "GET", path, nil)
+}

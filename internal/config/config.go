@@ -30,6 +30,10 @@ type Config struct {
 	AdminAPIKey        string
 	MetricsScrapeToken string // optional: Bearer token for GET /metrics (Prometheus)
 
+	// AuditExportSigningKey (AUDIT_EXPORT_SIGNING_KEY) is the HMAC-SHA256 key
+	// that seals GET /v1/audit/export trailers. Empty = unsigned exports.
+	AuditExportSigningKey string
+
 	// SSO / OIDC (optional — enabled when OIDCIssuer is non-empty). Lets clients
 	// authenticate with an `Authorization: Bearer <jwt>` from any OIDC provider
 	// (Keycloak, Auth0, Entra, Okta, …) instead of an X-API-Key. Vendor-neutral:
@@ -143,6 +147,8 @@ func Load() *Config {
 
 		AdminAPIKey:        resolveSecret("ADMIN_API_KEY"),
 		MetricsScrapeToken: resolveSecret("METRICS_SCRAPE_TOKEN"),
+
+		AuditExportSigningKey: resolveSecret("AUDIT_EXPORT_SIGNING_KEY"),
 
 		OIDCIssuer:       strings.TrimSpace(os.Getenv("OIDC_ISSUER")),
 		OIDCAudience:     strings.TrimSpace(os.Getenv("OIDC_AUDIENCE")),

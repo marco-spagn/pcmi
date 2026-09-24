@@ -28,7 +28,7 @@ func TestAuditHandlerInvalidSince(t *testing.T) {
 	app := newTestApp("tid", "admin")
 
 	// Attach a nil-repo handler; the bad-timestamp check fires before any DB call.
-	app.Get("/v1/audit", NewAuditHandler(nil).List)
+	app.Get("/v1/audit", NewAuditHandler(nil, "").List)
 
 	req := httptest.NewRequest("GET", "/v1/audit?since=not-a-timestamp", nil)
 	resp, err := app.Test(req)

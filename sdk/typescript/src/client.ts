@@ -119,6 +119,29 @@ export class PCMIClient {
     return res.json();
   }
 
+  /** Recompute the tenant's tamper-evident audit hash chain (GET /v1/audit/verify). */
+  async verifyAudit() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/audit/verify`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`verifyAudit failed: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Download a sealed JSONL audit export (GET /v1/audit/export, admin role).
+   * Returns the raw NDJSON text (entry lines + one trailer line).
+   */
+  async exportAudit(opts?: { fromSeq?: number; toSeq?: number; limit?: number }): Promise<string> {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/audit/export`);
+    if (opts?.fromSeq !== undefined) u.searchParams.set("from_seq", String(opts.fromSeq));
+    if (opts?.toSeq !== undefined) u.searchParams.set("to_seq", String(opts.toSeq));
+    if (opts?.limit !== undefined) u.searchParams.set("limit", String(opts.limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`exportAudit failed: ${res.status}`);
+    return res.text();
+  }
+
   async ingestEvent(
     eventType: string,
     payload: Record<string, unknown> = {},

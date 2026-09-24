@@ -25,7 +25,8 @@ Fiber HTTP handlers; read tenant from `middleware.TenantContextKey`, call reposi
 - `lineage_handler.go` — `/v1/lineage/memory`, `/v1/lineage/distilled/:id` (outside `/memories/*`).
 - `refine_handler.go` — `POST /v1/memories/refine` publishes to Redis for the worker.
 - `links_handler.go`, `stats_handler.go` — link graph and tenant statistics.
-- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `audit_handler.go`, `history_handler.go` — as named.
+- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `history_handler.go` — as named.
+- `audit_handler.go` — `GET /v1/audit` (list), `GET /v1/audit/verify` (hash chain), `GET /v1/audit/export` (admin, sealed JSONL).
 - `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis for readiness (503 if a dependency is down).
 
 ## `internal/service`
@@ -101,6 +102,10 @@ Optional OTLP/HTTP tracer initialization: `telemetry.Init(ctx, defaultServiceNam
 ## `internal/grpc`
 
 gRPC server: `MemoryService`, `AdminService`, `MetricsService` (see `internal/grpc/server.go`). Auth via metadata `x-api-key` or proto request fields. Core + operational RPCs (refine, links, stats, events stream, webhooks, …) — see `docs/grpc-vs-http.md`. **HTTP-only:** embedded admin UI (`GET /v1/admin/ui`). Prometheus scrape: `GET /metrics` (HTTP) or `MetricsService.Scrape` (gRPC). Writes reject `readonly` role (`PermissionDenied`). Integration tests: `go test -tags=integration ./internal/grpc/...` with API+gRPC running.
+
+## `internal/auditchain`
+
+Pure (no DB/HTTP) implementation of the audit hash chain from migration 027: `Canonical` / `Hash` (byte-for-byte mirror of SQL `audit_log_canonical` / `audit_log_hash`), `Verifier` (first break: `hash_mismatch`, `link_mismatch`, `sequence_gap`, `genesis_mismatch`), and the JSONL export `Writer` / offline `VerifyExport` (content SHA-256 + optional HMAC trailer). Used by `service.AuditService` (`GET /v1/audit/verify`, `GET /v1/audit/export`) and the `pcmi` CLI.
 
 ## `internal/webhook`
 

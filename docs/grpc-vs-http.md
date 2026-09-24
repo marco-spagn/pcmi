@@ -102,6 +102,8 @@ For standard Prometheus polling, **`GET /metrics`** on the HTTP port remains the
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/v1/admin/ui` | Embedded HTML admin dashboard (browser) |
+| GET | `/v1/audit/verify` | Verify the tamper-evident audit hash chain |
+| GET | `/v1/audit/export` | Sealed JSONL audit export (admin; `application/x-ndjson`) |
 
 All other admin and memory operations listed above are available on **both** transports unless noted.
 

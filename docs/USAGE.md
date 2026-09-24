@@ -224,8 +224,27 @@ Working memory bound to a session; promotion to long-term memory. See **[SESSION
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |
 | Sessions | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
+| Audit trail | `GET /v1/audit`, `GET /v1/audit/verify`, `GET /v1/audit/export` (admin) — see [Tamper-evident audit log](#tamper-evident-audit-log) |
 
 Full contract: [openapi.yaml](openapi.yaml).
+
+### Tamper-evident audit log
+
+Every API request is recorded in `audit_log`, which is a per-tenant SHA-256 hash chain (design and threat model: [SECURITY.md § Tamper-evident audit log](../SECURITY.md#tamper-evident-audit-log)).
+
+```bash
+# Any role: recompute the chain server-side.
+curl -s "${PCMI_BASE_URL}/v1/audit/verify" -H "X-API-Key: ${PCMI_API_KEY}" | jq '{valid, checked, head_seq, first_break}'
+
+# Admin: download a sealed export (JSONL). Resume with from_seq=<next_from_seq> when complete=false.
+curl -s "${PCMI_BASE_URL}/v1/audit/export?limit=50000" -H "X-API-Key: ${PCMI_ADMIN_KEY}" -o audit.jsonl
+tail -1 audit.jsonl | jq '{count, head_hash, complete, next_from_seq, signed: (.signature != null)}'
+
+# Verify offline, without database access.
+pcmi audit verify-export audit.jsonl --signing-key-file /run/secrets/audit_key
+```
+
+Set `AUDIT_EXPORT_SIGNING_KEY` (or `AUDIT_EXPORT_SIGNING_KEY_FILE`) on the API to add an HMAC-SHA256 signature to every export trailer.
 
 ---
 
@@ -383,6 +402,7 @@ Diagram: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 | `API_PORT` | `8000` | HTTP |
 | `GRPC_PORT` | `50051` | gRPC |
 | `METRICS_SCRAPE_TOKEN` | — | If set, `GET /metrics` requires `Authorization: Bearer …` |
+| `AUDIT_EXPORT_SIGNING_KEY` | — | HMAC key that signs `GET /v1/audit/export` trailers (supports `_FILE`) |
 | `RATE_LIMIT_DISABLED` | `false` | Disables rate limiting (dev/CI) |
 | `RATE_LIMIT_BACKEND` | `memory` | `memory` = in-process limiter; `redis` = shared counters across API replicas |
 | `RATE_LIMIT_RPM` / `_READONLY` / `_WRITE` / `_ADMIN` | 120 / 200 / 100 / 30 | RPM per role (redis or memory backend) |

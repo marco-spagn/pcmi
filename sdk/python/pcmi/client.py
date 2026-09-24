@@ -208,6 +208,34 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def verify_audit(self):
+        """Recompute the tenant's tamper-evident audit hash chain (GET /v1/audit/verify)."""
+        resp = await self.client.get("/v1/audit/verify")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def export_audit(
+        self,
+        from_seq: int | None = None,
+        to_seq: int | None = None,
+        limit: int | None = None,
+    ) -> str:
+        """Download a sealed JSONL audit export (GET /v1/audit/export, admin role).
+
+        Returns the raw NDJSON text: one ``entry`` line per audit row followed by a
+        ``trailer`` line. Verify it offline with ``pcmi audit verify-export``.
+        """
+        params: dict[str, int] = {}
+        if from_seq is not None:
+            params["from_seq"] = from_seq
+        if to_seq is not None:
+            params["to_seq"] = to_seq
+        if limit is not None:
+            params["limit"] = limit
+        resp = await self.client.get("/v1/audit/export", params=params)
+        resp.raise_for_status()
+        return resp.text
+
     async def list_event_schemas(self):
         resp = await self.client.get("/v1/events/schemas")
         resp.raise_for_status()

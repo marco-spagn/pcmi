@@ -32,6 +32,8 @@ OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 | `GET /v1/lineage/distilled/{id}` | `distilled_lineage` | `distilledLineage` |
 | `GET /v1/distilled` | `list_distilled` | `listDistilled` |
 | `GET /v1/audit` | `list_audit` | `listAudit` |
+| `GET /v1/audit/verify` | `verify_audit` | `verifyAudit` |
+| `GET /v1/audit/export` (admin, JSONL) | `export_audit` | `exportAudit` |
 | `POST /v1/memories/export` | `export_memories` | `exportMemories` |
 | `POST /v1/memories/import` | `import_memories` | `importMemories` |
 | `POST /v1/sessions` | `create_session` | — |

@@ -98,6 +98,7 @@ func main() {
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	memSvc := service.NewMemoryService(repo, embed, dedupMode)
+	handler.ConfigureReranker(memSvc, cfg) // gRPC Retrieve shares the HTTP rerank setting
 
 	app := fiber.New(fiber.Config{
 		AppName: "PCMI API " + version.Tag,

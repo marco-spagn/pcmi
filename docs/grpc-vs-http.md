@@ -61,6 +61,8 @@ Responses return `id`, `status`, `version`, optional `superseded_id` (embeddings
 
 Path-only retrieve (no `query`, no vector search) supports opaque **keyset cursors** (`cursor`, `next_cursor`, `has_more`) on HTTP and gRPC.
 
+LLM reranking (`RERANK_ENABLED`) applies to gRPC `Retrieve` as well; the per-request `"rerank": false` opt-out and the `reranked` response flag are HTTP-only for now.
+
 ### Operational parity (v1.29.0+)
 
 Unary RPCs cover refine, links, stats, events ingest, webhooks, embedding migration, rollback, summarize, history, lineage, distilled list, audit, export/import. Complex JSON shapes use `JSONResponse.json` (UTF-8 JSON object) where noted in proto.

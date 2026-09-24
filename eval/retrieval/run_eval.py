@@ -171,11 +171,21 @@ def wait_embeddings(path_prefix: str, want: int, timeout_s: int) -> None:
 
 
 # ─── retrieval + metrics ─────────────────────────────────────────────────────
+# --rerank: "server" = server default, "off" = send rerank:false (hybrid baseline).
+RERANK_MODE = "server"
+RERANKED_QUERIES = 0
+
+
 def retrieve(query: str, path_prefix: str, limit: int, tags: list[str] | None) -> list[dict]:
+    global RERANKED_QUERIES
     body: dict[str, Any] = {"path_prefix": path_prefix, "query": query, "limit": limit}
     if tags:
         body["tags"] = tags
+    if RERANK_MODE == "off":
+        body["rerank"] = False
     r = _req("POST", "/v1/retrieve", body)
+    if r.get("reranked"):
+        RERANKED_QUERIES += 1
     return r.get("entries") or []
 
 
@@ -240,7 +250,11 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true", help="validate files, no server calls")
     ap.add_argument("--report", default="", help="write JSON report to this path")
     ap.add_argument("--no-gate", action="store_true", help="do not fail on thresholds")
+    ap.add_argument("--rerank", choices=["server", "off"], default="server",
+                    help="server = server default (RERANK_ENABLED); off = force the hybrid baseline")
     args = ap.parse_args()
+    global RERANK_MODE
+    RERANK_MODE = args.rerank
 
     corpus = load_jsonl(args.corpus)
     gold = load_jsonl(args.gold)
@@ -283,6 +297,8 @@ def main() -> int:
     agg = {
         "queries": len(rows),
         "k": args.k,
+        "rerank_mode": args.rerank,
+        "reranked_queries": RERANKED_QUERIES,
         f"recall@{args.k}": macro(rows, "recall@k"),
         f"precision@{args.k}": macro(rows, "precision@k"),
         f"hit@{args.k}": macro(rows, "hit@k"),
@@ -290,7 +306,9 @@ def main() -> int:
         f"ndcg@{args.k}": macro(rows, "ndcg@k"),
     }
     print("=" * 72)
-    print("MACRO-AVERAGE: " + "  ".join(f"{k}={v}" for k, v in agg.items() if k not in ("queries", "k")))
+    print("MACRO-AVERAGE: " + "  ".join(f"{k}={v}" for k, v in agg.items()
+                                        if k not in ("queries", "k", "rerank_mode", "reranked_queries")))
+    print(f"rerank: mode={args.rerank} reranked_queries={RERANKED_QUERIES}/{len(rows)}")
 
     if args.report:
         with open(args.report, "w", encoding="utf-8") as f:

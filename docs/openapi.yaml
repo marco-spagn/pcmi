@@ -1456,6 +1456,11 @@ components:
           type: boolean
           default: true
           description: When false, temporal recency decay is omitted from hybrid scoring
+        rerank:
+          type: boolean
+          description: |
+            false opts this query retrieve out of LLM reranking. No effect unless
+            the server runs with RERANK_ENABLED=true (then reranking is the default).
     UpdateImportanceRequest:
       type: object
       required: [importance]
@@ -1492,6 +1497,11 @@ components:
           type: array
           items: { $ref: "#/components/schemas/MemoryEntry" }
         total: { type: integer }
+        next_cursor: { type: string }
+        has_more: { type: boolean }
+        reranked:
+          type: boolean
+          description: true when the LLM reranker reordered entries (absent on fallback to hybrid order)
     RollbackRequest:
       type: object
       required: [path]

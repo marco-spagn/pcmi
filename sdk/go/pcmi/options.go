@@ -70,6 +70,8 @@ type RetrieveOptions struct {
 	Tags           []string
 	TagsMatch      string // "any" | "all"
 	DecayEnabled   *bool
+	// Rerank=false opts out of server-side LLM reranking (RERANK_ENABLED).
+	Rerank *bool
 }
 
 // SubscribeOptions filter SSE events from GET /v1/events.

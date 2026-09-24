@@ -96,6 +96,10 @@ config:
   RATE_LIMIT_RPM_WRITE: "100"
   RATE_LIMIT_RPM_ADMIN: "30"
   USAGE_FLUSH_INTERVAL_SECS: "30"
+  # LLM reranking of query retrieves (sends retrieved text to LLM_PROVIDER).
+  RERANK_ENABLED: "false"
+  RERANK_CANDIDATES: "20"
+  RERANK_TIMEOUT_MS: "4000"
   # JSON model → USD per million tokens for GET /v1/stats/usage (empty = tokens only).
   LLM_PRICING: ""
 

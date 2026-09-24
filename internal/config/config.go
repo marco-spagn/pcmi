@@ -127,6 +127,16 @@ type Config struct {
 	// and worker flush buffered token counters to llm_usage_daily (<= 0 → 30s).
 	LLMPricing             string
 	UsageFlushIntervalSecs int
+
+	// LLM reranking of query retrieves (optional). RerankEnabled
+	// (RERANK_ENABLED) turns it on server-wide; requests may opt out with
+	// "rerank": false. RerankCandidates (RERANK_CANDIDATES, 1–50) rows are
+	// reranked; RerankModel (RERANK_MODEL) overrides DISTILLATION_MODEL for the
+	// LLM_PROVIDER client; RerankTimeoutMs (RERANK_TIMEOUT_MS) bounds each call.
+	RerankEnabled    bool
+	RerankCandidates int
+	RerankModel      string
+	RerankTimeoutMs  int
 }
 
 // APIConfig returns the subset of fields required by the API service.
@@ -217,6 +227,11 @@ func Load() *Config {
 
 		LLMPricing:             strings.TrimSpace(os.Getenv("LLM_PRICING")),
 		UsageFlushIntervalSecs: envInt("USAGE_FLUSH_INTERVAL_SECS", 30),
+
+		RerankEnabled:    envBool("RERANK_ENABLED", false),
+		RerankCandidates: envInt("RERANK_CANDIDATES", 20),
+		RerankModel:      strings.TrimSpace(os.Getenv("RERANK_MODEL")),
+		RerankTimeoutMs:  envInt("RERANK_TIMEOUT_MS", 4000),
 	}
 	return cfg
 }

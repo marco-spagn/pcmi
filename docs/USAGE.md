@@ -417,6 +417,7 @@ Diagram: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 | `API_PORT` | `8000` | HTTP |
 | `GRPC_PORT` | `50051` | gRPC |
 | `METRICS_SCRAPE_TOKEN` | — | If set, `GET /metrics` requires `Authorization: Bearer …` |
+| `RERANK_ENABLED` / `RERANK_CANDIDATES` / `RERANK_MODEL` / `RERANK_TIMEOUT_MS` | `false` / `20` / — / `4000` | Optional LLM reranking of query retrieves — see [retrieval-pipeline.md](retrieval-pipeline.md#optional-llm-reranking) |
 | `LLM_PRICING` | — | JSON model → `{input_per_mtok, output_per_mtok}` (USD); prices `GET /v1/stats/usage` |
 | `USAGE_FLUSH_INTERVAL_SECS` | `30` | Flush interval for per-tenant token counters (`llm_usage_daily`) |
 | `AUDIT_EXPORT_SIGNING_KEY` | — | HMAC key that signs `GET /v1/audit/export` trailers (supports `_FILE`) |

@@ -9,6 +9,7 @@ import (
 
 	"github.com/marco-spagn/pcmi/internal/embedding"
 	"github.com/marco-spagn/pcmi/internal/event"
+	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/usage"
@@ -18,7 +19,26 @@ type MemoryService struct {
 	repo         repository.MemoryRepo
 	embedder     embedding.Provider
 	defaultDedup model.DedupMode
+
+	reranker  Reranker
+	rerankCfg RerankConfig
 }
+
+// SetReranker enables LLM reranking of query retrieves (RERANK_ENABLED).
+// A nil reranker disables it. Requests can opt out with "rerank": false.
+func (s *MemoryService) SetReranker(r Reranker, cfg RerankConfig) {
+	if cfg.Candidates <= 0 {
+		cfg.Candidates = RerankDefaultCandidates
+	}
+	if cfg.Candidates > RerankMaxCandidates {
+		cfg.Candidates = RerankMaxCandidates
+	}
+	s.reranker = r
+	s.rerankCfg = cfg
+}
+
+// RerankEnabled reports whether query retrieves are reranked by default.
+func (s *MemoryService) RerankEnabled() bool { return s.reranker != nil }
 
 type StoreResult struct {
 	Entry        *model.MemoryEntry
@@ -183,21 +203,6 @@ func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest
 		}
 	}
 
-	pathOnly := strings.TrimSpace(req.Query) == ""
-	entries, err := s.repo.Retrieve(ctx, *req, tenantID, queryEmbedding)
-	if err != nil {
-		return nil, fmt.Errorf("retrieve failed: %w", err)
-	}
-	if len(queryEmbedding) > 0 && len(entries) == 0 {
-		pathOnly = false
-		entries, err = s.repo.Retrieve(ctx, *req, tenantID, nil)
-		if err != nil {
-			return nil, fmt.Errorf("retrieve fallback failed: %w", err)
-		}
-	} else if len(queryEmbedding) > 0 {
-		pathOnly = false
-	}
-
 	limit := req.Limit
 	if limit <= 0 {
 		limit = 10
@@ -206,9 +211,49 @@ func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest
 		limit = 200
 	}
 
+	pathOnly := strings.TrimSpace(req.Query) == ""
+	// Rerank only query retrieves on the first page; widen the candidate pool
+	// so the reranker can promote rows the hybrid score placed below the limit.
+	rerank := s.reranker != nil && !pathOnly && req.Cursor == "" && (req.Rerank == nil || *req.Rerank)
+	fetchReq := *req
+	if rerank && s.rerankCfg.Candidates > limit {
+		fetchReq.Limit = s.rerankCfg.Candidates
+	}
+
+	entries, err := s.repo.Retrieve(ctx, fetchReq, tenantID, queryEmbedding)
+	if err != nil {
+		return nil, fmt.Errorf("retrieve failed: %w", err)
+	}
+	if len(queryEmbedding) > 0 && len(entries) == 0 {
+		pathOnly = false
+		entries, err = s.repo.Retrieve(ctx, fetchReq, tenantID, nil)
+		if err != nil {
+			return nil, fmt.Errorf("retrieve fallback failed: %w", err)
+		}
+	} else if len(queryEmbedding) > 0 {
+		pathOnly = false
+	}
+
+	reranked := false
+	if rerank && len(entries) > 1 {
+		ordered, rerr := s.reranker.Rerank(ctx, tenantID, req.Query, entries)
+		if rerr != nil {
+			log.Printf("rerank fallback to hybrid order: %v", rerr)
+			metrics.IncRerank(metrics.RerankOutcomeFallback)
+		} else {
+			entries = ordered
+			reranked = true
+			metrics.IncRerank(metrics.RerankOutcomeReranked)
+		}
+	}
+	if rerank && len(entries) > limit {
+		entries = entries[:limit]
+	}
+
 	resp := &model.RetrieveResponse{
-		Entries: entries,
-		Total:   len(entries),
+		Entries:  entries,
+		Total:    len(entries),
+		Reranked: reranked,
 	}
 	if pathOnly && len(entries) > limit {
 		resp.HasMore = true

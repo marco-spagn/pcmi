@@ -205,6 +205,9 @@ func applyRetrieveOpts(body map[string]any, opts *RetrieveOptions) {
 	if opts.TagsMatch != "" {
 		body["tags_match"] = opts.TagsMatch
 	}
+	if opts.Rerank != nil {
+		body["rerank"] = *opts.Rerank
+	}
 	if opts.DecayEnabled != nil {
 		body["decay_enabled"] = *opts.DecayEnabled
 	}

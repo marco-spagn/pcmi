@@ -36,6 +36,8 @@ Reusable application logic from both REST and gRPC:
 
 - `memory_service.go` — store/retrieve, Redis event publication after store.
 - `batch_service.go`, `admin_service.go`, `event_service.go`, `summarize_service.go`.
+- `rerank.go` — optional `LLMReranker` (timeout + circuit breaker, falls back to hybrid order); wired by `handler.ConfigureReranker` when `RERANK_ENABLED`.
+- `audit_service.go`, `retention_service.go`, `usage_service.go` — audit chain verify/export, retention + GDPR erase, token usage report.
 
 Do not import UI frameworks here: only models, repositories, embedding.
 

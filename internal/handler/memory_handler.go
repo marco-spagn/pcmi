@@ -29,6 +29,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	svc := service.NewMemoryService(repo, embed, dedupMode)
+	ConfigureReranker(svc, cfg)
 
 	api := app.Group("/v1")
 

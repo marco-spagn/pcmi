@@ -61,3 +61,20 @@ func IncGraphTraversal() { graphTraversalTotal.Inc() }
 
 // ObserveGraphTraversal records the duration of a graph traversal.
 func ObserveGraphTraversal(seconds float64) { graphTraversalDuration.Observe(seconds) }
+
+// Rerank outcomes for pcmi_rerank_total.
+const (
+	RerankOutcomeReranked = "reranked"
+	RerankOutcomeFallback = "fallback"
+)
+
+var rerankTotal = promauto.With(Registry).NewCounterVec(
+	prometheus.CounterOpts{
+		Name: "pcmi_rerank_total",
+		Help: "LLM rerank attempts on retrieve by outcome (reranked | fallback to hybrid order).",
+	},
+	[]string{"outcome"},
+)
+
+// IncRerank counts one rerank attempt with the given outcome.
+func IncRerank(outcome string) { rerankTotal.WithLabelValues(outcome).Inc() }

@@ -35,8 +35,12 @@ type StoreResponse struct {
 
 // RetrieveResponse is returned by POST /v1/retrieve.
 type RetrieveResponse struct {
-	Entries []MemoryEntry `json:"entries"`
-	Total   int           `json:"total"`
+	Entries    []MemoryEntry `json:"entries"`
+	Total      int           `json:"total"`
+	NextCursor string        `json:"next_cursor,omitempty"`
+	HasMore    bool          `json:"has_more,omitempty"`
+	// Reranked is true when the server's LLM reranker reordered Entries.
+	Reranked bool `json:"reranked,omitempty"`
 }
 
 // Store writes a memory at path (POST /v1/memories).

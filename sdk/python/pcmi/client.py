@@ -66,7 +66,9 @@ class PCMIClient:
         embedding_space: str | None = None,
         tags: list[str] | None = None,
         tags_match: str | None = None,
+        rerank: bool | None = None,
     ):
+        """Hybrid retrieve. ``rerank=False`` opts out of server-side LLM reranking."""
         payload = MemoryRetrieve(
             path_prefix=path_prefix,
             query=query,
@@ -76,6 +78,7 @@ class PCMIClient:
             embedding_space=embedding_space,
             tags=tags,
             tags_match=tags_match,
+            rerank=rerank,
         )
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()

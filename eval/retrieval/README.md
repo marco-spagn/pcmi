@@ -43,6 +43,7 @@ python3 eval/retrieval/run_eval.py --seed --wait-embeddings 120 --k 5
 python3 eval/retrieval/run_eval.py --gold eval/retrieval/gold/seed_basic.jsonl --report out.json
 python3 eval/retrieval/run_eval.py --dry-run           # validate files only
 python3 eval/retrieval/run_eval.py --no-gate           # report without CI gate
+python3 eval/retrieval/run_eval.py --rerank off        # force the hybrid baseline (rerank:false)
 ```
 
 ## Files
@@ -94,3 +95,19 @@ lexical-only smoke.
   is the Microsoft memory) and run with `--gold gold/cti_cross_vendor.jsonl --no-gate`.
 - **Reranking A/B**: once an LLM reranker lands (gap #5), run the same gold set before
   and after — the delta in nDCG is the value of the reranker, quantified.
+
+## Measuring LLM reranking
+
+When the API runs with `RERANK_ENABLED=true`, compare the same gold set with and
+without the reranker (the report records `rerank_mode` and how many queries the
+server actually reranked):
+
+```bash
+python3 eval/retrieval/run_eval.py --rerank off    --report baseline.json
+python3 eval/retrieval/run_eval.py --rerank server --report reranked.json
+jq '.aggregate' baseline.json reranked.json
+```
+
+`reranked_queries < queries` means the reranker fell back (timeout, breaker,
+unparseable answer) for some queries — check `pcmi_rerank_total{outcome="fallback"}`.
+See [retrieval-pipeline.md § Optional LLM reranking](../../docs/retrieval-pipeline.md#optional-llm-reranking).

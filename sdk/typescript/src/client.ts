@@ -22,6 +22,8 @@ export type RetrieveOptions = {
   embeddingSpace?: string;
   tags?: string[];
   tagsMatch?: "any" | "all";
+  /** false opts out of server-side LLM reranking (RERANK_ENABLED). */
+  rerank?: boolean;
 };
 
 function parseSSEChunk(buffer: string, onEvent: (ev: PCMEvent) => void): string {
@@ -87,6 +89,7 @@ export class PCMIClient {
     if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
     if (opts?.tags?.length) body.tags = opts.tags;
     if (opts?.tagsMatch) body.tags_match = opts.tagsMatch;
+    if (opts?.rerank !== undefined) body.rerank = opts.rerank;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve`, {
       method: "POST",
       headers: this.headers(),

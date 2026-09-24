@@ -24,6 +24,11 @@ the public API version exposed by `/v1/version` and the gRPC `Version` RPC.
 
 - **Entity extraction race fix**: async worker no longer overwrites a successful sync extraction (`status: ok`) with a later `validation_failed` from a duplicate LLM call.
 
+### Changed
+
+- **Dependencies**: consolidated the pending Dependabot bumps — `go.opentelemetry.io/otel{,/sdk,/trace,/exporters/otlp/otlptrace/otlptracehttp}` 1.45.0 → 1.46.0, `otelgrpc` 0.70.0 → 0.71.0, `google.golang.org/grpc` 1.83.1 → 1.83.2, `google.golang.org/protobuf` 1.36.11 → 1.36.12, `github.com/gofiber/fiber/v2` 2.52.14 → 2.52.15, `github.com/go-jose/go-jose/v4` 4.1.4 → 4.1.5, `golang.org/x/text` 0.40.0 → 0.41.0, `github/codeql-action` 4.37.4 → 4.38.1.
+- **Docs**: `docs/INDEX.md` now reports the current API version (`v1.51.0`); added the previously dangling `docs/github-branch-protection.md` referenced by CONTRIBUTING, `docs/local-ci.md`, and this changelog.
+
 ### Fixed
 
 - **OpenTelemetry resource schema-URL conflict** (`internal/telemetry/telemetry.go`): after the otel dependency bumps, `resource.Default()` advertises semconv schema `1.43.0` while the custom resource pinned `semconv/v1.41.0`'s schema URL, so `resource.Merge` failed with *"conflicting Schema URL"* whenever an OTLP endpoint was configured (`TestInit_OTLPHTTPExporterPostsTraces`). The custom resource now uses `resource.NewSchemaless(...)`, inheriting the SDK's schema URL and staying correct across future otel bumps.

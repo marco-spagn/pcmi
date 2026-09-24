@@ -1,6 +1,6 @@
 # PCMI documentation index
 
-Central map of repository documentation. **API version: v1.48.0** ([`internal/version/version.go`](../internal/version/version.go)).
+Central map of repository documentation. **API version: v1.51.0** ([`internal/version/version.go`](../internal/version/version.go)).
 
 ## Getting started
 
@@ -60,6 +60,7 @@ Central map of repository documentation. **API version: v1.48.0** ([`internal/ve
 | [../scripts/e2e/README.md](../scripts/e2e/README.md) | Manual / CI E2E shell scripts |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributor setup and PR checklist |
 | [API-VERSIONING.md](API-VERSIONING.md) | API SemVer, releases, git-cliff, tags |
+| [github-branch-protection.md](github-branch-protection.md) | Ruleset bypass for the CI coverage-badge commit |
 
 ## Pipeline and operations
 

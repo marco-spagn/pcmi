@@ -228,12 +228,15 @@ func TestIntegration_Retention_eraseRemovesEverythingAndAudits(t *testing.T) {
 		t.Fatalf("audit chain broken after erase: %+v", v.FirstBreak)
 	}
 
-	// Without AGE (or without the helper) graph cleanup is a no-op.
-	if os.Getenv("PCMI_AGE_DATABASE_URL") == "" {
-		n, err := repo.EraseGraphVertices(ctx, tenantID, []string{"users.alice.profile"})
-		if err != nil || n != 0 {
-			t.Fatalf("graph no-op: n=%d err=%v", n, err)
-		}
+	// Without the AGE helper (migration 028 skips it when AGE is absent) graph
+	// cleanup is a no-op; with it, the call must still succeed.
+	var helper *string
+	if err := pool.QueryRow(ctx, `SELECT to_regproc('public.erase_memory_graph_vertices')::text`).Scan(&helper); err != nil {
+		t.Fatal(err)
+	}
+	n, err := repo.EraseGraphVertices(ctx, tenantID, []string{"users.alice.profile"})
+	if err != nil || (helper == nil && n != 0) {
+		t.Fatalf("graph cleanup: helper=%v n=%d err=%v", helper != nil, n, err)
 	}
 }
 

@@ -293,7 +293,7 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 	_, err := w.db.Exec(ctx, `
 		UPDATE distillation_runs
 		SET    status       = 'completed',
-		       distilled_id = $3,
+		       distilled_id = $2,
 		       completed_at = NOW()
 		WHERE  tenant_id = $1::uuid
 		  AND  status    = 'running'
@@ -301,7 +301,7 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 		       SELECT id FROM distillation_runs
 		       WHERE  tenant_id = $1::uuid AND status = 'running'
 		       ORDER BY created_at DESC LIMIT 1
-		  )`, tenantID, tenantID, distilledID)
+		  )`, tenantID, distilledID)
 	if err != nil {
 		// Non-fatal: the distillate was saved; only the audit row is wrong.
 		log.Printf("markRunCompleted: %v", err)

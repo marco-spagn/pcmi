@@ -737,7 +737,7 @@ func TestDistillationWorker_markRunCompleted_nilDB(t *testing.T) {
 
 func TestDistillationWorker_markRunCompleted_success(t *testing.T) {
 	mock := newMock(t)
-	mock.ExpectExec(`UPDATE distillation_runs`).WithArgs(any3()...).
+	mock.ExpectExec(`UPDATE distillation_runs`).WithArgs(any2()...).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	w := &DistillationWorker{db: mock, sem: make(chan struct{}, 1)}
 	w.markRunCompleted(context.Background(), "00000000-0000-0000-0000-000000000000", 42)
@@ -748,7 +748,7 @@ func TestDistillationWorker_markRunCompleted_success(t *testing.T) {
 
 func TestDistillationWorker_markRunCompleted_execError(t *testing.T) {
 	mock := newMock(t)
-	mock.ExpectExec(`UPDATE distillation_runs`).WithArgs(any3()...).WillReturnError(errors.New("db error"))
+	mock.ExpectExec(`UPDATE distillation_runs`).WithArgs(any2()...).WillReturnError(errors.New("db error"))
 	w := &DistillationWorker{db: mock, sem: make(chan struct{}, 1)}
 	w.markRunCompleted(context.Background(), "00000000-0000-0000-0000-000000000000", 99)
 	if err := mock.ExpectationsWereMet(); err != nil {

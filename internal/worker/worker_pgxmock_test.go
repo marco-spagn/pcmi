@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v4"
 
 	"github.com/marco-spagn/pcmi/internal/config"
@@ -348,6 +349,8 @@ func TestExpiryWorker_runOnce_idemExecError(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectExec(`UPDATE memory_entries`).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 2))
+	mock.ExpectQuery(`expire_memories_by_retention_policy`).
+		WillReturnRows(pgxmock.NewRows([]string{"n"}).AddRow(0))
 	mock.ExpectExec(`DELETE FROM idempotency_cache`).WillReturnError(errors.New("db error"))
 	w := &ExpiryWorker{db: mock, interval: time.Hour}
 	w.runOnce()
@@ -360,6 +363,8 @@ func TestExpiryWorker_runOnce_success(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectExec(`UPDATE memory_entries`).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+	mock.ExpectQuery(`expire_memories_by_retention_policy`).
+		WillReturnRows(pgxmock.NewRows([]string{"n"}).AddRow(4))
 	mock.ExpectExec(`DELETE FROM idempotency_cache`).
 		WillReturnResult(pgxmock.NewResult("DELETE", 1))
 	w := &ExpiryWorker{db: mock, interval: time.Hour}
@@ -376,10 +381,54 @@ func TestExpiryWorker_runOnce_enforcesExpiresAt(t *testing.T) {
 	mock := newMock(t)
 	mock.ExpectExec(`UPDATE memory_entries[\s\S]*expires_at IS NOT NULL AND expires_at <= NOW`).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
+	mock.ExpectQuery(`expire_memories_by_retention_policy`).
+		WillReturnRows(pgxmock.NewRows([]string{"n"}).AddRow(0))
 	mock.ExpectExec(`DELETE FROM idempotency_cache`).
 		WillReturnResult(pgxmock.NewResult("DELETE", 0))
 	w := &ExpiryWorker{db: mock, interval: time.Hour}
 	w.runOnce()
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// Retention-policy expiry failures (or a pre-028 schema) must not stop the
+// idempotency cleanup that follows.
+func TestExpiryWorker_runOnce_retentionPolicyErrors(t *testing.T) {
+	for name, retErr := range map[string]error{
+		"undefined function": &pgconn.PgError{Code: pgUndefinedFunction},
+		"other error":        errors.New("boom"),
+	} {
+		t.Run(name, func(t *testing.T) {
+			mock := newMock(t)
+			mock.ExpectExec(`UPDATE memory_entries`).WillReturnResult(pgxmock.NewResult("UPDATE", 0))
+			mock.ExpectQuery(`expire_memories_by_retention_policy`).WillReturnError(retErr)
+			mock.ExpectExec(`DELETE FROM idempotency_cache`).WillReturnResult(pgxmock.NewResult("DELETE", 0))
+			(&ExpiryWorker{db: mock, interval: time.Hour}).runOnce()
+			if err := mock.ExpectationsWereMet(); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestPruningWorker_runOnce_usesPolicyFunction(t *testing.T) {
+	mock := newMock(t)
+	mock.ExpectQuery(`SELECT prune_superseded_memories_with_policies\(\$1\)`).WithArgs(45).
+		WillReturnRows(pgxmock.NewRows([]string{"n"}).AddRow(2))
+	(&PruningWorker{db: mock, retentionDays: 45, interval: time.Hour}).runOnce()
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPruningWorker_runOnce_fallsBackBefore028(t *testing.T) {
+	mock := newMock(t)
+	mock.ExpectQuery(`prune_superseded_memories_with_policies`).WithArgs(30).
+		WillReturnError(&pgconn.PgError{Code: pgUndefinedFunction})
+	mock.ExpectQuery(`SELECT prune_superseded_memories\(\$1\)`).WithArgs(30).
+		WillReturnRows(pgxmock.NewRows([]string{"n"}).AddRow(1))
+	(&PruningWorker{db: mock, retentionDays: 30, interval: time.Hour}).runOnce()
 	if err := mock.ExpectationsWereMet(); err != nil {
 		t.Fatal(err)
 	}

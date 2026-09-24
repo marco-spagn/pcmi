@@ -150,6 +150,14 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		return c.JSON(out)
 	})
 
+	// GDPR erasure + namespace retention (migration 028). Registered before the
+	// /memories/* wildcard like every other specific /memories route.
+	reth := NewRetentionHandler(dbWrite)
+	api.Post("/memories/erase", middleware.RequireAdminRole, reth.Erase)
+	api.Get("/retention-policies", reth.List)
+	api.Put("/retention-policies", middleware.RequireAdminRole, reth.Put)
+	api.Delete("/retention-policies", middleware.RequireAdminRole, reth.Delete)
+
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {

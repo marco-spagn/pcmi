@@ -68,3 +68,47 @@ func TestClient_ExportAudit_defaultsAndForbidden(t *testing.T) {
 		t.Fatalf("err = %v", err)
 	}
 }
+
+func TestClient_RetentionAndErase(t *testing.T) {
+	var seen []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seen = append(seen, r.Method+" "+r.URL.Path+"?"+r.URL.RawQuery)
+		switch {
+		case r.Method == "PUT":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body["path_prefix"] != "finance" || body["superseded_retention_days"].(float64) != 2555 || body["max_age_days"] != nil {
+				t.Errorf("put body = %v", body)
+			}
+		case r.Method == "POST":
+			var body map[string]any
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			if body["dry_run"] != true || body["path_prefix"] != "users.alice" {
+				t.Errorf("erase body = %v", body)
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"ok": true})
+	}))
+	defer srv.Close()
+	c, _ := NewClient(srv.URL, "k")
+	ctx := context.Background()
+	days := 2555
+	if _, err := c.PutRetentionPolicy(ctx, RetentionPolicy{PathPrefix: "finance", SupersededRetentionDays: &days}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.ListRetentionPolicies(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.DeleteRetentionPolicy(ctx, ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.EraseMemories(ctx, "users.alice", true, "dsr"); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"PUT /v1/retention-policies?", "GET /v1/retention-policies?", "DELETE /v1/retention-policies?path_prefix=", "POST /v1/memories/erase?"}
+	for i, w := range want {
+		if i >= len(seen) || seen[i] != w {
+			t.Fatalf("requests = %v, want %v", seen, want)
+		}
+	}
+}

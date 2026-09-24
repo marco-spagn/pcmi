@@ -224,6 +224,7 @@ Working memory bound to a session; promotion to long-term memory. See **[SESSION
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |
 | Sessions | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
+| Retention & erasure | `GET/PUT/DELETE /v1/retention-policies` (writes admin), `POST /v1/memories/erase` (admin) — see [memory-compaction.md](memory-compaction.md#namespace-retention-policies) |
 | Audit trail | `GET /v1/audit`, `GET /v1/audit/verify`, `GET /v1/audit/export` (admin) — see [Tamper-evident audit log](#tamper-evident-audit-log) |
 
 Full contract: [openapi.yaml](openapi.yaml).

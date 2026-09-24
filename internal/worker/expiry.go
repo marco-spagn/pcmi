@@ -75,6 +75,19 @@ func (w *ExpiryWorker) runOnce() {
 		log.Printf("Expired %d memories", tag.RowsAffected())
 	}
 
+	// Namespace retention (migration 028): soft-close current memories older
+	// than the max_age_days of their most specific retention policy.
+	var aged int
+	err = w.db.QueryRow(ctx, `SELECT expire_memories_by_retention_policy()`).Scan(&aged)
+	switch {
+	case isUndefinedFunction(err):
+		// Pre-028 schema: no namespace retention yet.
+	case err != nil:
+		log.Printf("retention policy expiry: %v", err)
+	case aged > 0:
+		log.Printf("Retention policy closed %d memories", aged)
+	}
+
 	idemTag, err := w.db.Exec(ctx, `DELETE FROM idempotency_cache WHERE expires_at <= NOW()`)
 	if err != nil {
 		log.Printf("idempotency cache cleanup: %v", err)

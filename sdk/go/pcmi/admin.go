@@ -125,3 +125,47 @@ func (c *Client) ExportAudit(ctx context.Context, fromSeq, toSeq int64, limit in
 	}
 	return c.doRaw(ctx, "GET", path, nil)
 }
+
+// RetentionPolicy is the body of PutRetentionPolicy. PathPrefix "" addresses
+// the tenant-wide policy; nil rules are cleared.
+type RetentionPolicy struct {
+	PathPrefix              string `json:"path_prefix"`
+	SupersededRetentionDays *int   `json:"superseded_retention_days"`
+	MaxAgeDays              *int   `json:"max_age_days"`
+	Description             string `json:"description"`
+}
+
+// ListRetentionPolicies lists namespace retention policies (GET /v1/retention-policies).
+func (c *Client) ListRetentionPolicies(ctx context.Context) (map[string]any, error) {
+	var out map[string]any
+	if err := c.doJSON(ctx, "GET", "/v1/retention-policies", nil, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// PutRetentionPolicy creates or replaces a retention policy (admin).
+func (c *Client) PutRetentionPolicy(ctx context.Context, p RetentionPolicy) (map[string]any, error) {
+	var out map[string]any
+	if err := c.doJSON(ctx, "PUT", "/v1/retention-policies", p, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// DeleteRetentionPolicy deletes the policy for pathPrefix (admin).
+func (c *Client) DeleteRetentionPolicy(ctx context.Context, pathPrefix string) error {
+	q := url.Values{"path_prefix": {pathPrefix}}
+	return c.doJSON(ctx, "DELETE", "/v1/retention-policies?"+q.Encode(), nil, nil)
+}
+
+// EraseMemories erases every version of the memories under pathPrefix
+// (POST /v1/memories/erase, admin, GDPR). Call with dryRun first.
+func (c *Client) EraseMemories(ctx context.Context, pathPrefix string, dryRun bool, reason string) (map[string]any, error) {
+	var out map[string]any
+	body := map[string]any{"path_prefix": pathPrefix, "dry_run": dryRun, "reason": reason}
+	if err := c.doJSON(ctx, "POST", "/v1/memories/erase", body, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

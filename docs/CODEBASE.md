@@ -26,6 +26,7 @@ Fiber HTTP handlers; read tenant from `middleware.TenantContextKey`, call reposi
 - `refine_handler.go` — `POST /v1/memories/refine` publishes to Redis for the worker.
 - `links_handler.go`, `stats_handler.go` — link graph and tenant statistics.
 - `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `history_handler.go` — as named.
+- `retention_handler.go` — `GET/PUT/DELETE /v1/retention-policies`, `POST /v1/memories/erase` (GDPR erasure; `service.RetentionService` + `repository.RetentionRepository`).
 - `audit_handler.go` — `GET /v1/audit` (list), `GET /v1/audit/verify` (hash chain), `GET /v1/audit/export` (admin, sealed JSONL).
 - `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis for readiness (503 if a dependency is down).
 
@@ -58,8 +59,8 @@ Async processes; share DB and Redis with the API.
 - `embedding.go` — embedding generation after events (if OpenAI is configured).
 - `distillation.go` — job on path prefix; publishes `knowledge.distilled`; dedup on sources (`distillation_helpers.go`, `distillation_version.go`).
 - `consolidation.go` — merge related memories under a prefix.
-- `pruning.go` — calls SQL function `prune_superseded_memories`.
-- `expiry.go` — periodically calls `expire_memory_entries()` for TTL.
+- `pruning.go` — calls SQL function `prune_superseded_memories_with_policies` (namespace retention; falls back to `prune_superseded_memories` before migration 028).
+- `expiry.go` — closes rows past `expires_at` / `metadata.ttl_seconds`, then `expire_memories_by_retention_policy()` (namespace `max_age_days`).
 
 **Redis events** consumed in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested` — every handler is wrapped in an OpenTelemetry span (`redis.memory_event`) if OTLP is configured.
 

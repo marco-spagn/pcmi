@@ -67,9 +67,9 @@ flowchart LR
 |------|---------------|--------|
 | Embedding | `OPENAI_API_KEY`, `list_pending_embeddings` | Fills NULL `embedding`; **circuit breaker** on OpenAI provider |
 | Distillation | `LLM_PROVIDER` + API key, Redis events, refine | `distilled_knowledge` — see [Changing LLM provider](#changing-llm-provider) |
-| Pruning | `PRUNE_INTERVAL_SECS` | Removes old closed versions |
+| Pruning | `PRUNE_INTERVAL_SECS` | Removes old closed versions (`PRUNE_RETENTION_DAYS`, overridden per namespace by `retention_policies`) |
 | Consolidation | events / threshold | Path `.consolidated` |
-| Expiry | `EXPIRY_INTERVAL_SECS` | Closes rows with past `expires_at` |
+| Expiry | `EXPIRY_INTERVAL_SECS` | Closes rows with past `expires_at` and rows older than their namespace `max_age_days` |
 
 Worker metrics: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
 

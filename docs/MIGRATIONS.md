@@ -35,6 +35,7 @@ Must match the order in `docker-compose.yml` (postgres volumes list) and CI scri
 | `025_entity_registry.sql` | Entity registry, aliases, evolution snapshots, alias proposal queue (Phase D). |
 | `026_entity_graph_same_as.sql` | Optional AGE `same_as` helpers for entity alias merge (Phase D). |
 | `027_audit_hash_chain.sql` | Tamper-evident audit log: per-tenant SHA-256 hash chain (`chain_seq`, `prev_hash`, `row_hash`), backfill, append-only guard. See [SECURITY.md § Tamper-evident audit log](../SECURITY.md#tamper-evident-audit-log). |
+| `028_retention_policies.sql` | `retention_policies` (per-tenant / per-namespace retention), `prune_superseded_memories_with_policies`, `expire_memories_by_retention_policy`, optional AGE `erase_memory_graph_vertices`. See [memory-compaction.md § Namespace retention](memory-compaction.md#namespace-retention-policies). |
 
 ## Adding a new migration
 

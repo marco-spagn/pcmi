@@ -119,6 +119,56 @@ export class PCMIClient {
     return res.json();
   }
 
+  /** List namespace retention policies (GET /v1/retention-policies). */
+  async listRetentionPolicies() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`listRetentionPolicies failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Create or replace the retention policy for a path prefix (admin; "" = tenant-wide). */
+  async putRetentionPolicy(policy: {
+    pathPrefix: string;
+    supersededRetentionDays?: number | null;
+    maxAgeDays?: number | null;
+    description?: string;
+  }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({
+        path_prefix: policy.pathPrefix,
+        superseded_retention_days: policy.supersededRetentionDays ?? null,
+        max_age_days: policy.maxAgeDays ?? null,
+        description: policy.description ?? "",
+      }),
+    });
+    if (!res.ok) throw new Error(`putRetentionPolicy failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Delete the retention policy for a path prefix (admin). */
+  async deleteRetentionPolicy(pathPrefix: string) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`);
+    u.searchParams.set("path_prefix", pathPrefix);
+    const res = await fetch(u, { method: "DELETE", headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`deleteRetentionPolicy failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Erase every version of the memories under a path prefix (admin, GDPR). Use dryRun first. */
+  async eraseMemories(pathPrefix: string, opts?: { dryRun?: boolean; reason?: string }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/erase`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({ path_prefix: pathPrefix, dry_run: opts?.dryRun ?? false, reason: opts?.reason ?? "" }),
+    });
+    if (!res.ok) throw new Error(`eraseMemories failed: ${res.status}`);
+    return res.json();
+  }
+
   /** Recompute the tenant's tamper-evident audit hash chain (GET /v1/audit/verify). */
   async verifyAudit() {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/audit/verify`, {

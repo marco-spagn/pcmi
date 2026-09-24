@@ -702,6 +702,85 @@ paths:
           description: Invalid from_seq / to_seq / limit
         "403":
           description: Admin role required
+  /v1/retention-policies:
+    get:
+      summary: List the tenant's namespace retention policies
+      responses:
+        "200":
+          description: Policies ordered by path_prefix
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policies:
+                    type: array
+                    items: { $ref: "#/components/schemas/RetentionPolicy" }
+                  total: { type: integer }
+    put:
+      summary: Create or replace the retention policy for a path prefix (admin)
+      description: Omitted or null rules are cleared; at least one rule is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RetentionPolicyRequest"
+      responses:
+        "200":
+          description: Stored policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetentionPolicy"
+        "400":
+          description: Invalid prefix or rule
+        "403":
+          description: Admin role required
+    delete:
+      summary: Delete the retention policy for a path prefix (admin)
+      parameters:
+        - name: path_prefix
+          in: query
+          required: true
+          allowEmptyValue: true
+          schema: { type: string }
+          description: ltree prefix; empty string addresses the tenant-wide policy
+      responses:
+        "200":
+          description: Deleted
+        "400":
+          description: Missing or invalid path_prefix
+        "403":
+          description: Admin role required
+        "404":
+          description: No policy for this prefix
+  /v1/memories/erase:
+    post:
+      summary: Erase every version of the memories under a path prefix (admin, GDPR)
+      description: |
+        Hard-deletes current and superseded versions under `path_prefix`, plus
+        links, derived distilled knowledge, proposals, entity snapshots and
+        consolidation runs referencing them, in one transaction, and appends a
+        `gdpr_erase` row to the audit chain. `dry_run: true` returns exact counts
+        and rolls back. AGE graph vertices are removed best-effort after commit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EraseRequest"
+      responses:
+        "200":
+          description: Erasure result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EraseResult"
+        "400":
+          description: Missing or invalid path_prefix
+        "403":
+          description: Admin role required
   /v1/memories/refine:
     post:
       summary: Queue an asynchronous distillation-refine job for a path prefix
@@ -1447,6 +1526,49 @@ components:
             offset:
               type: integer
               description: Deprecated; always 0 (offset pagination removed)
+    RetentionPolicyRequest:
+      type: object
+      required: [path_prefix]
+      properties:
+        path_prefix: { type: string, description: 'ltree prefix; "" = tenant-wide' }
+        superseded_retention_days: { type: integer, minimum: 1, maximum: 36500, nullable: true }
+        max_age_days: { type: integer, minimum: 1, maximum: 36500, nullable: true }
+        description: { type: string, maxLength: 500 }
+    RetentionPolicy:
+      allOf:
+        - $ref: "#/components/schemas/RetentionPolicyRequest"
+        - type: object
+          properties:
+            id: { type: integer, format: int64 }
+            tenant_id: { type: string, format: uuid }
+            created_at: { type: string, format: date-time }
+            updated_at: { type: string, format: date-time }
+    EraseRequest:
+      type: object
+      required: [path_prefix]
+      properties:
+        path_prefix: { type: string, description: Non-empty ltree prefix }
+        dry_run: { type: boolean, default: false }
+        reason: { type: string, maxLength: 500, description: Recorded in the gdpr_erase audit row }
+    EraseResult:
+      type: object
+      properties:
+        path_prefix: { type: string }
+        dry_run: { type: boolean }
+        counts:
+          type: object
+          properties:
+            memory_versions: { type: integer }
+            paths: { type: integer }
+            links: { type: integer }
+            distilled: { type: integer }
+            link_proposals: { type: integer }
+            entity_snapshots: { type: integer }
+            alias_proposals: { type: integer }
+            consolidation_runs: { type: integer }
+        graph_vertices: { type: integer, description: AGE vertex ids processed (0 without AGE) }
+        graph_error: { type: string, description: Present when graph cleanup failed; SQL erasure is still committed }
+        erased_at: { type: string, format: date-time }
     AuditChainBreak:
       type: object
       properties:

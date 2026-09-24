@@ -32,6 +32,10 @@ OpenAPI schemas: [`../docs/openapi.yaml`](../docs/openapi.yaml).
 | `GET /v1/lineage/distilled/{id}` | `distilled_lineage` | `distilledLineage` |
 | `GET /v1/distilled` | `list_distilled` | `listDistilled` |
 | `GET /v1/audit` | `list_audit` | `listAudit` |
+| `GET /v1/retention-policies` | `list_retention_policies` | `listRetentionPolicies` |
+| `PUT /v1/retention-policies` (admin) | `put_retention_policy` | `putRetentionPolicy` |
+| `DELETE /v1/retention-policies?path_prefix=` (admin) | `delete_retention_policy` | `deleteRetentionPolicy` |
+| `POST /v1/memories/erase` (admin) | `erase_memories` | `eraseMemories` |
 | `GET /v1/audit/verify` | `verify_audit` | `verifyAudit` |
 | `GET /v1/audit/export` (admin, JSONL) | `export_audit` | `exportAudit` |
 | `POST /v1/memories/export` | `export_memories` | `exportMemories` |

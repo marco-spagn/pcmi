@@ -22,6 +22,7 @@ Central map of repository documentation. **API version: v1.51.0** ([`internal/ve
 | [../sdk/README.md](../sdk/README.md) | Python & TypeScript HTTP SDKs |
 | [../sdk/HTTP-API.md](../sdk/HTTP-API.md) | Endpoint → SDK method mapping |
 | [MCP.md](MCP.md) | MCP stdio server for AI agents (`cmd/mcp`) |
+| [CLI.md](CLI.md) | `pcmi` developer CLI (`cmd/pcmi`): store, retrieve, tail, seed, usage, erase, audit verify / export / offline verify |
 | [../proto/pcmi/v1/memory.proto](../proto/pcmi/v1/memory.proto) | Core gRPC memory API |
 | [../proto/pcmi/v1/admin.proto](../proto/pcmi/v1/admin.proto) | Admin gRPC API |
 | [../proto/pcmi/v1/metrics.proto](../proto/pcmi/v1/metrics.proto) | Metrics gRPC API |
@@ -43,6 +44,10 @@ Central map of repository documentation. **API version: v1.51.0** ([`internal/ve
 | Ingest dedup | [USAGE.md](USAGE.md) (`DEDUP_MODE`), `make smoke-dedup` |
 | MCP server | [MCP.md](MCP.md), `make test-mcp-unit` |
 | Full local validation | [local-ci.md](local-ci.md) (`make test-full-real`) |
+| Tamper-evident audit log | [../SECURITY.md](../SECURITY.md#tamper-evident-audit-log), `GET /v1/audit/verify`, `pcmi audit verify-export` |
+| Namespace retention + GDPR erasure | [memory-compaction.md](memory-compaction.md#namespace-retention-policies), `make smoke-governance` |
+| LLM / embedding usage metering | [USAGE.md](USAGE.md#usage-metering-finops) (`LLM_PRICING`, `GET /v1/stats/usage`) |
+| Optional LLM reranking | [retrieval-pipeline.md](retrieval-pipeline.md#optional-llm-reranking) (`RERANK_ENABLED`) |
 
 ## Testing
 

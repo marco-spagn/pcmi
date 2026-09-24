@@ -248,6 +248,19 @@ docker pull ghcr.io/marco-spagn/pcmi:v1.51.0    # pinned
 docker pull ghcr.io/marco-spagn/pcmi:main       # bleeding edge
 ```
 
+### Your first minute with the CLI
+
+```bash
+go install github.com/marco-spagn/pcmi/cmd/pcmi@latest
+export PCMI_BASE_URL=http://localhost:8000 PCMI_API_KEY=testkey123
+pcmi seed                                            # 12 demo memories under root.demo
+pcmi retrieve --prefix root.demo "what broke after the deploy?"
+pcmi get root.demo.product.pricing.plan --version 1  # time travel
+pcmi tail                                            # live events
+```
+
+See [docs/CLI.md](docs/CLI.md) for every command (usage and cost, GDPR erasure, audit export + offline verification).
+
 ### Your first API calls
 
 ```bash

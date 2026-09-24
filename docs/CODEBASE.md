@@ -10,6 +10,7 @@ Orientation document for readers and contributors: what each area does, delibera
 | `cmd/worker/main.go` | Worker: embedding (circuit breaker), distillation, pruning, consolidation, expiry, consume Redis Streams/pubsub. |
 | `cmd/mcp/main.go` | MCP stdio server → HTTP API (`PCMI_BASE_URL`, `PCMI_API_KEY`). |
 | `cmd/pcmi-admin/main.go` | CLI ops: `list` tenants/API keys (`make admin-list-keys`). |
+| `cmd/pcmi/main.go` | Developer CLI over the HTTP API (store, get, retrieve, tail, seed, usage, erase, audit verify / export / offline verify-export) — [CLI.md](CLI.md). |
 
 **API middleware order** (Fiber: the first `Use` registered is outermost): `otelfiber` (tracing, skips `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Unauthenticated probes are defined in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 

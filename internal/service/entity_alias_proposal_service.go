@@ -10,6 +10,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/extraction"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 // EntityAliasProposalService generates and reviews entity alias merge proposals.
@@ -124,7 +125,7 @@ func (s *EntityAliasProposalService) GenerateForMemory(ctx context.Context, tena
 		for _, c := range candidates {
 			allowed[c.ID] = struct{}{}
 		}
-		raw, err := s.llm.Complete(ctx, entityalias.BuildSystemPrompt(profile),
+		raw, err := s.llm.Complete(usage.WithScope(ctx, tenantID, usage.OpEntityAlias), entityalias.BuildSystemPrompt(profile),
 			[]string{entityalias.BuildUserMessage(p.Kind, p.Key, sourceEntity.ID, candidates)})
 		if err != nil {
 			return stored, fmt.Errorf("llm entity alias proposals: %w", err)

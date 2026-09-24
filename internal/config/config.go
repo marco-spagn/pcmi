@@ -120,6 +120,13 @@ type Config struct {
 
 	// Dedup (PCMI-011): default ingest dedup mode when tenant/request omit it.
 	DedupMode string
+
+	// Usage metering (FinOps). LLMPricing (LLM_PRICING) is a JSON object of
+	// per-model USD prices per million tokens used by GET /v1/stats/usage;
+	// UsageFlushIntervalSecs (USAGE_FLUSH_INTERVAL_SECS) is how often the API
+	// and worker flush buffered token counters to llm_usage_daily (<= 0 → 30s).
+	LLMPricing             string
+	UsageFlushIntervalSecs int
 }
 
 // APIConfig returns the subset of fields required by the API service.
@@ -207,6 +214,9 @@ func Load() *Config {
 		OTELServiceName:    strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME")),
 
 		DedupMode: envOr("DEDUP_MODE", "none"),
+
+		LLMPricing:             strings.TrimSpace(os.Getenv("LLM_PRICING")),
+		UsageFlushIntervalSecs: envInt("USAGE_FLUSH_INTERVAL_SECS", 30),
 	}
 	return cfg
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 type SummarizeService struct {
@@ -87,7 +88,7 @@ func (s *SummarizeService) Summarize(ctx context.Context, req *SummarizeRequest,
 	}
 
 	if s.openAIKey != "" {
-		summary, err := s.llmSummarize(ctx, parts, req.Style)
+		summary, err := s.llmSummarize(usage.WithScope(ctx, tenantID, usage.OpSummarize), parts, req.Style)
 		if err == nil && summary != "" {
 			return &SummarizeResponse{
 				PathPrefix: prefix,
@@ -152,6 +153,7 @@ func (s *SummarizeService) llmSummarize(ctx context.Context, parts []string, sty
 	if err != nil {
 		return "", err
 	}
+	usage.Report(ctx, "openai", modelName, int64(resp.Usage.PromptTokens), int64(resp.Usage.CompletionTokens))
 	if len(resp.Choices) == 0 {
 		return "", fmt.Errorf("empty LLM response")
 	}

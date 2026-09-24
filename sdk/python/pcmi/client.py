@@ -208,6 +208,28 @@ class PCMIClient:
         resp.raise_for_status()
         return resp.json()
 
+    async def usage_stats(
+        self,
+        from_day: str | None = None,
+        to_day: str | None = None,
+        group_by: str | None = None,
+    ):
+        """LLM / embedding token usage and estimated cost (GET /v1/stats/usage).
+
+        ``from_day`` / ``to_day`` are ``YYYY-MM-DD`` (UTC); ``group_by`` is a comma list of
+        ``day``, ``operation``, ``model`` or ``none``.
+        """
+        params: dict[str, str] = {}
+        if from_day:
+            params["from"] = from_day
+        if to_day:
+            params["to"] = to_day
+        if group_by:
+            params["group_by"] = group_by
+        resp = await self.client.get("/v1/stats/usage", params=params)
+        resp.raise_for_status()
+        return resp.json()
+
     async def list_retention_policies(self):
         """List namespace retention policies (GET /v1/retention-policies)."""
         resp = await self.client.get("/v1/retention-policies")

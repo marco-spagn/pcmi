@@ -95,6 +95,9 @@ config:
   RATE_LIMIT_RPM_READONLY: "200"
   RATE_LIMIT_RPM_WRITE: "100"
   RATE_LIMIT_RPM_ADMIN: "30"
+  USAGE_FLUSH_INTERVAL_SECS: "30"
+  # JSON model → USD per million tokens for GET /v1/stats/usage (empty = tokens only).
+  LLM_PRICING: ""
 
 # Secret values — `helm install` will create the Secret object, but rendering
 # is opt-in: pass them via `--set-string secrets.OPENAI_API_KEY=$KEY` or via
@@ -108,6 +111,8 @@ secrets:
   ADMIN_API_KEY: ""
   OPENAI_API_KEY: ""
   PCMI_ENCRYPTION_KEY: ""
+  # HMAC key that signs GET /v1/audit/export trailers (empty = unsigned).
+  AUDIT_EXPORT_SIGNING_KEY: ""
 
 # TLS for both Fiber HTTP and gRPC (PR #3). When enabled, the chart mounts
 # tlsSecretName into /etc/pcmi/tls and sets PCMI_TLS_CERT / PCMI_TLS_KEY in

@@ -11,6 +11,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/linkproposal"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 const maxLinkProposalCandidates = 20
@@ -151,7 +152,7 @@ func (s *LinkProposalService) GenerateForMemory(ctx context.Context, tenantID st
 
 	systemPrompt := linkproposal.BuildSystemPrompt(profile)
 	userMsg := linkproposal.BuildUserMessage(entry, sourceRec, candidates)
-	raw, err := s.llm.Complete(ctx, systemPrompt, []string{userMsg})
+	raw, err := s.llm.Complete(usage.WithScope(ctx, tenantID, usage.OpLinkProposal), systemPrompt, []string{userMsg})
 	if err != nil {
 		return nil, fmt.Errorf("llm link proposals: %w", err)
 	}

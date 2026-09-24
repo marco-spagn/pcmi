@@ -71,7 +71,7 @@ flowchart LR
 | Consolidation | events / threshold | Path `.consolidated` |
 | Expiry | `EXPIRY_INTERVAL_SECS` | Closes rows with past `expires_at` and rows older than their namespace `max_age_days` |
 
-Worker metrics: `GET :8081/metrics` (`pcmi_worker_redis_events_total`).
+Worker metrics: `GET :8081/metrics` (`pcmi_worker_redis_events_total`, `pcmi_llm_requests_total`, `pcmi_llm_tokens_total`). Token usage is also persisted per tenant in `llm_usage_daily` — see [USAGE.md § Usage metering](USAGE.md#usage-metering-finops).
 
 ### Changing LLM provider
 

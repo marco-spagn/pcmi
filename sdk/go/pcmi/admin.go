@@ -169,3 +169,28 @@ func (c *Client) EraseMemories(ctx context.Context, pathPrefix string, dryRun bo
 	}
 	return out, nil
 }
+
+// UsageStats returns LLM / embedding token usage and estimated cost
+// (GET /v1/stats/usage). from / to are YYYY-MM-DD (UTC, "" = default window);
+// groupBy is a comma list of day, operation, model — or "none".
+func (c *Client) UsageStats(ctx context.Context, from, to, groupBy string) (map[string]any, error) {
+	q := url.Values{}
+	if from != "" {
+		q.Set("from", from)
+	}
+	if to != "" {
+		q.Set("to", to)
+	}
+	if groupBy != "" {
+		q.Set("group_by", groupBy)
+	}
+	path := "/v1/stats/usage"
+	if len(q) > 0 {
+		path += "?" + q.Encode()
+	}
+	var out map[string]any
+	if err := c.doJSON(ctx, "GET", path, nil, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}

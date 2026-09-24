@@ -19,3 +19,11 @@ func TestSetupMemoryRoutes_DisabledEmbedding(t *testing.T) {
 		t.Fatalf("SetupMemoryRoutes with empty API key: %v", err)
 	}
 }
+
+func TestSetupMemoryRoutes_InvalidLLMPricingFailsFast(t *testing.T) {
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	cfg := &config.Config{EmbeddingModel: "text-embedding-3-small", LLMPricing: `{"m":{"input_per_mtok":-1}}`}
+	if err := SetupMemoryRoutes(app, nil, nil, cfg); err == nil {
+		t.Fatal("invalid LLM_PRICING must fail route setup")
+	}
+}

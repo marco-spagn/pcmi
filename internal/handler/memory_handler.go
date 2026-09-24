@@ -16,6 +16,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/usage"
 	"github.com/marco-spagn/pcmi/internal/version"
 )
 
@@ -199,6 +200,17 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	api.Get("/memories/links", lnh.List)
 
 	RegisterStatsRoute(api, dbWrite, readReplica)
+
+	pricing, err := usage.ParsePricing(cfg.LLMPricing)
+	if err != nil {
+		return err
+	}
+	usageDB := dbWrite
+	if readReplica != nil {
+		usageDB = readReplica
+	}
+	uh := &UsageHandler{svc: service.NewUsageService(repository.NewUsageRepository(usageDB), pricing)}
+	api.Get("/stats/usage", uh.Get)
 
 	dh := NewDistilledHandler(dbWrite)
 	api.Get("/distilled", dh.Get)

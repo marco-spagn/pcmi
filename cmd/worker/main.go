@@ -24,6 +24,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
+	"github.com/marco-spagn/pcmi/internal/usage"
 	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/worker"
 )
@@ -85,6 +86,15 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Usage metering: per-tenant token counters → llm_usage_daily.
+	usageAgg := usage.NewAggregator(db)
+	usage.SetRecorder(usageAgg)
+	usageDone := make(chan struct{})
+	go func() {
+		usageAgg.Run(ctx, time.Duration(cfg.UsageFlushIntervalSecs)*time.Second)
+		close(usageDone)
+	}()
 
 	prov, err := embedding.NewFromConfig(cfg)
 	if err != nil {
@@ -229,6 +239,10 @@ func main() {
 	log.Println("Shutting down worker...")
 	cancel()
 	time.Sleep(2 * time.Second)
+	select { // final usage flush (bounded by Run's own 5s timeout)
+	case <-usageDone:
+	case <-time.After(6 * time.Second):
+	}
 	log.Println("Worker stopped")
 }
 

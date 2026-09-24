@@ -119,6 +119,17 @@ export class PCMIClient {
     return res.json();
   }
 
+  /** LLM / embedding token usage and estimated cost (GET /v1/stats/usage). */
+  async usageStats(opts?: { from?: string; to?: string; groupBy?: string }) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/stats/usage`);
+    if (opts?.from) u.searchParams.set("from", opts.from);
+    if (opts?.to) u.searchParams.set("to", opts.to);
+    if (opts?.groupBy) u.searchParams.set("group_by", opts.groupBy);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`usageStats failed: ${res.status}`);
+    return res.json();
+  }
+
   /** List namespace retention policies (GET /v1/retention-policies). */
   async listRetentionPolicies() {
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`, {

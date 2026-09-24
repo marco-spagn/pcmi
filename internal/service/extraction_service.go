@@ -11,6 +11,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/graph"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 // LLMCompleter is the minimal surface needed for attribute extraction.
@@ -178,7 +179,7 @@ func (s *ExtractionService) extractEntry(ctx context.Context, tenantID string, e
 
 	systemPrompt := extraction.BuildSystemPrompt(profile)
 	userMsg := extraction.BuildUserMessage(content, metadataAsMap(entry.Metadata))
-	raw, err := s.llm.Complete(ctx, systemPrompt, []string{userMsg})
+	raw, err := s.llm.Complete(usage.WithScope(ctx, tenantID, usage.OpExtraction), systemPrompt, []string{userMsg})
 	if err != nil {
 		rec.Error = err.Error()
 		_ = s.persistFailureRecord(ctx, tenantID, entry, rec, force)

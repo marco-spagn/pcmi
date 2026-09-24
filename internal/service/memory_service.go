@@ -11,6 +11,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 type MemoryService struct {
@@ -174,7 +175,7 @@ func (s *MemoryService) tryDedup(ctx context.Context, req *model.StoreRequest, t
 func (s *MemoryService) Retrieve(ctx context.Context, req *model.RetrieveRequest, tenantID string) (*model.RetrieveResponse, error) {
 	var queryEmbedding []float32
 	if q := strings.TrimSpace(req.Query); q != "" && s.embedder != nil {
-		emb, err := s.embedder.Generate(ctx, q)
+		emb, err := s.embedder.Generate(usage.WithScope(ctx, tenantID, usage.OpQueryEmbedding), q)
 		if err != nil {
 			log.Printf("semantic retrieve fallback (embedding error): %v", err)
 		} else {

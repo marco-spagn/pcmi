@@ -12,6 +12,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 type DistillationWorker struct {
@@ -182,7 +183,7 @@ Return ONLY valid JSON:
 		userMessages[i] = e.Content
 	}
 
-	rawResponse, err := w.llm.Complete(ctx, systemPrompt, userMessages)
+	rawResponse, err := w.llm.Complete(usage.WithScope(ctx, tenantID, usage.OpDistillation), systemPrompt, userMessages)
 	if err != nil {
 		log.Printf("LLM distillation error: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")

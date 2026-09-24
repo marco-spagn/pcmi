@@ -112,3 +112,27 @@ func TestClient_RetentionAndErase(t *testing.T) {
 		}
 	}
 }
+
+func TestClient_UsageStats(t *testing.T) {
+	var gotQuery string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/stats/usage" {
+			http.NotFound(w, r)
+			return
+		}
+		gotQuery = r.URL.RawQuery
+		_ = json.NewEncoder(w).Encode(map[string]any{"totals": map[string]any{"requests": 3}})
+	}))
+	defer srv.Close()
+	c, _ := NewClient(srv.URL, "k")
+	out, err := c.UsageStats(context.Background(), "2026-09-01", "2026-09-30", "day")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if gotQuery != "from=2026-09-01&group_by=day&to=2026-09-30" || out["totals"] == nil {
+		t.Fatalf("query=%q out=%v", gotQuery, out)
+	}
+	if _, err := c.UsageStats(context.Background(), "", "", ""); err != nil || gotQuery != "" {
+		t.Fatalf("defaults: query=%q err=%v", gotQuery, err)
+	}
+}

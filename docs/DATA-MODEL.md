@@ -133,6 +133,7 @@ active isolation boundary.
 | `distilled_knowledge` | Distilled summaries |
 | `memory_links` | Typed edges between paths (`link_type` set by the client on create — see [cognitive-graph.md § How data enters PCMI](cognitive-graph.md#how-data-enters-pcmi--who-classifies-what)) |
 | `webhook_endpoints` / `webhook_deliveries` | HTTP notifications |
+| `llm_usage_daily` | Per-tenant daily LLM / embedding token counters by operation, provider, model (migration 029) |
 | `retention_policies` | Per-tenant / per-namespace retention rules (`superseded_retention_days`, `max_age_days`, migration 028) |
 | `audit_log` | API request audit; append-only per-tenant SHA-256 hash chain (`chain_seq`, `prev_hash`, `row_hash`, migration 027) |
 

@@ -108,6 +108,10 @@ gRPC server: `MemoryService`, `AdminService`, `MetricsService` (see `internal/gr
 
 Pure (no DB/HTTP) implementation of the audit hash chain from migration 027: `Canonical` / `Hash` (byte-for-byte mirror of SQL `audit_log_canonical` / `audit_log_hash`), `Verifier` (first break: `hash_mismatch`, `link_mismatch`, `sequence_gap`, `genesis_mismatch`), and the JSONL export `Writer` / offline `VerifyExport` (content SHA-256 + optional HMAC trailer). Used by `service.AuditService` (`GET /v1/audit/verify`, `GET /v1/audit/export`) and the `pcmi` CLI.
 
+## `internal/usage`
+
+LLM / embedding token metering. Call sites tag the context with `usage.WithScope(ctx, tenantID, operation)`; provider clients (`internal/worker` LLM clients, `internal/embedding`, summarize, rerank) call `usage.Report` with upstream token counts. Reports feed Prometheus (`pcmi_llm_*`, registered on both `metrics.Registry` and `metrics.WorkerRegistry`) and the process-wide `Aggregator`, which flushes additive per-(tenant, day, operation, provider, model) buckets to `llm_usage_daily` (batch, then row-by-row fallback that drops permanently rejected rows). `Pricing` parses `LLM_PRICING`; `service.UsageService` serves `GET /v1/stats/usage`.
+
 ## `internal/webhook`
 
 HTTP delivery to registered URLs, retry, dead-letter.

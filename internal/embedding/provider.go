@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/sashabaranov/go-openai"
+
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 type Provider interface {
@@ -12,8 +14,9 @@ type Provider interface {
 }
 
 type OpenAIProvider struct {
-	client *openai.Client
-	model  string
+	client   *openai.Client
+	model    string
+	provider string // usage metering label: openai | azure | openai-compatible
 }
 
 func NewOpenAIProvider(apiKey, model string) Provider {
@@ -28,8 +31,9 @@ func NewOpenAIProviderWithConfig(cfg openai.ClientConfig, model string) Provider
 		model = string(openai.SmallEmbedding3)
 	}
 	return &OpenAIProvider{
-		client: openai.NewClientWithConfig(cfg),
-		model:  model,
+		client:   openai.NewClientWithConfig(cfg),
+		model:    model,
+		provider: "openai",
 	}
 }
 
@@ -42,6 +46,7 @@ func (p *OpenAIProvider) Generate(ctx context.Context, text string) ([]float32, 
 	if err != nil {
 		return nil, fmt.Errorf("openai embedding error: %w", err)
 	}
+	usage.Report(ctx, p.provider, p.model, int64(resp.Usage.PromptTokens), 0)
 	if len(resp.Data) == 0 {
 		return nil, fmt.Errorf("no embedding data returned")
 	}

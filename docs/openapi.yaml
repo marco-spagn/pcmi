@@ -702,6 +702,31 @@ paths:
           description: Invalid from_seq / to_seq / limit
         "403":
           description: Admin role required
+  /v1/stats/usage:
+    get:
+      summary: LLM / embedding token usage and estimated cost for the tenant
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date }
+          description: First UTC day (default to - 29 days)
+        - name: to
+          in: query
+          schema: { type: string, format: date }
+          description: Last UTC day (default today); window at most 366 days
+        - name: group_by
+          in: query
+          schema: { type: string, example: "operation,model" }
+          description: Comma list of day, operation, model — or none
+      responses:
+        "200":
+          description: Usage report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsageReport"
+        "400":
+          description: Invalid from / to / group_by
   /v1/retention-policies:
     get:
       summary: List the tenant's namespace retention policies
@@ -1526,6 +1551,31 @@ components:
             offset:
               type: integer
               description: Deprecated; always 0 (offset pagination removed)
+    UsageLine:
+      type: object
+      properties:
+        day: { type: string, format: date }
+        operation: { type: string }
+        provider: { type: string }
+        model: { type: string }
+        requests: { type: integer, format: int64 }
+        input_tokens: { type: integer, format: int64 }
+        output_tokens: { type: integer, format: int64 }
+        estimated_cost_usd:
+          type: number
+          nullable: true
+          description: null when the group contains a model missing from LLM_PRICING
+    UsageReport:
+      type: object
+      properties:
+        tenant_id: { type: string, format: uuid }
+        from: { type: string, format: date }
+        to: { type: string, format: date }
+        group_by: { type: array, items: { type: string } }
+        rows: { type: array, items: { $ref: "#/components/schemas/UsageLine" } }
+        totals: { $ref: "#/components/schemas/UsageLine" }
+        pricing_configured: { type: boolean }
+        unpriced_models: { type: array, items: { type: string } }
     RetentionPolicyRequest:
       type: object
       required: [path_prefix]

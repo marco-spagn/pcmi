@@ -9,4 +9,8 @@ if [[ "${SKIP_GOVCHECK:-}" == "1" ]]; then
   exit 0
 fi
 
-go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+# Pinned: govulncheck@latest (golang.org/x/vuln >= v1.8.0) requires Go 1.26,
+# which fails under GOTOOLCHAIN=local with the go.mod toolchain (go1.25.x).
+# Bump together with the go.mod toolchain directive.
+GOVULNCHECK_VERSION="${GOVULNCHECK_VERSION:-v1.7.0}"
+go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}" ./...

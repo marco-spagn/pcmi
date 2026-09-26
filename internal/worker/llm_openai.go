@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/sashabaranov/go-openai"
+
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 // openAILLMClient wraps the go-openai SDK and satisfies LLMClient.
@@ -15,6 +17,7 @@ type openAILLMClient struct {
 	client    *openai.Client
 	modelName string
 	apiKey    string
+	provider  string // usage metering label: openai | grok | deepseek
 }
 
 func (c *openAILLMClient) IsConfigured() bool { return c.apiKey != "" }
@@ -43,6 +46,7 @@ func (c *openAILLMClient) Complete(ctx context.Context, systemPrompt string, use
 	if err != nil {
 		return "", err
 	}
+	usage.Report(ctx, c.provider, c.modelName, int64(resp.Usage.PromptTokens), int64(resp.Usage.CompletionTokens))
 	if len(resp.Choices) == 0 {
 		return "", fmt.Errorf("LLM returned 0 choices (finish_reason may be content_filter)")
 	}
@@ -55,7 +59,7 @@ func newOpenAIClient(apiKey, model, baseURL string) *openAILLMClient {
 	if b := strings.TrimSpace(baseURL); b != "" {
 		cfg.BaseURL = b
 	}
-	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey}
+	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey, provider: "openai"}
 }
 
 // newGrokClient builds a client targeting the xAI Grok endpoint.
@@ -63,7 +67,7 @@ func newOpenAIClient(apiKey, model, baseURL string) *openAILLMClient {
 func newGrokClient(apiKey, model string) *openAILLMClient {
 	cfg := openai.DefaultConfig(apiKey)
 	cfg.BaseURL = "https://api.x.ai/v1"
-	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey}
+	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey, provider: "grok"}
 }
 
 // newDeepSeekClient builds a client targeting the DeepSeek endpoint.
@@ -71,5 +75,5 @@ func newGrokClient(apiKey, model string) *openAILLMClient {
 func newDeepSeekClient(apiKey, model string) *openAILLMClient {
 	cfg := openai.DefaultConfig(apiKey)
 	cfg.BaseURL = "https://api.deepseek.com/v1"
-	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey}
+	return &openAILLMClient{client: openai.NewClientWithConfig(cfg), modelName: model, apiKey: apiKey, provider: "deepseek"}
 }

@@ -24,6 +24,7 @@ class MemoryRetrieve(BaseModel):
     embedding_space: str | None = None
     tags: list[str] | None = None
     tags_match: str | None = None
+    rerank: bool | None = None
 
 
 class CompactMemory(BaseModel):

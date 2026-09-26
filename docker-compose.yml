@@ -34,6 +34,9 @@ services:
       - ./migrations/024_graph_link_proposals.sql:/docker-entrypoint-initdb.d/024_graph_link_proposals.sql
       - ./migrations/025_entity_registry.sql:/docker-entrypoint-initdb.d/025_entity_registry.sql
       - ./migrations/026_entity_graph_same_as.sql:/docker-entrypoint-initdb.d/026_entity_graph_same_as.sql
+      - ./migrations/027_audit_hash_chain.sql:/docker-entrypoint-initdb.d/027_audit_hash_chain.sql
+      - ./migrations/028_retention_policies.sql:/docker-entrypoint-initdb.d/028_retention_policies.sql
+      - ./migrations/029_llm_usage.sql:/docker-entrypoint-initdb.d/029_llm_usage.sql
     ports:
       - "5432:5432"
     healthcheck:
@@ -148,6 +151,9 @@ services:
       - ./migrations/024_graph_link_proposals.sql:/docker-entrypoint-initdb.d/024_graph_link_proposals.sql
       - ./migrations/025_entity_registry.sql:/docker-entrypoint-initdb.d/025_entity_registry.sql
       - ./migrations/026_entity_graph_same_as.sql:/docker-entrypoint-initdb.d/026_entity_graph_same_as.sql
+      - ./migrations/027_audit_hash_chain.sql:/docker-entrypoint-initdb.d/027_audit_hash_chain.sql
+      - ./migrations/028_retention_policies.sql:/docker-entrypoint-initdb.d/028_retention_policies.sql
+      - ./migrations/029_llm_usage.sql:/docker-entrypoint-initdb.d/029_llm_usage.sql
     ports:
       - "5433:5432"
     healthcheck:

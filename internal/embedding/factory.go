@@ -101,7 +101,7 @@ func newAzureProvider(apiKey, baseURL, model string) (Provider, error) {
 	// Azure deployment names == model names by convention in PCMI; ops
 	// teams that diverge can override the model field per tenant in
 	// PR#7's per-tenant config (out of scope for PR #6).
-	return NewOpenAIProviderWithConfig(cfg, model), nil
+	return withProviderLabel(NewOpenAIProviderWithConfig(cfg, model), "azure"), nil
 }
 
 // newCompatibleProvider points the go-openai client at any
@@ -111,5 +111,13 @@ func newAzureProvider(apiKey, baseURL, model string) (Provider, error) {
 func newCompatibleProvider(apiKey, baseURL, model string) Provider {
 	cfg := openai.DefaultConfig(apiKey)
 	cfg.BaseURL = strings.TrimRight(baseURL, "/")
-	return NewOpenAIProviderWithConfig(cfg, model)
+	return withProviderLabel(NewOpenAIProviderWithConfig(cfg, model), "openai-compatible")
+}
+
+// withProviderLabel sets the usage-metering provider label on an OpenAIProvider.
+func withProviderLabel(p Provider, label string) Provider {
+	if op, ok := p.(*OpenAIProvider); ok {
+		op.provider = label
+	}
+	return p
 }

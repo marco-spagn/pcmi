@@ -221,11 +221,45 @@ Working memory bound to a session; promotion to long-term memory. See **[SESSION
 | Cognitive graph (AGE spike) | `GET /v1/graph/health`, `GET /v1/graph/related`, `GET /v1/graph/entities/*` — see [cognitive-graph.md](cognitive-graph.md) |
 | Entity extraction (Phase A–C) | `GET/PUT/DELETE /v1/extraction-profiles/{id}`, `GET/POST /v1/memories/extraction/{memory_id}`, `GET/POST /v1/graph/link-proposals/*` — requires `EXTRACTION_ENABLED=true`; link proposals also need `LINK_PROPOSALS_ENABLED=true` + AGE; see [cognitive-graph-entities.md](cognitive-graph-entities.md) |
 | Tenant stats | `GET /v1/stats` |
+| LLM / embedding usage & cost | `GET /v1/stats/usage?from=&to=&group_by=` — see [Usage metering](#usage-metering-finops) |
 | Webhook | `POST/GET /v1/webhooks` |
 | Compact path | `POST /v1/memories/compact` |
 | Sessions | `POST/GET/DELETE /v1/sessions`, `POST .../promote` |
+| Retention & erasure | `GET/PUT/DELETE /v1/retention-policies` (writes admin), `POST /v1/memories/erase` (admin) — see [memory-compaction.md](memory-compaction.md#namespace-retention-policies) |
+| Audit trail | `GET /v1/audit`, `GET /v1/audit/verify`, `GET /v1/audit/export` (admin) — see [Tamper-evident audit log](#tamper-evident-audit-log) |
 
 Full contract: [openapi.yaml](openapi.yaml).
+
+### Usage metering (FinOps)
+
+Every upstream LLM or embedding call made by the API or worker — background embedding, semantic-retrieve query vectors, distillation, entity extraction, link and alias proposals, summarize, rerank — reports the token counts returned by the provider. They are exported as Prometheus counters (`pcmi_llm_requests_total`, `pcmi_llm_tokens_total{provider,model,operation,direction}`; no tenant label) and aggregated per tenant and UTC day into `llm_usage_daily`.
+
+```bash
+# Last 30 days, grouped by operation and model (default).
+curl -s "${PCMI_BASE_URL}/v1/stats/usage" -H "X-API-Key: ${PCMI_API_KEY}" | jq '{totals, unpriced_models}'
+# Daily trend for September.
+curl -s "${PCMI_BASE_URL}/v1/stats/usage?from=2026-09-01&to=2026-09-30&group_by=day" -H "X-API-Key: ${PCMI_API_KEY}" | jq '.rows[] | {day, input_tokens, estimated_cost_usd}'
+```
+
+`group_by` is a comma list of `day`, `operation`, `model` (default `operation,model`), or `none`. The window defaults to the last 30 days and is capped at 366. `estimated_cost_usd` is computed per model **at read time** from `LLM_PRICING`; it is `null` for any group that contains a model without a price (listed in `unpriced_models`). PCMI ships no built-in prices — set the rates you actually pay. Counters are flushed every `USAGE_FLUSH_INTERVAL_SECS` and on worker shutdown, so the last few seconds of usage can lag.
+
+### Tamper-evident audit log
+
+Every API request is recorded in `audit_log`, which is a per-tenant SHA-256 hash chain (design and threat model: [SECURITY.md § Tamper-evident audit log](../SECURITY.md#tamper-evident-audit-log)).
+
+```bash
+# Any role: recompute the chain server-side.
+curl -s "${PCMI_BASE_URL}/v1/audit/verify" -H "X-API-Key: ${PCMI_API_KEY}" | jq '{valid, checked, head_seq, first_break}'
+
+# Admin: download a sealed export (JSONL). Resume with from_seq=<next_from_seq> when complete=false.
+curl -s "${PCMI_BASE_URL}/v1/audit/export?limit=50000" -H "X-API-Key: ${PCMI_ADMIN_KEY}" -o audit.jsonl
+tail -1 audit.jsonl | jq '{count, head_hash, complete, next_from_seq, signed: (.signature != null)}'
+
+# Verify offline, without database access.
+pcmi audit verify-export audit.jsonl --signing-key-file /run/secrets/audit_key
+```
+
+Set `AUDIT_EXPORT_SIGNING_KEY` (or `AUDIT_EXPORT_SIGNING_KEY_FILE`) on the API to add an HMAC-SHA256 signature to every export trailer.
 
 ---
 
@@ -383,6 +417,10 @@ Diagram: [WORKERS-AND-EVENTS.md](WORKERS-AND-EVENTS.md).
 | `API_PORT` | `8000` | HTTP |
 | `GRPC_PORT` | `50051` | gRPC |
 | `METRICS_SCRAPE_TOKEN` | — | If set, `GET /metrics` requires `Authorization: Bearer …` |
+| `RERANK_ENABLED` / `RERANK_CANDIDATES` / `RERANK_MODEL` / `RERANK_TIMEOUT_MS` | `false` / `20` / — / `4000` | Optional LLM reranking of query retrieves — see [retrieval-pipeline.md](retrieval-pipeline.md#optional-llm-reranking) |
+| `LLM_PRICING` | — | JSON model → `{input_per_mtok, output_per_mtok}` (USD); prices `GET /v1/stats/usage` |
+| `USAGE_FLUSH_INTERVAL_SECS` | `30` | Flush interval for per-tenant token counters (`llm_usage_daily`) |
+| `AUDIT_EXPORT_SIGNING_KEY` | — | HMAC key that signs `GET /v1/audit/export` trailers (supports `_FILE`) |
 | `RATE_LIMIT_DISABLED` | `false` | Disables rate limiting (dev/CI) |
 | `RATE_LIMIT_BACKEND` | `memory` | `memory` = in-process limiter; `redis` = shared counters across API replicas |
 | `RATE_LIMIT_RPM` / `_READONLY` / `_WRITE` / `_ADMIN` | 120 / 200 / 100 / 30 | RPM per role (redis or memory backend) |

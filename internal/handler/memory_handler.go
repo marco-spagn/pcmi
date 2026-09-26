@@ -16,6 +16,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/model"
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
+	"github.com/marco-spagn/pcmi/internal/usage"
 	"github.com/marco-spagn/pcmi/internal/version"
 )
 
@@ -28,6 +29,7 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	svc := service.NewMemoryService(repo, embed, dedupMode)
+	ConfigureReranker(svc, cfg)
 
 	api := app.Group("/v1")
 
@@ -150,6 +152,14 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 		return c.JSON(out)
 	})
 
+	// GDPR erasure + namespace retention (migration 028). Registered before the
+	// /memories/* wildcard like every other specific /memories route.
+	reth := NewRetentionHandler(dbWrite)
+	api.Post("/memories/erase", middleware.RequireAdminRole, reth.Erase)
+	api.Get("/retention-policies", reth.List)
+	api.Put("/retention-policies", middleware.RequireAdminRole, reth.Put)
+	api.Delete("/retention-policies", middleware.RequireAdminRole, reth.Delete)
+
 	api.Post("/retrieve", func(c *fiber.Ctx) error {
 		var req model.RetrieveRequest
 		if err := c.BodyParser(&req); err != nil {
@@ -192,6 +202,17 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 
 	RegisterStatsRoute(api, dbWrite, readReplica)
 
+	pricing, err := usage.ParsePricing(cfg.LLMPricing)
+	if err != nil {
+		return err
+	}
+	usageDB := dbWrite
+	if readReplica != nil {
+		usageDB = readReplica
+	}
+	uh := &UsageHandler{svc: service.NewUsageService(repository.NewUsageRepository(usageDB), pricing)}
+	api.Get("/stats/usage", uh.Get)
+
 	dh := NewDistilledHandler(dbWrite)
 	api.Get("/distilled", dh.Get)
 	api.Get("/lineage/distilled/:id", lh.DistilledLineage)
@@ -207,8 +228,10 @@ func SetupMemoryRoutes(app *fiber.App, dbWrite, readReplica *pgxpool.Pool, cfg *
 	hh := NewHistoryHandler(dbWrite, readReplica)
 	api.Get("/memories/history", hh.Get)
 
-	ah := NewAuditHandler(dbWrite)
+	ah := NewAuditHandler(dbWrite, cfg.AuditExportSigningKey)
 	api.Get("/audit", ah.List)
+	api.Get("/audit/verify", ah.Verify)
+	api.Get("/audit/export", middleware.RequireAdminRole, ah.Export)
 
 	wh := NewWebhookHandler(dbWrite)
 	api.Post("/webhooks", middleware.RequireWriteRole, wh.Register)

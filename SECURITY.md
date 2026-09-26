@@ -84,7 +84,8 @@ instead of the process running with a wrong or empty secret.
 
 Covered secrets: `PCMI_ENCRYPTION_KEY`, `DATABASE_URL`, `DATABASE_READ_URL`,
 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROK_API_KEY`, `DEEPSEEK_API_KEY`,
-`METRICS_SCRAPE_TOKEN`, `ADMIN_API_KEY`, `PCMI_API_KEY`.
+`METRICS_SCRAPE_TOKEN`, `ADMIN_API_KEY`, `PCMI_API_KEY`,
+`AUDIT_EXPORT_SIGNING_KEY`.
 
 **Recommended deployment:** mount secrets as files (Kubernetes `Secret` volumes,
 Docker secrets, or a Vault Agent sidecar) and point the `*_FILE` variables at
@@ -122,3 +123,50 @@ API-key path is applied. Tokens with an unknown tenant, an unmapped role, or a
 failed verification are rejected with a generic `401`.
 
 
+
+## Tamper-evident audit log
+
+Every row of `audit_log` is part of a **per-tenant SHA-256 hash chain**
+([`migrations/027_audit_hash_chain.sql`](migrations/027_audit_hash_chain.sql),
+[`internal/auditchain`](internal/auditchain)):
+
+```
+row_hash(n) = hex(sha256(prev_hash(n) + "\n" + canonical(row n)))
+prev_hash(1) = "000…0" (64 zeros)
+```
+
+`canonical` covers every audit column (tenant, `chain_seq`, API key, event
+type, path, method, status, request/response body, IP, user agent,
+`created_at`). A `BEFORE INSERT` trigger assigns `chain_seq`, `prev_hash`, and
+`row_hash` under a per-tenant advisory lock, so concurrent writers never fork
+the chain. Rows written before migration 027 are chained by the migration.
+
+| Guarantee | Mechanism |
+|-----------|-----------|
+| Edited, deleted, reordered, or inserted historical rows are detected | Recomputed hash / link / sequence mismatch |
+| Rows cannot be changed through normal SQL | `UPDATE` / `DELETE` on `audit_log` raise `insufficient_privilege` |
+| An export cannot be altered after download | Trailer `content_sha256` + optional HMAC-SHA256 `signature` |
+
+Operator endpoints:
+
+| Endpoint | Role | Purpose |
+|----------|------|---------|
+| `GET /v1/audit/verify` | any | Recompute the whole chain; returns `valid` and the `first_break` (`hash_mismatch`, `link_mismatch`, `sequence_gap`, `genesis_mismatch`) |
+| `GET /v1/audit/export` | admin | JSONL export (`from_seq`, `to_seq`, `limit` ≤ 50 000) sealed by a trailer; signed when `AUDIT_EXPORT_SIGNING_KEY` is set |
+
+Verify an export **offline** (no database access) with the CLI:
+
+```bash
+pcmi audit verify-export pcmi-audit.jsonl --signing-key-file /run/secrets/audit_key
+```
+
+**Threat model and limits.** The chain makes tampering *evident*, not
+impossible: a database superuser can still rewrite rows and recompute every
+later hash. Anchor the chain outside the database — archive signed exports to
+WORM storage (S3 Object Lock, immutable blob storage) and record the
+`head_hash` in an external system on a schedule — so a rewrite contradicts an
+earlier anchor. The documented escape hatch `SET LOCAL
+pcmi.audit_maintenance = 'on'` permits `UPDATE` / `DELETE` for exceptional
+operator procedures; any change made with it breaks the chain and is reported
+by `/v1/audit/verify`. Backups created with `pg_dump` preserve the chain
+byte-for-byte (the restore gate in CI asserts it).

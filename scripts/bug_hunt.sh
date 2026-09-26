@@ -162,7 +162,7 @@ phase_setup() {
   log "ensuring go-based linters/scanners present"
   go_install_if_missing golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint@latest
   go_install_if_missing staticcheck   honnef.co/go/tools/cmd/staticcheck@latest
-  go_install_if_missing govulncheck   golang.org/x/vuln/cmd/govulncheck@latest
+  go_install_if_missing govulncheck   "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION:-v1.7.0}"
   go_install_if_missing gosec         github.com/securego/gosec/v2/cmd/gosec@latest
   go_install_if_missing errcheck      github.com/kisielk/errcheck@latest
   go_install_if_missing nilaway       go.uber.org/nilaway/cmd/nilaway@latest

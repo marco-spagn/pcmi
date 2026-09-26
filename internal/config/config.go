@@ -30,6 +30,10 @@ type Config struct {
 	AdminAPIKey        string
 	MetricsScrapeToken string // optional: Bearer token for GET /metrics (Prometheus)
 
+	// AuditExportSigningKey (AUDIT_EXPORT_SIGNING_KEY) is the HMAC-SHA256 key
+	// that seals GET /v1/audit/export trailers. Empty = unsigned exports.
+	AuditExportSigningKey string
+
 	// SSO / OIDC (optional — enabled when OIDCIssuer is non-empty). Lets clients
 	// authenticate with an `Authorization: Bearer <jwt>` from any OIDC provider
 	// (Keycloak, Auth0, Entra, Okta, …) instead of an X-API-Key. Vendor-neutral:
@@ -116,6 +120,23 @@ type Config struct {
 
 	// Dedup (PCMI-011): default ingest dedup mode when tenant/request omit it.
 	DedupMode string
+
+	// Usage metering (FinOps). LLMPricing (LLM_PRICING) is a JSON object of
+	// per-model USD prices per million tokens used by GET /v1/stats/usage;
+	// UsageFlushIntervalSecs (USAGE_FLUSH_INTERVAL_SECS) is how often the API
+	// and worker flush buffered token counters to llm_usage_daily (<= 0 → 30s).
+	LLMPricing             string
+	UsageFlushIntervalSecs int
+
+	// LLM reranking of query retrieves (optional). RerankEnabled
+	// (RERANK_ENABLED) turns it on server-wide; requests may opt out with
+	// "rerank": false. RerankCandidates (RERANK_CANDIDATES, 1–50) rows are
+	// reranked; RerankModel (RERANK_MODEL) overrides DISTILLATION_MODEL for the
+	// LLM_PROVIDER client; RerankTimeoutMs (RERANK_TIMEOUT_MS) bounds each call.
+	RerankEnabled    bool
+	RerankCandidates int
+	RerankModel      string
+	RerankTimeoutMs  int
 }
 
 // APIConfig returns the subset of fields required by the API service.
@@ -143,6 +164,8 @@ func Load() *Config {
 
 		AdminAPIKey:        resolveSecret("ADMIN_API_KEY"),
 		MetricsScrapeToken: resolveSecret("METRICS_SCRAPE_TOKEN"),
+
+		AuditExportSigningKey: resolveSecret("AUDIT_EXPORT_SIGNING_KEY"),
 
 		OIDCIssuer:       strings.TrimSpace(os.Getenv("OIDC_ISSUER")),
 		OIDCAudience:     strings.TrimSpace(os.Getenv("OIDC_AUDIENCE")),
@@ -201,6 +224,14 @@ func Load() *Config {
 		OTELServiceName:    strings.TrimSpace(os.Getenv("OTEL_SERVICE_NAME")),
 
 		DedupMode: envOr("DEDUP_MODE", "none"),
+
+		LLMPricing:             strings.TrimSpace(os.Getenv("LLM_PRICING")),
+		UsageFlushIntervalSecs: envInt("USAGE_FLUSH_INTERVAL_SECS", 30),
+
+		RerankEnabled:    envBool("RERANK_ENABLED", false),
+		RerankCandidates: envInt("RERANK_CANDIDATES", 20),
+		RerankModel:      strings.TrimSpace(os.Getenv("RERANK_MODEL")),
+		RerankTimeoutMs:  envInt("RERANK_TIMEOUT_MS", 4000),
 	}
 	return cfg
 }

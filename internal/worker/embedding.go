@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/marco-spagn/pcmi/internal/embedding"
+	"github.com/marco-spagn/pcmi/internal/usage"
 	"github.com/pgvector/pgvector-go"
 )
 
@@ -73,7 +74,7 @@ func (w *EmbeddingWorker) processPendingEmbeddings(ctx context.Context) {
 			}
 		}
 
-		emb, err := w.provider.Generate(rowCtx, content)
+		emb, err := w.provider.Generate(usage.WithScope(rowCtx, tenantID, usage.OpEmbedding), content)
 		if err != nil {
 			if errors.Is(err, embedding.ErrCircuitOpen) {
 				slog.WarnContext(rowCtx, "embedding circuit open, skipping entry", "id", id)

@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"github.com/sashabaranov/go-openai"
+
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 func TestOpenAIProvider_HTTPHappyPath(t *testing.T) {
@@ -79,5 +81,39 @@ func TestOpenAIProvider_HTTPError(t *testing.T) {
 
 	if _, err := p.Generate(context.Background(), "x"); err == nil {
 		t.Fatal("expected error from 503")
+	}
+}
+
+type usageRec struct{ evs []usage.Event }
+
+func (u *usageRec) Record(ev usage.Event) { u.evs = append(u.evs, ev) }
+
+func TestOpenAIProvider_reportsUsage(t *testing.T) {
+	rec := &usageRec{}
+	prev := usage.SetRecorder(rec)
+	t.Cleanup(func() { usage.SetRecorder(prev) })
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(openai.EmbeddingResponse{
+			Data:  []openai.Embedding{{Embedding: []float32{0.1}}},
+			Usage: openai.Usage{PromptTokens: 42},
+		})
+	}))
+	t.Cleanup(srv.Close)
+	cfg := openai.DefaultConfig("sk-test")
+	cfg.BaseURL = srv.URL + "/v1"
+	p := withProviderLabel(NewOpenAIProviderWithConfig(cfg, "text-embedding-3-small"), "azure")
+	if _, err := p.Generate(usage.WithScope(context.Background(), "tenant-emb", usage.OpEmbedding), "hi"); err != nil {
+		t.Fatal(err)
+	}
+	var got *usage.Event
+	for i := range rec.evs {
+		if rec.evs[i].TenantID == "tenant-emb" {
+			got = &rec.evs[i]
+		}
+	}
+	if got == nil || got.Provider != "azure" || got.Model != "text-embedding-3-small" || got.InputTokens != 42 || got.Operation != usage.OpEmbedding {
+		t.Fatalf("event %+v", got)
 	}
 }

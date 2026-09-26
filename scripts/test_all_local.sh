@@ -204,7 +204,7 @@ else
 	GOV_TMP="$(mktemp)"
 	set +e
 	if curl -sf --max-time 15 https://vuln.go.dev/ >/dev/null 2>&1; then
-		go run golang.org/x/vuln/cmd/govulncheck@latest ./... 2>"$GOV_TMP"
+		go run "golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION:-v1.7.0}" ./... 2>"$GOV_TMP"
 		GOV_EC=$?
 	else
 		GOV_EC=125

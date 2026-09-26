@@ -12,6 +12,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/config"
 	"github.com/marco-spagn/pcmi/internal/event"
 	"github.com/marco-spagn/pcmi/internal/metrics"
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 type DistillationWorker struct {
@@ -182,7 +183,7 @@ Return ONLY valid JSON:
 		userMessages[i] = e.Content
 	}
 
-	rawResponse, err := w.llm.Complete(ctx, systemPrompt, userMessages)
+	rawResponse, err := w.llm.Complete(usage.WithScope(ctx, tenantID, usage.OpDistillation), systemPrompt, userMessages)
 	if err != nil {
 		log.Printf("LLM distillation error: %v", err)
 		metrics.ObserveDistillationJob(time.Since(start).Seconds(), "error")
@@ -292,7 +293,7 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 	_, err := w.db.Exec(ctx, `
 		UPDATE distillation_runs
 		SET    status       = 'completed',
-		       distilled_id = $3,
+		       distilled_id = $2,
 		       completed_at = NOW()
 		WHERE  tenant_id = $1::uuid
 		  AND  status    = 'running'
@@ -300,7 +301,7 @@ func (w *DistillationWorker) markRunCompleted(ctx context.Context, tenantID stri
 		       SELECT id FROM distillation_runs
 		       WHERE  tenant_id = $1::uuid AND status = 'running'
 		       ORDER BY created_at DESC LIMIT 1
-		  )`, tenantID, tenantID, distilledID)
+		  )`, tenantID, distilledID)
 	if err != nil {
 		// Non-fatal: the distillate was saved; only the audit row is wrong.
 		log.Printf("markRunCompleted: %v", err)

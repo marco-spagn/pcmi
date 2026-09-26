@@ -26,6 +26,17 @@ Must match the order in `docker-compose.yml` (postgres volumes list) and CI scri
 | `016_sessions.sql` | `agent_sessions`; index on `memory_entries(metadata->>'session_id')` for working memory. |
 | `017_dedup.sql` | `content_hash` on `memory_entries`; partial index for current versions (ingest dedup). |
 | `018_distillation_policy.sql` | `distillation_policies`, `distillation_runs` — policy engine for automatic distillation. |
+| `019_cognitive_graph_age.sql` | Optional Apache AGE graph `pcmi_memory_graph` + `memory_links` sync trigger (skipped without AGE). |
+| `020_memory_open_version_unique.sql` | Heals duplicate open versions; partial unique index `uq_memory_entries_open_version`. |
+| `021_link_type_check.sql` | `CHECK` constraint restricting `memory_links.link_type` to the documented set. |
+| `022_extraction_profiles.sql` | `extraction_profiles` — tenant entity-extraction profiles (Phase A). |
+| `023_entity_graph.sql` | Optional AGE `:Entity` vertices and `:mentions` edges (Phase B). |
+| `024_graph_link_proposals.sql` | `graph_link_proposals` review queue (Phase C). |
+| `025_entity_registry.sql` | Entity registry, aliases, evolution snapshots, alias proposal queue (Phase D). |
+| `026_entity_graph_same_as.sql` | Optional AGE `same_as` helpers for entity alias merge (Phase D). |
+| `027_audit_hash_chain.sql` | Tamper-evident audit log: per-tenant SHA-256 hash chain (`chain_seq`, `prev_hash`, `row_hash`), backfill, append-only guard. See [SECURITY.md § Tamper-evident audit log](../SECURITY.md#tamper-evident-audit-log). |
+| `028_retention_policies.sql` | `retention_policies` (per-tenant / per-namespace retention), `prune_superseded_memories_with_policies`, `expire_memories_by_retention_policy`, optional AGE `erase_memory_graph_vertices`. See [memory-compaction.md § Namespace retention](memory-compaction.md#namespace-retention-policies). |
+| `029_llm_usage.sql` | `llm_usage_daily` — per-tenant daily LLM / embedding token counters (FinOps; `GET /v1/stats/usage`). |
 
 ## Adding a new migration
 

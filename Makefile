@@ -6,7 +6,8 @@
         changelog-unreleased changelog-tag tag-release examples-smoke-structural examples-smoke \
         helm-lint helm-template helm-package admin-list-keys bench quickstart graph-ui graph-ui-entities demo test-cognitive-graph test-cognitive-graph-matrix \
         graph-realistic-generate graph-realistic-validate graph-realistic-smoke graph-realistic-audit graph-soc-loader-test demo_2 demo-cti-operational demo_soc demo_cti \
-        eval-retrieval eval-retrieval-validate backup restore backup-restore-test
+        eval-retrieval eval-retrieval-validate backup restore backup-restore-test \
+        build-cli install-cli test-cli smoke-governance
 
 GOLANGCI_LINT_VERSION ?= v2.12.2
 GRPC_HOST ?= localhost:50051
@@ -122,6 +123,21 @@ smoke-sessions:
 smoke-dedup:
 	@chmod +x scripts/smoke_dedup.sh
 	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_dedup.sh
+
+# Governance / DX surface via the pcmi CLI (see scripts/smoke_governance.sh, docs/CLI.md).
+smoke-governance:
+	@chmod +x scripts/smoke_governance.sh
+	@PCMI_BASE_URL=$(API_URL) ./scripts/smoke_governance.sh
+
+# Developer CLI (docs/CLI.md).
+build-cli:
+	go build -o bin/pcmi ./cmd/pcmi
+
+install-cli:
+	go install ./cmd/pcmi
+
+test-cli:
+	go test -race -count=1 ./cmd/pcmi/...
 
 # List tenants and API keys from Postgres (dev/ops; no raw secrets in output).
 admin-list-keys:

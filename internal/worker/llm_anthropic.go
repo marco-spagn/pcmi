@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/marco-spagn/pcmi/internal/usage"
 )
 
 const (
@@ -55,6 +57,10 @@ type anthropicContentBlock struct {
 
 type anthropicResponse struct {
 	Content []anthropicContentBlock `json:"content"`
+	Usage   struct {
+		InputTokens  int64 `json:"input_tokens"`
+		OutputTokens int64 `json:"output_tokens"`
+	} `json:"usage"`
 	Error   *struct {
 		Type    string `json:"type"`
 		Message string `json:"message"`
@@ -107,6 +113,7 @@ func (c *anthropicLLMClient) Complete(ctx context.Context, systemPrompt string, 
 	if ar.Error != nil {
 		return "", fmt.Errorf("anthropic API error %s: %s", ar.Error.Type, ar.Error.Message)
 	}
+	usage.Report(ctx, "anthropic", c.modelName, ar.Usage.InputTokens, ar.Usage.OutputTokens)
 	for _, block := range ar.Content {
 		if block.Type == "text" {
 			return block.Text, nil

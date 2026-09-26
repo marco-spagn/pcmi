@@ -22,6 +22,8 @@ export type RetrieveOptions = {
   embeddingSpace?: string;
   tags?: string[];
   tagsMatch?: "any" | "all";
+  /** false opts out of server-side LLM reranking (RERANK_ENABLED). */
+  rerank?: boolean;
 };
 
 function parseSSEChunk(buffer: string, onEvent: (ev: PCMEvent) => void): string {
@@ -87,6 +89,7 @@ export class PCMIClient {
     if (opts?.embeddingSpace) body.embedding_space = opts.embeddingSpace;
     if (opts?.tags?.length) body.tags = opts.tags;
     if (opts?.tagsMatch) body.tags_match = opts.tagsMatch;
+    if (opts?.rerank !== undefined) body.rerank = opts.rerank;
     const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retrieve`, {
       method: "POST",
       headers: this.headers(),
@@ -117,6 +120,90 @@ export class PCMIClient {
     const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
     if (!res.ok) throw new Error(`listAudit failed: ${res.status}`);
     return res.json();
+  }
+
+  /** LLM / embedding token usage and estimated cost (GET /v1/stats/usage). */
+  async usageStats(opts?: { from?: string; to?: string; groupBy?: string }) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/stats/usage`);
+    if (opts?.from) u.searchParams.set("from", opts.from);
+    if (opts?.to) u.searchParams.set("to", opts.to);
+    if (opts?.groupBy) u.searchParams.set("group_by", opts.groupBy);
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`usageStats failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** List namespace retention policies (GET /v1/retention-policies). */
+  async listRetentionPolicies() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`listRetentionPolicies failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Create or replace the retention policy for a path prefix (admin; "" = tenant-wide). */
+  async putRetentionPolicy(policy: {
+    pathPrefix: string;
+    supersededRetentionDays?: number | null;
+    maxAgeDays?: number | null;
+    description?: string;
+  }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({
+        path_prefix: policy.pathPrefix,
+        superseded_retention_days: policy.supersededRetentionDays ?? null,
+        max_age_days: policy.maxAgeDays ?? null,
+        description: policy.description ?? "",
+      }),
+    });
+    if (!res.ok) throw new Error(`putRetentionPolicy failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Delete the retention policy for a path prefix (admin). */
+  async deleteRetentionPolicy(pathPrefix: string) {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/retention-policies`);
+    u.searchParams.set("path_prefix", pathPrefix);
+    const res = await fetch(u, { method: "DELETE", headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`deleteRetentionPolicy failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Erase every version of the memories under a path prefix (admin, GDPR). Use dryRun first. */
+  async eraseMemories(pathPrefix: string, opts?: { dryRun?: boolean; reason?: string }) {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/memories/erase`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-API-Key": this.apiKey },
+      body: JSON.stringify({ path_prefix: pathPrefix, dry_run: opts?.dryRun ?? false, reason: opts?.reason ?? "" }),
+    });
+    if (!res.ok) throw new Error(`eraseMemories failed: ${res.status}`);
+    return res.json();
+  }
+
+  /** Recompute the tenant's tamper-evident audit hash chain (GET /v1/audit/verify). */
+  async verifyAudit() {
+    const res = await fetch(`${this.baseUrl.replace(/\/$/, "")}/v1/audit/verify`, {
+      headers: { "X-API-Key": this.apiKey },
+    });
+    if (!res.ok) throw new Error(`verifyAudit failed: ${res.status}`);
+    return res.json();
+  }
+
+  /**
+   * Download a sealed JSONL audit export (GET /v1/audit/export, admin role).
+   * Returns the raw NDJSON text (entry lines + one trailer line).
+   */
+  async exportAudit(opts?: { fromSeq?: number; toSeq?: number; limit?: number }): Promise<string> {
+    const u = new URL(`${this.baseUrl.replace(/\/$/, "")}/v1/audit/export`);
+    if (opts?.fromSeq !== undefined) u.searchParams.set("from_seq", String(opts.fromSeq));
+    if (opts?.toSeq !== undefined) u.searchParams.set("to_seq", String(opts.toSeq));
+    if (opts?.limit !== undefined) u.searchParams.set("limit", String(opts.limit));
+    const res = await fetch(u, { headers: { "X-API-Key": this.apiKey } });
+    if (!res.ok) throw new Error(`exportAudit failed: ${res.status}`);
+    return res.text();
   }
 
   async ingestEvent(

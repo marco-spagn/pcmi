@@ -61,6 +61,8 @@ Responses return `id`, `status`, `version`, optional `superseded_id` (embeddings
 
 Path-only retrieve (no `query`, no vector search) supports opaque **keyset cursors** (`cursor`, `next_cursor`, `has_more`) on HTTP and gRPC.
 
+LLM reranking (`RERANK_ENABLED`) applies to gRPC `Retrieve` as well; the per-request `"rerank": false` opt-out and the `reranked` response flag are HTTP-only for now.
+
 ### Operational parity (v1.29.0+)
 
 Unary RPCs cover refine, links, stats, events ingest, webhooks, embedding migration, rollback, summarize, history, lineage, distilled list, audit, export/import. Complex JSON shapes use `JSONResponse.json` (UTF-8 JSON object) where noted in proto.
@@ -102,6 +104,11 @@ For standard Prometheus polling, **`GET /metrics`** on the HTTP port remains the
 | Method | Path | Purpose |
 |--------|------|---------|
 | GET | `/v1/admin/ui` | Embedded HTML admin dashboard (browser) |
+| GET | `/v1/stats/usage` | LLM / embedding token usage and estimated cost |
+| GET / PUT / DELETE | `/v1/retention-policies` | Namespace retention policies (writes admin) |
+| POST | `/v1/memories/erase` | GDPR erasure under a path prefix (admin) |
+| GET | `/v1/audit/verify` | Verify the tamper-evident audit hash chain |
+| GET | `/v1/audit/export` | Sealed JSONL audit export (admin; `application/x-ndjson`) |
 
 All other admin and memory operations listed above are available on **both** transports unless noted.
 

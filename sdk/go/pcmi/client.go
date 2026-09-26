@@ -53,12 +53,24 @@ func (c *Client) BaseURL() string {
 }
 
 func (c *Client) doJSON(ctx context.Context, method, path string, body any, out any) error {
+	data, err := c.doRaw(ctx, method, path, body)
+	if err != nil {
+		return err
+	}
+	if out == nil || len(data) == 0 {
+		return nil
+	}
+	return json.Unmarshal(data, out)
+}
+
+// doRaw performs a request with retries and returns the raw response body.
+func (c *Client) doRaw(ctx context.Context, method, path string, body any) ([]byte, error) {
 	var payload []byte
 	var err error
 	if body != nil {
 		payload, err = json.Marshal(body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -68,7 +80,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 			backoff := c.retryBackoff * time.Duration(1<<(attempt-1))
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return nil, ctx.Err()
 			case <-time.After(backoff):
 			}
 		}
@@ -79,7 +91,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 		}
 		req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, rdr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		req.Header.Set("X-API-Key", c.apiKey)
 		if body != nil {
@@ -92,7 +104,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 			if isNetworkRetryable(err) && attempt < c.maxRetries {
 				continue
 			}
-			return err
+			return nil, err
 		}
 
 		data, readErr := io.ReadAll(resp.Body)
@@ -102,7 +114,7 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 			if attempt < c.maxRetries {
 				continue
 			}
-			return readErr
+			return nil, readErr
 		}
 
 		if resp.StatusCode >= 400 {
@@ -111,18 +123,14 @@ func (c *Client) doJSON(ctx context.Context, method, path string, body any, out 
 			if apiErr.IsRetryable() && attempt < c.maxRetries {
 				continue
 			}
-			return apiErr
+			return nil, apiErr
 		}
-
-		if out == nil || len(data) == 0 {
-			return nil
-		}
-		return json.Unmarshal(data, out)
+		return data, nil
 	}
 	if lastErr != nil {
-		return lastErr
+		return nil, lastErr
 	}
-	return fmt.Errorf("pcmi: request failed after retries")
+	return nil, fmt.Errorf("pcmi: request failed after retries")
 }
 
 func parseAPIError(status int, data []byte) *APIError {
@@ -196,6 +204,9 @@ func applyRetrieveOpts(body map[string]any, opts *RetrieveOptions) {
 	}
 	if opts.TagsMatch != "" {
 		body["tags_match"] = opts.TagsMatch
+	}
+	if opts.Rerank != nil {
+		body["rerank"] = *opts.Rerank
 	}
 	if opts.DecayEnabled != nil {
 		body["decay_enabled"] = *opts.DecayEnabled

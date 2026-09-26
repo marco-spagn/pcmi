@@ -10,6 +10,7 @@ Orientation document for readers and contributors: what each area does, delibera
 | `cmd/worker/main.go` | Worker: embedding (circuit breaker), distillation, pruning, consolidation, expiry, consume Redis Streams/pubsub. |
 | `cmd/mcp/main.go` | MCP stdio server → HTTP API (`PCMI_BASE_URL`, `PCMI_API_KEY`). |
 | `cmd/pcmi-admin/main.go` | CLI ops: `list` tenants/API keys (`make admin-list-keys`). |
+| `cmd/pcmi/main.go` | Developer CLI over the HTTP API (store, get, retrieve, tail, seed, usage, erase, audit verify / export / offline verify-export) — [CLI.md](CLI.md). |
 
 **API middleware order** (Fiber: the first `Use` registered is outermost): `otelfiber` (tracing, skips `/metrics`, `/health`, `/v1/health`, `/ready`, `/v1/ready`) → `metrics` (no-op) → `APIKeyMiddleware` → `RateLimitMiddleware` → `AuditMiddleware`. Unauthenticated probes are defined in `middleware.IsUnauthenticatedProbe`: `/health`, `/v1/health`, `/metrics`, `/ready`, `/v1/ready`.
 
@@ -25,7 +26,9 @@ Fiber HTTP handlers; read tenant from `middleware.TenantContextKey`, call reposi
 - `lineage_handler.go` — `/v1/lineage/memory`, `/v1/lineage/distilled/:id` (outside `/memories/*`).
 - `refine_handler.go` — `POST /v1/memories/refine` publishes to Redis for the worker.
 - `links_handler.go`, `stats_handler.go` — link graph and tenant statistics.
-- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `audit_handler.go`, `history_handler.go` — as named.
+- `webhook_handler.go`, `summarize_handler.go`, `embedding_migrate_handler.go`, `distilled_handler.go`, `history_handler.go` — as named.
+- `retention_handler.go` — `GET/PUT/DELETE /v1/retention-policies`, `POST /v1/memories/erase` (GDPR erasure; `service.RetentionService` + `repository.RetentionRepository`).
+- `audit_handler.go` — `GET /v1/audit` (list), `GET /v1/audit/verify` (hash chain), `GET /v1/audit/export` (admin, sealed JSONL).
 - `ready.go` — `GET /ready`, `/v1/ready`: ping DB + Redis for readiness (503 if a dependency is down).
 
 ## `internal/service`
@@ -34,6 +37,8 @@ Reusable application logic from both REST and gRPC:
 
 - `memory_service.go` — store/retrieve, Redis event publication after store.
 - `batch_service.go`, `admin_service.go`, `event_service.go`, `summarize_service.go`.
+- `rerank.go` — optional `LLMReranker` (timeout + circuit breaker, falls back to hybrid order); wired by `handler.ConfigureReranker` when `RERANK_ENABLED`.
+- `audit_service.go`, `retention_service.go`, `usage_service.go` — audit chain verify/export, retention + GDPR erase, token usage report.
 
 Do not import UI frameworks here: only models, repositories, embedding.
 
@@ -57,8 +62,8 @@ Async processes; share DB and Redis with the API.
 - `embedding.go` — embedding generation after events (if OpenAI is configured).
 - `distillation.go` — job on path prefix; publishes `knowledge.distilled`; dedup on sources (`distillation_helpers.go`, `distillation_version.go`).
 - `consolidation.go` — merge related memories under a prefix.
-- `pruning.go` — calls SQL function `prune_superseded_memories`.
-- `expiry.go` — periodically calls `expire_memory_entries()` for TTL.
+- `pruning.go` — calls SQL function `prune_superseded_memories_with_policies` (namespace retention; falls back to `prune_superseded_memories` before migration 028).
+- `expiry.go` — closes rows past `expires_at` / `metadata.ttl_seconds`, then `expire_memories_by_retention_policy()` (namespace `max_age_days`).
 
 **Redis events** consumed in `cmd/worker/main.go`: `memory.stored`, `memory.updated`, `memory.refine.requested` — every handler is wrapped in an OpenTelemetry span (`redis.memory_event`) if OTLP is configured.
 
@@ -101,6 +106,14 @@ Optional OTLP/HTTP tracer initialization: `telemetry.Init(ctx, defaultServiceNam
 ## `internal/grpc`
 
 gRPC server: `MemoryService`, `AdminService`, `MetricsService` (see `internal/grpc/server.go`). Auth via metadata `x-api-key` or proto request fields. Core + operational RPCs (refine, links, stats, events stream, webhooks, …) — see `docs/grpc-vs-http.md`. **HTTP-only:** embedded admin UI (`GET /v1/admin/ui`). Prometheus scrape: `GET /metrics` (HTTP) or `MetricsService.Scrape` (gRPC). Writes reject `readonly` role (`PermissionDenied`). Integration tests: `go test -tags=integration ./internal/grpc/...` with API+gRPC running.
+
+## `internal/auditchain`
+
+Pure (no DB/HTTP) implementation of the audit hash chain from migration 027: `Canonical` / `Hash` (byte-for-byte mirror of SQL `audit_log_canonical` / `audit_log_hash`), `Verifier` (first break: `hash_mismatch`, `link_mismatch`, `sequence_gap`, `genesis_mismatch`), and the JSONL export `Writer` / offline `VerifyExport` (content SHA-256 + optional HMAC trailer). Used by `service.AuditService` (`GET /v1/audit/verify`, `GET /v1/audit/export`) and the `pcmi` CLI.
+
+## `internal/usage`
+
+LLM / embedding token metering. Call sites tag the context with `usage.WithScope(ctx, tenantID, operation)`; provider clients (`internal/worker` LLM clients, `internal/embedding`, summarize, rerank) call `usage.Report` with upstream token counts. Reports feed Prometheus (`pcmi_llm_*`, registered on both `metrics.Registry` and `metrics.WorkerRegistry`) and the process-wide `Aggregator`, which flushes additive per-(tenant, day, operation, provider, model) buckets to `llm_usage_daily` (batch, then row-by-row fallback that drops permanently rejected rows). `Pricing` parses `LLM_PRICING`; `service.UsageService` serves `GET /v1/stats/usage`.
 
 ## `internal/webhook`
 

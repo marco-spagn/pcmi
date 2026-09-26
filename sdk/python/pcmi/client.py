@@ -66,7 +66,9 @@ class PCMIClient:
         embedding_space: str | None = None,
         tags: list[str] | None = None,
         tags_match: str | None = None,
+        rerank: bool | None = None,
     ):
+        """Hybrid retrieve. ``rerank=False`` opts out of server-side LLM reranking."""
         payload = MemoryRetrieve(
             path_prefix=path_prefix,
             query=query,
@@ -76,6 +78,7 @@ class PCMIClient:
             embedding_space=embedding_space,
             tags=tags,
             tags_match=tags_match,
+            rerank=rerank,
         )
         resp = await self.client.post("/v1/retrieve", json=payload.model_dump(exclude_none=True))
         resp.raise_for_status()
@@ -207,6 +210,100 @@ class PCMIClient:
         resp = await self.client.get("/v1/audit", params=params)
         resp.raise_for_status()
         return resp.json()
+
+    async def usage_stats(
+        self,
+        from_day: str | None = None,
+        to_day: str | None = None,
+        group_by: str | None = None,
+    ):
+        """LLM / embedding token usage and estimated cost (GET /v1/stats/usage).
+
+        ``from_day`` / ``to_day`` are ``YYYY-MM-DD`` (UTC); ``group_by`` is a comma list of
+        ``day``, ``operation``, ``model`` or ``none``.
+        """
+        params: dict[str, str] = {}
+        if from_day:
+            params["from"] = from_day
+        if to_day:
+            params["to"] = to_day
+        if group_by:
+            params["group_by"] = group_by
+        resp = await self.client.get("/v1/stats/usage", params=params)
+        resp.raise_for_status()
+        return resp.json()
+
+    async def list_retention_policies(self):
+        """List namespace retention policies (GET /v1/retention-policies)."""
+        resp = await self.client.get("/v1/retention-policies")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def put_retention_policy(
+        self,
+        path_prefix: str,
+        superseded_retention_days: int | None = None,
+        max_age_days: int | None = None,
+        description: str = "",
+    ):
+        """Create or replace the retention policy for ``path_prefix`` (admin; ``""`` = tenant-wide)."""
+        resp = await self.client.put(
+            "/v1/retention-policies",
+            json={
+                "path_prefix": path_prefix,
+                "superseded_retention_days": superseded_retention_days,
+                "max_age_days": max_age_days,
+                "description": description,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def delete_retention_policy(self, path_prefix: str):
+        """Delete the retention policy for ``path_prefix`` (admin)."""
+        resp = await self.client.delete("/v1/retention-policies", params={"path_prefix": path_prefix})
+        resp.raise_for_status()
+        return resp.json()
+
+    async def erase_memories(self, path_prefix: str, dry_run: bool = False, reason: str = ""):
+        """Erase every version of the memories under ``path_prefix`` (admin, GDPR).
+
+        Use ``dry_run=True`` first: it returns exact counts without deleting.
+        """
+        resp = await self.client.post(
+            "/v1/memories/erase",
+            json={"path_prefix": path_prefix, "dry_run": dry_run, "reason": reason},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    async def verify_audit(self):
+        """Recompute the tenant's tamper-evident audit hash chain (GET /v1/audit/verify)."""
+        resp = await self.client.get("/v1/audit/verify")
+        resp.raise_for_status()
+        return resp.json()
+
+    async def export_audit(
+        self,
+        from_seq: int | None = None,
+        to_seq: int | None = None,
+        limit: int | None = None,
+    ) -> str:
+        """Download a sealed JSONL audit export (GET /v1/audit/export, admin role).
+
+        Returns the raw NDJSON text: one ``entry`` line per audit row followed by a
+        ``trailer`` line. Verify it offline with ``pcmi audit verify-export``.
+        """
+        params: dict[str, int] = {}
+        if from_seq is not None:
+            params["from_seq"] = from_seq
+        if to_seq is not None:
+            params["to_seq"] = to_seq
+        if limit is not None:
+            params["limit"] = limit
+        resp = await self.client.get("/v1/audit/export", params=params)
+        resp.raise_for_status()
+        return resp.text
 
     async def list_event_schemas(self):
         resp = await self.client.get("/v1/events/schemas")

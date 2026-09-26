@@ -75,6 +75,10 @@ type RetrieveRequest struct {
 
 	// DecayEnabled applies temporal recency decay in hybrid scoring (default true).
 	DecayEnabled *bool `json:"decay_enabled,omitempty"`
+
+	// Rerank opts a query retrieve out of LLM reranking with false. It has no
+	// effect unless the server runs with RERANK_ENABLED=true; nil = server default.
+	Rerank *bool `json:"rerank,omitempty"`
 }
 
 // UpdateImportanceRequest sets importance on the current version at path.
@@ -115,4 +119,7 @@ type RetrieveResponse struct {
 	// versions (see model.Cursor.Version).
 	NextCursor string `json:"next_cursor,omitempty"`
 	HasMore    bool   `json:"has_more,omitempty"`
+
+	// Reranked is true when an LLM reranker reordered the entries.
+	Reranked bool `json:"reranked,omitempty"`
 }

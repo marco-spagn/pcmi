@@ -30,6 +30,7 @@ import (
 	"github.com/marco-spagn/pcmi/internal/repository"
 	"github.com/marco-spagn/pcmi/internal/service"
 	"github.com/marco-spagn/pcmi/internal/telemetry"
+	"github.com/marco-spagn/pcmi/internal/usage"
 	"github.com/marco-spagn/pcmi/internal/version"
 	"github.com/marco-spagn/pcmi/internal/webhook"
 )
@@ -84,6 +85,12 @@ func main() {
 	webhookDispatch := webhook.NewDispatcher(db, cfg.WebhookMaxAttempts)
 	event.SetWebhookNotifier(webhookDispatch.NotifyMatching)
 
+	// Usage metering: buffer per-tenant token counters and flush them to
+	// llm_usage_daily (Prometheus counters are updated regardless).
+	usageAgg := usage.NewAggregator(db)
+	usage.SetRecorder(usageAgg)
+	go usageAgg.Run(ctx, time.Duration(cfg.UsageFlushIntervalSecs)*time.Second)
+
 	repo := repository.NewMemoryRepository(db, pools.Read)
 	embed, err := embedding.NewFromConfig(cfg)
 	if err != nil {
@@ -91,6 +98,7 @@ func main() {
 	}
 	dedupMode, _ := model.ParseDedupMode(cfg.DedupMode)
 	memSvc := service.NewMemoryService(repo, embed, dedupMode)
+	handler.ConfigureReranker(memSvc, cfg) // gRPC Retrieve shares the HTTP rerank setting
 
 	app := fiber.New(fiber.Config{
 		AppName: "PCMI API " + version.Tag,

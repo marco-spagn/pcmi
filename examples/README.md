@@ -2,6 +2,8 @@
 
 Reference clients that call the **HTTP API** from common orchestrators. They are not production SDKs; use [`sdk/python`](../../sdk/python) or [`sdk/typescript`](../../sdk/typescript) for typed clients when you do not need Celery/Temporal.
 
+> **Orchestration vs backend:** Each sample wraps store/retrieve as framework tools; the **LLM decides** when to call them and with which arguments (`path`, `content`, `query`). PCMI does not understand LangChain or other orchestrators — it receives **HTTP only**.
+
 | Directory | Description |
 |-----------|-------------|
 | [soc-incident-graph/](soc-incident-graph/) | Optional **SOC example** dataset (CSVs, generator, loader, scenarios) for the Cognitive Graph UI — not required for other domains. |
